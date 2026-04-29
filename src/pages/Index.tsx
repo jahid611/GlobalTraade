@@ -194,7 +194,13 @@ export default function Index() {
             transition={{ duration: 0.8 }}
             className="relative w-full max-w-[500px]"
           >
-            <img src="/rocket.png" alt="Fusée de lancement GlobalTrade" className="relative z-10 w-full h-auto" />
+            <Link to="/app" className="block group cursor-pointer" title="Accéder au globe interactif">
+              <img 
+                src="/rocket.png" 
+                alt="Fusée de lancement GlobalTrade" 
+                className="relative z-10 w-full h-auto transition-transform duration-500 group-hover:-translate-y-8 group-hover:scale-105 drop-shadow-2xl group-hover:drop-shadow-[0_30px_60px_rgba(168,85,247,0.5)]" 
+              />
+            </Link>
           </motion.div>
         </div>
       </section>
