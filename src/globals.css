@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 0 0% 10%;
+    /* Bleu Océan profond / Tech */
+    --primary: 221 83% 53%; 
+    --radius: 1.5rem;
+    
+    --glass-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 100%);
+    --glass-border-top: rgba(255, 255, 255, 0.3);
+    --glass-border-left: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  .dark {
+    --background: 240 10% 4%; 
+    --foreground: 0 0% 100%;
+    /* Bleu vibrant et lumineux pour le mode sombre */
+    --primary: 217 91% 60%;
+    
+    --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.01) 100%);
+    --glass-border-top: rgba(255, 255, 255, 0.25);
+    --glass-border-left: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+  }
+
+  html, body {
+    @apply font-sans bg-background text-foreground transition-colors duration-700 ease-in-out;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+.liquid-glass {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.liquid-glass-heavy {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.glass-panel { @apply liquid-glass-heavy rounded-[2.5rem]; }
+.glass-button {
+  @apply liquid-glass-heavy text-white font-medium rounded-full flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all duration-300;
+  background: rgba(255, 255, 255, 0.05);
+}
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-radix-collection-item] { @apply transition-colors duration-200; }
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+/* Scrollbar s'adapte dynamiquement à la couleur primaire */
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.4); border-radius: 10px; }
+.allow-select { -webkit-user-select: text !important; user-select: text !important; }
