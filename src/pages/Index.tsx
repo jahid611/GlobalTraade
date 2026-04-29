@@ -198,7 +198,7 @@ export default function Index() {
               <img 
                 src="/rocket.png" 
                 alt="Fusée de lancement GlobalTrade" 
-                className="relative z-10 w-full h-auto transition-transform duration-500 group-hover:-translate-y-8 group-hover:scale-105 drop-shadow-2xl group-hover:drop-shadow-[0_30px_60px_rgba(168,85,247,0.5)]" 
+                className="relative z-10 w-full h-auto transition-transform duration-500 group-hover:-translate-y-4" 
               />
             </Link>
           </motion.div>
