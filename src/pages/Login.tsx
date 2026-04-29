@@ -220,8 +220,8 @@ export default function Login() {
         <motion.div className={`w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 order-1 ${mode === 'signin' ? 'lg:order-2' : 'lg:order-1'} relative`}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/10 rounded-full blur-[100px] pointer-events-none hidden dark:block" />
           <div className="w-full max-w-[380px] flex flex-col relative z-20">
-            <div className="text-center mb-10 mt-16 lg:mt-0">
-              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-slate-900 dark:text-white mb-2">GlobalTrade</h1>
+            <div className="flex flex-col items-center text-center mb-10 mt-16 lg:mt-0">
+              <img src="/logo.png" alt="GlobalTrade" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
               <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signin' ? t('auth.signin') : t('auth.signup')}</h2>
             </div>
             <form onSubmit={handleAuth} className="flex flex-col gap-6">

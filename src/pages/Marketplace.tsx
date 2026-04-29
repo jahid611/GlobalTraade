@@ -134,7 +134,7 @@ export default function Marketplace() {
         <motion.div 
           animate={{ y: [0, -20, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[5%] right-[-15%] md:top-[10%] md:right-[5%] w-[220px] md:w-[450px] z-0 pointer-events-none opacity-40 md:opacity-100"
+          className="absolute top-[5%] right-[-15%] md:top-[10%] md:right-[5%] w-[220px] md:w-[450px] z-0 pointer-events-none opacity-100"
         >
           <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>

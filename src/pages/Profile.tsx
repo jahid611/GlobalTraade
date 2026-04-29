@@ -250,7 +250,7 @@ export default function Profile() {
         <motion.div 
           animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="fixed top-[12%] right-[-20%] md:top-[8%] md:right-[-5%] w-[200px] md:w-[380px] z-0 pointer-events-none opacity-40 md:opacity-100"
+          className="fixed top-[12%] right-[-20%] md:top-[8%] md:right-[-5%] w-[200px] md:w-[380px] z-0 pointer-events-none opacity-100"
         >
           <img src="/saturn.png" alt="Saturn" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>

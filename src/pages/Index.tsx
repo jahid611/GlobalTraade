@@ -76,15 +76,14 @@ export default function Index() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[8%] right-[-10%] md:top-[5%] md:right-[5%] w-[220px] md:w-[35vw] max-w-[500px] z-0 pointer-events-none opacity-30 md:opacity-100"
+          className="absolute top-[8%] right-[-10%] md:top-[5%] md:right-[5%] w-[220px] md:w-[35vw] max-w-[500px] z-0 pointer-events-none opacity-100"
         >
           <img src="/astronaut-monster.png" alt="Astronaut and Monster" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
-        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="relative z-10 text-[clamp(2.5rem,5vw,5.5rem)] font-light tracking-tight text-white mb-[3vh] leading-[1.1] max-w-5xl">
-          {t('index.hero.title1')} <br className="hidden md:block" />
-          <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">{t('index.hero.title2')}</span>
-        </motion.h1>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="relative z-10 flex justify-center mb-[4vh] w-full">
+          <img src="/logo.png" alt="GlobalTrade Logo" className="w-[200px] sm:w-[300px] md:w-[450px] lg:w-[500px] h-auto object-contain drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]" />
+        </motion.div>
 
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} className="relative z-10 text-[clamp(1rem,1.1vw,1.25rem)] text-white/90 mb-[6vh] max-w-3xl font-light px-[2vw] leading-relaxed">
           {t('index.hero.desc')}
