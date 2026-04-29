@@ -209,7 +209,7 @@ export default function Dashboard() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-5%] right-[-5%] md:top-[-10%] md:right-[2%] w-[160px] md:w-[320px] z-0 pointer-events-none opacity-100"
+          className="absolute top-[12vh] right-[-2%] md:top-[16vh] md:right-[2%] w-[160px] md:w-[320px] z-0 pointer-events-none opacity-100"
         >
           <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
