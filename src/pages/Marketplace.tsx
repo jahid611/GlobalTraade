@@ -131,9 +131,14 @@ export default function Marketplace() {
       <Navbar />
 
       <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
-        <div className="absolute top-[10%] right-[5%] w-[450px] z-0 pointer-events-none hidden lg:block">
-          <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto" />
-        </div>
+        <motion.div 
+          animate={{ y: [0, -20, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[5%] right-[-15%] md:top-[10%] md:right-[5%] w-[220px] md:w-[450px] z-0 pointer-events-none opacity-40 md:opacity-100"
+        >
+          <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
+        </motion.div>
+        
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-[8vw] lg:gap-[4vw] items-center mb-[12vh]">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-[4vh]">
             <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-light leading-[1.1] tracking-tighter text-white">

@@ -247,12 +247,15 @@ export default function Profile() {
 
       <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6">
         
-        {/* Saturn — top-right decorative, far from content */}
-        <div className="fixed top-[8%] right-[-5%] w-[380px] z-0 pointer-events-none hidden xl:block">
-          <img src="/saturn.png" alt="Saturn" className="w-full h-auto" />
-        </div>
+        <motion.div 
+          animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="fixed top-[12%] right-[-20%] md:top-[8%] md:right-[-5%] w-[200px] md:w-[380px] z-0 pointer-events-none opacity-40 md:opacity-100"
+        >
+          <img src="/saturn.png" alt="Saturn" className="w-full h-auto drop-shadow-2xl" />
+        </motion.div>
         
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-16">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-16 relative z-10">
           <Avatar className="w-28 h-28 border border-white/10 shrink-0">
             <AvatarImage src={metadata.avatar_url} className="object-cover" />
             <AvatarFallback className="bg-white/10 text-white/50 text-3xl font-light">{fullName.charAt(0)}</AvatarFallback>
@@ -360,7 +363,7 @@ export default function Profile() {
 
         {/* KYC Section — Own Profile Only */}
         {isOwnProfile && (
-          <div className="mb-10">
+          <div className="mb-10 relative z-10">
             {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && (
               <div className="liquid-glass rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-center gap-6 !shadow-none">
                 <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -455,7 +458,7 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="border-b border-white/10 flex flex-wrap gap-6 sm:gap-8 mb-10 overflow-x-auto custom-scrollbar">
+        <div className="border-b border-white/10 flex flex-wrap gap-6 sm:gap-8 mb-10 overflow-x-auto custom-scrollbar relative z-10">
           <button onClick={() => setActiveTab('listings')} className={`pb-4 text-sm font-medium tracking-wide transition-colors relative whitespace-nowrap ${activeTab === 'listings' ? 'text-white' : 'text-white/60 hover:text-white/80'}`}>
             {t('profile.tab_listings')}
             {activeTab === 'listings' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-px bg-white" />}
@@ -472,6 +475,7 @@ export default function Profile() {
           )}
         </div>
 
+        <div className="relative z-10">
         {activeTab === 'relations' ? (
           <div className="space-y-12">
             
@@ -561,7 +565,7 @@ export default function Profile() {
             )}
           </div>
         )}
-
+        </div>
       </main>
 
       <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} listing={chatListing} user={currentUser} />

@@ -204,10 +204,13 @@ export default function Dashboard() {
 
       <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20">
         
-        {/* Astronaut - bottom right, away from content */}
-        <div className="fixed bottom-[5%] right-[2%] w-[320px] z-0 pointer-events-none hidden xl:block">
-          <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto" />
-        </div>
+        <motion.div 
+          animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          className="fixed bottom-[-2%] right-[-5%] md:bottom-[5%] md:right-[2%] w-[160px] md:w-[320px] z-0 pointer-events-none opacity-40 md:opacity-100"
+        >
+          <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
+        </motion.div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 border-b border-white/5 pb-8">
           <div>

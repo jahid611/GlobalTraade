@@ -73,11 +73,13 @@ export default function Index() {
 
       <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[15vh] pb-[10vh]">
         
-
-
-        <div className="absolute top-[5%] right-[5%] w-[35vw] max-w-[500px] z-0 pointer-events-none hidden lg:block">
-          <img src="/astronaut-monster.png" alt="Astronaut and Monster" className="w-full h-auto" />
-        </div>
+        <motion.div 
+          animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[8%] right-[-10%] md:top-[5%] md:right-[5%] w-[220px] md:w-[35vw] max-w-[500px] z-0 pointer-events-none opacity-30 md:opacity-100"
+        >
+          <img src="/astronaut-monster.png" alt="Astronaut and Monster" className="w-full h-auto drop-shadow-2xl" />
+        </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="relative z-10 text-[clamp(2.5rem,5vw,5.5rem)] font-light tracking-tight text-white mb-[3vh] leading-[1.1] max-w-5xl">
           {t('index.hero.title1')} <br className="hidden md:block" />
