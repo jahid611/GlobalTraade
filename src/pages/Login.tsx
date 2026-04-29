@@ -7,36 +7,44 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 
-const DynamicBackground = () => (
-  <>
-    <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:hidden transition-colors duration-700">
-      <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-300/30 blur-[120px]" />
-      <motion.div animate={{ scale: [1, 1.3, 1], x: [0, -40, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-300/30 blur-[100px]" />
-      
-      {/* Astronaute (Mode Clair) */}
-      <motion.img 
-        src="/astronaut-login.png" 
-        alt="" 
-        animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
-        className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] opacity-40 pointer-events-none drop-shadow-2xl" 
-      />
-    </div>
-
-    <div className="fixed inset-0 z-0 overflow-hidden bg-[#2b2a2f] hidden dark:block transition-colors duration-700">
-      <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-      <motion.div animate={{ scale: [1, 1.3, 1], x: [0, -40, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-blue-500/20 blur-[100px]" />
-      
-      {/* Astronaute (Mode Sombre) */}
-      <motion.img 
-        src="/astronaut-login.png" 
-        alt="" 
-        animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
-        className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] opacity-[0.25] pointer-events-none drop-shadow-[0_0_50px_rgba(89,85,232,0.3)]" 
-      />
-    </div>
-  </>
+const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
+  <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:bg-[#2b2a2f] transition-colors duration-700">
+    {/* Orbes floues optimisées (fusion des modes clair et sombre pour éviter de doubler les calculs) */}
+    <motion.div 
+      animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }} 
+      transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
+      className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-300/40 dark:bg-primary/20 blur-[100px] sm:blur-[120px]" 
+      style={{ willChange: 'transform, opacity' }}
+    />
+    <motion.div 
+      animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }} 
+      transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} 
+      className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-300/40 dark:bg-blue-500/20 blur-[80px] sm:blur-[100px]" 
+      style={{ willChange: 'transform, opacity' }}
+    />
+    
+    {/* Astronaute animé selon le carrousel */}
+    <AnimatePresence>
+      {carouselIndex === 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: -60, scale: 0.95 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -60, scale: 0.95 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] pointer-events-none z-0"
+        >
+          <motion.img 
+            src="/astronaut-login.png" 
+            alt="Astronaut" 
+            animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
+            className="w-full h-auto"
+            style={{ willChange: 'transform' }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
 );
 
 type AuthMode = 'signin' | 'signup' | 'forgot_password' | 'reset_password';
@@ -114,7 +122,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <DynamicBackground />
+      <DynamicBackground carouselIndex={carouselIndex} />
 
       <div className="absolute top-6 left-6 z-[100] flex items-center gap-4">
         <Link to="/">
