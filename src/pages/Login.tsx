@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { ChevronLeft, Loader2, Sun, Moon, Check } from 'lucide-react';
+import { ChevronLeft, Loader2, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -12,11 +12,29 @@ const DynamicBackground = () => (
     <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:hidden transition-colors duration-700">
       <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-300/30 blur-[120px]" />
       <motion.div animate={{ scale: [1, 1.3, 1], x: [0, -40, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-300/30 blur-[100px]" />
+      
+      {/* Astronaute (Mode Clair) */}
+      <motion.img 
+        src="/astronaut-login.png" 
+        alt="" 
+        animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
+        className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] opacity-40 pointer-events-none drop-shadow-2xl" 
+      />
     </div>
 
     <div className="fixed inset-0 z-0 overflow-hidden bg-[#2b2a2f] hidden dark:block transition-colors duration-700">
       <motion.div animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
       <motion.div animate={{ scale: [1, 1.3, 1], x: [0, -40, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-blue-500/20 blur-[100px]" />
+      
+      {/* Astronaute (Mode Sombre) */}
+      <motion.img 
+        src="/astronaut-login.png" 
+        alt="" 
+        animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
+        className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] opacity-[0.25] pointer-events-none drop-shadow-[0_0_50px_rgba(89,85,232,0.3)]" 
+      />
     </div>
   </>
 );
