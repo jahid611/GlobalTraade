@@ -9,7 +9,7 @@ import { useTheme } from 'next-themes';
 
 const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
   <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:bg-[#2b2a2f] transition-colors duration-700">
-    {/* Orbes floues optimisées (fusion des modes clair et sombre pour éviter de doubler les calculs) */}
+    {/* Orbes floues optimisées */}
     <motion.div 
       animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }} 
       transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
@@ -23,7 +23,7 @@ const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
       style={{ willChange: 'transform, opacity' }}
     />
     
-    {/* Astronaute animé selon le carrousel */}
+    {/* Astronaute animé (sans aucun filtre, 100% opaque et net) */}
     <AnimatePresence>
       {carouselIndex === 0 && (
         <motion.div
@@ -163,26 +163,30 @@ export default function Login() {
           <div className="max-w-xl mx-auto lg:mx-0 w-full relative min-h-[550px] sm:min-h-[600px] flex flex-col justify-center">
             <AnimatePresence mode="wait">
               {carouselIndex === 0 ? (
-                <motion.div key={`text-${mode}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full">
+                <motion.div key={`text-${mode}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full relative z-10">
+                  
+                  {/* Halo très diffus pour garantir la lisibilité du texte sans créer de "carte" avec des bords durs */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-slate-100/90 dark:bg-[#2b2a2f]/85 blur-[80px] sm:blur-[100px] -z-10 pointer-events-none rounded-[100%]" />
+
                   {mode === 'signup' ? (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">
                         {t('auth.hero.title1')} <br/>
-                        <span className="font-medium text-primary">{t('auth.hero.title2')}</span>
+                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">{t('auth.hero.title2')}</span>
                       </h2>
-                      <p className="text-slate-600 dark:text-white/60 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12">{t('auth.hero.desc')}</p>
-                      <ul className="space-y-5 text-slate-700 dark:text-white/80 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed">
+                      <p className="text-slate-800 dark:text-white/90 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">{t('auth.hero.desc')}</p>
+                      <ul className="space-y-5 text-slate-800 dark:text-white/90 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.signup_f${i}`)}</li>)}
                       </ul>
                     </div>
                   ) : (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">
                         {t('auth.welcome.title1')} <br/>
-                        <span className="font-medium text-primary">{t('auth.welcome.title2')}</span>
+                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">{t('auth.welcome.title2')}</span>
                       </h2>
-                      <p className="text-slate-600 dark:text-white/60 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12">{t('auth.welcome.desc')}</p>
-                      <ul className="space-y-5 text-slate-700 dark:text-white/80 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed">
+                      <p className="text-slate-800 dark:text-white/90 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">{t('auth.welcome.desc')}</p>
+                      <ul className="space-y-5 text-slate-800 dark:text-white/90 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.login_f${i}`)}</li>)}
                       </ul>
                     </div>
