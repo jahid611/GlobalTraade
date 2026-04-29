@@ -165,8 +165,8 @@ export default function Login() {
               {carouselIndex === 0 ? (
                 <motion.div key={`text-${mode}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full relative z-10">
                   
-                  {/* Halo très diffus pour garantir la lisibilité du texte sans créer de "carte" avec des bords durs */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-slate-100/90 dark:bg-[#2b2a2f]/85 blur-[80px] sm:blur-[100px] -z-10 pointer-events-none rounded-[100%]" />
+                  {/* Halo fortement réduit pour ne plus baver sur l'astronaute */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[110%] bg-slate-100/40 dark:bg-[#2b2a2f]/40 blur-[50px] sm:blur-[60px] -z-10 pointer-events-none rounded-[100%]" />
 
                   {mode === 'signup' ? (
                     <div>
