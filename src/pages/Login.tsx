@@ -92,8 +92,24 @@ export default function Login() {
       const { error: signUpError } = await supabase.auth.signUp({ 
         email, password, options: { data: { full_name: fullName.trim() } }
       });
-      if (signUpError) setError(signUpError.message);
-      else navigate('/');
+      
+      if (signUpError) {
+        // HACK: Contournement pour Docker Local sans SMTP
+        // Si l'erreur concerne l'envoi d'email, l'utilisateur est déjà créé en base !
+        if (signUpError.message.includes('Error sending confirmation email') || signUpError.message.includes('email')) {
+          // On force la connexion puisque le Trigger SQL a validé le compte
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (!signInError) {
+            navigate('/');
+          } else {
+            setError(signUpError.message);
+          }
+        } else {
+          setError(signUpError.message);
+        }
+      } else {
+        navigate('/');
+      }
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) setError(signInError.message);
