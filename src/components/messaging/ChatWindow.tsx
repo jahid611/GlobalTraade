@@ -54,7 +54,9 @@ export function ChatWindow({
 
   useEffect(() => {
     setWorkflowSeen(localStorage.getItem(`workflow_seen_${activeConv?.id}`) === 'true');
+    setActiveTab('messages'); // reset tab on conv change
   }, [activeConv?.id]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function ChatWindow({
 
   const acceptedOffer = [...messages]
     .reverse()
-    .find(m => m.type === 'offer' && m.metadata?.status === 'accepted');
+    .find(m => (m.type === 'offer' || m.content.startsWith('OFFRE:')) && m.metadata?.status === 'accepted');
   
   const hasAcceptedOffer = !!acceptedOffer;
 
@@ -85,16 +87,16 @@ export function ChatWindow({
     }).format(amount);
 
     return (
-      <div className={`w-full max-w-sm rounded-3xl p-6 border transition-all duration-500 hover:shadow-2xl ${
+      <div className={`w-full max-w-sm rounded-3xl p-6 border transition-all duration-500 hover:shadow-xl ${
         isMine ? 'liquid-glass bg-primary/10 border-primary/30 ml-auto shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
       }`}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white/60'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/10 text-white/60 border border-white/10'}`}>
               <Handshake className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-medium text-white/40 uppercase tracking-[0.2em]">
+              <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
                 {isMine ? t('msg.your_offer') : `${t('msg.offer_from')} ${activeConv.contact_name}`}
               </p>
               <p className="text-sm font-medium text-white">{t('msg.negotiation')}</p>
@@ -113,7 +115,7 @@ export function ChatWindow({
           <div className="text-3xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing')}:</span>
-            <span className="text-[10px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase">
+            <span className="text-[10px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
               {financing === 'cash' ? t('msg.financing_cash') : t('msg.financing_loan')}
             </span>
           </div>
@@ -172,18 +174,18 @@ export function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#2b2a2f]/40 backdrop-blur-xl">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
+        <div className="flex items-center gap-3 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Avatar className="h-10 w-10 border-none bg-white/5">
+          <Avatar className="h-10 w-10 border border-white/10 bg-white/5">
             <AvatarImage src={activeConv.avatar_url} className="object-cover" />
-            <AvatarFallback>{activeConv.contact_name[0]}</AvatarFallback>
+            <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -191,11 +193,11 @@ export function ChatWindow({
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest font-light truncate">{activeConv.listing_name}</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate">{activeConv.listing_name}</p>
               {hasAcceptedOffer && (
                 <>
                   <span className="text-white/20 text-[10px]">•</span>
-                  <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                  <p className="text-[9px] text-emerald-400 font-bold uppercase flex items-center gap-1">
                     <TrendingUp className="w-2.5 h-2.5" /> 
                     {t('msg.accepted_offer_at')} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
                   </p>
@@ -205,21 +207,21 @@ export function ChatWindow({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {contactStatus === 'none' && (
-            <Button onClick={onAddContact} variant="outline" size="sm" className="rounded-xl liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[11px] h-9 px-4 transition-all">
+            <Button onClick={onAddContact} variant="outline" size="sm" className="hidden sm:flex rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[11px] h-9 px-4 transition-all">
               <UserPlus className="w-3.5 h-3.5 mr-2" /> {t('profile.connect')}
             </Button>
           )}
-          <Button onClick={onOpenOffer} size="sm" className="rounded-xl bg-primary hover:bg-primary/90 text-white text-[11px] h-9 px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-3.5 h-3.5 mr-2" /> {t('modal.contact_seller')}
+          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[11px] h-9 px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
+            <Handshake className="w-3.5 h-3.5 sm:mr-2" /> <span className="hidden sm:inline">{t('modal.contact_seller')}</span>
           </Button>
         </div>
       </div>
 
       {/* Tab Selector */}
-      <div className="px-6 py-3 border-b border-white/5 flex justify-center shrink-0">
-        <div className="bg-white/5 p-1 rounded-xl flex gap-1">
+      <div className="px-4 sm:px-6 py-3 border-b border-white/5 flex justify-center shrink-0 bg-black/10">
+        <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
           <button 
             onClick={() => setActiveTab('messages')}
             className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -256,7 +258,7 @@ export function ChatWindow({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6"
+              className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-6"
             >
               <div className="mb-8">
                 <DealTimeline 
@@ -270,13 +272,16 @@ export function ChatWindow({
               {messages.map((msg, i) => {
                 const isMine = msg.sender_id === userId;
                 
-                if (msg.type === 'offer') {
+                // Vérification robuste : on affiche la carte si le type est 'offer' OU si le contenu commence par 'OFFRE:' (pour contourner tout décalage d'optimistic UI)
+                const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
+                
+                if (isOffer) {
                   return (
                     <motion.div 
                       key={msg.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="w-full py-4"
+                      className="w-full py-4 flex"
                     >
                       {renderOfferCard(msg, isMine)}
                     </motion.div>
@@ -291,7 +296,7 @@ export function ChatWindow({
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[85%] sm:max-w-[75%] px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed shadow-sm ${
+                    <div className={`max-w-[85%] sm:max-w-[75%] px-5 py-3 rounded-2xl text-[14px] sm:text-[15px] font-light leading-relaxed shadow-sm ${
                       isMine 
                         ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
                         : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
@@ -304,7 +309,7 @@ export function ChatWindow({
                   </motion.div>
                 );
               })}
-              <div ref={scrollRef} />
+              <div ref={scrollRef} className="h-4" />
             </motion.div>
           ) : (
             <motion.div 
@@ -312,7 +317,7 @@ export function ChatWindow({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-6"
+              className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6"
             >
               {hasAcceptedOffer ? (
                 <DueDiligenceTracker 
@@ -321,7 +326,7 @@ export function ChatWindow({
                   sellerId={activeConv.listing_owner_id === userId ? userId : activeConv.other_user_id}
                 />
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-4">
                   <ClipboardCheck className="w-12 h-12 mb-4 stroke-1" />
                   <h3 className="text-sm font-medium mb-1">{t('msg.workflow_not_activated')}</h3>
                   <p className="text-xs max-w-xs">{t('msg.workflow_not_activated_desc')}</p>
@@ -334,18 +339,18 @@ export function ChatWindow({
 
       {/* Input Area */}
       {activeTab === 'messages' && (
-        <div className="p-4 sm:p-6 bg-transparent shrink-0">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl p-2 shadow-lg">
+        <div className="p-3 sm:p-4 bg-transparent shrink-0 border-t border-white/5">
+          <form onSubmit={handleSubmit} className="flex items-center gap-3 liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl p-1.5 shadow-lg">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('msg.placeholder_short') || "Votre message..."}
-              className="flex-1 bg-transparent border-none px-4 py-2 text-[15px] font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
+              className="flex-1 bg-transparent border-none px-4 py-2 sm:py-3 text-[15px] font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
             />
             <button 
               type="submit" 
               disabled={!input.trim()}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+              className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0"
             >
               <Send className="w-4 h-4 ml-0.5" />
             </button>
