@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Globe, Heart, Users, Maximize, Receipt, CheckCircle2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -118,7 +118,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
                 </span>
                 <span className="text-white/20 hidden sm:inline">•</span>
                 <span className={`text-[9px] uppercase tracking-widest flex items-center gap-1.5 ${(!listing.hide_siret || isOwner) ? 'text-white/40' : 'text-emerald-400/80 font-medium'}`}>
-                  {(!listing.hide_siret) ? `${t('card.siret_prefix')} ${listing.siret}` : isOwner ? <span className="flex items-center gap-1.5">{t('card.siret_prefix')} {listing.siret}<span className="text-white/40 normal-case tracking-normal italic">{t('card.hidden')}</span></span> : <><CheckCircle2 className="w-3 h-3" /> {t('card.siret_prefix')} {t('card.verified')}</>}
+                  {(!listing.hide_siret) ? `${t('card.siret_prefix')} ${listing.siret}` : isOwner ? <span className="flex items-center gap-1.5">{t('card.siret_prefix')} {listing.siret}<span className="text-white/40 normal-case tracking-normal italic">{t('card.hidden')}</span></span> : <><CheckCircle className="w-3 h-3" /> {t('card.siret_prefix')} {t('card.verified')}</>}
                 </span>
               </div>
             </div>
@@ -127,7 +127,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
           <div className="flex items-center gap-2 shrink-0">
             {!isOwner && (
               <button onClick={toggleFavorite} className="w-8 h-8 flex items-center justify-center transition-colors text-white/30 hover:text-white">
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} weight={isFavorite ? 'fill' : 'regular'} />
               </button>
             )}
             {actions && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
@@ -148,13 +148,13 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
                   onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === 0 ? gallery.length - 1 : i - 1); }}
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/10 hover:bg-white/20 hover:scale-110"
                 >
-                  <ChevronLeft size={16} className="mr-0.5" />
+                  <CaretLeft size={16} className="mr-0.5" />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === gallery.length - 1 ? 0 : i + 1); }}
                   className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/10 hover:bg-white/20 hover:scale-110"
                 >
-                  <ChevronRight size={16} className="ml-0.5" />
+                  <CaretRight size={16} className="ml-0.5" />
                 </button>
                 
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
@@ -182,7 +182,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
 
         <div className="flex justify-between items-center mb-5 px-1 text-white/50">
           <div className="flex items-center gap-1.5 group-hover:text-white/80 transition-colors">
-            <Maximize className="w-3.5 h-3.5" />
+            <CornersOut className="w-3.5 h-3.5" />
             <span className="text-[11px] font-light">{listing.surface ? `${listing.surface} m²` : '-'}</span>
           </div>
           <div className="flex items-center gap-1.5 group-hover:text-white/80 transition-colors">

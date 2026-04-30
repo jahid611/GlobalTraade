@@ -11,7 +11,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
-import { ShieldCheck, Zap, Globe, TrendingUp } from 'lucide-react';
+import { ShieldCheck, Lightning, Globe, TrendUp } from 'phosphor-react';
 
 const MARQUEE_INDUSTRIES = INDUSTRIES.slice(0, 15);
 
@@ -53,9 +53,9 @@ export default function Index() {
 
   const premiumBenefits = [
     { title: t('premium.benefit1.title'), desc: t('premium.benefit1.desc'), icon: ShieldCheck, color: 'text-blue-400' },
-    { title: t('premium.benefit2.title'), desc: t('premium.benefit2.desc'), icon: Zap, color: 'text-primary' },
+    { title: t('premium.benefit2.title'), desc: t('premium.benefit2.desc'), icon: Lightning, color: 'text-primary' },
     { title: t('premium.benefit3.title'), desc: t('premium.benefit3.desc'), icon: Globe, color: 'text-emerald-400' },
-    { title: t('premium.benefit4.title'), desc: t('premium.benefit4.desc'), icon: TrendingUp, color: 'text-amber-400' },
+    { title: t('premium.benefit4.title'), desc: t('premium.benefit4.desc'), icon: TrendUp, color: 'text-amber-400' },
   ];
 
   return (
@@ -228,22 +228,25 @@ export default function Index() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {premiumBenefits.map((benefit, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="liquid-glass p-8 rounded-[2rem] border-white/10 flex flex-col items-start text-left group hover:border-primary/40 transition-all duration-500"
-            >
-              <div className={`p-3 rounded-2xl bg-white/5 mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-500`}>
-                <benefit.icon size={24} />
-              </div>
-              <h3 className="text-xl font-medium text-white mb-3">{benefit.title}</h3>
-              <p className="text-white/50 font-light text-sm leading-relaxed">{benefit.desc}</p>
-            </motion.div>
-          ))}
+          {premiumBenefits.map((benefit, i) => {
+            const Icon = benefit.icon;
+            return (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="liquid-glass p-8 rounded-[2rem] border-white/10 flex flex-col items-start text-left group hover:border-primary/40 transition-all duration-500"
+              >
+                <div className={`p-3 rounded-2xl bg-white/5 mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-500`}>
+                  <Icon size={24} />
+                </div>
+                <h3 className="text-xl font-medium text-white mb-3">{benefit.title}</h3>
+                <p className="text-white/50 font-light text-sm leading-relaxed">{benefit.desc}</p>
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="flex justify-center">

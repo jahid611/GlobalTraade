@@ -4,20 +4,20 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  Menu,
+  List,
   X,
-  MessageCircle,
-  LogOut,
-  Settings,
+  ChatCircle,
+  SignOut,
+  Gear,
   User as UserIcon,
-  Home,
+  House,
   Globe,
-  Store,
-  LayoutDashboard,
+  Storefront,
+  SquaresFour,
   Sun,
   Moon,
-  Languages,
-} from "lucide-react";
+  Translate,
+} from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -52,8 +52,8 @@ export function Navbar() {
   useScrollLock(isMobileMenuOpen);
 
   const NAV_LINKS = [
-    { name: t("nav.market"), path: "/marketplace", icon: Store },
-    { name: t("nav.dashboard"), path: "/dashboard", icon: LayoutDashboard },
+    { name: t("nav.market"), path: "/marketplace", icon: Storefront },
+    { name: t("nav.dashboard"), path: "/dashboard", icon: SquaresFour },
   ];
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export function Navbar() {
         onClick={() => navigate("/")}
         className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center transition-all text-sm font-light"
       >
-        <Home className="mr-3 h-4 w-4 text-white/70" /> {t("nav.home")}
+        <House className="mr-3 h-4 w-4 text-white/70" /> {t("nav.home")}
       </DropdownMenuItem>
       <DropdownMenuSeparator className="bg-white/10 my-1" />
       {user ? (
@@ -121,7 +121,7 @@ export function Navbar() {
             onClick={() => navigate("/settings")}
             className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center transition-all text-sm font-light"
           >
-            <Settings className="mr-3 h-4 w-4 text-primary" />{" "}
+            <Gear className="mr-3 h-4 w-4 text-primary" />{" "}
             {t("nav.settings")}
           </DropdownMenuItem>
         </>
@@ -140,7 +140,7 @@ export function Navbar() {
         className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center justify-between transition-all text-sm font-light"
       >
         <div className="flex items-center">
-          <Languages className="mr-3 h-4 w-4 text-blue-400" />
+          <Translate className="mr-3 h-4 w-4 text-blue-400" />
           {t("lang.switch")}
         </div>
         <img
@@ -171,7 +171,7 @@ export function Navbar() {
             onClick={handleLogout}
             className="text-red-400 rounded-xl px-4 py-3 cursor-pointer hover:bg-red-500/20 flex items-center transition-all text-sm font-light"
           >
-            <LogOut className="mr-3 h-4 w-4" /> {t("nav.logout")}
+            <SignOut className="mr-3 h-4 w-4" /> {t("nav.logout")}
           </DropdownMenuItem>
         </>
       )}
@@ -206,7 +206,7 @@ export function Navbar() {
                   className="flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all"
                   title={t("nav.home")}
                 >
-                  <Home className="w-[18px] h-[18px]" />
+                  <House className="w-[18px] h-[18px]" />
                 </Link>
               )}
 
@@ -273,9 +273,9 @@ export function Navbar() {
                   to="/messages"
                   className="hidden sm:flex relative items-center justify-center text-white/60 hover:text-white transition-colors outline-none group p-1.5 sm:p-2 cursor-pointer"
                 >
-                  <MessageCircle
+                  <ChatCircle
                     className="w-5 h-5 sm:w-[22px] sm:h-[22px] group-hover:scale-110 transition-transform duration-300"
-                    strokeWidth={1.5}
+                    weight="regular"
                   />
                   {hasUnread && (
                     <span className="absolute top-1 right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
@@ -340,7 +340,7 @@ export function Navbar() {
               onClick={() => setIsMobileMenuOpen(true)}
               className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors pointer-events-auto ml-1"
             >
-              <Menu className="w-5 h-5" />
+              <List className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -384,7 +384,7 @@ export function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-2xl font-medium text-white tracking-tight flex items-center gap-4"
               >
-                <Home className="w-6 h-6 text-white/50" /> {t("nav.home")}
+                <House className="w-6 h-6 text-white/50" /> {t("nav.home")}
               </Link>
               <Link
                 to="/app"
@@ -423,7 +423,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="text-2xl font-light text-white/80 hover:text-white transition-colors flex items-center gap-4"
                   >
-                    <MessageCircle className="w-6 h-6 opacity-50" />{" "}
+                    <ChatCircle className="w-6 h-6 opacity-50" />{" "}
                     {t("nav.messages")}{" "}
                     {hasUnread && (
                       <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)]" />

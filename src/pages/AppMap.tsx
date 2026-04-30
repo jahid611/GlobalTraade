@@ -6,7 +6,7 @@ import { BusinessModal } from '@/components/BusinessModal';
 import { ListingForm } from '@/components/ListingForm';
 import { ChatPanel } from '@/components/ChatPanel';
 import { SidebarMessaging } from '@/components/SidebarMessaging';
-import { Plus, ChevronLeft, MessageSquare, Store, Home, User as UserIcon, Settings, Check, ChevronDown, Sun, Moon, Languages } from 'lucide-react';
+import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
@@ -121,7 +121,7 @@ export default function AppMap() {
   const renderLogoMenuContent = () => (
     <>
       <DropdownMenuItem onClick={() => navigate('/')} className={menuItemClass}>
-        <Home className="mr-3 h-4 w-4" /> {t('nav.home')}
+        <House className="mr-3 h-4 w-4" /> {t('nav.home')}
       </DropdownMenuItem>
       <DropdownMenuSeparator className="bg-white/20 my-1" />
       {user ? (
@@ -130,7 +130,7 @@ export default function AppMap() {
             <UserIcon className="mr-3 h-4 w-4" /> {t('nav.profile')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/settings')} className={menuItemClass}>
-            <Settings className="mr-3 h-4 w-4" /> {t('nav.settings')}
+            <Gear className="mr-3 h-4 w-4" /> {t('nav.settings')}
           </DropdownMenuItem>
         </>
       ) : (
@@ -142,7 +142,7 @@ export default function AppMap() {
       
       <DropdownMenuItem onClick={toggleLanguage} className={`${menuItemClass} justify-between`}>
         <div className="flex items-center">
-          <Languages className="mr-3 h-4 w-4 text-blue-400" />
+          <Translate className="mr-3 h-4 w-4 text-blue-400" />
           {t('lang.switch')}
         </div>
         <img
@@ -169,11 +169,11 @@ export default function AppMap() {
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
                 <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 bg-black/30 text-white" title="Marketplace">
-                  <Store className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  <Storefront className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
               </Link>
               <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 text-white/80 hover:text-white bg-black/30" title="Retour">
-                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <CaretLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
 
               {/* Logo pour Desktop, placé juste à côté des contrôles */}
@@ -205,7 +205,7 @@ export default function AppMap() {
                 <>
                   <NotificationsMenu user={user} />
                   <button onClick={() => setIsSidebarMessagingOpen(true)} className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 liquid-glass bg-black/30 text-white/80 hover:text-white hover:border-white/40 transition-all outline-none group cursor-pointer">
-                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
+                    <ChatTeardrop className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
                     {hasUnread && (
                       <span className="absolute top-2 right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
                     )}
@@ -247,7 +247,7 @@ export default function AppMap() {
                 <span className="truncate">
                   {selectedIndustries.length === 0 ? t('smart.all_sectors') : `${selectedIndustries.length} sélection(s)`}
                 </span>
-                <ChevronDown className="w-4 h-4 opacity-80 ml-2 shrink-0 text-white" />
+                <CaretDown className="w-4 h-4 opacity-80 ml-2 shrink-0 text-white" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[200px] sm:w-48 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 text-white rounded-xl z-[100] max-h-[40vh] overflow-y-auto custom-scrollbar">

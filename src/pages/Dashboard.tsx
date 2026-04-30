@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Trash2, Edit, Eye, User as UserIcon, Heart, TrendingUp, MessageSquare, Users, ShieldCheck, Crown } from 'lucide-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -16,7 +16,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
-import { Sparkles, Target, Activity } from 'lucide-react';
 import { MarketPulse } from '@/components/MarketPulse';
 import { LiveActivityFeed } from '@/components/LiveActivityFeed';
 import { OfferComparator } from '@/components/OfferComparator';
@@ -228,7 +227,7 @@ export default function Dashboard() {
             </p>
           </div>
           <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-12 px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105">
-            <Store className="w-4 h-4 mr-2" /> {t('dash.list_company')}
+            <Storefront className="w-4 h-4 mr-2" /> {t('dash.list_company')}
           </Button>
         </div>
 
@@ -263,7 +262,7 @@ export default function Dashboard() {
           <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:bg-white/[0.04] transition-all duration-500 cursor-pointer" onClick={() => navigate('/messages')} role="button">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 border border-white/10 group-hover:border-white/30 transition-colors">
-              <MessageSquare className="w-6 h-6 text-white/80" />
+              <ChatTeardrop className="w-6 h-6 text-white/80" />
             </div>
             <p className="text-4xl font-light text-white mb-2 tracking-tight">{messagesCount}</p>
             <span className="text-[10px] uppercase tracking-widest text-white/50 font-medium mb-2">{t('dash.negotiations')}</span>
@@ -356,7 +355,7 @@ export default function Dashboard() {
           <div className="mb-20">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center border border-primary/30 relative">
-                <Sparkles className="w-6 h-6 text-primary" />
+                <Sparkle className="w-6 h-6 text-primary" />
                 <span className="absolute top-1 right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
@@ -409,7 +408,7 @@ export default function Dashboard() {
             {myListings.length === 0 ? (
               <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-16 text-center max-w-3xl mx-auto flex flex-col items-center hover:bg-white/[0.04] transition-colors duration-500">
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/10">
-                  <Store className="w-6 h-6 text-white/40" />
+                  <Storefront className="w-6 h-6 text-white/40" />
                 </div>
                 <h3 className="text-2xl font-light mb-3 text-white">{t('dash.no_sales_title')}</h3>
                 <p className="text-white/40 font-light mb-8 max-w-md leading-relaxed text-sm">
@@ -425,8 +424,8 @@ export default function Dashboard() {
                   <BusinessCard key={listing.id} listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
-                        <button className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><Edit className="w-4 h-4" /></button>
-                        <button className="p-2 rounded-full text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash2 className="w-4 h-4" /></button>
+                        <button className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-4 h-4" /></button>
+                        <button className="p-2 rounded-full text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-4 h-4" /></button>
                       </div>
                     }
                   />
