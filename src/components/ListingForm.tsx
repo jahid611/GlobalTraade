@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, Loader2, ImageIcon, ChevronDown, Check, UploadCloud, Info, ShieldAlert } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Loader2, ImageIcon, ChevronDown, Check, UploadCloud, Info, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
@@ -43,6 +43,11 @@ const getListingSchema = (t: any) => {
       .optional().nullable().or(z.literal("")),
     revenue_n2: z.union([z.number().min(0, t('val.rev_min')), z.literal("")]).optional().nullable(),
     revenue_n3: z.union([z.number().min(0, t('val.rev_min')), z.literal("")]).optional().nullable(),
+    // Nouveaux champs Elite
+    management_type: z.string().optional().nullable().or(z.literal("")),
+    client_concentration: z.string().optional().nullable().or(z.literal("")),
+    digital_maturity: z.string().optional().nullable().or(z.literal("")),
+    market_trend: z.string().optional().nullable().or(z.literal("")),
   });
 };
 
@@ -132,7 +137,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
         setLogoBase64(listingToEdit.logo_url || null);
         setGalleryImages(listingToEdit.image_urls || []);
       } else {
-        reset({ name: "", siret: "", hide_siret: false, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any });
+        reset({ name: "", siret: "", hide_siret: false, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "" });
         setAddressQuery(""); setAddressSelected(false); setLogoBase64(null); setGalleryImages([]);
       }
     }
@@ -194,8 +199,10 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     if (step === 1) fields = ['name', 'siret', 'industry'];
     else if (step === 2) fields = ['address', 'lat', 'lng'];
     else if (step === 3) fields = ['price', 'revenue_n1', 'ebitda'];
+    else if (step === 4) fields = ['description', 'lease_details'];
+    
     const isValid = await trigger(fields);
-    if (isValid) { setDirection(1); setStep(s => Math.min(4, s + 1)); }
+    if (isValid) { setDirection(1); setStep(s => Math.min(5, s + 1)); }
   };
 
   const handlePrevStep = () => { setDirection(-1); setStep(s => Math.max(1, s - 1)); };
@@ -207,7 +214,6 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Erreur session. Veuillez vous reconnecter.");
       
-      // Sécurité Frontend : Rejeter immédiatement si l'utilisateur tente d'éditer une annonce qui ne lui appartient pas
       if (listingToEdit && listingToEdit.owner_id !== session.user.id) {
         throw new Error("Action non autorisée. Vous n'êtes pas le propriétaire de cette annonce.");
       }
@@ -247,6 +253,8 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     `w-full bg-transparent border-b pb-2 pt-4 text-lg font-light focus:outline-none transition-colors rounded-none resize-none ` + 
     (hasError ? 'border-red-500 text-red-200 focus:border-red-400 placeholder:text-red-500/30' : 'border-white/20 text-white focus:border-primary placeholder:text-white/20');
   
+  const getSelectClass = () => `w-full bg-[#1c1c1e] border-b border-white/20 pb-2 pt-2 text-lg font-light focus:outline-none transition-colors rounded-none px-0 text-white focus:border-primary`;
+
   const labelClass = "text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/70 block";
 
   const Hint = ({ text }: { text: string }) => (
@@ -550,6 +558,70 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                   </div>
                 </div>
               )}
+
+              {/* ETAPE 5: Capital Immatériel / Critères Elite */}
+              {step === 5 && (
+                <div className="w-full space-y-12">
+                  <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center border border-purple-500/30 shadow-inner">
+                        <Sparkles className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <h2 className="text-3xl sm:text-5xl font-light text-white tracking-tight">Capital Immatériel</h2>
+                    </div>
+                    <p className="text-base text-white/50 font-light mt-4">
+                      Ces informations permettent à notre IA M&A d'évaluer la qualité opérationnelle de votre entreprise. 
+                      Ce sont les critères les plus regardés par les repreneurs qualifiés.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div>
+                      <label className={labelClass}>Modèle de Management</label>
+                      <select {...register('management_type')} className={getSelectClass()}>
+                        <option value="">Sélectionnez...</option>
+                        <option value="autonomous">Équipe autonome (Le dirigeant est remplaçable)</option>
+                        <option value="dependent">Forte dépendance au dirigeant (Savoir-faire clé)</option>
+                        <option value="family">Entreprise familiale (Plusieurs membres impliqués)</option>
+                      </select>
+                      <Hint text="Une équipe autonome augmente significativement la valorisation." />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Concentration de la Clientèle</label>
+                      <select {...register('client_concentration')} className={getSelectClass()}>
+                        <option value="">Sélectionnez...</option>
+                        <option value="diversified">Clientèle très diversifiée (B2C ou multi-comptes)</option>
+                        <option value="medium">Dépendance modérée (Top 5 clients = 30% du CA)</option>
+                        <option value="high">Forte dépendance (Top 3 clients = 50%+ du CA)</option>
+                      </select>
+                      <Hint text="Une forte dépendance client représente un risque lors d'une reprise." />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Maturité Digitale</label>
+                      <select {...register('digital_maturity')} className={getSelectClass()}>
+                        <option value="">Sélectionnez...</option>
+                        <option value="high">Élevée (CRM, e-commerce, process automatisés)</option>
+                        <option value="medium">Standard (Site web vitrine, compta digitalisée)</option>
+                        <option value="low">Faible (Processus principalement manuels)</option>
+                      </select>
+                      <Hint text="Les entreprises digitalisées sont particulièrement prisées." />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Dynamique de Marché</label>
+                      <select {...register('market_trend')} className={getSelectClass()}>
+                        <option value="">Sélectionnez...</option>
+                        <option value="growing">En forte croissance / Niche très porteuse</option>
+                        <option value="stable">Marché mature et stable</option>
+                        <option value="declining">Marché en contraction / À réinventer</option>
+                      </select>
+                      <Hint text="Soyez honnête, un marché en contraction peut attirer des spécialistes du retournement." />
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -562,7 +634,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
               <ChevronLeft className="w-5 h-5" />
             </Button>
           )}
-          {step < 4 ? (
+          {step < 5 ? (
             <Button onClick={handleNextStep} className="w-fit h-12 px-6 sm:px-8 rounded-full liquid-glass border border-white/20 text-white font-light hover:border-white/40 transition-all flex items-center gap-2 text-sm">
               {t('form.next')} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -573,7 +645,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
           )}
         </div>
         <div className="flex gap-3 pointer-events-auto mt-2">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className={`h-1 transition-all duration-500 rounded-full ${step === i ? 'w-8 bg-primary' : 'w-2 bg-white/20'}`} />
           ))}
         </div>
