@@ -44,8 +44,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<string | null>('governance');
-  
-  const dealId = `${buyerId}_${listingId}`;
 
   const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
     governance: { icon: Building, label: t('dd.governance'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
@@ -68,7 +66,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       const { data, error } = await supabase
         .from('due_diligence_tasks')
         .select('*')
-        .eq('deal_id', dealId)
+        .eq('listing_id', listingId)
+        .eq('buyer_id', buyerId)
         .order('created_at', { ascending: true });
 
       if (!error && data) {
@@ -115,7 +114,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     ];
 
     const tasksToInsert = defaultTasks.map(tk => ({
-      deal_id: dealId,
       listing_id: listingId,
       buyer_id: buyerId,
       seller_id: sellerId,
@@ -149,7 +147,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     }
 
     const { data, error } = await supabase.from('due_diligence_tasks').insert([{
-      deal_id: dealId,
       listing_id: listingId,
       buyer_id: buyerId,
       seller_id: sellerId,
