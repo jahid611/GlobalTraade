@@ -32,7 +32,7 @@
 
   html, body {
     @apply font-sans bg-background text-foreground transition-colors duration-700 ease-in-out;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Instrument Sans', sans-serif;
   }
 }
 
