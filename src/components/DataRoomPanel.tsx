@@ -42,51 +42,97 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
   const fetchData = async () => {
     setLoading(true);
-    if (!isOwner) {
-      const { data: nda } = await supabase
-        .from('ndas')
-        .select('status')
-        .eq('listing_id', listing.id)
-        .eq('buyer_id', user.id)
-        .maybeSingle();
-      
-      setNdaStatus(nda?.status || null);
+    try {
+      if (!isOwner) {
+        const { data: nda } = await supabase
+          .from('ndas')
+          .select('status')
+          .eq('listing_id', listing.id)
+          .eq('buyer_id', user.id)
+          .maybeSingle();
+        
+        setNdaStatus(nda?.status || null);
 
-      if (nda?.status === 'signed') {
+        if (nda?.status === 'signed') {
+          const { data: docs } = await supabase
+            .from('vdr_documents')
+            .select('*')
+            .eq('listing_id', listing.id)
+            .order('created_at', { ascending: false });
+          setDocuments(docs || []);
+        }
+      } else {
+        // Mode Propriétaire : On récupère les docs, puis on fait le lien avec la table publique "profiles"
         const { data: docs } = await supabase
           .from('vdr_documents')
           .select('*')
           .eq('listing_id', listing.id)
           .order('created_at', { ascending: false });
         setDocuments(docs || []);
-      }
-    } else {
-      const { data: docs } = await supabase
-        .from('vdr_documents')
-        .select('*')
-        .eq('listing_id', listing.id)
-        .order('created_at', { ascending: false });
-      setDocuments(docs || []);
 
-      const { data: ndas } = await supabase
-        .from('ndas')
-        .select('*, buyer:buyer_id(id, email, raw_user_meta_data)')
-        .eq('listing_id', listing.id)
-        .eq('status', 'signed')
-        .order('signed_at', { ascending: false });
-      setBuyersWithNda(ndas || []);
+        // 1. Récupération des NDAs
+        const { data: ndas, error: ndaError } = await supabase
+          .from('ndas')
+          .select('*')
+          .eq('listing_id', listing.id)
+          .eq('status', 'signed')
+          .order('signed_at', { ascending: false });
+        
+        if (ndaError) console.error("Erreur NDA:", ndaError);
 
-      if (docs && docs.length > 0) {
-        const docIds = docs.map(d => d.id);
-        const { data: logs } = await supabase
-          .from('vdr_access_logs')
-          .select('*, viewer:viewer_id(id, raw_user_meta_data), document:document_id(name)')
-          .in('document_id', docIds)
-          .order('created_at', { ascending: false });
-        setAccessLogs(logs || []);
+        // 2. Récupération des Logs d'accès
+        let logs: any[] = [];
+        if (docs && docs.length > 0) {
+          const docIds = docs.map(d => d.id);
+          const { data: rawLogs, error: logError } = await supabase
+            .from('vdr_access_logs')
+            .select('*')
+            .in('document_id', docIds)
+            .order('created_at', { ascending: false });
+          if (logError) console.error("Erreur Logs:", logError);
+          logs = rawLogs || [];
+        }
+
+        // 3. Récupération manuelle des Profils pour contourner les restrictions sur auth.users
+        const profileIds = new Set([
+          ...(ndas || []).map(n => n.buyer_id),
+          ...logs.map(l => l.viewer_id)
+        ].filter(Boolean));
+
+        let profilesMap = new Map();
+        if (profileIds.size > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', Array.from(profileIds));
+          
+          if (profiles) {
+            profilesMap = new Map(profiles.map(p => [p.id, p]));
+          }
+        }
+
+        // 4. On assemble les données pour l'affichage
+        const enrichedNdas = (ndas || []).map(n => ({
+          ...n,
+          buyer: profilesMap.get(n.buyer_id) || null
+        }));
+        setBuyersWithNda(enrichedNdas);
+
+        const enrichedLogs = logs.map(l => {
+          const doc = docs?.find(d => d.id === l.document_id);
+          return {
+            ...l,
+            viewer: profilesMap.get(l.viewer_id) || null,
+            document: doc ? { name: doc.name } : null
+          };
+        });
+        setAccessLogs(enrichedLogs);
       }
+    } catch (err) {
+      console.error("Erreur VDR:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const signNda = async () => {
@@ -148,6 +194,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       
       if (!isOwner) {
+        // Enregistre l'action de téléchargement
         await supabase.from('vdr_access_logs').insert({
           document_id: doc.id,
           viewer_id: user.id
@@ -171,6 +218,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       
       if (!isOwner) {
+        // Enregistre l'action de visualisation
         await supabase.from('vdr_access_logs').insert({
           document_id: doc.id,
           viewer_id: user.id
@@ -324,10 +372,10 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                           {buyersWithNda.map((nda) => (
                             <div key={nda.id} className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
                               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-light text-white border border-white/20">
-                                {nda.buyer?.raw_user_meta_data?.full_name?.[0] || '?'}
+                                {nda.buyer?.full_name?.[0] || '?'}
                               </div>
                               <div className="flex-1 truncate">
-                                <p className="text-sm font-medium text-white truncate">{nda.buyer?.raw_user_meta_data?.full_name || t('vdr.unknown_user')}</p>
+                                <p className="text-sm font-medium text-white truncate">{nda.buyer?.full_name || t('vdr.unknown_user')}</p>
                                 <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
                                   <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy à HH:mm')}
                                 </p>
@@ -358,7 +406,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
                                 <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.created_at), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">
-                                  <strong className="font-medium text-white">{log.viewer?.raw_user_meta_data?.full_name || t('vdr.unknown_user')}</strong> {t('vdr.log_viewed')} <span className="text-primary italic">{log.document?.name || t('vdr.unknown_file')}</span>
+                                  <strong className="font-medium text-white">{log.viewer?.full_name || t('vdr.unknown_user')}</strong> {t('vdr.log_viewed')} <span className="text-primary italic">{log.document?.name || t('vdr.unknown_file')}</span>
                                 </p>
                               </div>
                             </div>
