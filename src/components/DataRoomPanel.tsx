@@ -155,8 +155,19 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
   const toggleAccess = async (ndaId: string, newStatus: 'signed' | 'revoked') => {
     try {
-      const { error } = await supabase.from('ndas').update({ status: newStatus }).eq('id', ndaId);
+      // On ajoute .select() pour vérifier si la ligne a vraiment été mise à jour !
+      const { data, error } = await supabase.from('ndas')
+        .update({ status: newStatus })
+        .eq('id', ndaId)
+        .select();
+
       if (error) throw error;
+      
+      // Si Supabase bloque silencieusement à cause du RLS, data sera vide.
+      if (!data || data.length === 0) {
+        throw new Error("Mise à jour bloquée. Vérifiez les règles de sécurité (RLS) sur Supabase.");
+      }
+
       showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
       fetchData();
     } catch (err: any) {
