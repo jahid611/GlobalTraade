@@ -134,7 +134,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
           </div>
         </div>
 
-        {hasGallery && (
+        {hasGallery ? (
           <div className="relative w-full h-32 sm:h-36 shrink-0 group/carousel flex items-center justify-center mb-6">
             <img 
               src={gallery[currentImage]} 
@@ -164,6 +164,12 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
                 </div>
               </>
             )}
+          </div>
+        ) : (
+          <div className="relative w-full h-32 sm:h-36 shrink-0 flex items-center justify-center mb-6 bg-white/[0.02] rounded-xl border border-white/5">
+            <span className="text-[10px] uppercase tracking-wider font-light text-white/30 text-center px-4">
+              {t('card.no_image', 'No image provided by the seller')}
+            </span>
           </div>
         )}
 

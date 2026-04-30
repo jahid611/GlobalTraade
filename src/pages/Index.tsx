@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SolarSystem } from '@/components/SolarSystem';
 import { Navbar } from '@/components/Navbar';
@@ -40,7 +40,13 @@ export default function Index() {
     offset: ["start start", "end end"]
   });
 
-  const mockupY = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  const mockupY = useTransform(smoothProgress, [0, 1], [0, -100]);
 
   const handlePremiumClick = () => {
     if (!user) {
@@ -138,28 +144,29 @@ export default function Index() {
           whileInView={{ opacity: 1, y: 0 }} 
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 1, ease: "easeOut" }}
-          style={{ y: mockupY }}
           className="relative flex items-center justify-center w-full"
         >
-          <div className="relative w-full rounded-xl sm:rounded-[2rem] border border-white/20 bg-[#2b2a2f] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col z-10 ring-1 ring-white/5">
-            <div className="h-8 sm:h-12 flex items-center px-4 gap-2 bg-[#2b2a2f] shrink-0 border-b border-white/10">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#5955e8] border border-black/20" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#3533b1] border border-black/20" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#7872fb] border border-black/20" />
+          <motion.div style={{ y: mockupY }} className="w-full relative flex items-center justify-center">
+            <div className="relative w-full rounded-xl sm:rounded-[2rem] border border-white/20 bg-[#2b2a2f] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col z-10 ring-1 ring-white/5">
+              <div className="h-8 sm:h-12 flex items-center px-4 gap-2 bg-[#2b2a2f] shrink-0 border-b border-white/10">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#5955e8] border border-black/20" />
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#3533b1] border border-black/20" />
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#7872fb] border border-black/20" />
+              </div>
+              <div className="relative w-full bg-[#2b2a2f] flex">
+                <video 
+                  ref={(el) => { if (el) el.playbackRate = 1.2; }}
+                  src="https://kiwjjwcfuzhrurvlaiuk.supabase.co/storage/v1/object/public/listings/desktop.mp4"
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-auto object-contain bg-black"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2b2a2f] via-transparent to-transparent pointer-events-none" />
+              </div>
             </div>
-            <div className="relative w-full bg-[#2b2a2f] flex">
-              <video 
-                ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                src="https://kiwjjwcfuzhrurvlaiuk.supabase.co/storage/v1/object/public/listings/desktop.mp4"
-                autoPlay 
-                loop 
-                muted 
-                playsInline 
-                className="w-full h-auto object-contain bg-black"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#2b2a2f] via-transparent to-transparent pointer-events-none" />
-            </div>
-          </div>
+          </motion.div>
         </motion.div>
       </section>
 
