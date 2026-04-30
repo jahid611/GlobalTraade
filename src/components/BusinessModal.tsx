@@ -367,8 +367,8 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* Deal Calculator Pro — Only for potential buyers */}
-              {!isOwner && user && listing.price > 0 && listing.ebitda && (
+              {/* Deal Calculator Pro — Désormais visible pour TOUT LE MONDE (user connecté, avec prix et EBITDA) */}
+              {user && listing.price > 0 && listing.ebitda && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
                   <DealCalculator listing={listing} />
