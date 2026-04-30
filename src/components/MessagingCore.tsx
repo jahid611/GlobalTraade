@@ -383,9 +383,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         </div>
       </div>
 
-      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full liquid-glass-heavy bg-[#2b2a2f]/90 sm:bg-transparent`}>
+      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-transparent`}>
         {activeConv ? (
-          <div className="flex-1 w-full h-full sm:liquid-glass sm:dark:bg-white/[0.02] sm:border sm:border-white/30 sm:dark:border-white/5 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+          <div className="flex-1 w-full h-full overflow-hidden flex flex-col relative">
             <ChatWindow 
               activeConv={activeConv}
               messages={filteredMessages}

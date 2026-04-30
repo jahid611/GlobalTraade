@@ -58,7 +58,7 @@ export function ChatWindow({
 
   useEffect(() => {
     setWorkflowSeen(localStorage.getItem(`workflow_seen_${activeConv?.id}`) === 'true');
-    setActiveTab('messages'); // reset tab on conv change
+    setActiveTab('messages');
   }, [activeConv?.id]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -115,7 +115,6 @@ export function ChatWindow({
           </div>
         </div>
 
-        {/* Liquid Glass Update here -> bg-black/20 backdrop-blur-md instead of solid dark grey */}
         <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
           <div className="text-2xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
           <div className="flex items-center gap-2">
@@ -180,8 +179,8 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Header - Compact padding on mobile */}
-      <div className="px-3 sm:px-6 py-2 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-transparent">
+      {/* Header */}
+      <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10">
         <div className="flex items-center gap-2 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
@@ -222,7 +221,6 @@ export function ChatWindow({
             <Handshake className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
           
-          {/* Bouton X ajouté ici quand la prop onClose est fournie (mode Globe) */}
           {onClose && (
             <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1">
               <X className="w-4 h-4" strokeWidth={2} />
@@ -231,8 +229,8 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Tab Selector - Tighter padding */}
-      <div className="px-4 sm:px-6 py-2 border-b border-white/5 flex justify-center shrink-0 bg-white/[0.02]">
+      {/* Tab Selector */}
+      <div className="px-4 sm:px-6 py-2 flex justify-center shrink-0 bg-transparent z-10">
         <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
           <button 
             onClick={() => setActiveTab('messages')}
@@ -261,18 +259,22 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Content Area - Maximized vertical space */}
+      {/* Content Area avec Masque dégradé pour faire disparaitre les messages en douceur */}
       <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent">
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
             <motion.div 
               key="messages"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 space-y-5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-3 sm:p-5 space-y-[2px]"
+              style={{
+                maskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)'
+              }}
             >
-              <div className="mb-6">
+              <div className="mb-6 pt-2">
                 <DealTimeline 
                   listingId={activeConv.listing_id}
                   buyerId={activeConv.listing_owner_id === userId ? activeConv.other_user_id : userId}
@@ -281,7 +283,7 @@ export function ChatWindow({
                 />
               </div>
 
-              {messages.map((msg, i) => {
+              {messages.map((msg) => {
                 const isMine = msg.sender_id === userId;
                 const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
                 
@@ -304,29 +306,38 @@ export function ChatWindow({
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-2 group/msg`}
+                    className={`relative flex w-full my-1 group/msg overflow-visible`}
                   >
-                    <div className="flex items-center gap-2">
-                      {isMine && (
-                        <button onClick={() => onDeleteMessage(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/40 hover:text-red-400 transition-all shrink-0" title="Supprimer le message">
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                      <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
-                        isMine 
-                          ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
-                          : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
-                      }`}>
-                        {msg.content}
-                        <div className={`text-[9px] mt-1.5 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <motion.div 
+                      drag="x"
+                      dragConstraints={{ left: -60, right: 0 }}
+                      dragElastic={0.1}
+                      className={`relative flex items-center w-full z-10 ${isMine ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className="flex items-center gap-2 max-w-[85%] sm:max-w-[70%]">
+                        {isMine && (
+                          <button onClick={() => onDeleteMessage(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0" title="Supprimer">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                        <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words ${
+                          isMine 
+                            ? 'bg-primary text-white shadow-[0_4px_20px_rgba(168,85,247,0.15)]' 
+                            : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5'
+                        }`}>
+                          {msg.content}
                         </div>
                       </div>
-                    </div>
+
+                      {/* L'heure, cachée à droite, apparait au survol ou lors du glissement (drag) */}
+                      <div className="absolute left-full w-[50px] flex items-center justify-center text-[10px] text-white/40 transition-all duration-300 opacity-100 md:opacity-0 md:-translate-x-2 md:group-hover/msg:-translate-x-[50px] md:group-hover/msg:opacity-100 select-none pointer-events-none">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </motion.div>
                   </motion.div>
                 );
               })}
-              <div ref={scrollRef} className="h-2" />
+              <div ref={scrollRef} className="h-4" />
             </motion.div>
           ) : (
             <motion.div 
@@ -354,9 +365,9 @@ export function ChatWindow({
         </AnimatePresence>
       </div>
 
-      {/* Input Area - Tighter padding */}
+      {/* Input Area */}
       {activeTab === 'messages' && (
-        <div className="p-2 sm:p-3 bg-transparent shrink-0 border-t border-white/5">
+        <div className="p-2 sm:p-3 bg-transparent shrink-0 z-10">
           <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg">
             <input 
               value={input}
