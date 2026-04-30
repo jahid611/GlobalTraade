@@ -10,7 +10,6 @@ import {
   SignOut,
   Gear,
   User as UserIcon,
-  House,
   Globe,
   Storefront,
   SquaresFour,
@@ -101,13 +100,6 @@ export function Navbar() {
 
   const renderLogoMenuContent = () => (
     <>
-      <DropdownMenuItem
-        onClick={() => navigate("/")}
-        className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center transition-all text-sm font-light"
-      >
-        <House className="mr-3 h-4 w-4 text-white/70" /> {t("nav.home")}
-      </DropdownMenuItem>
-      <DropdownMenuSeparator className="bg-white/10 my-1" />
       {user ? (
         <>
           <DropdownMenuItem
@@ -192,6 +184,7 @@ export function Navbar() {
               <Link
                 to="/"
                 className="relative z-10 flex items-center shrink-0 mr-1 sm:mr-4"
+                title={t("nav.home")}
               >
                 <img
                   src="/logo.png"
@@ -199,16 +192,6 @@ export function Navbar() {
                   className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105"
                 />
               </Link>
-
-              {location.pathname !== "/" && (
-                <Link
-                  to="/"
-                  className="flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                  title={t("nav.home")}
-                >
-                  <House className="w-[18px] h-[18px]" />
-                </Link>
-              )}
 
               <Link
                 to="/app"
@@ -369,7 +352,9 @@ export function Navbar() {
             </div>
 
             <div className="relative z-10 flex justify-between items-center mb-8">
-              <img src="/logo.png" alt="Logo" className="h-12 object-contain" />
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
+                <img src="/logo.png" alt="Logo" className="h-12 object-contain" />
+              </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all"
@@ -379,13 +364,6 @@ export function Navbar() {
             </div>
 
             <div className="relative z-10 flex flex-col gap-6 flex-1 justify-center px-4">
-              <Link
-                to="/"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-2xl font-medium text-white tracking-tight flex items-center gap-4"
-              >
-                <House className="w-6 h-6 text-white/50" /> {t("nav.home")}
-              </Link>
               <Link
                 to="/app"
                 onClick={() => setIsMobileMenuOpen(false)}
