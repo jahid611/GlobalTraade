@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Send, Handshake, ChevronLeft, UserPlus, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp } from 'lucide-react';
+import { Send, Handshake, ChevronLeft, UserPlus, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,6 +30,7 @@ interface ChatWindowProps {
   onAddContact: () => void;
   contactStatus: 'none' | 'pending' | 'connected';
   onBack?: () => void;
+  onClose?: () => void;
   t: (key: string) => string;
 }
 
@@ -43,6 +44,7 @@ export function ChatWindow({
   onAddContact,
   contactStatus,
   onBack,
+  onClose,
   t
 }: ChatWindowProps) {
   const { i18n } = useTranslation();
@@ -111,7 +113,8 @@ export function ChatWindow({
           </div>
         </div>
 
-        <div className="mb-5 p-4 rounded-2xl bg-[#2b2a2f]/80 border border-white/5 flex flex-col items-center justify-center">
+        {/* Liquid Glass Update here -> bg-black/20 backdrop-blur-md instead of solid dark grey */}
+        <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
           <div className="text-2xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing') || "Financement"} :</span>
@@ -176,7 +179,7 @@ export function ChatWindow({
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header - Compact padding on mobile */}
-      <div className="px-3 sm:px-6 py-1.5 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
+      <div className="px-3 sm:px-6 py-2 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-transparent">
         <div className="flex items-center gap-2 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
@@ -216,11 +219,18 @@ export function ChatWindow({
           <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-7 sm:h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
             <Handshake className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
+          
+          {/* Bouton X ajouté ici quand la prop onClose est fournie (mode Globe) */}
+          {onClose && (
+            <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1">
+              <X className="w-4 h-4" strokeWidth={2} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tab Selector - Tighter padding */}
-      <div className="px-4 sm:px-6 py-2 border-b border-white/5 flex justify-center shrink-0 bg-black/10">
+      <div className="px-4 sm:px-6 py-2 border-b border-white/5 flex justify-center shrink-0 bg-white/[0.02]">
         <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
           <button 
             onClick={() => setActiveTab('messages')}

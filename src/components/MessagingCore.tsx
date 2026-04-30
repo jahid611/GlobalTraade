@@ -293,22 +293,17 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         animate={{ x: 0 }} 
         exit={{ x: '100%' }} 
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        className="fixed top-0 right-0 h-full w-[100vw] sm:w-[450px] liquid-glass-heavy bg-[#2b2a2f]/90 border-l border-white/10 z-[150] flex flex-col shadow-2xl"
+        className="fixed top-0 right-0 h-full w-[100vw] sm:w-[450px] bg-black/30 backdrop-blur-[40px] border-l border-white/10 z-[150] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
-        <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 bg-transparent">
-          {view === 'chat' ? (
-            <button onClick={() => setView('list')} className="flex items-center gap-1 -ml-2 text-white/50 hover:text-white transition-colors">
-              <ChevronLeft className="w-6 h-6" strokeWidth={2} />
-              <span className="text-[15px] font-medium">{t('msg.back') || "Retour"}</span>
-            </button>
-          ) : (
+        {/* On n'affiche le header du globe QUE si on est dans la liste. Si on est en chat, le ChatWindow a son propre header */}
+        {view === 'list' && (
+          <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 bg-transparent">
             <h3 className="text-2xl font-light text-white tracking-tight">{t('msg.title') || "Messages"}</h3>
-          )}
-          
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10">
-            <X className="w-4 h-4" strokeWidth={2} />
-          </button>
-        </div>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10">
+              <X className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+        )}
         
         <div className="flex-1 overflow-hidden">
           {view === 'list' ? (
@@ -331,6 +326,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               onAddContact={handleAddContact}
               contactStatus={contactStatus}
               onBack={() => setView('list')}
+              onClose={onClose}
               t={t}
             />
           )}
@@ -340,9 +336,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     );
   }
 
-  // Dashboard Full Screen version
+  // Dashboard Full Screen version - Remonté juste sous la navbar (pt-[60px])
   return (
-    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[80px] sm:pt-[100px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
+    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[65px] sm:pt-[75px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
       <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-white/[0.02] sm:border-white/5 sm:rounded-3xl shadow-2xl`}>
         <div className="hidden sm:block mb-4 px-6 pt-6">
           <h1 className="text-2xl font-light text-white tracking-tight mb-1">{t('msg.title') || "Messagerie"}</h1>
@@ -360,7 +356,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         </div>
       </div>
 
-      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-[#2b2a2f] sm:bg-transparent`}>
+      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-black/20 backdrop-blur-[40px] sm:bg-transparent`}>
         {activeConv ? (
           <div className="flex-1 w-full h-full sm:liquid-glass sm:bg-white/[0.02] sm:border sm:border-white/5 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl">
             <ChatWindow 
