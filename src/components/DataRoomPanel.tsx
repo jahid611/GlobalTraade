@@ -20,6 +20,8 @@ interface DataRoomPanelProps {
   user: any;
 }
 
+const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelProps) {
   useScrollLock(isOpen);
   const [ndaStatus, setNdaStatus] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           .eq('buyer_id', user.id)
           .maybeSingle();
         
-        if (ndaError) console.error("Erreur NDA:", ndaError);
+        if (ndaError && ndaError.code !== 'PGRST116') console.error("Erreur NDA:", ndaError);
         setNdaStatus(nda?.status || null);
 
         if (nda?.status === 'signed') {
@@ -63,7 +65,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             .eq('listing_id', listing.id)
             .order('created_at', { ascending: false });
             
-          if (docsError) {
+          if (docsError && docsError.code !== 'PGRST116') {
             console.error("Erreur récupération documents VDR:", docsError);
           }
           setDocuments(docs || []);
@@ -76,7 +78,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           .eq('listing_id', listing.id)
           .order('created_at', { ascending: false });
           
-        if (docsOwnerError) console.error("Erreur docs proprio:", docsOwnerError);
+        if (docsOwnerError && docsOwnerError.code !== 'PGRST116') console.error("Erreur docs proprio:", docsOwnerError);
         setDocuments(docs || []);
 
         const { data: ndas, error: ndaError } = await supabase
@@ -86,12 +88,12 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           .in('status', ['signed', 'revoked'])
           .order('signed_at', { ascending: false });
         
-        if (ndaError) console.error("Erreur NDA:", ndaError);
+        if (ndaError && ndaError.code !== 'PGRST116') console.error("Erreur NDA:", ndaError);
 
         let logs: any[] = [];
         if (docs && docs.length > 0) {
-          // Filtrer pour éviter les requêtes avec array contenant des undefined/null
-          const docIds = docs.map(d => d.id).filter(Boolean);
+          // Filtrer rigoureusement les UUIDs pour éviter l'erreur 400
+          const docIds = docs.map(d => d.id).filter(id => id && VALID_UUID.test(id));
           
           if (docIds.length > 0) {
             const { data: rawLogs, error: logError } = await supabase
@@ -100,15 +102,17 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               .in('document_id', docIds)
               .order('created_at', { ascending: false });
               
-            if (logError) console.error("Erreur Logs:", logError);
+            if (logError && logError.code !== 'PGRST116') console.error("Erreur Logs:", logError);
             logs = rawLogs || [];
           }
         }
 
-        const profileIds = new Set([
+        const rawProfileIds = [
           ...(ndas || []).map(n => n.buyer_id),
           ...logs.map(l => l.viewer_id)
-        ].filter(Boolean));
+        ];
+        
+        const profileIds = new Set(rawProfileIds.filter(id => id && VALID_UUID.test(id)));
 
         let profilesMap = new Map();
         if (profileIds.size > 0) {

@@ -34,6 +34,8 @@ const STATUS_ICON: Record<string, React.ElementType> = {
   blocked: AlertTriangle,
 };
 
+const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligenceTrackerProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -59,8 +61,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   }, [listingId, buyerId, sellerId]);
 
   const fetchTasks = async () => {
-    // SÉCURITÉ : Ne pas exécuter la requête si les IDs ne sont pas définis
-    if (!listingId || !buyerId || !sellerId) {
+    // SÉCURITÉ MAXIMUM : On vérifie que ce sont de vrais UUIDs avant de les envoyer à Supabase
+    if (!listingId || !buyerId || !sellerId || !VALID_UUID.test(listingId) || !VALID_UUID.test(buyerId) || !VALID_UUID.test(sellerId)) {
       setLoading(false);
       return;
     }
