@@ -56,98 +56,100 @@ export function MarketPulse({ listings }: MarketPulseProps) {
   }).format(v);
 
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 relative overflow-hidden group">
+    <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-6 sm:p-8 relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">
       {/* Background Glow */}
-      <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full" />
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 dark:bg-emerald-500/5 blur-[80px] rounded-full" />
       
-      <div className="flex items-center justify-between mb-6 relative z-10">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-emerald-400" />
-          <span className="text-[11px] uppercase tracking-[0.2em] text-white/60 font-semibold">{t('pulse.title')}</span>
+      <div className="flex items-center justify-between mb-8 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-500/40 dark:border-emerald-500/20">
+            <BarChart3 className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+          </div>
+          <span className="text-[clamp(10px,1vw,12px)] uppercase tracking-[0.2em] text-white dark:text-white/80 font-medium">{t('pulse.title')}</span>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-          <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${stats.trend >= 10 ? 'bg-emerald-400' : stats.trend >= -5 ? 'bg-blue-400' : 'bg-amber-400'}`} />
-          <span className="text-[9px] uppercase tracking-wider text-emerald-400/90 font-medium">
+        <div className="flex items-center gap-2 bg-emerald-500/20 dark:bg-emerald-500/10 border border-emerald-500/40 dark:border-emerald-500/20 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)] dark:shadow-none">
+          <div className={`w-2 h-2 rounded-full animate-pulse ${stats.trend >= 10 ? 'bg-emerald-400' : stats.trend >= -5 ? 'bg-blue-400' : 'bg-amber-400'}`} />
+          <span className="text-[10px] uppercase tracking-widest text-white font-medium">
             {stats.trend >= 10 ? t('pulse.sentiment_high') : stats.trend >= -5 ? t('pulse.sentiment_mid') : t('pulse.sentiment_low')}
           </span>
         </div>
       </div>
 
       {/* Sparkline */}
-      <div className="flex items-end gap-1.5 h-16 mb-2 relative z-10">
+      <div className="flex items-end gap-1.5 h-16 mb-3 relative z-10">
         {stats.sparkData.map((h, i) => (
           <div key={i} className="flex-1 flex flex-col items-center justify-end group/bar">
             <div
-              className={`w-full rounded-sm transition-all duration-500 ${i === stats.sparkData.length - 1 ? 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)]' : 'bg-white/5 group-hover/bar:bg-white/10'}`}
+              className={`w-full rounded-sm transition-all duration-500 ${i === stats.sparkData.length - 1 ? 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'bg-white/30 dark:bg-white/10 group-hover/bar:bg-white/50 dark:group-hover/bar:bg-white/20'}`}
               style={{ height: `${Math.max(h, 6)}%` }}
             />
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between text-[10px] text-white/20 font-light mb-6">
+      <div className="flex items-center justify-between text-[10px] text-white dark:text-white/40 font-medium mb-8">
         <span>{t('pulse.8weeks')}</span>
         <span>{t('pulse.this_week')}</span>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-white/[0.03] rounded-2xl p-3 border border-white/5">
-          <p className="text-xl font-light text-white tabular-nums mb-1">{stats.thisWeek}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider font-medium">{t('pulse.this_week')}</p>
+        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
+          <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.thisWeek}</p>
+          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.this_week')}</p>
         </div>
-        <div className="bg-white/[0.03] rounded-2xl p-3 border border-white/5">
-          <p className="text-xl font-light text-white tabular-nums mb-1">{stats.totalListings}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider font-medium">{t('pulse.total')}</p>
+        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
+          <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.totalListings}</p>
+          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.total')}</p>
         </div>
-        <div className="bg-white/[0.03] rounded-2xl p-3 border border-white/5">
-          <p className={`text-xl font-light tabular-nums mb-1 ${stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
+          <p className={`text-2xl sm:text-3xl font-light tabular-nums mb-1 ${stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {stats.trend >= 0 ? '+' : ''}{stats.trend.toFixed(0)}%
           </p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider font-medium">{t('pulse.trend')}</p>
+          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.trend')}</p>
         </div>
       </div>
 
       {/* Info Volume */}
-      <div className="mb-8 p-4 rounded-2xl bg-primary/5 border border-primary/10">
-        <div className="flex items-start gap-3">
-          <TrendingUp className="w-4 h-4 text-primary mt-0.5" />
-          <p className="text-[11px] text-white/60 leading-relaxed font-light">
+      <div className="mb-8 p-5 rounded-[1.5rem] bg-primary/20 dark:bg-primary/5 border border-primary/40 dark:border-primary/10 shadow-[0_0_20px_rgba(168,85,247,0.1)] dark:shadow-none">
+        <div className="flex items-start gap-4">
+          <TrendingUp className="w-5 h-5 text-primary mt-0.5" />
+          <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/70 leading-relaxed font-light">
             {t('pulse.volume_desc')}
           </p>
         </div>
       </div>
 
       {/* Top sectors */}
-      <div className="space-y-3 mb-8">
-        <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">{t('pulse.top_sectors')}</span>
+      <div className="space-y-4 mb-10">
+        <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium block mb-2">{t('pulse.top_sectors')}</span>
         {stats.topSectors.map(([name, count]) => (
           <div key={name} className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-white/[0.03] rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-emerald-500/30 rounded-full" style={{ width: `${(count / stats.totalListings) * 100}%` }} />
+            <div className="flex-1 h-2 bg-white/20 dark:bg-white/10 rounded-full overflow-hidden border border-white/30 dark:border-white/5">
+              <div className="h-full bg-emerald-500/80 dark:bg-emerald-500/50 rounded-full" style={{ width: `${(count / stats.totalListings) * 100}%` }} />
             </div>
-            <span className="text-[10px] text-white/50 font-light w-28 truncate text-right">
+            <span className="text-[10px] text-white dark:text-white/60 font-medium w-28 truncate text-right">
               {t(`industry.${name}`, { defaultValue: name })}
             </span>
-            <span className="text-[10px] text-white/30 font-light tabular-nums w-8 text-right">{count}</span>
+            <span className="text-[11px] text-white font-medium tabular-nums w-8 text-right">{count}</span>
           </div>
         ))}
       </div>
 
       {/* Strategic Note */}
-      <div className="mt-8 pt-6 border-t border-white/5">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-          <span className="text-[10px] text-white/60 uppercase tracking-widest font-semibold">{t('pulse.strategic_note')}</span>
+      <div className="pt-6 border-t border-white/30 dark:border-white/10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
+          <span className="text-[10px] text-white uppercase tracking-widest font-medium">{t('pulse.strategic_note')}</span>
         </div>
-        <p className="text-[11px] text-white/40 leading-relaxed font-light italic">
+        <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 leading-relaxed font-light italic">
           {t('pulse.note_desc', { trend: stats.trend >= 0 ? 'augmentation' : 'correction' })}
         </p>
       </div>
 
       {/* Average price */}
-      <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-        <span className="text-[10px] text-white/30 uppercase tracking-widest font-medium">{t('pulse.avg_price')}</span>
-        <span className="text-base font-light text-white/80 tabular-nums tracking-tight">{fmt(stats.avgPrice)}</span>
+      <div className="mt-8 pt-6 border-t border-white/30 dark:border-white/10 flex items-center justify-between">
+        <span className="text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.avg_price')}</span>
+        <span className="text-xl sm:text-2xl font-light text-white tabular-nums tracking-tight">{fmt(stats.avgPrice)}</span>
       </div>
     </div>
   );
