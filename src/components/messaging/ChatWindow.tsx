@@ -308,21 +308,22 @@ export function ChatWindow({
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className={`relative flex w-full my-1 group/msg overflow-visible`}
+                    className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-1 group/msg overflow-visible`}
                   >
-                    <motion.div 
-                      drag="x"
-                      dragConstraints={{ left: -60, right: 0 }}
-                      dragElastic={0.1}
-                      className={`relative flex items-center w-full z-10 ${isMine ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`relative flex items-center gap-2 max-w-[85%] sm:max-w-[70%]`}>
+                    <div className={`relative flex items-center w-full ${isMine ? 'justify-end' : 'justify-start'} overflow-visible`}>
+                      <motion.div 
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={{ left: 0.25, right: 0 }} // Glissement autorisé uniquement vers la gauche
+                        dragSnapToOrigin={true} // Oblige à rebondir toujours à 0
+                        className={`flex items-center gap-2 max-w-[85%] sm:max-w-[70%] relative z-10`}
+                      >
                         {isMine && (
                           <button onClick={() => setMessageToDelete(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0 z-20" title="Supprimer">
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <div className={`relative px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words z-20 ${
+                        <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words relative z-20 ${
                           isMine 
                             ? 'bg-primary text-white shadow-[0_4px_20px_rgba(168,85,247,0.15)]' 
                             : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5'
@@ -331,19 +332,20 @@ export function ChatWindow({
                         </div>
 
                         {/* L'heure - Desktop (Hover à côté du message) */}
-                        <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 items-center text-[10px] text-white/40 transition-all duration-300 opacity-0 group-hover/msg:opacity-100 select-none pointer-events-none whitespace-nowrap z-0
-                          ${isMine ? 'right-full mr-2' : 'left-full ml-2'}
+                        <div className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 items-center text-[10px] text-white/40 transition-all duration-300 opacity-0 group-hover/msg:opacity-100 pointer-events-none whitespace-nowrap z-0
+                          ${isMine 
+                            ? 'right-full mr-2 translate-x-2 group-hover/msg:translate-x-0' 
+                            : 'left-full ml-2 -translate-x-2 group-hover/msg:translate-x-0'}
                         `}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                      </div>
 
-                      {/* L'heure - Mobile (Drag style Instagram, fixée sur le bord droit) */}
-                      <div className="absolute left-full w-[60px] flex items-center justify-center text-[10px] text-white/40 select-none pointer-events-none md:hidden h-full z-0">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-
-                    </motion.div>
+                        {/* L'heure - Mobile (Toujours à droite de la pastille, visible au drag) */}
+                        <div className={`sm:hidden absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center text-[10px] text-white/40 pointer-events-none whitespace-nowrap z-0`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </motion.div>
+                    </div>
                   </motion.div>
                 );
               })}
