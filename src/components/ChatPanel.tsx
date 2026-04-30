@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, MessageCircle, Handshake, Check, XCircle, Trash2, Download } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
 import { generateLOI } from '@/utils/loiGenerator';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
   const isMobile = useIsMobile();
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<Record<string, any>[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [contactProfile, setContactProfile] = useState<Record<string, any> | null>(null);
   const [otherUserOnline, setOtherUserOnline] = useState(false);
@@ -38,10 +40,11 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
 
   const fetchMessages = React.useCallback(async () => {
     if (!listing?.id || !user?.id) return;
+    setIsLoading(true);
     
     const { data, error } = await supabase
       .from('messages')
@@ -51,6 +54,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       
     if (error) {
       console.error("Error fetching messages:", error);
+      setIsLoading(false);
       return;
     }
 
@@ -75,9 +79,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       }
 
       setMessages(prev => {
-        // Fusion intelligente pour ne pas perdre les messages optimistes non encore confirmés
         const optimisticMessages = prev.filter(m => String(m.id).startsWith('temp-'));
-        // Si le message optimiste est maintenant dans data (confirmé), on ne le garde pas
         const stillOptimistic = optimisticMessages.filter(om => !data.some(dm => dm.content === om.content && String(dm.sender_id) === String(om.sender_id)));
         
         return [...filtered, ...stillOptimistic].sort((a, b) => 
@@ -87,6 +89,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }
+    setIsLoading(false);
   }, [listing?.id, listing?.owner_id, user?.id]);
 
   const fetchRef = useRef(fetchMessages);
@@ -104,8 +107,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
         schema: 'public', 
         table: 'messages', 
         filter: `listing_id=eq.${listing.id}` 
-      }, (payload) => {
-        // On rafraîchit pour tout le monde
+      }, () => {
         fetchRef.current();
       })
       .on('postgres_changes', { 
@@ -161,8 +163,6 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       showError(t('msg.error'));
       setMessages(prev => prev.filter(m => m.id !== tempId));
     } else if (data) {
-      // Le Realtime va déclencher fetchMessages() qui va fusionner proprement
-      // Mais on peut forcer une mise à jour ici pour plus de réactivité
       setMessages(prev => prev.map(m => m.id === tempId ? data : m));
     }
   };
@@ -244,7 +244,6 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       if (newStatus === 'declined') showSuccess(t('msg.offer_declined_success'));
     } else {
       showError(t('msg.error'));
-      // rollback (need a refetch basically, but handled locally here)
     }
   };
 
@@ -283,7 +282,13 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-[4vw] sm:px-6 py-[2vh] space-y-[2vh] custom-scrollbar">
-              {messages.length === 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col gap-4 p-4 mt-8">
+                  <Skeleton className="h-20 w-[80%] rounded-2xl bg-white/10" />
+                  <Skeleton className="h-16 w-[70%] rounded-2xl bg-white/10 ml-auto" />
+                  <Skeleton className="h-24 w-[60%] rounded-2xl bg-white/10" />
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-4 opacity-80 mt-[5vh]">
                   <div className="w-16 h-16 rounded-full liquid-glass bg-white/10 border-none flex items-center justify-center mb-4 !shadow-none">
                     <MessageCircle className="w-6 h-6 text-white" strokeWidth={1.5} />
@@ -299,15 +304,17 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                     <div className="mb-2">
                       <DealTimeline
                         listingId={listing.id}
-                        buyerId={user.id}
+                        buyerId={user?.id || ''}
                         sellerId={listing.owner_id}
                         messages={messages}
                       />
                     </div>
                   )}
                   {messages.map((msg, i) => {
-                    const isMine = msg.sender_id === user.id;
+                    const isMine = msg.sender_id === user?.id;
+                    const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
                     const showDate = i === 0 || formatMessageDate(msg.created_at) !== formatMessageDate(messages[i-1].created_at);
+                    
                     return (
                       <React.Fragment key={msg.id}>
                         {showDate && (
@@ -315,6 +322,8 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                             <span className="text-[9px] uppercase tracking-[0.2em] text-white/80 font-light liquid-glass bg-white/10 border-none px-3 py-1 rounded-full">{formatMessageDate(msg.created_at)}</span>
                           </div>
                         )}
+                        
+                        {isOffer ? (
                           <div className="w-full flex justify-center my-8">
                             <div className={`w-full max-w-[90%] sm:max-w-sm rounded-3xl p-6 border transition-all duration-500 hover:shadow-2xl ${
                               isMine ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
@@ -398,11 +407,12 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                               </div>
                             </div>
                           </div>
+                        ) : (
                           <motion.div 
                             initial={{ opacity: 0, y: 15, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full`}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-2`}
                           >
                             <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
                               isMine 
@@ -415,6 +425,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                               </div>
                             </div>
                           </motion.div>
+                        )}
                       </React.Fragment>
                     );
                   })}

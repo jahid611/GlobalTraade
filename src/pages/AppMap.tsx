@@ -168,11 +168,11 @@ export default function AppMap() {
             {/* Contrôles de gauche + Logo sur Desktop */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
-                <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 bg-black/30 text-white" title="Marketplace">
+                <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 bg-black/40 dark:bg-black/30 text-white" title="Marketplace">
                   <Storefront className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
               </Link>
-              <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 text-white/80 hover:text-white bg-black/30" title="Retour">
+              <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 text-white/90 hover:text-white bg-black/40 dark:bg-black/30" title="Retour">
                 <CaretLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
 
@@ -181,7 +181,7 @@ export default function AppMap() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none flex items-center justify-center">
-                      <img src="/logo.png" alt="GlobeTrade" className="h-16 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
+                      <img src="/logo.png" alt="GlobeTrade" className="h-16 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 p-1.5 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white z-[150] overflow-hidden" align="start" sideOffset={8}>
@@ -195,7 +195,7 @@ export default function AppMap() {
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute right-2 sm:right-6 top-0 flex items-center gap-1.5 sm:gap-4 pointer-events-auto">
               <button 
                 onClick={handlePremiumClick}
-                className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
+                className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/80 dark:bg-primary/20 border-primary/40 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none hover:bg-primary/90 dark:hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
               >
                 <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.premium')}</span>
                 {isMobile && <span className="xs:hidden">PREM</span>}
@@ -204,8 +204,8 @@ export default function AppMap() {
               {user && (
                 <>
                   <NotificationsMenu user={user} />
-                  <button onClick={() => setIsSidebarMessagingOpen(true)} className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 liquid-glass bg-black/30 text-white/80 hover:text-white hover:border-white/40 transition-all outline-none group cursor-pointer">
-                    <ChatTeardrop className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
+                  <button onClick={() => setIsSidebarMessagingOpen(true)} className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/40 dark:border-white/20 liquid-glass bg-black/40 dark:bg-black/30 text-white/90 hover:text-white hover:border-white/60 transition-all outline-none group cursor-pointer">
+                    <ChatTeardrop className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300 drop-shadow-md dark:drop-shadow-none" />
                     {hasUnread && (
                       <span className="absolute top-2 right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
                     )}
@@ -217,7 +217,7 @@ export default function AppMap() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none flex items-center justify-center">
-                      <img src="/logo.png" alt="GlobeTrade" className="h-10 sm:h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
+                      <img src="/logo.png" alt="GlobeTrade" className="h-10 sm:h-14 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 p-1.5 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white z-[150] overflow-hidden" align="end" sideOffset={8}>
@@ -243,7 +243,7 @@ export default function AppMap() {
         <div className="pointer-events-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-[160px] sm:w-48 liquid-glass bg-black/30 backdrop-blur-md border border-white/20 rounded-xl text-white font-light h-10 transition-colors shadow-none text-xs flex justify-between items-center px-4 hover:text-white hover:bg-black/50 hover:border-white/40 outline-none focus:ring-0">
+              <Button variant="outline" className="w-[160px] sm:w-48 liquid-glass bg-black/40 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/20 rounded-xl text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none font-light h-10 transition-colors shadow-none text-xs flex justify-between items-center px-4 hover:text-white hover:bg-black/60 hover:border-white/60 outline-none focus:ring-0">
                 <span className="truncate">
                   {selectedIndustries.length === 0 ? t('smart.all_sectors') : `${selectedIndustries.length} sélection(s)`}
                 </span>
@@ -284,10 +284,10 @@ export default function AppMap() {
       <div className="absolute bottom-8 left-4 sm:left-8 z-10 pointer-events-auto">
         <button 
           onClick={handleNewCessionClick} 
-          className="w-14 h-14 flex items-center justify-center text-white transition-all duration-300 group relative liquid-glass bg-black/30 rounded-full border border-white/20 hover:border-white/40 hover:scale-105 shadow-xl"
+          className="w-14 h-14 flex items-center justify-center text-white transition-all duration-300 group relative liquid-glass bg-black/40 dark:bg-black/30 rounded-full border border-white/40 dark:border-white/20 hover:border-white/60 hover:scale-105 shadow-xl"
         >
-          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Plus className="w-8 h-8 relative z-10 text-white" strokeWidth={1.5} />
+          <div className="absolute inset-0 bg-primary/40 dark:bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Plus className="w-8 h-8 relative z-10 text-white drop-shadow-lg dark:drop-shadow-none" strokeWidth={1.5} />
         </button>
       </div>
 

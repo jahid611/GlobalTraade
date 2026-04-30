@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Handshake, Search, Plus, MessageCircle, MoreVertical, Archive, Trash2, Send, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
 import { ConversationList } from './messaging/ConversationList';
 import { ChatWindow } from './messaging/ChatWindow';
@@ -295,7 +296,6 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
         className="fixed top-0 right-0 h-full w-[100vw] sm:w-[450px] bg-black/30 backdrop-blur-[40px] border-l border-white/10 z-[150] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
-        {/* On n'affiche le header du globe QUE si on est dans la liste. Si on est en chat, le ChatWindow a son propre header */}
         {view === 'list' && (
           <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 bg-transparent">
             <h3 className="text-2xl font-light text-white tracking-tight">{t('msg.title') || "Messages"}</h3>
@@ -306,7 +306,13 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         )}
         
         <div className="flex-1 overflow-hidden">
-          {view === 'list' ? (
+          {loading ? (
+            <div className="p-4 space-y-4 mt-4">
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+            </div>
+          ) : view === 'list' ? (
             <ConversationList 
               conversations={conversations} 
               activeConvId={activeConv?.id}
@@ -336,7 +342,6 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     );
   }
 
-  // Dashboard Full Screen version - Remonté complètement en haut !
   return (
     <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
       <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-white/[0.02] sm:border-white/5 sm:rounded-3xl shadow-2xl`}>
@@ -345,14 +350,22 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
           <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium">{t('msg.subtitle_strict')}</p>
         </div>
         <div className="flex-1 overflow-hidden bg-transparent">
-          <ConversationList 
-            conversations={conversations} 
-            activeConvId={activeConv?.id}
-            onSelect={(c) => { setActiveConv(c); setIsMobileListOpen(false); }}
-            onDelete={setConvToDelete}
-            language={i18n.language}
-            t={t}
-          />
+          {loading ? (
+            <div className="p-4 space-y-4 mt-4">
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+              <Skeleton className="h-20 w-full rounded-2xl bg-white/10" />
+            </div>
+          ) : (
+            <ConversationList 
+              conversations={conversations} 
+              activeConvId={activeConv?.id}
+              onSelect={(c) => { setActiveConv(c); setIsMobileListOpen(false); }}
+              onDelete={setConvToDelete}
+              language={i18n.language}
+              t={t}
+            />
+          )}
         </div>
       </div>
 
