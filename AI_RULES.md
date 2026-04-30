@@ -25,4 +25,6 @@ Available packages and libraries:
 - En cas de doute, ajoutez toujours un fallback : `t('ma.cle', 'Texte par défaut')`.
 
 ## ⚠️ RÈGLE D'OR (CRITICAL RULE) ⚠️
-Ne jamais, au grand jamais, réduire le code d'une page. Ne jamais enlever des éléments existants, ne jamais négliger des détails, et ne jamais simplifier une page. Lors de l'édition d'un fichier, il FAUT impérativement conserver TOUT le code, les fonctionnalités, les imports et le rendu existant sans aucune perte d'informations.
+Ne jamais, au grand jamais, réduire le code d'une page. Ne jamais enlever des éléments existants, ne jamais négliger des détails, et ne jamais simplifier une page. 
+En cas de création ou d'édition, **ne JAMAIS enlever des fonctionnalités sans demande explicite de l'utilisateur**. 
+Lors de l'édition d'un fichier, il FAUT impérativement conserver TOUT le code, les fonctionnalités, les imports et le rendu existant sans aucune perte d'informations ou de logique métier.

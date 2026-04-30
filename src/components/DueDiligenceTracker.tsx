@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, Briefcase, Scale, Users, Settings2, FileText, Loader2, Building, Wand2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, Briefcase, Scale, Users, Settings2, FileText, Loader2, Building, Wand2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/AuthProvider';
 import { showSuccess, showError } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
+import { exportDueDiligenceReport } from '@/utils/pdfExport';
 
 interface Task {
   id: string;
@@ -34,9 +35,10 @@ const STATUS_ICON: Record<string, React.ElementType> = {
 };
 
 export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligenceTrackerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [listingName, setListingName] = useState<string>("Dossier");
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
@@ -60,6 +62,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   const fetchTasks = async () => {
     try {
+      const { data: listingData } = await supabase.from('listings').select('name').eq('id', listingId).single();
+      if (listingData) setListingName(listingData.name);
+
       const { data, error } = await supabase
         .from('due_diligence_tasks')
         .select('*')
@@ -191,6 +196,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     }
   };
 
+  const handleExportPDF = () => {
+    exportDueDiligenceReport(tasks, listingName, t, i18n.language);
+    showSuccess("Rapport PDF généré avec succès.");
+  };
+
   const completed = tasks.filter(t => t.status === 'completed').length;
   const total = tasks.length;
   const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -214,12 +224,19 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
               </p>
             </div>
           </div>
-          {total > 0 && (
-            <div className="shrink-0 text-center bg-black/20 p-3 rounded-xl border border-white/5 min-w-[100px]">
-              <span className="text-2xl font-light text-white block">{progressPercent}%</span>
-              <span className="text-[9px] uppercase tracking-widest text-white/40">{t('dd.progress')}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {total > 0 && (
+              <Button onClick={handleExportPDF} variant="outline" className="hidden sm:flex h-full py-3 px-4 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all">
+                <Download className="w-4 h-4 mr-2" /> Exporter PDF
+              </Button>
+            )}
+            {total > 0 && (
+              <div className="shrink-0 text-center bg-black/20 p-3 rounded-xl border border-white/5 min-w-[100px]">
+                <span className="text-2xl font-light text-white block">{progressPercent}%</span>
+                <span className="text-[9px] uppercase tracking-widest text-white/40">{t('dd.progress')}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {total > 0 && (

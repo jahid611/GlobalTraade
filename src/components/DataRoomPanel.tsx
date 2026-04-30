@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { exportVDRAuditTrail } from '@/utils/pdfExport';
 
 interface DataRoomPanelProps {
   isOpen: boolean;
@@ -155,7 +156,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
   const toggleAccess = async (ndaId: string, newStatus: 'signed' | 'revoked') => {
     try {
-      // On ajoute .select() pour vérifier si la ligne a vraiment été mise à jour !
       const { data, error } = await supabase.from('ndas')
         .update({ status: newStatus })
         .eq('id', ndaId)
@@ -163,7 +163,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (error) throw error;
       
-      // Si Supabase bloque silencieusement à cause du RLS, data sera vide.
       if (!data || data.length === 0) {
         throw new Error("Mise à jour bloquée. Vérifiez les règles de sécurité (RLS) sur Supabase.");
       }
@@ -250,6 +249,11 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
     } catch (err: any) {
       showError(t('vdr.toast_access_error'));
     }
+  };
+
+  const handleExportAuditPDF = () => {
+    exportVDRAuditTrail(accessLogs, listing?.name || 'Dossier', t, i18n.language);
+    showSuccess("Registre d'audit généré avec succès.");
   };
 
   return (
@@ -441,9 +445,19 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                   {activeTab === 'audit' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
-                        <p className="text-xs text-amber-200 font-light leading-relaxed">
-                          {t('vdr.audit_desc')}
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-amber-200 font-light leading-relaxed">
+                            {t('vdr.audit_desc')}
+                          </p>
+                          {accessLogs.length > 0 && (
+                            <button 
+                              onClick={handleExportAuditPDF} 
+                              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-[10px] uppercase tracking-widest font-medium transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Exporter PDF
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {accessLogs.length === 0 ? (
