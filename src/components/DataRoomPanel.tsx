@@ -46,30 +46,38 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
     setLoading(true);
     try {
       if (!isOwner) {
-        const { data: nda } = await supabase
+        const { data: nda, error: ndaError } = await supabase
           .from('ndas')
           .select('status')
           .eq('listing_id', listing.id)
           .eq('buyer_id', user.id)
           .maybeSingle();
         
+        if (ndaError) console.error("Erreur NDA:", ndaError);
         setNdaStatus(nda?.status || null);
 
         if (nda?.status === 'signed') {
-          const { data: docs } = await supabase
+          const { data: docs, error: docsError } = await supabase
             .from('vdr_documents')
             .select('*')
             .eq('listing_id', listing.id)
             .order('created_at', { ascending: false });
+            
+          if (docsError) {
+            console.error("Erreur récupération documents VDR:", docsError);
+            showError("Erreur de droits d'accès aux documents.");
+          }
           setDocuments(docs || []);
         }
       } else {
         // Mode Propriétaire : On récupère les docs
-        const { data: docs } = await supabase
+        const { data: docs, error: docsOwnerError } = await supabase
           .from('vdr_documents')
           .select('*')
           .eq('listing_id', listing.id)
           .order('created_at', { ascending: false });
+          
+        if (docsOwnerError) console.error("Erreur docs proprio:", docsOwnerError);
         setDocuments(docs || []);
 
         // 1. Récupération des NDAs (Signés ET Révoqués)
