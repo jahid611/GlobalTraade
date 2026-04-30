@@ -197,39 +197,26 @@ export default function Profile() {
 
   if (isLoading || !data?.targetUser) {
     return (
-      <div className="min-h-screen bg-transparent text-white transition-colors duration-500">
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
+        </div>
         <SolarSystem />
         <Navbar />
-        <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-16">
+        <main className="relative z-10 pt-[20vh] pb-20 max-w-6xl mx-auto px-[6vw] sm:px-8 w-full flex-1">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-[8vh]">
             <Skeleton className="w-28 h-28 rounded-full bg-white/10 shrink-0" />
             <div className="flex-1 w-full space-y-6">
-              <div className="flex flex-col md:flex-row justify-between gap-4">
-                <Skeleton className="h-10 w-[250px] bg-white/10" />
-                <div className="flex justify-center md:justify-end gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
-                  <Skeleton className="h-10 w-[120px] rounded-full bg-white/10" />
-                </div>
-              </div>
+              <Skeleton className="h-12 w-[350px] bg-white/10" />
               <div className="flex justify-center md:justify-start gap-6">
-                <Skeleton className="h-8 w-[80px] bg-white/5" />
-                <Skeleton className="h-8 w-[80px] bg-white/5" />
-                <Skeleton className="h-8 w-[80px] bg-white/5" />
-              </div>
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full max-w-xl bg-white/5" />
-                <Skeleton className="h-4 w-3/4 max-w-lg bg-white/5" />
+                <Skeleton className="h-8 w-[100px] bg-white/5" />
+                <Skeleton className="h-8 w-[100px] bg-white/5" />
+                <Skeleton className="h-8 w-[100px] bg-white/5" />
               </div>
             </div>
           </div>
-          
-          <div className="flex gap-8 mb-10 border-b border-white/10 pb-4">
-            <Skeleton className="h-6 w-[100px] bg-white/10" />
-            <Skeleton className="h-6 w-[100px] bg-white/5" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[1, 2].map(i => <Skeleton key={i} className="h-[380px] rounded-3xl bg-white/5" />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-[380px] rounded-[2rem] bg-white/5" />)}
           </div>
         </main>
       </div>
@@ -243,11 +230,14 @@ export default function Profile() {
   const listingViewsCount = listings.reduce((acc, l) => acc + (l.view_count || 0), 0);
 
   return (
-    <div className="min-h-screen bg-transparent text-white transition-colors duration-500">
+    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500 selection:bg-primary/30">
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
+      </div>
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6">
+      <main className="relative z-10 pt-[15vh] sm:pt-[20vh] pb-20 max-w-6xl mx-auto px-[6vw] sm:px-8 w-full">
         
         <motion.div 
           animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
@@ -257,16 +247,16 @@ export default function Profile() {
           <img src="/saturn.png" alt="Saturn" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
         
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-16 relative z-10">
-          <Avatar className="w-28 h-28 border border-white/10 shrink-0">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-[4vh] sm:gap-8 mb-[8vh] relative z-10 border-b border-white/20 dark:border-white/5 pb-[4vh]">
+          <Avatar className="w-[25vw] h-[25vw] sm:w-28 sm:h-28 max-w-[120px] max-h-[120px] border-2 border-white/40 dark:border-white/10 shrink-0 shadow-xl">
             <AvatarImage src={metadata.avatar_url} className="object-cover" />
-            <AvatarFallback className="bg-white/10 text-white/50 text-3xl font-light">{fullName.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="liquid-glass bg-white/20 dark:bg-white/10 text-white text-[clamp(2rem,3vw,3rem)] font-light">{fullName.charAt(0)}</AvatarFallback>
           </Avatar>
           
           <div className="flex-1 text-center md:text-left w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 justify-between mb-4">
-              <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center gap-2">
-                Profil de <span className="text-primary font-medium ml-2">{fullName}</span>
+              <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center justify-center md:justify-start gap-3">
+                {fullName}
                 <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
               </h1>
               
@@ -274,25 +264,25 @@ export default function Profile() {
                 {isOwnProfile && (
                   <button 
                     onClick={handlePremiumClick}
-                    className="px-6 h-10 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-xs font-medium tracking-wide uppercase outline-none"
+                    className="px-6 h-[10vw] sm:h-12 max-h-[48px] rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[clamp(10px,1vw,12px)] font-medium tracking-wide uppercase outline-none"
                   >
                     {t('nav.premium')}
                   </button>
                 )}
 
-                <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className="p-2 text-white/60 hover:text-white transition-colors outline-none" title="Partager le profil">
-                  <Share className="w-5 h-5" />
+                <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className="w-[10vw] h-[10vw] sm:w-12 sm:h-12 max-w-[48px] max-h-[48px] rounded-full liquid-glass border border-white/30 dark:border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors outline-none" title="Partager le profil">
+                  <Share className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 
                 {!isOwnProfile && (
                   <>
                     {connectionStatus === 'none' && (
-                      <Button onClick={handleConnect} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-white/10 transition-all outline-none">
+                      <Button onClick={handleConnect} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-white/20 transition-all outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
                         <UserPlus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.connect')}</span>
                       </Button>
                     )}
                     {connectionStatus === 'pending_sent' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group outline-none">
+                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all group outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
                         <Clock className="w-4 h-4 sm:mr-2 group-hover:hidden" />
                         <XIcon className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
                         <span className="hidden sm:inline group-hover:hidden">{t('profile.pending')}</span>
@@ -301,16 +291,16 @@ export default function Profile() {
                     )}
                     {connectionStatus === 'pending_received' && (
                       <div className="flex gap-2">
-                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-10 px-4 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none">
+                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)]">
                           <Check className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.accept')}</span>
                         </Button>
-                        <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-red-500/10 hover:text-red-400 transition-all outline-none">
-                          <XIcon className="w-4 h-4" />
+                        <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="w-[10vw] h-[10vw] sm:w-12 sm:h-12 max-w-[48px] max-h-[48px] rounded-full p-0 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all outline-none">
+                          <XIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                       </div>
                     )}
                     {connectionStatus === 'connected' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-primary/50 bg-transparent text-primary hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group outline-none">
+                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-primary/50 liquid-glass bg-primary/10 text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all group outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
                         <UserCheck className="w-4 h-4 sm:mr-2 group-hover:hidden" />
                         <UserMinus className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
                         <span className="hidden sm:inline group-hover:hidden">{t('profile.connected')}</span>
@@ -318,43 +308,43 @@ export default function Profile() {
                       </Button>
                     )}
                     
-                    <Button onClick={handleContact} className="rounded-full h-10 px-6 font-medium text-sm bg-white text-black hover:bg-white/90 border-none outline-none">{t('profile.contact')}</Button>
+                    <Button onClick={handleContact} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-8 bg-white text-black hover:bg-white/90 border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,255,0.2)]">{t('profile.contact')}</Button>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8 text-white/60 mb-6">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-[4vw] sm:gap-8 mb-6">
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-light text-white">{listings.length}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium">{t('profile.listings')}</span>
+                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{listings.length}</span>
+                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60">{t('profile.listings')}</span>
               </div>
-              <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors" onClick={() => setActiveTab('relations')}>
-                <span className="text-2xl font-light text-white">{connectionsList.length}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1.5"><Users className="w-3 h-3"/> {t('profile.relations')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-light text-white">{listingViewsCount}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1.5"><Store className="w-3 h-3"/> Vues (Annonces)</span>
+              <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setActiveTab('relations')}>
+                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white group-hover:text-primary transition-colors">{connectionsList.length}</span>
+                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 group-hover:text-white transition-colors flex items-center gap-1.5"><Users className="w-3 h-3"/> {t('profile.relations')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-light text-white">{profileViewsCount || 0}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1.5"><Eye className="w-3 h-3"/> Vues (Profil)</span>
+                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{listingViewsCount}</span>
+                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 flex items-center gap-1.5"><Store className="w-3 h-3"/> Vues (Annonces)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{profileViewsCount || 0}</span>
+                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 flex items-center gap-1.5"><Eye className="w-3 h-3"/> Vues (Profil)</span>
               </div>
             </div>
 
-            {metadata.bio && <p className="text-sm font-light text-white/60 leading-relaxed max-w-2xl mb-4">{metadata.bio}</p>}
+            {metadata.bio && <p className="text-[clamp(0.875rem,1vw,1rem)] font-light text-white dark:text-white/80 leading-relaxed max-w-2xl mb-6 mx-auto md:mx-0">{metadata.bio}</p>}
 
             {(metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone) ? (
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                 {metadata.show_email && metadata.contact_email && (
-                  <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group shadow-none">
-                    <Mail className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" /> {metadata.contact_email}
+                  <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-5 py-2.5 rounded-full liquid-glass border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 text-xs font-light text-white transition-all w-fit group">
+                    <Mail className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> {metadata.contact_email}
                   </a>
                 )}
                 {metadata.show_phone && metadata.phone && (
-                  <a href={`tel:${metadata.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group shadow-none">
-                    <Phone className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" /> {metadata.phone}
+                  <a href={`tel:${metadata.phone}`} className="flex items-center gap-2 px-5 py-2.5 rounded-full liquid-glass border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 text-xs font-light text-white transition-all w-fit group">
+                    <Phone className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" /> {metadata.phone}
                   </a>
                 )}
               </div>
@@ -365,17 +355,17 @@ export default function Profile() {
 
         {/* KYC Section — Own Profile Only */}
         {isOwnProfile && (
-          <div className="mb-10 relative z-10">
+          <div className="mb-[8vh] relative z-10">
             {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && (
-              <div className="liquid-glass rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-center gap-6 shadow-none">
-                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <BadgeCheck className="w-7 h-7 text-blue-500" />
+              <div className="liquid-glass rounded-[2rem] p-6 sm:p-8 border border-white/30 dark:border-white/10 flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/40 dark:border-blue-500/20">
+                  <BadgeCheck className="w-7 h-7 text-blue-400" />
                 </div>
                 <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-sm font-medium text-white mb-1">{t('kyc.request_title')}</h3>
-                  <p className="text-xs text-white/50 font-light leading-relaxed">{t('kyc.request_desc')}</p>
+                  <h3 className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white mb-1">{t('kyc.request_title')}</h3>
+                  <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light leading-relaxed">{t('kyc.request_desc')}</p>
                 </div>
-                <label className="shrink-0 cursor-pointer">
+                <label className="shrink-0 cursor-pointer w-full sm:w-auto">
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -397,7 +387,7 @@ export default function Profile() {
                       setKycUploading(false);
                     }}
                   />
-                  <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-all cursor-pointer outline-none">
+                  <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none shadow-[0_0_20px_rgba(59,130,246,0.4)]">
                     {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {t('kyc.request_btn')}
                   </span>
@@ -405,30 +395,30 @@ export default function Profile() {
               </div>
             )}
             {targetUser.kyc_status === 'pending' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-amber-500/20 flex items-center gap-4 shadow-none">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-amber-500" />
+              <div className="liquid-glass rounded-[2rem] p-6 border border-amber-500/40 dark:border-amber-500/20 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 dark:bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/40 dark:border-amber-500/20">
+                  <Clock className="w-6 h-6 text-amber-400" />
                 </div>
-                <p className="text-xs text-amber-300/80 font-light">{t('kyc.pending_msg')}</p>
+                <p className="text-[clamp(0.875rem,1vw,1rem)] text-amber-100 font-light">{t('kyc.pending_msg')}</p>
               </div>
             )}
             {targetUser.kyc_status === 'verified' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-blue-500/20 flex items-center gap-4 shadow-none">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <BadgeCheck className="w-5 h-5 text-blue-500" />
+              <div className="liquid-glass rounded-[2rem] p-6 border border-blue-500/40 dark:border-blue-500/20 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/40 dark:border-blue-500/20">
+                  <BadgeCheck className="w-6 h-6 text-blue-400" />
                 </div>
-                <p className="text-xs text-blue-300/80 font-light">{t('kyc.verified_msg')}</p>
+                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white font-light">{t('kyc.verified_msg')}</p>
               </div>
             )}
             {targetUser.kyc_status === 'rejected' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-red-500/20 flex items-center gap-4 shadow-none">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-                  <XIcon className="w-5 h-5 text-red-500" />
+              <div className="liquid-glass rounded-[2rem] p-6 border border-red-500/40 dark:border-red-500/20 flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/20 dark:bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/40 dark:border-red-500/20">
+                  <XIcon className="w-7 h-7 text-red-400" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-red-300/80 font-light">{t('kyc.rejected_msg')}</p>
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="text-[clamp(0.875rem,1vw,1rem)] text-white font-light">{t('kyc.rejected_msg')}</p>
                 </div>
-                <label className="shrink-0 cursor-pointer">
+                <label className="shrink-0 cursor-pointer w-full sm:w-auto">
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -450,8 +440,8 @@ export default function Profile() {
                       setKycUploading(false);
                     }}
                   />
-                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium transition-all cursor-pointer outline-none">
-                    {kycUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full liquid-glass border-white/30 dark:border-white/10 bg-transparent hover:bg-white/20 dark:hover:bg-white/10 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none">
+                    {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {t('kyc.request_btn')}
                   </span>
                 </label>
@@ -460,46 +450,46 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="border-b border-white/10 flex flex-wrap gap-6 sm:gap-8 mb-10 overflow-x-auto custom-scrollbar relative z-10">
-          <button onClick={() => setActiveTab('listings')} className={`pb-4 text-sm font-medium tracking-wide transition-colors relative whitespace-nowrap ${activeTab === 'listings' ? 'text-white' : 'text-white/60 hover:text-white/80'}`}>
+        <div className="border-b border-white/20 dark:border-white/10 flex flex-wrap gap-6 sm:gap-8 mb-[6vh] overflow-x-auto custom-scrollbar relative z-10">
+          <button onClick={() => setActiveTab('listings')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'listings' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
             {t('profile.tab_listings')}
-            {activeTab === 'listings' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-px bg-white" />}
+            {activeTab === 'listings' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
           </button>
-          <button onClick={() => setActiveTab('relations')} className={`pb-4 text-sm font-medium tracking-wide transition-colors relative whitespace-nowrap ${activeTab === 'relations' ? 'text-white' : 'text-white/60 hover:text-white/80'}`}>
-            {t('profile.tab_relations')} {pendingRequests.length > 0 && <span className="ml-1 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingRequests.length}</span>}
-            {activeTab === 'relations' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-px bg-white" />}
+          <button onClick={() => setActiveTab('relations')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'relations' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
+            {t('profile.tab_relations')} {pendingRequests.length > 0 && <span className="ml-2 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]">{pendingRequests.length}</span>}
+            {activeTab === 'relations' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
           </button>
           {isOwnProfile && (
-            <button onClick={() => setActiveTab('favorites')} className={`pb-4 text-sm font-medium tracking-wide transition-colors relative whitespace-nowrap ${activeTab === 'favorites' ? 'text-white' : 'text-white/60 hover:text-white/80'}`}>
+            <button onClick={() => setActiveTab('favorites')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'favorites' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
               {t('profile.tab_favorites')}
-              {activeTab === 'favorites' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-px bg-white" />}
+              {activeTab === 'favorites' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
             </button>
           )}
         </div>
 
         <div className="relative z-10">
         {activeTab === 'relations' ? (
-          <div className="space-y-12">
+          <div className="space-y-[8vh]">
             
             {isOwnProfile && pendingRequests.length > 0 && (
               <section>
-                <h3 className="text-sm uppercase tracking-widest text-primary font-medium mb-6 flex items-center gap-2"><Clock className="w-4 h-4"/> {t('profile.pending_req')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-sm uppercase tracking-widest text-primary font-medium mb-6 flex items-center gap-2"><Clock className="w-5 h-5"/> {t('profile.pending_req')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {pendingRequests.map(req => (
-                    <div key={req.id} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 transition-all border-primary/20 shadow-none">
-                      <Avatar className="w-10 h-10 border border-white/10 cursor-pointer bg-white/10" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
-                        <AvatarImage src={req.profile?.avatar_url} />
-                        <AvatarFallback className="bg-transparent text-white/50">{req.profile?.full_name?.charAt(0)}</AvatarFallback>
+                    <div key={req.id} className="liquid-glass dark:bg-white/[0.02] border-primary/40 dark:border-primary/20 rounded-full p-2 pr-6 flex items-center gap-4 hover:border-primary/60 dark:hover:bg-white/[0.04] transition-all cursor-pointer group shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                      <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 bg-white/10 shrink-0" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
+                        <AvatarImage src={req.profile?.avatar_url} className="object-cover" />
+                        <AvatarFallback className="bg-transparent text-white/80 font-light">{req.profile?.full_name?.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
-                        <h4 className="font-medium truncate text-white">{req.profile?.full_name}</h4>
-                        <p className="text-xs text-white/60 truncate">{req.profile?.bio || t('profile.wants_to_join')}</p>
+                      <div className="flex-1 min-w-0" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
+                        <h4 className="text-sm font-medium truncate text-white group-hover:text-primary transition-colors">{req.profile?.full_name}</h4>
+                        <p className="text-[10px] text-white/60 truncate mt-0.5">{req.profile?.bio || t('profile.wants_to_join')}</p>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleAccept(req.id)} className="w-8 h-8 rounded-full bg-primary/20 text-primary hover:bg-primary hover:text-white flex items-center justify-center transition-all">
+                        <button onClick={() => handleAccept(req.id)} className="w-8 h-8 rounded-full bg-primary/20 text-primary hover:bg-primary hover:text-white flex items-center justify-center transition-all shadow-sm">
                           <Check className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeclineOrRemove(true, req.id)} className="w-8 h-8 rounded-full bg-white/10 text-white/60 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all">
+                        <button onClick={() => handleDeclineOrRemove(true, req.id)} className="w-8 h-8 rounded-full bg-white/10 text-white/80 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all shadow-sm">
                           <XIcon className="w-4 h-4" />
                         </button>
                       </div>
@@ -511,24 +501,24 @@ export default function Profile() {
 
             <section>
               {isOwnProfile && pendingRequests.length > 0 && (
-                <h3 className="text-sm uppercase tracking-widest text-white/60 font-medium mb-6 flex items-center gap-2"><Users className="w-4 h-4"/> {t('profile.network')}</h3>
+                <h3 className="text-sm uppercase tracking-widest text-white font-medium mb-6 flex items-center gap-2"><Users className="w-5 h-5"/> {t('profile.network')}</h3>
               )}
               {connectionsList.length === 0 ? (
-                <div className="py-20 text-center border border-white/10 rounded-3xl bg-white/5">
-                  <Users className="w-12 h-12 text-white/30 mx-auto mb-4" />
-                  <p className="font-light text-white/60 text-lg">{t('profile.no_relations')}</p>
+                <div className="py-20 text-center liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem]">
+                  <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
+                  <p className="font-light text-white dark:text-white/60 text-[clamp(1rem,1.1vw,1.125rem)]">{t('profile.no_relations')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {connectionsList.map(profile => (
-                    <div key={profile.id} onClick={() => navigate(`/profile/${profile.id}`)} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer group shadow-none">
-                      <Avatar className="w-10 h-10 border border-white/10 group-hover:scale-105 transition-transform bg-white/10">
-                        <AvatarImage src={profile.avatar_url} />
-                        <AvatarFallback className="bg-transparent text-white/50">{profile.full_name?.charAt(0)}</AvatarFallback>
+                    <div key={profile.id} onClick={() => navigate(`/profile/${profile.id}`)} className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:border-white/60 dark:hover:bg-white/[0.04] transition-all cursor-pointer group">
+                      <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform bg-white/10 shrink-0">
+                        <AvatarImage src={profile.avatar_url} className="object-cover" />
+                        <AvatarFallback className="bg-transparent text-white/80 font-light">{profile.full_name?.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate text-white group-hover:text-primary transition-colors">{profile.full_name}</h4>
-                        <p className="text-xs text-white/60 truncate mt-0.5">{profile.bio || t('profile.member')}</p>
+                        <h4 className="text-sm font-medium truncate text-white group-hover:text-primary transition-colors">{profile.full_name}</h4>
+                        <p className="text-[10px] text-white/60 truncate mt-0.5">{profile.bio || t('profile.member')}</p>
                       </div>
                     </div>
                   ))}
@@ -537,10 +527,10 @@ export default function Profile() {
             </section>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
             {displayedItems.length === 0 ? (
-              <div className="col-span-full py-20 text-center">
-                <p className="font-light text-white/60 text-lg">{t('profile.nothing_to_show')}</p>
+              <div className="col-span-full py-20 text-center liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem]">
+                <p className="font-light text-white dark:text-white/60 text-[clamp(1rem,1.1vw,1.125rem)]">{t('profile.nothing_to_show')}</p>
               </div>
             ) : (
               displayedItems.map((item) => (
@@ -558,8 +548,8 @@ export default function Profile() {
                   }}
                   actions={isOwnProfile && activeTab === 'listings' ? (
                     <div className="flex gap-1">
-                      <button className="p-2 text-white/60 hover:text-white transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-4 h-4" /></button>
-                      <button className="p-2 text-white/60 hover:text-red-400 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-4 h-4" /></button>
+                      <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-5 h-5" /></button>
+                      <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-5 h-5" /></button>
                     </div>
                   ) : undefined}
                 />
@@ -575,13 +565,13 @@ export default function Profile() {
 
       <AnimatePresence>
         {listingToDelete && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setListingToDelete(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative liquid-glass rounded-3xl p-10 max-w-md w-full text-center border-none bg-[#2b2a2f] shadow-none">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#2b2a2f]/80 backdrop-blur-md" onClick={() => setListingToDelete(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative liquid-glass border border-white/30 dark:border-white/10 rounded-[2rem] p-10 max-w-md w-full text-center shadow-2xl">
               <h3 className="text-2xl font-light mb-3 text-white">{t('profile.del_title')}</h3>
               <div className="flex justify-center gap-4 mt-8">
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white/60 hover:text-white hover:bg-white/10 outline-none">{t('profile.del_cancel')}</Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-fit px-8 rounded-full h-12 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all border-none outline-none">{t('profile.del_confirm')}</Button>
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 outline-none font-medium">{t('profile.del_cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-fit px-8 rounded-full h-12 outline-none font-medium">{t('profile.del_confirm')}</Button>
               </div>
             </motion.div>
           </div>

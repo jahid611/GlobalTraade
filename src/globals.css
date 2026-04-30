@@ -10,10 +10,11 @@
     --primary: 221 83% 53%; 
     --radius: 1.5rem;
     
-    --glass-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 100%);
-    --glass-border-top: rgba(255, 255, 255, 0.3);
-    --glass-border-left: rgba(255, 255, 255, 0.15);
-    --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    /* MODE CLAIR : Verre plus sombre et plus opaque pour contraster avec le fond lumineux */
+    --glass-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.45) 100%);
+    --glass-border-top: rgba(255, 255, 255, 0.4);
+    --glass-border-left: rgba(255, 255, 255, 0.2);
+    --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
   }
 
   .dark {
@@ -22,6 +23,7 @@
     /* Bleu vibrant et lumineux pour le mode sombre */
     --primary: 217 91% 60%;
     
+    /* MODE SOMBRE : Verre très léger et transparent car le fond est déjà noir */
     --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.01) 100%);
     --glass-border-top: rgba(255, 255, 255, 0.25);
     --glass-border-left: rgba(255, 255, 255, 0.15);
@@ -38,13 +40,13 @@
  * NATIVE FEEL - Désactivation globale de la sélection de texte et du surlignage tactile 
  */
 * {
-  -webkit-touch-callout: none !important; /* iOS Safari */
-    -webkit-user-select: none !important; /* Safari */
-     -khtml-user-select: none !important; /* Konqueror HTML */
-       -moz-user-select: none !important; /* Firefox (anciennes versions) */
-        -ms-user-select: none !important; /* Internet Explorer/Edge */
-            user-select: none !important; /* Chrome, Edge, Opera, Firefox */
-  -webkit-tap-highlight-color: transparent !important; /* Supprime le carré gris/bleu au clic sur mobile */
+  -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+     -khtml-user-select: none !important;
+       -moz-user-select: none !important;
+        -ms-user-select: none !important;
+            user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 /* 
@@ -69,8 +71,10 @@ input, textarea, select {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid var(--glass-border-top);
+  border-left: 1px solid var(--glass-border-left);
+  box-shadow: var(--glass-shadow);
   transition: all 0.3s ease;
 }
 
@@ -79,8 +83,10 @@ input, textarea, select {
   background: var(--glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid var(--glass-border-top);
+  border-left: 1px solid var(--glass-border-left);
+  box-shadow: var(--glass-shadow);
   transition: all 0.3s ease;
 }
 
@@ -90,11 +96,10 @@ input, textarea, select {
   background: rgba(255, 255, 255, 0.05);
 }
 .glass-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 [data-radix-collection-item] { @apply transition-colors duration-200; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-/* Scrollbar s'adapte dynamiquement à la couleur primaire */
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.4); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.6); border-radius: 10px; }
