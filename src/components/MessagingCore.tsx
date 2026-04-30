@@ -298,7 +298,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       >
         {view === 'list' && (
           <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 bg-transparent">
-            <h3 className="text-2xl font-light text-white tracking-tight">{t('msg.title') || "Messages"}</h3>
+            <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none">
+              Messagerie <span className="text-primary font-medium">Privée</span>
+            </h3>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10">
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
@@ -346,7 +348,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
       <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-white/[0.02] sm:border-white/5 sm:rounded-3xl shadow-2xl`}>
         <div className="hidden sm:block mb-4 px-6 pt-6">
-          <h1 className="text-2xl font-light text-white tracking-tight mb-1">{t('msg.title') || "Messagerie"}</h1>
+          <h1 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none mb-1">
+            Messagerie <span className="text-primary font-medium">Privée</span>
+          </h1>
           <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium">{t('msg.subtitle_strict')}</p>
         </div>
         <div className="flex-1 overflow-hidden bg-transparent">
@@ -415,8 +419,8 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                 <h3 className="text-xl font-light text-white mb-2 tracking-tight">{t('msg.archive_title')}</h3>
                 <p className="text-sm text-white/50 mb-8 font-light leading-relaxed">{t('msg.archive_desc')}</p>
                 <div className="flex flex-col gap-3">
-                  <Button onClick={handleArchiveConv} variant="destructive" className="rounded-xl h-12 font-medium transition-all w-full">{t('profile.remove')}</Button>
-                  <Button variant="ghost" onClick={() => setConvToDelete(null)} className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl h-12 transition-colors w-full">{t('settings.cancel')}</Button>
+                  <Button onClick={handleArchiveConv} variant="destructive" className="rounded-xl h-12 font-medium transition-all w-full outline-none">{t('profile.remove')}</Button>
+                  <Button variant="ghost" onClick={() => setConvToDelete(null)} className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl h-12 transition-colors w-full outline-none">{t('settings.cancel')}</Button>
                 </div>
               </motion.div>
             </div>
@@ -436,18 +440,18 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                 <form onSubmit={handleSendOffer} className="space-y-6">
                   <div>
                     <label className="block text-[10px] uppercase tracking-widest text-white/50 font-medium mb-3 pl-1">{t('msg.offer_amount')}</label>
-                    <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all" placeholder="0 €" />
+                    <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all outline-none" placeholder="0 €" />
                   </div>
                   <div>
                     <label className="block text-[10px] uppercase tracking-widest text-white/50 font-medium mb-3 pl-1">{t('msg.financing_type')}</label>
                     <div className="grid grid-cols-2 gap-3">
-                      <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}>{t('msg.loan')}</button>
-                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}>{t('msg.equity')}</button>
+                      <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}>{t('msg.loan')}</button>
+                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}>{t('msg.equity')}</button>
                     </div>
                   </div>
                   <div className="flex flex-col gap-3 pt-4">
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none">{t('msg.send_offer')}</Button>
-                    <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white/50 hover:text-white hover:bg-white/5 rounded-xl h-12 transition-colors font-medium w-full">{t('settings.cancel')}</Button>
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none">{t('msg.send_offer')}</Button>
+                    <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white/50 hover:text-white hover:bg-white/5 rounded-xl h-12 transition-colors font-medium w-full outline-none">{t('settings.cancel')}</Button>
                   </div>
                 </form>
               </motion.div>

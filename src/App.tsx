@@ -18,7 +18,7 @@ import { loadStripe } from '@stripe/stripe-js';
 
 import React, { Suspense } from 'react';
 
-// Pages en Lazy Loading (Code Splitting) pour améliorer les performances
+// Pages en Lazy Loading
 const Index = React.lazy(() => import("./pages/Index"));
 const AppMap = React.lazy(() => import("./pages/AppMap"));
 const Marketplace = React.lazy(() => import("./pages/Marketplace"));
@@ -45,8 +45,20 @@ const queryClient = new QueryClient({
   },
 });
 
-// Remplacez par votre clé publique Stripe réelle
 const stripePromise = loadStripe('pk_test_your_key_here');
+
+// Skeleton moderne au lieu du rond qui tourne
+const PageLoaderSkeleton = () => (
+  <div className="min-h-screen bg-transparent flex flex-col pt-[20vh] px-[6vw] max-w-6xl mx-auto w-full gap-8 pointer-events-none">
+    <div className="h-14 w-[300px] bg-white/5 rounded-full animate-pulse" />
+    <div className="h-6 w-[200px] bg-white/5 rounded-full animate-pulse mb-8" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+      <div className="h-[320px] bg-white/5 rounded-[2rem] animate-pulse" />
+      <div className="h-[320px] bg-white/5 rounded-[2rem] animate-pulse" />
+      <div className="h-[320px] bg-white/5 rounded-[2rem] animate-pulse hidden md:block" />
+    </div>
+  </div>
+);
 
 const App = () => (
   <ErrorBoundary>
@@ -59,7 +71,7 @@ const App = () => (
                 <GlobalNotifications />
                 <HotToaster position="top-right" />
                 <SonnerToaster position="bottom-right" />
-                <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-background"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
+                <Suspense fallback={<PageLoaderSkeleton />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<Login />} />

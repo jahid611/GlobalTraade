@@ -21,7 +21,6 @@ import { LiveActivityFeed } from '@/components/LiveActivityFeed';
 import { OfferComparator } from '@/components/OfferComparator';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
-// Injection du style natif global
 initNativeFeel();
 
 export default function Dashboard() {
@@ -92,7 +91,7 @@ export default function Dashboard() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+      <div className="min-h-screen bg-transparent text-white font-sans selection:bg-primary/30">
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
           <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vh] bg-primary/10 blur-[100px] rounded-full" />
@@ -111,28 +110,23 @@ export default function Dashboard() {
 
   const { myListings, myFavorites, allSuggested, profileViews, profile, messagesCount, connectionsCount } = data;
 
-  // Prioritize SQL columns over legacy metadata
   const targetSectors = (profile?.target_sectors || user?.user_metadata?.target_sectors || "").toLowerCase();
   const targetGeo = (profile?.target_geo || user?.user_metadata?.target_geo || "").toLowerCase();
   const targetBudgetStr = (profile?.target_budget || user?.user_metadata?.target_budget || "").toLowerCase();
   
   const hasCriteria = targetSectors || targetGeo || targetBudgetStr;
 
-  // Real matching logic based on Investment Criteria
   const calculateMatchScore = (listing: any) => {
     if (!hasCriteria) {
       const hash = listing.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
       return 30 + (hash % 20);
     }
-
-    let score = 20; // Base score
-    
+    let score = 20;
     const listingSector = (listing.industry || listing.sector || "").toLowerCase();
     const listingLocation = (listing.location || listing.address || "").toLowerCase();
     const listingDesc = (listing.description || "").toLowerCase();
     const listingPrice = Number(listing.price) || 0;
 
-    // 1. Sector & Keyword Matching (Max 40 pts)
     if (targetSectors) {
       const keywords = targetSectors.split(',').map((s: string) => s.trim()).filter(Boolean);
       let sectorPoints = 0;
@@ -142,64 +136,40 @@ export default function Dashboard() {
       });
       score += Math.min(40, sectorPoints);
     }
-
-    // 2. Geography Matching (Max 35 pts)
     if (targetGeo) {
       const geos = targetGeo.split(',').map((g: string) => g.trim()).filter(Boolean);
       let geoPoints = 0;
-      geos.forEach(g => {
-        if (listingLocation.includes(g)) geoPoints += 35;
-      });
+      geos.forEach(g => { if (listingLocation.includes(g)) geoPoints += 35; });
       score += Math.min(35, geoPoints);
     }
-
-    // 3. Ultra Budget Matching (Max 40 pts)
     if (targetBudgetStr && listingPrice > 0) {
       const cleanBudget = targetBudgetStr.replace(/[^0-9km-]/g, '');
       const parts = cleanBudget.split('-');
-      
       const parseVal = (p: string) => {
         let n = parseFloat(p);
         if (p.includes('k')) n *= 1000;
         else if (p.includes('m')) n *= 1000000;
         return n;
       };
-
       let min = 0, max = Infinity;
-      if (parts.length === 2) {
-        min = parseVal(parts[0]);
-        max = parseVal(parts[1]);
-      } else {
-        max = parseVal(parts[0]);
-        min = max * 0.5;
-      }
-
-      if (listingPrice >= min && listingPrice <= max) {
-        score += 40; // Perfect range
-      } else {
+      if (parts.length === 2) { min = parseVal(parts[0]); max = parseVal(parts[1]); }
+      else { max = parseVal(parts[0]); min = max * 0.5; }
+      if (listingPrice >= min && listingPrice <= max) score += 40;
+      else {
         const diffMin = Math.abs(listingPrice - min) / min;
         const diffMax = Math.abs(listingPrice - max) / max;
-        const closestDiff = Math.min(diffMin, diffMax);
-        if (closestDiff < 0.3) score += 20; // 30% margin is now accepted
+        if (Math.min(diffMin, diffMax) < 0.3) score += 20;
       }
     }
-
-    // 4. Trust Bonus
     if (listing.profiles?.kyc_status === 'verified') score += 5;
-
-    const hash = listing.id.charCodeAt(listing.id.length - 1) % 5;
-    score += hash;
-
+    score += listing.id.charCodeAt(listing.id.length - 1) % 5;
     return Math.min(99, Math.round(score));
   };
 
-  const suggestedDeals = allSuggested
-    .map(deal => ({ ...deal, matchScore: calculateMatchScore(deal) }))
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 3);
+  const suggestedDeals = allSuggested.map(deal => ({ ...deal, matchScore: calculateMatchScore(deal) })).sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-transparent text-white font-sans selection:bg-primary/30">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vh] bg-primary/10 blur-[100px] rounded-full" />
@@ -207,7 +177,7 @@ export default function Dashboard() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
+      <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20">
         
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
@@ -219,14 +189,14 @@ export default function Dashboard() {
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 border-b border-white/5 pb-8">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-light tracking-tight mb-3 text-white">
-              {t('dash.title')}
+            <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter text-white mb-[1vh]">
+              Cockpit <span className="text-primary font-medium">Direction</span>
             </h1>
-            <p className="text-white/50 font-light max-w-2xl leading-relaxed text-sm sm:text-base">
+            <p className="text-white/50 font-light max-w-2xl leading-relaxed text-[clamp(1rem,1.1vw,1.125rem)]">
               {t('dash.subtitle')}
             </p>
           </div>
-          <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-12 px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105 [text-shadow:none]">
+          <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-12 px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105 outline-none">
             <Storefront className="w-4 h-4 mr-2" /> {t('dash.list_company')}
           </Button>
         </div>
@@ -286,7 +256,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
-          {/* Action: KYC */}
           <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-white/[0.03] transition-colors duration-500">
             <div className="flex items-start sm:items-center gap-5">
               <div className="w-14 h-14 shrink-0 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
@@ -297,18 +266,15 @@ export default function Dashboard() {
                   Trust & Safety <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
                 </p>
                 <p className="text-sm text-white/40 leading-relaxed max-w-sm">
-                  {profile?.kyc_status === 'verified' 
-                    ? t('dash.kyc_verified_desc') 
-                    : t('dash.kyc_unverified_desc')}
+                  {profile?.kyc_status === 'verified' ? t('dash.kyc_verified_desc') : t('dash.kyc_unverified_desc')}
                 </p>
               </div>
             </div>
             {profile?.kyc_status !== 'verified' && (
-              <Button onClick={() => navigate('/profile')} variant="outline" className="shrink-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 h-12 px-8 text-sm font-medium [text-shadow:none]">{t('dash.start_verification')}</Button>
+              <Button onClick={() => navigate('/profile')} variant="outline" className="shrink-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 h-12 px-8 text-sm font-medium outline-none">{t('dash.start_verification')}</Button>
             )}
           </div>
 
-          {/* Action: Plan */}
           <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-white/[0.03] transition-colors duration-500">
             <div className="flex items-start sm:items-center gap-5">
               <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -319,19 +285,16 @@ export default function Dashboard() {
                   Licence d'Accès
                 </p>
                 <p className="text-sm text-white/40 leading-relaxed max-w-sm">
-                  {profile?.plan_type === 'premium' 
-                    ? 'Vous bénéficiez d\'une exposition maximale, d\'une assistance prioritaire et de l\'absence de limitations.' 
-                    : 'Passez au niveau supérieur. Obtenez une visibilité globale prioritaire et un accès sans limite aux données.'}
+                  {profile?.plan_type === 'premium' ? 'Vous bénéficiez d\'une exposition maximale, d\'une assistance prioritaire et de l\'absence de limitations.' : 'Passez au niveau supérieur. Obtenez une visibilité globale prioritaire et un accès sans limite aux données.'}
                 </p>
               </div>
             </div>
             {profile?.plan_type !== 'premium' && (
-              <Button onClick={() => navigate('/payment')} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-sm font-medium [text-shadow:none]">Débloquer Premium</Button>
+              <Button onClick={() => navigate('/payment')} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-sm font-medium outline-none">Débloquer Premium</Button>
             )}
           </div>
         </div>
 
-        {/* COCKPIT: Market Intelligence + Activity Feed */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
           <div className="lg:col-span-2">
             <MarketPulse listings={allSuggested} />
@@ -341,7 +304,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Offer Comparators for seller's listings */}
         {myListings.length > 0 && (
           <div className="space-y-4 mb-16">
             {myListings.map(listing => (
@@ -350,7 +312,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* KILLER FEATURE: AI Deal Radar */}
         {suggestedDeals.length > 0 && (
           <div className="mb-20">
             <div className="flex items-center gap-3 mb-8">
@@ -379,7 +340,6 @@ export default function Dashboard() {
                   <div key={deal.id} className="relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-30 transition duration-1000 group-hover:duration-200" />
                     <div className="relative">
-                      {/* Badge Match Score */}
                       <div className="absolute -top-3 -right-2 z-20 bg-[#2b2a2f] border border-primary/30 text-white px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center gap-2 transform group-hover:scale-105 transition-transform duration-300">
                         <Activity className="w-3 h-3 text-primary animate-pulse" />
                         <span className="text-sm font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">{deal.matchScore}% {t('dash.match')}</span>
@@ -400,7 +360,7 @@ export default function Dashboard() {
         <div className="space-y-24">
           <section>
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-light flex items-center gap-3 text-white">
+              <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none">
                 {t('dash.my_sales')}
               </h2>
             </div>
@@ -414,7 +374,7 @@ export default function Dashboard() {
                 <p className="text-white/40 font-light mb-8 max-w-md leading-relaxed text-sm">
                   {t('dash.no_sales_desc')}
                 </p>
-                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] [text-shadow:none]">
+                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] outline-none">
                   {t('dash.create_first')}
                 </Button>
               </div>
@@ -424,8 +384,8 @@ export default function Dashboard() {
                   <BusinessCard key={listing.id} listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
-                        <button className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-4 h-4" /></button>
-                        <button className="p-2 rounded-full text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-4 h-4" /></button>
+                        <button className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-4 h-4" /></button>
+                        <button className="p-2 rounded-full text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-4 h-4" /></button>
                       </div>
                     }
                   />
@@ -436,7 +396,7 @@ export default function Dashboard() {
 
           <section>
             <div className="flex items-center justify-between border-t border-white/5 pt-16 mb-8 mt-16">
-              <h2 className="text-2xl font-light flex items-center gap-3 text-white">
+              <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none">
                  {t('dash.watchlist')}
               </h2>
             </div>
@@ -450,7 +410,7 @@ export default function Dashboard() {
                 <p className="text-white/40 font-light mb-8 max-w-md leading-relaxed text-sm">
                   {t('dash.no_favs_desc')}
                 </p>
-                <Button variant="outline" onClick={() => navigate('/marketplace')} className="rounded-full border-white/10 bg-transparent hover:bg-white/5 text-white px-8 h-12 [text-shadow:none]">
+                <Button variant="outline" onClick={() => navigate('/marketplace')} className="rounded-full border-white/10 bg-transparent hover:bg-white/5 text-white px-8 h-12 outline-none">
                   {t('dash.explore')}
                 </Button>
               </div>
@@ -487,8 +447,8 @@ export default function Dashboard() {
                 {t('dash.modal_delete_desc', { name: listingToDelete.name })}
               </p>
               <div className="flex flex-col gap-3">
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 [text-shadow:none]">{t('dash.confirm_delete')}</Button>
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 [text-shadow:none]">{t('dash.cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 outline-none">{t('dash.confirm_delete')}</Button>
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 outline-none">{t('dash.cancel')}</Button>
               </div>
             </motion.div>
           </div>

@@ -20,7 +20,6 @@ import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
-// Injection du style natif global
 initNativeFeel();
 
 export default function Profile() {
@@ -39,7 +38,6 @@ export default function Profile() {
   useEffect(() => {
     if (location.state && (location.state as { activeTab?: 'listings' | 'favorites' | 'relations' }).activeTab) {
       setActiveTab((location.state as { activeTab: 'listings' | 'favorites' | 'relations' }).activeTab);
-      // Clean up state so refresh doesn't force it again
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -199,7 +197,7 @@ export default function Profile() {
 
   if (isLoading || !data?.targetUser) {
     return (
-      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500">
+      <div className="min-h-screen bg-transparent text-white transition-colors duration-500">
         <SolarSystem />
         <Navbar />
         <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6">
@@ -245,11 +243,11 @@ export default function Profile() {
   const listingViewsCount = listings.reduce((acc, l) => acc + (l.view_count || 0), 0);
 
   return (
-    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500">
+    <div className="min-h-screen bg-transparent text-white transition-colors duration-500">
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
+      <main className="relative z-10 pt-[20vh] pb-20 max-w-5xl mx-auto px-6">
         
         <motion.div 
           animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
@@ -267,8 +265,8 @@ export default function Profile() {
           
           <div className="flex-1 text-center md:text-left w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 justify-between mb-4">
-              <h1 className="text-3xl sm:text-4xl font-light leading-none truncate text-white flex items-center gap-2">
-                {fullName}
+              <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center gap-2">
+                Profil de <span className="text-primary font-medium ml-2">{fullName}</span>
                 <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
               </h1>
               
@@ -276,25 +274,25 @@ export default function Profile() {
                 {isOwnProfile && (
                   <button 
                     onClick={handlePremiumClick}
-                    className="px-6 h-10 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-xs font-medium tracking-wide uppercase [text-shadow:none]"
+                    className="px-6 h-10 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-xs font-medium tracking-wide uppercase outline-none"
                   >
                     {t('nav.premium')}
                   </button>
                 )}
 
-                <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className="p-2 text-white/60 hover:text-white transition-colors [text-shadow:none]" title="Partager le profil">
+                <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className="p-2 text-white/60 hover:text-white transition-colors outline-none" title="Partager le profil">
                   <Share className="w-5 h-5" />
                 </button>
                 
                 {!isOwnProfile && (
                   <>
                     {connectionStatus === 'none' && (
-                      <Button onClick={handleConnect} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-white/10 transition-all [text-shadow:none]">
+                      <Button onClick={handleConnect} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-white/10 transition-all outline-none">
                         <UserPlus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.connect')}</span>
                       </Button>
                     )}
                     {connectionStatus === 'pending_sent' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group [text-shadow:none]">
+                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group outline-none">
                         <Clock className="w-4 h-4 sm:mr-2 group-hover:hidden" />
                         <XIcon className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
                         <span className="hidden sm:inline group-hover:hidden">{t('profile.pending')}</span>
@@ -303,16 +301,16 @@ export default function Profile() {
                     )}
                     {connectionStatus === 'pending_received' && (
                       <div className="flex gap-2">
-                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-10 px-4 bg-primary text-white hover:bg-primary/90 transition-all border-none [text-shadow:none]">
+                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-10 px-4 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none">
                           <Check className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.accept')}</span>
                         </Button>
-                        <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-red-500/10 hover:text-red-400 transition-all [text-shadow:none]">
+                        <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-white/10 bg-transparent text-white hover:bg-red-500/10 hover:text-red-400 transition-all outline-none">
                           <XIcon className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
                     {connectionStatus === 'connected' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-primary/50 bg-transparent text-primary hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group [text-shadow:none]">
+                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-10 px-4 border-primary/50 bg-transparent text-primary hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group outline-none">
                         <UserCheck className="w-4 h-4 sm:mr-2 group-hover:hidden" />
                         <UserMinus className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
                         <span className="hidden sm:inline group-hover:hidden">{t('profile.connected')}</span>
@@ -320,7 +318,7 @@ export default function Profile() {
                       </Button>
                     )}
                     
-                    <Button onClick={handleContact} className="rounded-full h-10 px-6 font-medium text-sm bg-white text-black hover:bg-white/90 border-none [text-shadow:none]">{t('profile.contact')}</Button>
+                    <Button onClick={handleContact} className="rounded-full h-10 px-6 font-medium text-sm bg-white text-black hover:bg-white/90 border-none outline-none">{t('profile.contact')}</Button>
                   </>
                 )}
               </div>
@@ -350,12 +348,12 @@ export default function Profile() {
             {(metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone) ? (
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                 {metadata.show_email && metadata.contact_email && (
-                  <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group !shadow-none">
+                  <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group shadow-none">
                     <Mail className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" /> {metadata.contact_email}
                   </a>
                 )}
                 {metadata.show_phone && metadata.phone && (
-                  <a href={`tel:${metadata.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group !shadow-none">
+                  <a href={`tel:${metadata.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full liquid-glass bg-white/5 border-white/10 hover:bg-white/10 text-xs font-light text-white transition-all w-fit group shadow-none">
                     <Phone className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" /> {metadata.phone}
                   </a>
                 )}
@@ -369,7 +367,7 @@ export default function Profile() {
         {isOwnProfile && (
           <div className="mb-10 relative z-10">
             {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && (
-              <div className="liquid-glass rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-center gap-6 !shadow-none">
+              <div className="liquid-glass rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-center gap-6 shadow-none">
                 <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
                   <BadgeCheck className="w-7 h-7 text-blue-500" />
                 </div>
@@ -399,7 +397,7 @@ export default function Profile() {
                       setKycUploading(false);
                     }}
                   />
-                  <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-all cursor-pointer [text-shadow:none]">
+                  <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-all cursor-pointer outline-none">
                     {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {t('kyc.request_btn')}
                   </span>
@@ -407,7 +405,7 @@ export default function Profile() {
               </div>
             )}
             {targetUser.kyc_status === 'pending' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-amber-500/20 flex items-center gap-4 !shadow-none">
+              <div className="liquid-glass rounded-2xl p-5 border border-amber-500/20 flex items-center gap-4 shadow-none">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5 text-amber-500" />
                 </div>
@@ -415,7 +413,7 @@ export default function Profile() {
               </div>
             )}
             {targetUser.kyc_status === 'verified' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-blue-500/20 flex items-center gap-4 !shadow-none">
+              <div className="liquid-glass rounded-2xl p-5 border border-blue-500/20 flex items-center gap-4 shadow-none">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
                   <BadgeCheck className="w-5 h-5 text-blue-500" />
                 </div>
@@ -423,7 +421,7 @@ export default function Profile() {
               </div>
             )}
             {targetUser.kyc_status === 'rejected' && (
-              <div className="liquid-glass rounded-2xl p-5 border border-red-500/20 flex items-center gap-4 !shadow-none">
+              <div className="liquid-glass rounded-2xl p-5 border border-red-500/20 flex items-center gap-4 shadow-none">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
                   <XIcon className="w-5 h-5 text-red-500" />
                 </div>
@@ -452,7 +450,7 @@ export default function Profile() {
                       setKycUploading(false);
                     }}
                   />
-                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium transition-all cursor-pointer [text-shadow:none]">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium transition-all cursor-pointer outline-none">
                     {kycUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                     {t('kyc.request_btn')}
                   </span>
@@ -488,7 +486,7 @@ export default function Profile() {
                 <h3 className="text-sm uppercase tracking-widest text-primary font-medium mb-6 flex items-center gap-2"><Clock className="w-4 h-4"/> {t('profile.pending_req')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {pendingRequests.map(req => (
-                    <div key={req.id} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 transition-all border-primary/20 !shadow-none">
+                    <div key={req.id} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 transition-all border-primary/20 shadow-none">
                       <Avatar className="w-10 h-10 border border-white/10 cursor-pointer bg-white/10" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
                         <AvatarImage src={req.profile?.avatar_url} />
                         <AvatarFallback className="bg-transparent text-white/50">{req.profile?.full_name?.charAt(0)}</AvatarFallback>
@@ -523,7 +521,7 @@ export default function Profile() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {connectionsList.map(profile => (
-                    <div key={profile.id} onClick={() => navigate(`/profile/${profile.id}`)} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer group !shadow-none">
+                    <div key={profile.id} onClick={() => navigate(`/profile/${profile.id}`)} className="liquid-glass bg-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer group shadow-none">
                       <Avatar className="w-10 h-10 border border-white/10 group-hover:scale-105 transition-transform bg-white/10">
                         <AvatarImage src={profile.avatar_url} />
                         <AvatarFallback className="bg-transparent text-white/50">{profile.full_name?.charAt(0)}</AvatarFallback>
@@ -560,17 +558,8 @@ export default function Profile() {
                   }}
                   actions={isOwnProfile && activeTab === 'listings' ? (
                     <div className="flex gap-1">
-                      <<think>The user wants me to continue generating the `src/pages/Profile.tsx` file from where the previous response got cut off.
-
-Looking at the end of the previous response:
-```tsx
-                  actions={isOwnProfile && activeTab === 'listings' ? (
-                    <div className="flex gap-1">
-                      <
-```
-
-I will continue from `button className="p-2...` to complete the `BusinessCard` actions and the rest of the file.</think>button className="p-2 text-white/60 hover:text-white transition-colors [text-shadow:none]" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-4 h-4" /></button>
-                      <button className="p-2 text-white/60 hover:text-red-400 transition-colors [text-shadow:none]" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-4 h-4" /></button>
+                      <button className="p-2 text-white/60 hover:text-white transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-4 h-4" /></button>
+                      <button className="p-2 text-white/60 hover:text-red-400 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ) : undefined}
                 />
@@ -588,11 +577,11 @@ I will continue from `button className="p-2...` to complete the `BusinessCard` a
         {listingToDelete && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setListingToDelete(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative liquid-glass rounded-3xl p-10 max-w-md w-full text-center border-none bg-[#2b2a2f] !shadow-none">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative liquid-glass rounded-3xl p-10 max-w-md w-full text-center border-none bg-[#2b2a2f] shadow-none">
               <h3 className="text-2xl font-light mb-3 text-white">{t('profile.del_title')}</h3>
               <div className="flex justify-center gap-4 mt-8">
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white/60 hover:text-white hover:bg-white/10 [text-shadow:none]">{t('profile.del_cancel')}</Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-fit px-8 rounded-full h-12 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all border-none [text-shadow:none]">{t('profile.del_confirm')}</Button>
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white/60 hover:text-white hover:bg-white/10 outline-none">{t('profile.del_cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-fit px-8 rounded-full h-12 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all border-none outline-none">{t('profile.del_confirm')}</Button>
               </div>
             </motion.div>
           </div>
