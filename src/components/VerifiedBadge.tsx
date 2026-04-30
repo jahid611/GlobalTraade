@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { SealCheck } from 'phosphor-react';
+import { CheckCircle } from 'phosphor-react';
 import { useTranslation } from 'react-i18next';
 
 interface VerifiedBadgeProps {
@@ -26,7 +26,7 @@ export function VerifiedBadge({ kycStatus, size = 'md', showTooltip = true }: Ve
       className="inline-flex items-center shrink-0" 
       title={showTooltip ? t('kyc.verified_badge') : undefined}
     >
-      <SealCheck 
+      <CheckCircle 
         weight="fill"
         className={`${sizeMap[size]} text-blue-500 drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]`} 
       />
