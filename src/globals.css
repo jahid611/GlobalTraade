@@ -34,6 +34,31 @@
   }
 }
 
+/* 
+ * NATIVE FEEL - Désactivation globale de la sélection de texte et du surlignage tactile 
+ */
+* {
+  -webkit-touch-callout: none !important; /* iOS Safari */
+    -webkit-user-select: none !important; /* Safari */
+     -khtml-user-select: none !important; /* Konqueror HTML */
+       -moz-user-select: none !important; /* Firefox (anciennes versions) */
+        -ms-user-select: none !important; /* Internet Explorer/Edge */
+            user-select: none !important; /* Chrome, Edge, Opera, Firefox */
+  -webkit-tap-highlight-color: transparent !important; /* Supprime le carré gris/bleu au clic sur mobile */
+}
+
+/* 
+ * On réactive la sélection UNIQUEMENT pour les inputs, textareas, et éléments de chat
+ */
+input, textarea, select, [contenteditable="true"], .allow-select, [class*="chat"], [class*="message"], [class*="Message"] {
+  -webkit-touch-callout: default !important;
+  -webkit-user-select: auto !important;
+  -khtml-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
+}
+
 .liquid-glass {
   position: relative;
   background: var(--glass-bg);
@@ -68,4 +93,3 @@
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 /* Scrollbar s'adapte dynamiquement à la couleur primaire */
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.4); border-radius: 10px; }
-.allow-select { -webkit-user-select: text !important; user-select: text !important; }
