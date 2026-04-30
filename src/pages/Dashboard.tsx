@@ -182,7 +182,7 @@ export default function Dashboard() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-2%] md:top-[14vh] md:right-[22%] lg:right-[26%] w-[200px] md:w-[320px] z-0 pointer-events-none opacity-100"
+          className="absolute top-[12vh] right-[-2%] md:top-[14vh] md:right-[22%] lg:right-[26%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
         >
           <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
@@ -255,56 +255,58 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-[8vh]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-[8vh] relative z-20">
           {/* Action: KYC */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500">
-            <div className="flex items-start sm:items-center gap-5">
-              <div className="w-14 h-14 shrink-0 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center border border-blue-500/40 dark:border-blue-500/20">
-                <ShieldCheck className="w-7 h-7 text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white mb-1 flex items-center gap-3">
+          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500 h-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center border border-blue-500/40 dark:border-blue-500/20">
+                  <ShieldCheck className="w-7 h-7 text-blue-400" />
+                </div>
+                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white flex flex-wrap items-center gap-3">
                   Trust & Safety <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
                 </p>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed max-w-sm">
-                  {profile?.kyc_status === 'verified' 
-                    ? t('dash.kyc_verified_desc') 
-                    : t('dash.kyc_unverified_desc')}
-                </p>
               </div>
+              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
+                {profile?.kyc_status === 'verified' 
+                  ? t('dash.kyc_verified_desc') 
+                  : t('dash.kyc_unverified_desc')}
+              </p>
             </div>
             {profile?.kyc_status !== 'verified' && (
-              <Button onClick={() => navigate('/profile')} variant="outline" className="shrink-0 rounded-full liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10 h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none">
+              <Button onClick={() => navigate('/profile')} variant="outline" className="w-full rounded-full liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10 h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
                 {t('dash.start_verification')}
               </Button>
             )}
           </div>
 
           {/* Action: Plan */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500">
-            <div className="flex items-start sm:items-center gap-5">
-              <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 dark:bg-primary/10 flex items-center justify-center border border-primary/40 dark:border-primary/20">
-                <Crown className="w-7 h-7 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white mb-1">
+          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500 h-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 dark:bg-primary/10 flex items-center justify-center border border-primary/40 dark:border-primary/20">
+                  <Crown className="w-7 h-7 text-primary" />
+                </div>
+                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white">
                   Licence d'Accès
                 </p>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed max-w-sm">
-                  {profile?.plan_type === 'premium' 
-                    ? 'Vous bénéficiez d\'une exposition maximale, d\'une assistance prioritaire et de l\'absence de limitations.' 
-                    : 'Passez au niveau supérieur. Obtenez une visibilité globale prioritaire et un accès sans limite aux données.'}
-                </p>
               </div>
+              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
+                {profile?.plan_type === 'premium' 
+                  ? 'Vous bénéficiez d\'une exposition maximale, d\'une assistance prioritaire et de l\'absence de limitations.' 
+                  : 'Passez au niveau supérieur. Obtenez une visibilité globale prioritaire et un accès sans limite aux données.'}
+              </p>
             </div>
             {profile?.plan_type !== 'premium' && (
-              <Button onClick={() => navigate('/payment')} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none">Débloquer Premium</Button>
+              <Button onClick={() => navigate('/payment')} className="w-full rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
+                Débloquer Premium
+              </Button>
             )}
           </div>
         </div>
 
         {/* COCKPIT: Market Intelligence + Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-[8vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-[8vh] relative z-20">
           <div className="lg:col-span-2">
             <MarketPulse listings={allSuggested} />
           </div>
@@ -315,7 +317,7 @@ export default function Dashboard() {
 
         {/* Offer Comparators for seller's listings */}
         {myListings.length > 0 && (
-          <div className="space-y-[4vh] mb-[8vh]">
+          <div className="space-y-[4vh] mb-[8vh] relative z-20">
             {myListings.map(listing => (
               <OfferComparator key={listing.id} listingId={listing.id} listingPrice={listing.price} sellerId={user?.id || ''} />
             ))}
@@ -324,7 +326,7 @@ export default function Dashboard() {
 
         {/* KILLER FEATURE: AI Deal Radar */}
         {suggestedDeals.length > 0 && (
-          <div className="mb-[12vh]">
+          <div className="mb-[12vh] relative z-20">
             <div className="flex items-center gap-3 mb-[4vh]">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center border border-primary/50 relative">
                 <Sparkle className="w-6 h-6 text-white" />
@@ -369,7 +371,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="space-y-[12vh]">
+        <div className="space-y-[12vh] relative z-20">
           <section>
             <div className="flex items-center justify-between mb-[4vh]">
               <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none">
