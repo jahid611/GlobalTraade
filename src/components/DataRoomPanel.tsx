@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert } from 'lucide-react';
+import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { showSuccess, showError } from '@/utils/toast';
