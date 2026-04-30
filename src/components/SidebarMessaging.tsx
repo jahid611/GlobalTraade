@@ -18,16 +18,18 @@ export function SidebarMessaging({ isOpen, onClose }: SidebarMessagingProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110]" 
-            onClick={onClose} 
-          />
-          <MessagingCore variant="sidebar" onClose={onClose} />
-        </>
+        <motion.div 
+          key="sidebar-backdrop"
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140]" 
+          onClick={onClose} 
+        />
+      )}
+      {isOpen && (
+        <MessagingCore key="sidebar-core" variant="sidebar" onClose={onClose} />
       )}
     </AnimatePresence>
   );

@@ -299,18 +299,19 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   if (variant === 'sidebar') {
     return (
       <motion.div
-        initial={{ x: '100%' }} 
-        animate={{ x: 0 }} 
-        exit={{ x: '100%' }} 
-        transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        className="fixed top-0 right-0 h-full w-[100vw] sm:w-[450px] liquid-glass-heavy bg-[#2b2a2f]/90 border-l border-white/20 dark:border-white/10 z-[150] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        key="messaging-sidebar-panel"
+        initial={{ x: '-100%', opacity: 0.5 }} 
+        animate={{ x: 0, opacity: 1 }} 
+        exit={{ x: '-100%', opacity: 0 }} 
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed top-0 left-0 h-[100dvh] w-full sm:w-[420px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/20 dark:border-white/10 z-[150] flex flex-col shadow-[30px_0_80px_rgba(0,0,0,0.7)]"
       >
         {view === 'list' && (
-          <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 bg-transparent">
-            <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none">
+          <div className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0 bg-transparent">
+            <h3 className="text-[clamp(1.5rem,1.8vw,1.75rem)] font-light text-white tracking-tight leading-none">
               Messagerie <span className="text-primary font-medium">Privée</span>
             </h3>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 text-white hover:bg-white/20 dark:hover:bg-white/10 transition-all border border-white/20 dark:border-white/10 outline-none">
+            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 text-white hover:bg-white/20 dark:hover:bg-white/10 transition-all border border-white/20 dark:border-white/10 outline-none active:scale-95">
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
           </div>
