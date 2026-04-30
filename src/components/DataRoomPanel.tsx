@@ -100,7 +100,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               .from('vdr_access_logs')
               .select('*')
               .in('document_id', docIds)
-              .order('created_at', { ascending: false });
+              .order('viewed_at', { ascending: false }); // CHANGEMENT ICI: viewed_at au lieu de created_at
               
             if (logError && logError.code !== 'PGRST116') console.error("Erreur Logs:", logError);
             logs = rawLogs || [];
@@ -472,7 +472,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                             <div key={log.id} className="relative pl-6">
                               <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-[#2b2a2f] shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.created_at), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
+                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.viewed_at || log.created_at || new Date()), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">
                                   {log.viewer ? (
                                     <Link to={`/profile/${log.viewer_id}`} className="font-medium text-white hover:text-primary transition-colors">

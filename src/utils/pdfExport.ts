@@ -95,7 +95,7 @@ export const exportVDRAuditTrail = (logs: any[], listingName: string, t: any, la
   doc.text(lang === 'fr' ? "Historique des consultations (Audit Trail)" : "Viewing History (Audit Trail)", 15, 55);
 
   const tableData = logs.map(log => [
-    format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss'),
+    format(new Date(log.viewed_at || log.created_at || new Date()), 'dd/MM/yyyy HH:mm:ss'),
     log.viewer?.full_name || (lang === 'fr' ? 'Utilisateur inconnu' : 'Unknown user'),
     log.document?.name || (lang === 'fr' ? 'Fichier inconnu' : 'Unknown file'),
     "Accès sécurisé (NDA)"
