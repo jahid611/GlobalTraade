@@ -181,50 +181,49 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Header */}
+      {/* Header avec empilement vertical propre */}
       <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10">
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-start gap-2 sm:gap-4 min-w-0 pr-2">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
+            <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5">
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-white/10 bg-white/5">
+          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border border-white/10 bg-white/5 mt-0.5 shrink-0">
             <AvatarImage src={activeConv.avatar_url} className="object-cover" />
             <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-xs sm:text-[13px] truncate">{activeConv.contact_name}</span>
+              <span className="font-medium text-white text-[13px] sm:text-[14px] truncate">{activeConv.contact_name}</span>
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
-            <div className="flex items-center gap-2">
-              <p className="text-[9px] text-white/40 uppercase tracking-widest font-medium truncate">{activeConv.listing_name}</p>
+            
+            {/* L'annonce et l'offre sont maintenant empilées verticalement pour éviter l'écrasement */}
+            <div className="flex flex-col mt-0.5">
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate max-w-[200px]">{activeConv.listing_name}</p>
               {hasAcceptedOffer && (
-                <>
-                  <span className="text-white/20 text-[9px]">•</span>
-                  <p className="text-[8px] text-emerald-400 font-bold uppercase flex items-center gap-1">
-                    <TrendingUp className="w-2 h-2" /> 
-                    {t('msg.accepted_offer_at') || "Acceptée à"} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
-                  </p>
-                </>
+                <p className="text-[9px] text-emerald-400 font-bold uppercase flex items-center gap-1 mt-1 truncate">
+                  <TrendingUp className="w-2.5 h-2.5 shrink-0" /> 
+                  {t('msg.accepted_offer_at') || "Acceptée :"} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
+                </p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {contactStatus === 'none' && (
             <Button onClick={onAddContact} variant="outline" size="sm" className="hidden sm:flex rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[10px] h-8 px-3 transition-all">
               <UserPlus className="w-3 h-3 mr-1.5" /> {t('profile.connect') || "Connecter"}
             </Button>
           )}
-          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-7 sm:h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
+          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
+            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
           
           {onClose && (
-            <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1">
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
           )}
@@ -236,11 +235,11 @@ export function ChatWindow({
         <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
           <button 
             onClick={() => setActiveTab('messages')}
-            className={`flex items-center gap-2 px-5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+            className={`flex items-center gap-2 px-5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
               activeTab === 'messages' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
             }`}
           >
-            <MessageSquare className="w-3 h-3" /> {t('nav.messages') || "Messages"}
+            <MessageSquare className="w-3.5 h-3.5" /> {t('nav.messages') || "Messages"}
           </button>
           <button 
             onClick={() => {
@@ -248,11 +247,11 @@ export function ChatWindow({
               setWorkflowSeen(true);
               localStorage.setItem(`workflow_seen_${activeConv?.id}`, 'true');
             }}
-            className={`flex items-center gap-2 px-5 py-1 rounded-lg text-[11px] font-medium transition-all relative ${
+            className={`flex items-center gap-2 px-5 py-1.5 rounded-lg text-[11px] font-medium transition-all relative ${
               activeTab === 'tasks' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
             }`}
           >
-            <ClipboardCheck className="w-3 h-3" /> 
+            <ClipboardCheck className="w-3.5 h-3.5" /> 
             Workflow
             {hasAcceptedOffer && !workflowSeen && activeTab !== 'tasks' && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />

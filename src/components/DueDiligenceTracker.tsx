@@ -127,7 +127,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       title: tk.title,
       category: tk.category,
       status: 'pending',
-      priority: 'medium' // Assurez-vous que cette colonne existe dans la DB
+      priority: 'medium'
     }));
 
     const { data, error } = await supabase.from('due_diligence_tasks').insert(tasksToInsert).select();
@@ -138,7 +138,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       await sendSystemMessage(t('dd.msg_init', { name: pseudo }));
       showSuccess(t('dd.toast_gen_success'));
     } else {
-      console.error("Erreur de génération DD:", error);
       showError(error?.message || t('dd.toast_gen_error'));
     }
     
@@ -171,7 +170,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       setNewTaskTitle("");
       setAddingTaskTo(null);
     } else {
-      console.error("Erreur ajout tâche:", error);
       showError(error?.message || t('msg.error'));
     }
   };
@@ -218,37 +216,36 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   return (
     <div className="space-y-4">
-      {/* Explanation Header */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-              <ClipboardCheck className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-base font-medium text-white mb-1">{t('dd.title')}</h3>
-              <p className="text-xs text-white/50 font-light leading-relaxed max-w-sm">
-                {t('dd.desc')}
-              </p>
-            </div>
-          </div>
+      {/* NOUVEAU HEADER OPTIMISÉ POUR SIDEBAR */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-6">
+        <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
-            {total > 0 && (
-              <Button onClick={handleExportPDF} variant="outline" className="hidden sm:flex h-full py-3 px-4 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all">
-                <Download className="w-4 h-4 mr-2" /> Exporter PDF
-              </Button>
-            )}
-            {total > 0 && (
-              <div className="shrink-0 text-center bg-black/20 p-3 rounded-xl border border-white/5 min-w-[100px]">
-                <span className="text-2xl font-light text-white block">{progressPercent}%</span>
-                <span className="text-[9px] uppercase tracking-widest text-white/40">{t('dd.progress')}</span>
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+              <ClipboardCheck className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="text-base font-medium text-white leading-tight">{t('dd.title')}</h3>
           </div>
+          
+          {total > 0 && (
+            <div className="shrink-0 text-center bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
+              <span className="text-lg font-light text-white block leading-none">{progressPercent}%</span>
+              <span className="text-[8px] uppercase tracking-widest text-white/40 block mt-0.5">{t('dd.progress')}</span>
+            </div>
+          )}
         </div>
+        
+        <p className="text-xs text-white/50 font-light leading-relaxed mb-4">
+          {t('dd.desc')}
+        </p>
 
         {total > 0 && (
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+          <Button onClick={handleExportPDF} variant="outline" className="w-full py-2 h-auto rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs">
+            <Download className="w-3.5 h-3.5 mr-2" /> Exporter le rapport PDF
+          </Button>
+        )}
+
+        {total > 0 && (
+          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-4">
             <motion.div 
               initial={{ width: 0 }} 
               animate={{ width: `${progressPercent}%` }} 
@@ -260,18 +257,18 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       </div>
 
       {tasks.length === 0 ? (
-        <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-10 text-center flex flex-col items-center">
+        <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-8 text-center flex flex-col items-center">
           <Wand2 className="w-10 h-10 text-primary/50 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">{t('dd.empty_title')}</h3>
-          <p className="text-sm text-white/50 font-light mb-8 max-w-md">
+          <h3 className="text-base font-medium text-white mb-2">{t('dd.empty_title')}</h3>
+          <p className="text-xs text-white/50 font-light mb-6 max-w-md leading-relaxed">
             {t('dd.empty_desc')}
           </p>
           <Button 
             onClick={handleGenerateDefault} 
             disabled={isGenerating}
-            className="rounded-full bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8"
+            className="rounded-full bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(168,85,247,0.3)] h-10 px-6 text-xs w-full"
           >
-            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
             {t('dd.btn_generate')}
           </Button>
         </div>
@@ -289,11 +286,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             <div key={cat} className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300">
               <div className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${config.color}`}><Icon className="w-4 h-4" /></div>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${config.color}`}><Icon className="w-4 h-4" /></div>
                   <span className="text-sm font-medium text-white">{config.label}</span>
-                  <span className="text-[10px] text-white/40 font-bold px-2.5 py-1 bg-black/20 rounded-md border border-white/5">{catCompleted} / {catTasks.length}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-[10px] text-white/40 font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/5">{catCompleted} / {catTasks.length}</span>
                   {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                 </div>
               </div>
@@ -305,16 +302,20 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                       {catTasks.map(task => {
                         const StatusIcon = STATUS_ICON[task.status] || Circle;
                         return (
-                          <div key={task.id} className="group flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] rounded-xl transition-all border border-transparent hover:border-white/5 bg-white/[0.01]">
-                            <button onClick={() => toggleStatus(task.id)} className="shrink-0 active:scale-90 transition-transform">
+                          <div key={task.id} className="group flex items-start gap-3 px-3 py-2.5 hover:bg-white/[0.04] rounded-xl transition-all border border-transparent hover:border-white/5 bg-white/[0.01]">
+                            <button onClick={() => toggleStatus(task.id)} className="shrink-0 active:scale-90 transition-transform mt-0.5">
                               <StatusIcon className={`w-5 h-5 transition-all ${
                                 task.status === 'completed' ? 'text-emerald-400' : 
                                 task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
                                 'text-white/20 group-hover:text-white/40'
                               }`} />
                             </button>
-                            <span className={`text-sm font-light flex-1 transition-all ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/80'}`}>{task.title}</span>
-                            <span className={`text-[9px] uppercase tracking-wider px-2 py-1 rounded-md border font-bold ${
+                            <div className="flex-1 min-w-0 pr-2">
+                              <span className={`text-sm font-light block leading-snug transition-all ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/80'}`}>
+                                {task.title}
+                              </span>
+                            </div>
+                            <span className={`shrink-0 text-[8px] uppercase tracking-wider px-2 py-1 rounded-md border font-bold mt-0.5 ${
                               task.status === 'completed' ? 'text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5' : 
                               task.status === 'in_progress' ? 'text-blue-400 border-blue-400/30 bg-blue-500/10' : 
                               'text-white/30 border-white/10 bg-white/5'
@@ -325,26 +326,27 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                         );
                       })}
 
-                      {/* Add Task Input */}
                       {addingTaskTo === cat ? (
-                        <div className="p-2 mt-2 flex items-center gap-2">
+                        <div className="p-2 mt-2 flex flex-col gap-2">
                           <input 
                             autoFocus
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddTask(cat)}
                             placeholder={t('dd.input_placeholder')}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
                           />
-                          <Button onClick={() => handleAddTask(cat)} className="h-10 px-4 rounded-xl bg-primary text-white font-medium hover:bg-primary/90">{t('dd.btn_add')}</Button>
-                          <Button onClick={() => setAddingTaskTo(null)} variant="ghost" className="h-10 px-4 rounded-xl text-white/50 hover:text-white hover:bg-white/10">{t('dd.btn_cancel')}</Button>
+                          <div className="flex gap-2">
+                            <Button onClick={() => handleAddTask(cat)} className="flex-1 h-8 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 text-xs">{t('dd.btn_add')}</Button>
+                            <Button onClick={() => setAddingTaskTo(null)} variant="ghost" className="flex-1 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 text-xs">{t('dd.btn_cancel')}</Button>
+                          </div>
                         </div>
                       ) : (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setAddingTaskTo(cat); }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-xs text-white/40 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl mt-2 border border-dashed border-white/10"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs text-white/40 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl mt-2 border border-dashed border-white/10"
                         >
-                          <Plus className="w-4 h-4" /> {t('dd.btn_add_specific')}
+                          <Plus className="w-3.5 h-3.5" /> {t('dd.btn_add_specific')}
                         </button>
                       )}
                     </div>
