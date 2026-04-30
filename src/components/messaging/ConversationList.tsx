@@ -48,73 +48,79 @@ export function ConversationList({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Search Bar - Fixed placeholder key */}
-      <div className="p-4 border-b border-white/5">
-        <div className="relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary transition-colors" />
+      {/* Search Bar - Apple Native Style */}
+      <div className="px-4 pb-3 pt-2 shrink-0">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 w-4 h-4 text-white/40" strokeWidth={2.5} />
           <input 
             type="text" 
-            placeholder={t('msg.search_deal') || "Rechercher un deal..."}
-            className="w-full liquid-glass bg-white/[0.02] border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-sm font-light text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner"
+            placeholder="Rechercher"
+            className="w-full bg-[#767680]/30 rounded-[10px] py-2 pl-9 pr-4 text-[17px] font-normal text-white placeholder:text-white/40 focus:outline-none focus:bg-[#767680]/40 transition-colors border-none"
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4 pt-1 space-y-0.5">
         {conversations.length > 0 ? (
           <AnimatePresence initial={false}>
             {conversations.map(conv => (
               <motion.div
                 key={conv.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className={`relative p-3.5 flex items-center gap-4 cursor-pointer rounded-2xl transition-all duration-300 group ${
+                className={`relative p-3 flex items-center gap-3.5 cursor-pointer rounded-2xl transition-all duration-200 group ${
                   activeConvId === conv.id 
-                    ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]' 
-                    : 'bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/5'
+                    ? 'bg-primary/20 shadow-sm' 
+                    : 'bg-transparent hover:bg-white/5 active:bg-white/10'
                 }`}
                 onClick={() => onSelect(conv)}
               >
                 
                 <div className="relative shrink-0">
-                  <Avatar className="h-12 w-12 border-none liquid-glass bg-white/5 shadow-md">
+                  <Avatar className="h-14 w-14 border-none bg-white/10 shadow-sm">
                     <AvatarImage src={conv.avatar_url} className="object-cover" />
-                    <AvatarFallback className="bg-transparent text-white font-light">{conv.contact_name[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-transparent text-white font-medium text-lg">{conv.contact_name[0]}</AvatarFallback>
                   </Avatar>
                   {conv.unread && (
                     <motion.span 
                       initial={{ scale: 0 }} animate={{ scale: 1 }}
-                      className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)] border-2 border-[#2b2a2f]" 
+                      className="absolute top-0 right-0 w-3.5 h-3.5 bg-primary rounded-full border-2 border-[#1c1c1e] shadow-sm" 
                     />
                   )}
                 </div>
                 
-                <div className="flex-1 min-w-0 pr-6">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <span className={`font-medium text-sm truncate ${conv.unread ? 'text-white' : 'text-white/90'}`}>{conv.contact_name}</span>
-                    <span className={`text-[10px] font-light tabular-nums shrink-0 ${conv.unread ? 'text-primary' : 'text-white/30'}`}>{formatMsgDate(conv.date)}</span>
+                <div className="flex-1 min-w-0 pr-8">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className={`text-[17px] truncate tracking-tight ${conv.unread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}>
+                      {conv.contact_name}
+                    </span>
+                    <span className={`text-[14px] tabular-nums shrink-0 ${conv.unread ? 'text-primary font-medium' : 'text-white/40 font-light'}`}>
+                      {formatMsgDate(conv.date)}
+                    </span>
                   </div>
-                  <p className={`text-xs truncate font-light mb-1 ${conv.unread ? 'text-white/80 font-normal' : 'text-white/50'}`}>{conv.last_message}</p>
-                  <div className="text-[9px] text-primary/70 uppercase tracking-widest font-medium truncate flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-primary/50"></span>
+                  <p className={`text-[15px] truncate leading-snug ${conv.unread ? 'text-white font-medium' : 'text-white/50 font-light'}`}>
+                    {conv.last_message}
+                  </p>
+                  <div className="text-[12px] text-white/30 font-medium truncate mt-1">
                     {conv.listing_name}
                   </div>
                 </div>
 
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(conv); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/0 group-hover:text-white/20 hover:!text-red-400 transition-all"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/0 group-hover:text-white/30 hover:!text-red-500 transition-all active:scale-90"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </motion.div>
             ))}
           </AnimatePresence>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
-            <MessageCircle className="w-8 h-8 mb-3 stroke-1" />
-            <p className="text-xs font-light">{t('msg.no_conv')}</p>
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
+            <MessageCircle className="w-12 h-12 mb-4 text-white/30 stroke-1" />
+            <h3 className="text-[17px] font-semibold text-white mb-1">Aucun message</h3>
+            <p className="text-[15px] font-light text-white/50">{t('msg.no_conv')}</p>
           </div>
         )}
       </div>
