@@ -375,8 +375,8 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* AI Insights — For buyers with sufficient data */}
-              {!isOwner && user && listing.ebitda && listing.revenue_n1 && (
+              {/* AI Insights — Pour les connectés avec données suffisantes (vendeurs inclus) */}
+              {user && listing.ebitda && listing.revenue_n1 && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
                   <AIInsightsPanel listing={listing} />
