@@ -526,6 +526,7 @@ const resources = {
       "card.protected_location": "Protected location",
       "card.siret_prefix": "Tax ID:",
       "card.error_prefix": "Error: ",
+      "card.no_image": "No image provided by the seller",
 
       "market.title1": "The future of",
       "market.title2": "M&A sourcing.",
@@ -1179,6 +1180,7 @@ const resources = {
       "card.protected_location": "Localisation protégée",
       "card.siret_prefix": "SIRET :",
       "card.error_prefix": "Erreur : ",
+      "card.no_image": "Aucune image renseignée par le vendeur",
 
       "market.title1": "Le futur du",
       "market.title2": "sourcing M&A.",

@@ -59,6 +59,11 @@ input, textarea, select, [contenteditable="true"], .allow-select, [class*="chat"
   user-select: auto !important;
 }
 
+/* Supprime toute ombre de texte sur les champs de saisie */
+input, textarea, select {
+  text-shadow: none !important;
+}
+
 .liquid-glass {
   position: relative;
   background: var(--glass-bg);

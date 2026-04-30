@@ -92,7 +92,7 @@ export default function Dashboard() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
           <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vh] bg-primary/10 blur-[100px] rounded-full" />
@@ -199,7 +199,7 @@ export default function Dashboard() {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vh] bg-primary/10 blur-[100px] rounded-full" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20">
+      <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
@@ -226,7 +226,7 @@ export default function Dashboard() {
               {t('dash.subtitle')}
             </p>
           </div>
-          <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-12 px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105">
+          <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-12 px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105 [text-shadow:none]">
             <Storefront className="w-4 h-4 mr-2" /> {t('dash.list_company')}
           </Button>
         </div>
@@ -304,7 +304,7 @@ export default function Dashboard() {
               </div>
             </div>
             {profile?.kyc_status !== 'verified' && (
-              <Button onClick={() => navigate('/profile')} variant="outline" className="shrink-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 h-12 px-8 text-sm font-medium">{t('dash.start_verification')}</Button>
+              <Button onClick={() => navigate('/profile')} variant="outline" className="shrink-0 rounded-full bg-white/5 border-white/10 hover:bg-white/10 h-12 px-8 text-sm font-medium [text-shadow:none]">{t('dash.start_verification')}</Button>
             )}
           </div>
 
@@ -326,7 +326,7 @@ export default function Dashboard() {
               </div>
             </div>
             {profile?.plan_type !== 'premium' && (
-              <Button onClick={() => navigate('/payment')} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-sm font-medium">Débloquer Premium</Button>
+              <Button onClick={() => navigate('/payment')} className="shrink-0 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-sm font-medium [text-shadow:none]">Débloquer Premium</Button>
             )}
           </div>
         </div>
@@ -414,7 +414,7 @@ export default function Dashboard() {
                 <p className="text-white/40 font-light mb-8 max-w-md leading-relaxed text-sm">
                   {t('dash.no_sales_desc')}
                 </p>
-                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] [text-shadow:none]">
                   {t('dash.create_first')}
                 </Button>
               </div>
@@ -450,7 +450,7 @@ export default function Dashboard() {
                 <p className="text-white/40 font-light mb-8 max-w-md leading-relaxed text-sm">
                   {t('dash.no_favs_desc')}
                 </p>
-                <Button variant="outline" onClick={() => navigate('/marketplace')} className="rounded-full border-white/10 bg-transparent hover:bg-white/5 text-white px-8 h-12">
+                <Button variant="outline" onClick={() => navigate('/marketplace')} className="rounded-full border-white/10 bg-transparent hover:bg-white/5 text-white px-8 h-12 [text-shadow:none]">
                   {t('dash.explore')}
                 </Button>
               </div>
@@ -487,8 +487,8 @@ export default function Dashboard() {
                 {t('dash.modal_delete_desc', { name: listingToDelete.name })}
               </p>
               <div className="flex flex-col gap-3">
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12">{t('dash.confirm_delete')}</Button>
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12">{t('dash.cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 [text-shadow:none]">{t('dash.confirm_delete')}</Button>
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 [text-shadow:none]">{t('dash.cancel')}</Button>
               </div>
             </motion.div>
           </div>

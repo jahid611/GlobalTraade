@@ -65,9 +65,9 @@ export default function Index() {
   ];
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#2b2a2f] text-white relative flex flex-col font-sans overflow-x-hidden selection:bg-primary/30">
+    <div ref={containerRef} className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white relative flex flex-col font-sans overflow-x-hidden selection:bg-primary/30">
 
-      <div className="fixed inset-0 z-0 bg-[#2b2a2f] pointer-events-none">
+      <div className="fixed inset-0 z-0 bg-transparent dark:bg-[#2b2a2f] pointer-events-none">
         {/* Modern SaaS Dot Pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
         {/* Extremely subtle top glow */}
@@ -77,7 +77,7 @@ export default function Index() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[15vh] pb-[10vh]">
+      <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[15vh] pb-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
@@ -129,7 +129,7 @@ export default function Index() {
       </main>
 
       {/* SECTION DESKTOP MOCKUP */}
-      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-[5vh] pb-[10vh]">
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-[5vh] pb-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="text-center mb-[6vh]">
           <h2 className="text-3xl md:text-4xl font-light text-white mb-6 tracking-tight">
              {t('index.desktop.title')}
@@ -171,7 +171,7 @@ export default function Index() {
       </section>
 
       {/* SECTION ROCKET LAUNCH */}
-      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[15vh] flex flex-col md:flex-row items-center justify-center gap-12 border-t border-white/10">
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[15vh] flex flex-col md:flex-row items-center justify-center gap-12 border-t border-white/10 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="flex-1 text-center md:text-left">
           <motion.h2 
             initial={{ opacity: 0, x: -30 }} 
@@ -213,7 +213,7 @@ export default function Index() {
       </section>
 
       {/* SECTION PREMIUM DÉDIÉE */}
-      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[15vh] border-t border-white/10">
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[15vh] border-t border-white/10 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="text-center mb-16">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }} 
@@ -267,7 +267,7 @@ export default function Index() {
       </section>
 
       {/* SECTION MOBILE MOCKUP */}
-      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[10vh]">
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1 text-left">
             <h2 className="text-3xl md:text-4xl font-light text-white mb-8 tracking-tight">
@@ -308,7 +308,7 @@ export default function Index() {
       </section>
 
       {/* SECTION INFORMATIONS DETAILLEES */}
-      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[10vh] border-t border-white/10">
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[10vh] border-t border-white/10 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="text-center mb-[8vh]">
            <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light text-white mb-6 tracking-tight">{t('index.features.title')}</h2>
            <p className="text-white/70 font-light max-w-3xl mx-auto text-lg leading-relaxed">
@@ -343,7 +343,7 @@ export default function Index() {
         </div>
       </section>
 
-      <section className="relative z-10 w-full max-w-5xl mx-auto px-6 py-[10vh] border-t border-white/5">
+      <section className="relative z-10 w-full max-w-5xl mx-auto px-6 py-[10vh] border-t border-white/5 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-light text-white mb-6 tracking-tight">{t('index.seo.title')}</h2>
         </div>
@@ -353,7 +353,7 @@ export default function Index() {
         </div>
       </section>
 
-      <section className="relative z-10 py-[4vh] border-y border-white/5 bg-transparent overflow-hidden mt-[5vh]">
+      <section className="relative z-10 py-[4vh] border-y border-white/5 bg-transparent overflow-hidden mt-[5vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="flex whitespace-nowrap">
           <motion.div 
             animate={{ x: ["0%", "-50%"] }} 

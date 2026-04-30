@@ -20,7 +20,7 @@ const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => v
   <button
     type="button"
     onClick={onToggle}
-    className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center px-1 border outline-none ${
+    className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center px-1 border outline-none [text-shadow:none] ${
       active ? 'bg-primary/20 border-primary' : 'bg-white/5 border-white/20'
     }`}
   >
@@ -175,7 +175,7 @@ export default function Settings() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white selection:bg-primary/30">
         <SolarSystem />
         <Navbar />
         <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1200px] mx-auto">
@@ -205,11 +205,11 @@ export default function Settings() {
   const labelClass = "text-[clamp(8px,0.8vw,10px)] font-black uppercase tracking-[0.2em] text-white/40 mb-[1vh] block";
 
   return (
-    <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
+    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white selection:bg-primary/30">
       <SolarSystem />
       <Navbar />
       
-      <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1200px] mx-auto">
+      <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1200px] mx-auto [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="flex flex-col md:flex-row justify-between md:items-end mb-[8vh] gap-[4vh]">
           <div>
             <h1 className="text-[clamp(2rem,3vw,3rem)] font-light mb-[1vh]">{t('settings.title')}</h1>
@@ -218,7 +218,7 @@ export default function Settings() {
           <Button 
             onClick={() => handleSave()} 
             disabled={saving || !hasUnsavedChanges()}
-            className={`w-fit px-[6vw] md:px-8 h-[12vw] md:h-12 rounded-full font-medium text-sm transition-all ${!hasUnsavedChanges() ? 'opacity-50 grayscale bg-white/5 text-white/50' : 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]'}`}
+            className={`w-fit px-[6vw] md:px-8 h-[12vw] md:h-12 rounded-full font-medium text-sm transition-all [text-shadow:none] ${!hasUnsavedChanges() ? 'opacity-50 grayscale bg-white/5 text-white/50' : 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]'}`}
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : t('settings.save')}
           </Button>
@@ -242,7 +242,7 @@ export default function Settings() {
               <p className="text-[clamp(0.75rem,0.9vw,0.875rem)] text-white/40 font-light truncate">{user.email}</p>
             </div>
 
-            <button onClick={() => navigate(`/profile/${user.id}`)} className="flex items-center justify-center lg:justify-start gap-3 text-[clamp(0.875rem,1vw,1rem)] font-light text-white/60 hover:text-white transition-colors w-fit mx-auto lg:mx-0">
+            <button onClick={() => navigate(`/profile/${user.id}`)} className="flex items-center justify-center lg:justify-start gap-3 text-[clamp(0.875rem,1vw,1rem)] font-light text-white/60 hover:text-white transition-colors w-fit mx-auto lg:mx-0 [text-shadow:none]">
               <ExternalLink className="w-4 h-4" /> {t('settings.view_profile')}
             </button>
           </div>
@@ -333,7 +333,7 @@ export default function Settings() {
             </section>
 
             <div className="pt-[4vh] border-t border-white/10">
-              <Button variant="ghost" onClick={handleLogout} className="w-fit text-red-400 hover:text-red-300 hover:bg-red-400/10 px-4 h-10 font-light text-[clamp(0.875rem,1vw,1rem)] rounded-full transition-colors">
+              <Button variant="ghost" onClick={handleLogout} className="w-fit text-red-400 hover:text-red-300 hover:bg-red-400/10 px-4 h-10 font-light text-[clamp(0.875rem,1vw,1rem)] rounded-full transition-colors [text-shadow:none]">
                 <LogOut className="w-4 h-4 mr-2" /> {t('settings.logout')}
               </Button>
             </div>
