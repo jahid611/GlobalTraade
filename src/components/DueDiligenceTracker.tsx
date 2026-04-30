@@ -56,9 +56,15 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   useEffect(() => {
     fetchTasks();
-  }, [listingId, buyerId]);
+  }, [listingId, buyerId, sellerId]);
 
   const fetchTasks = async () => {
+    // SÉCURITÉ : Ne pas exécuter la requête si les IDs ne sont pas définis
+    if (!listingId || !buyerId || !sellerId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: listingData } = await supabase.from('listings').select('name').eq('id', listingId).single();
       if (listingData) setListingName(listingData.name);

@@ -65,12 +65,11 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             
           if (docsError) {
             console.error("Erreur récupération documents VDR:", docsError);
-            showError("Erreur de droits d'accès aux documents.");
           }
           setDocuments(docs || []);
         }
       } else {
-        // Mode Propriétaire : On récupère les docs
+        // Mode Propriétaire
         const { data: docs, error: docsOwnerError } = await supabase
           .from('vdr_documents')
           .select('*')
@@ -80,7 +79,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         if (docsOwnerError) console.error("Erreur docs proprio:", docsOwnerError);
         setDocuments(docs || []);
 
-        // 1. Récupération des NDAs (Signés ET Révoqués)
         const { data: ndas, error: ndaError } = await supabase
           .from('ndas')
           .select('*')
@@ -90,20 +88,23 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         
         if (ndaError) console.error("Erreur NDA:", ndaError);
 
-        // 2. Récupération des Logs d'accès
         let logs: any[] = [];
         if (docs && docs.length > 0) {
-          const docIds = docs.map(d => d.id);
-          const { data: rawLogs, error: logError } = await supabase
-            .from('vdr_access_logs')
-            .select('*')
-            .in('document_id', docIds)
-            .order('created_at', { ascending: false });
-          if (logError) console.error("Erreur Logs:", logError);
-          logs = rawLogs || [];
+          // Filtrer pour éviter les requêtes avec array contenant des undefined/null
+          const docIds = docs.map(d => d.id).filter(Boolean);
+          
+          if (docIds.length > 0) {
+            const { data: rawLogs, error: logError } = await supabase
+              .from('vdr_access_logs')
+              .select('*')
+              .in('document_id', docIds)
+              .order('created_at', { ascending: false });
+              
+            if (logError) console.error("Erreur Logs:", logError);
+            logs = rawLogs || [];
+          }
         }
 
-        // 3. Récupération manuelle des Profils
         const profileIds = new Set([
           ...(ndas || []).map(n => n.buyer_id),
           ...logs.map(l => l.viewer_id)
@@ -116,12 +117,9 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             .select('id, full_name, avatar_url')
             .in('id', Array.from(profileIds));
           
-          if (profiles) {
-            profilesMap = new Map(profiles.map(p => [p.id, p]));
-          }
+          if (profiles) profilesMap = new Map(profiles.map(p => [p.id, p]));
         }
 
-        // 4. Assemblage
         const enrichedNdas = (ndas || []).map(n => ({
           ...n,
           buyer: profilesMap.get(n.buyer_id) || null
@@ -139,7 +137,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         setAccessLogs(enrichedLogs);
       }
     } catch (err) {
-      console.error("Erreur VDR:", err);
+      console.error("Erreur globale VDR:", err);
     } finally {
       setLoading(false);
     }
@@ -170,11 +168,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         .select();
 
       if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        throw new Error("Mise à jour bloquée. Vérifiez les règles de sécurité (RLS) sur Supabase.");
-      }
-
       showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
       fetchData();
     } catch (err: any) {
@@ -192,10 +185,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${listing.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('vdr')
-        .upload(filePath, file);
-
+      const { error: uploadError } = await supabase.storage.from('vdr').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { error: dbError } = await supabase.from('vdr_documents').insert({
@@ -206,13 +196,22 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       });
 
       if (dbError) throw dbError;
-
       showSuccess(t('vdr.toast_doc_success'));
       fetchData();
     } catch (err: any) {
       showError(`${t('vdr.toast_upload_error')}${err.message}`);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const logAccess = async (docId: string) => {
+    if (!isOwner && user) {
+      const { error } = await supabase.from('vdr_access_logs').insert({
+        document_id: docId,
+        viewer_id: user.id
+      });
+      if (error) console.error("Erreur insertion log d'accès:", error.message);
     }
   };
 
@@ -223,12 +222,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       });
       if (error) throw error;
       
-      if (!isOwner) {
-        await supabase.from('vdr_access_logs').insert({
-          document_id: doc.id,
-          viewer_id: user.id
-        });
-      }
+      await logAccess(doc.id);
 
       const a = document.createElement('a');
       a.href = data.signedUrl;
@@ -246,13 +240,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       const { data, error } = await supabase.storage.from('vdr').createSignedUrl(doc.file_path, 300);
       if (error) throw error;
       
-      if (!isOwner) {
-        await supabase.from('vdr_access_logs').insert({
-          document_id: doc.id,
-          viewer_id: user.id
-        });
-      }
-
+      await logAccess(doc.id);
       setPreviewDoc({ url: data.signedUrl, name: doc.name });
     } catch (err: any) {
       showError(t('vdr.toast_access_error'));
