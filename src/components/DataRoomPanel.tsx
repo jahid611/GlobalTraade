@@ -9,7 +9,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { generateBlindTeaser } from '@/utils/teaserGenerator';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
 
 interface DataRoomPanelProps {
   isOpen: boolean;
@@ -31,6 +31,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
   const { t, i18n } = useTranslation();
 
   const isOwner = user && listing?.owner_id === user.id;
+  const dateLocale = i18n.language === 'fr' ? fr : enUS;
 
   useEffect(() => {
     if (isOpen && user && listing) {
@@ -42,7 +43,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
   const fetchData = async () => {
     setLoading(true);
     if (!isOwner) {
-      // Check NDA status for buyer
       const { data: nda } = await supabase
         .from('ndas')
         .select('status')
@@ -61,7 +61,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         setDocuments(docs || []);
       }
     } else {
-      // Owner fetches all docs, NDAs, and Access Logs
       const { data: docs } = await supabase
         .from('vdr_documents')
         .select('*')
@@ -73,7 +72,8 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         .from('ndas')
         .select('*, buyer:buyer_id(id, email, raw_user_meta_data)')
         .eq('listing_id', listing.id)
-        .eq('status', 'signed');
+        .eq('status', 'signed')
+        .order('signed_at', { ascending: false });
       setBuyersWithNda(ndas || []);
 
       if (docs && docs.length > 0) {
@@ -131,10 +131,10 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (dbError) throw dbError;
 
-      showSuccess("Document sécurisé ajouté avec succès.");
+      showSuccess(t('vdr.toast_doc_success'));
       fetchData();
     } catch (err: any) {
-      showError(`Erreur: ${err.message}`);
+      showError(`${t('vdr.toast_upload_error')}${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -147,7 +147,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       });
       if (error) throw error;
       
-      // Log access
       if (!isOwner) {
         await supabase.from('vdr_access_logs').insert({
           document_id: doc.id,
@@ -162,13 +161,13 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       a.click();
       document.body.removeChild(a);
     } catch (err: any) {
-      showError("Erreur d'accès au document.");
+      showError(t('vdr.toast_access_error'));
     }
   };
 
   const viewDocument = async (doc: any) => {
     try {
-      const { data, error } = await supabase.storage.from('vdr').createSignedUrl(doc.file_path, 300); // 5 min expiry
+      const { data, error } = await supabase.storage.from('vdr').createSignedUrl(doc.file_path, 300);
       if (error) throw error;
       
       if (!isOwner) {
@@ -180,7 +179,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       setPreviewDoc({ url: data.signedUrl, name: doc.name });
     } catch (err: any) {
-      showError("Erreur d'accès au document.");
+      showError(t('vdr.toast_access_error'));
     }
   };
 
@@ -202,14 +201,14 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed top-0 right-0 h-full w-full sm:w-[500px] liquid-glass-heavy bg-[#2b2a2f]/95 border-l border-white/10 z-[210] flex flex-col shadow-2xl"
           >
-            {/* VDR Header with Security Badges */}
+            {/* VDR Header */}
             <div className="flex flex-col p-6 border-b border-white/10 bg-black/20 shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-light text-white flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
                     <ShieldCheck className="w-4 h-4 text-primary" />
                   </div>
-                  Data Room Sécurisée
+                  {t('vdr.header_title')}
                 </h2>
                 <button onClick={onClose} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
@@ -217,10 +216,10 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-                  <Lock className="w-3 h-3" /> AES-256 Chiffrement
+                  <Lock className="w-3 h-3" /> {t('vdr.aes')}
                 </span>
                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-blue-400 font-bold bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
-                  <ShieldAlert className="w-3 h-3" /> Traçabilité Complète
+                  <ShieldAlert className="w-3 h-3" /> {t('vdr.traceability')}
                 </span>
               </div>
             </div>
@@ -232,21 +231,21 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                   onClick={() => setActiveTab('docs')}
                   className={`pb-3 text-xs font-medium uppercase tracking-widest transition-colors relative ${activeTab === 'docs' ? 'text-primary' : 'text-white/40 hover:text-white'}`}
                 >
-                  <FileText className="w-4 h-4 inline mr-1.5 -mt-0.5" /> Fichiers
+                  <FileText className="w-4 h-4 inline mr-1.5 -mt-0.5" /> {t('vdr.tab_files')}
                   {activeTab === 'docs' && <motion.div layoutId="vdr-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                 </button>
                 <button 
                   onClick={() => setActiveTab('access')}
                   className={`pb-3 text-xs font-medium uppercase tracking-widest transition-colors relative ${activeTab === 'access' ? 'text-primary' : 'text-white/40 hover:text-white'}`}
                 >
-                  <Users className="w-4 h-4 inline mr-1.5 -mt-0.5" /> NDAs Signés
+                  <Users className="w-4 h-4 inline mr-1.5 -mt-0.5" /> {t('vdr.tab_ndas')}
                   {activeTab === 'access' && <motion.div layoutId="vdr-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                 </button>
                 <button 
                   onClick={() => setActiveTab('audit')}
                   className={`pb-3 text-xs font-medium uppercase tracking-widest transition-colors relative ${activeTab === 'audit' ? 'text-primary' : 'text-white/40 hover:text-white'}`}
                 >
-                  <History className="w-4 h-4 inline mr-1.5 -mt-0.5" /> Audit Trail
+                  <History className="w-4 h-4 inline mr-1.5 -mt-0.5" /> {t('vdr.tab_audit')}
                   {activeTab === 'audit' && <motion.div layoutId="vdr-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                 </button>
               </div>
@@ -256,7 +255,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-32 text-white/30 gap-3 mt-10">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <span className="text-xs uppercase tracking-widest">Déchiffrement...</span>
+                  <span className="text-xs uppercase tracking-widest">{t('vdr.decrypting')}</span>
                 </div>
               ) : isOwner ? (
                 <div className="space-y-6">
@@ -264,20 +263,20 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                   {activeTab === 'docs' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs uppercase tracking-widest text-white/40 font-medium">Index des Documents</h3>
+                        <h3 className="text-xs uppercase tracking-widest text-white/40 font-medium">{t('vdr.doc_index')}</h3>
                         <div className="relative">
                           <input type="file" onChange={uploadDocument} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={uploading} />
                           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors text-xs font-medium">
                             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                            {uploading ? 'Importation...' : 'Nouveau Document'}
+                            {uploading ? t('vdr.importing') : t('vdr.new_doc')}
                           </button>
                         </div>
                       </div>
 
                       {documents.length === 0 ? (
-                        <div className="text-sm text-white/40 border border-white/10 border-dashed rounded-2xl p-10 text-center bg-white/[0.02]">
+                        <div className="text-sm text-white/40 border border-white/10 border-dashed rounded-2xl p-10 text-center bg-white/[0.02] font-light">
                           <FileText className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                          Glissez vos documents financiers et juridiques ici.<br/>Ils seront automatiquement chiffrés.
+                          {t('vdr.empty_docs')}
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -290,7 +289,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                 <div className="truncate">
                                   <p className="text-sm text-white font-medium truncate">{doc.name}</p>
                                   <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">
-                                    {(doc.size_bytes / 1024 / 1024).toFixed(2)} MB • {format(new Date(doc.created_at), 'dd MMM yyyy', { locale: fr })}
+                                    {(doc.size_bytes / 1024 / 1024).toFixed(2)} MB • {format(new Date(doc.created_at), 'dd MMM yyyy', { locale: dateLocale })}
                                   </p>
                                 </div>
                               </div>
@@ -314,12 +313,12 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
                         <p className="text-xs text-blue-200 font-light leading-relaxed">
-                          Ces utilisateurs ont signé l'Accord de Confidentialité (NDA) avec signature numérique horodatée et ont désormais accès en lecture à vos documents.
+                          {t('vdr.nda_desc')}
                         </p>
                       </div>
                       
                       {buyersWithNda.length === 0 ? (
-                        <p className="text-sm text-white/40 italic text-center py-10">Aucun NDA signé pour le moment.</p>
+                        <p className="text-sm text-white/40 italic text-center py-10">{t('vdr.no_nda_yet')}</p>
                       ) : (
                         <div className="space-y-3">
                           {buyersWithNda.map((nda) => (
@@ -330,7 +329,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                               <div className="flex-1 truncate">
                                 <p className="text-sm font-medium text-white truncate">{nda.buyer?.raw_user_meta_data?.full_name || t('vdr.unknown_user')}</p>
                                 <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
-                                  <CheckCircle2 size={12}/> Signé le {format(new Date(nda.signed_at), 'dd/MM/yyyy')}
+                                  <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy à HH:mm')}
                                 </p>
                               </div>
                             </div>
@@ -345,21 +344,21 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
                         <p className="text-xs text-amber-200 font-light leading-relaxed">
-                          <strong className="font-medium text-amber-400">Audit Forensique :</strong> Suivez exactement qui a consulté vos documents. Un indicateur clé pour jauger l'intérêt réel d'un repreneur.
+                          {t('vdr.audit_desc')}
                         </p>
                       </div>
 
                       {accessLogs.length === 0 ? (
-                        <p className="text-sm text-white/40 italic text-center py-10">Aucune activité enregistrée sur vos documents.</p>
+                        <p className="text-sm text-white/40 italic text-center py-10">{t('vdr.no_activity')}</p>
                       ) : (
                         <div className="relative border-l border-white/10 ml-4 space-y-6 pb-4">
-                          {accessLogs.map((log, idx) => (
+                          {accessLogs.map((log) => (
                             <div key={log.id} className="relative pl-6">
                               <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-[#2b2a2f] shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.created_at), 'dd MMM à HH:mm', { locale: fr })}</p>
+                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.created_at), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">
-                                  <strong className="font-medium text-white">{log.viewer?.raw_user_meta_data?.full_name || 'Un utilisateur'}</strong> a consulté le document <span className="text-primary italic">{log.document?.name || 'Fichier inconnu'}</span>
+                                  <strong className="font-medium text-white">{log.viewer?.raw_user_meta_data?.full_name || t('vdr.unknown_user')}</strong> {t('vdr.log_viewed')} <span className="text-primary italic">{log.document?.name || t('vdr.unknown_file')}</span>
                                 </p>
                               </div>
                             </div>
@@ -375,33 +374,33 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                   <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-inner">
                     <Lock className="w-10 h-10 text-white/40" />
                   </div>
-                  <h3 className="text-2xl font-light text-white mb-3">Espace Confidentiel</h3>
+                  <h3 className="text-2xl font-light text-white mb-3">{t('vdr.confidential_space')}</h3>
                   <p className="text-sm text-white/50 mb-8 max-w-sm font-light leading-relaxed">
-                    Le vendeur exige la signature d'un Accord de Confidentialité (NDA) numériquement traçable avant d'autoriser l'accès à la Data Room.
+                    {t('vdr.buyer_req')}
                   </p>
                   
                   <div className="w-full text-left bg-black/40 border border-white/10 rounded-2xl p-6 mb-8 h-48 overflow-y-auto text-xs text-white/60 font-light leading-relaxed custom-scrollbar shadow-inner">
-                    <strong className="text-white text-sm block mb-4 border-b border-white/10 pb-2">ACCORD DE CONFIDENTIALITÉ (NDA)</strong>
-                    Le présent accord vise à protéger les informations confidentielles transmises dans le cadre de l'évaluation stricte de cette opportunité d'acquisition.
+                    <strong className="text-white text-sm block mb-4 border-b border-white/10 pb-2">{t('vdr.nda_doc_title')}</strong>
+                    {t('vdr.nda_p1')}
                     <br/><br/>
-                    En cliquant sur "Accepter et Signer", vous vous engagez formellement (valeur légale eIDAS) à :<br/><br/>
-                    <span className="text-white/80">1.</span> Maintenir la plus stricte confidentialité sur l'ensemble des documents (bilans, contrats, RH) partagés.<br/>
-                    <span className="text-white/80">2.</span> Ne pas utiliser ces informations à d'autres fins que l'évaluation financière et juridique de la cible.<br/>
-                    <span className="text-white/80">3.</span> Ne pas contacter directement les employés, clients ou fournisseurs sans l'accord explicite et écrit du vendeur.<br/>
-                    <span className="text-white/80">4.</span> Détruire de manière sécurisée ces informations sur simple demande en cas d'échec des négociations.
+                    {t('vdr.nda_p2')}<br/><br/>
+                    <span className="text-white/80">{t('vdr.nda_l1')}</span><br/>
+                    <span className="text-white/80">{t('vdr.nda_l2')}</span><br/>
+                    <span className="text-white/80">{t('vdr.nda_l3')}</span><br/>
+                    <span className="text-white/80">{t('vdr.nda_l4')}</span>
                   </div>
 
                   <button onClick={signNda} className="w-full py-4 rounded-full bg-white text-black font-medium hover:bg-white/90 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-[1.02]">
-                    Accepter et Signer Numériquement
+                    {t('vdr.sign_btn')}
                   </button>
 
                   <div className="w-full h-px bg-white/10 my-8 relative">
-                    <span className="absolute left-1/2 -translate-x-1/2 -top-2 bg-[#2b2a2f] px-4 text-[10px] text-white/40 uppercase tracking-widest font-bold">Ou</span>
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-2 bg-[#2b2a2f] px-4 text-[10px] text-white/40 uppercase tracking-widest font-bold">{t('vdr.or')}</span>
                   </div>
                   
                   <button onClick={() => generateBlindTeaser(listing, t, i18n.language)} className="w-full py-3.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-all flex items-center justify-center gap-2">
                     <FileText className="w-4 h-4" />
-                    Télécharger le Teaser Anonymisé
+                    {t('vdr.dl_teaser')}
                   </button>
                 </div>
               ) : (
@@ -412,16 +411,16 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-emerald-100 font-medium mb-1">Accès Autorisé & Tracé</p>
-                      <p className="text-xs text-emerald-400/80 font-light leading-relaxed">Le NDA a été signé. Vos consultations de documents sont enregistrées et horodatées dans le journal d'audit du vendeur.</p>
+                      <p className="text-sm text-emerald-100 font-medium mb-1">{t('vdr.auth_access')}</p>
+                      <p className="text-xs text-emerald-400/80 font-light leading-relaxed">{t('vdr.auth_desc')}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">Documents Disponibles ({documents.length})</h3>
+                    <h3 className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">{t('vdr.docs_avail')} ({documents.length})</h3>
                     {documents.length === 0 ? (
                       <p className="text-sm text-white/40 border border-white/5 rounded-2xl p-8 text-center bg-white/[0.02] font-light">
-                        Le vendeur n'a pas encore téléversé de documents dans cet espace sécurisé.
+                        {t('vdr.no_docs_buyer')}
                       </p>
                     ) : (
                       <div className="space-y-3">
@@ -439,10 +438,10 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                               </div>
                             </div>
                             <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => viewDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title="Visualiser (Trace l'accès)">
+                              <button onClick={() => viewDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title={t('vdr.view')}>
                                 <Eye size={16} />
                               </button>
-                              <button onClick={() => downloadDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title="Télécharger (Trace l'accès)">
+                              <button onClick={() => downloadDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title={t('vdr.download')}>
                                 <Download size={16} />
                               </button>
                             </div>
@@ -474,8 +473,8 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             {/* Simulation of Dynamic Watermark */}
             <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center opacity-10 overflow-hidden">
               <div className="rotate-[-45deg] text-white font-bold text-4xl whitespace-nowrap text-center">
-                CONFIDENTIEL - GLOBETRADE VDR<br/>
-                Accès tracé : {user?.email}<br/>
+                {t('vdr.watermark')}<br/>
+                {t('vdr.watermark_traced')} {user?.email}<br/>
                 {new Date().toISOString()}
               </div>
             </div>

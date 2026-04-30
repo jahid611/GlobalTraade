@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, Briefcase, Scale, Users, Settings2, FileText, Leaf, Loader2, Building, Wand2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, Briefcase, Scale, Users, Settings2, FileText, Loader2, Building, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/AuthProvider';
 import { showSuccess, showError } from '@/utils/toast';
@@ -26,15 +26,6 @@ interface DueDiligenceTrackerProps {
   sellerId: string;
 }
 
-const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  governance: { icon: Building, label: 'Gouvernance & Corporate', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
-  financial: { icon: Briefcase, label: 'Audit Financier', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  legal: { icon: Scale, label: 'Audit Juridique', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-  social: { icon: Users, label: 'Audit Social & RH', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  operational: { icon: Settings2, label: 'Audit Opérationnel', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
-  tax: { icon: FileText, label: 'Audit Fiscal', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-};
-
 const STATUS_ICON: Record<string, React.ElementType> = {
   pending: Circle,
   in_progress: Clock,
@@ -53,6 +44,15 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [expandedCategory, setExpandedCategory] = useState<string | null>('governance');
   
   const dealId = `${buyerId}_${listingId}`;
+
+  const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+    governance: { icon: Building, label: t('dd.governance'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+    financial: { icon: Briefcase, label: t('dd.financial'), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+    legal: { icon: Scale, label: t('dd.legal'), color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    social: { icon: Users, label: t('dd.social'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+    operational: { icon: Settings2, label: t('dd.operational'), color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    tax: { icon: FileText, label: t('dd.tax'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -92,30 +92,30 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     setIsGenerating(true);
 
     const defaultTasks = [
-      { category: 'governance', title: "Statuts à jour et KBIS de moins de 3 mois" },
-      { category: 'governance', title: "Procès-verbaux d'AG des 3 dernières années" },
-      { category: 'governance', title: "Pacte d'associés (si existant)" },
+      { category: 'governance', title: t('dd.task_gov1') },
+      { category: 'governance', title: t('dd.task_gov2') },
+      { category: 'governance', title: t('dd.task_gov3') },
       
-      { category: 'financial', title: "Bilans et liasses fiscales (3 derniers exercices)" },
-      { category: 'financial', title: "Balance générale et grand livre de l'année en cours" },
-      { category: 'financial', title: "Détail des engagements hors bilan et emprunts" },
+      { category: 'financial', title: t('dd.task_fin1') },
+      { category: 'financial', title: t('dd.task_fin2') },
+      { category: 'financial', title: t('dd.task_fin3') },
       
-      { category: 'legal', title: "Contrats de baux commerciaux (avec avenants)" },
-      { category: 'legal', title: "Contrats clients et fournisseurs majeurs" },
-      { category: 'legal', title: "Propriété intellectuelle (Brevets, Marques INPI)" },
+      { category: 'legal', title: t('dd.task_leg1') },
+      { category: 'legal', title: t('dd.task_leg2') },
+      { category: 'legal', title: t('dd.task_leg3') },
       
-      { category: 'social', title: "Registre unique du personnel et contrats de travail clés" },
-      { category: 'social', title: "Attestations de vigilance URSSAF à jour" },
-      { category: 'social', title: "Détail du passif social (congés payés, primes, litiges prud'homaux)" }
+      { category: 'social', title: t('dd.task_soc1') },
+      { category: 'social', title: t('dd.task_soc2') },
+      { category: 'social', title: t('dd.task_soc3') }
     ];
 
-    const tasksToInsert = defaultTasks.map(t => ({
+    const tasksToInsert = defaultTasks.map(tk => ({
       deal_id: dealId,
       listing_id: listingId,
       buyer_id: buyerId,
       seller_id: sellerId,
-      title: t.title,
-      category: t.category,
+      title: tk.title,
+      category: tk.category,
       status: 'pending',
       priority: 'medium'
     }));
@@ -125,10 +125,10 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!error && data) {
       setTasks(data);
       const pseudo = user.user_metadata?.full_name || "User";
-      await sendSystemMessage(`${pseudo} a initialisé la checklist standard de Due Diligence.`);
-      showSuccess("Checklist standard générée avec succès.");
+      await sendSystemMessage(t('dd.msg_init', { name: pseudo }));
+      showSuccess(t('dd.toast_gen_success'));
     } else {
-      showError("Erreur lors de la génération de la checklist.");
+      showError(t('dd.toast_gen_error'));
     }
     
     setIsGenerating(false);
@@ -139,7 +139,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     
     const catTasks = tasks.filter(t => t.category === category);
     if (catTasks.length >= 10) {
-      showError(t('msg.error') || "Limite atteinte pour cette catégorie.");
+      showError(t('msg.error'));
       return;
     }
 
@@ -157,7 +157,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (data && !error) {
       setTasks(prev => [...prev, data]);
       const pseudo = user.user_metadata?.full_name || "User";
-      await sendSystemMessage(`${pseudo} a ajouté une nouvelle tâche: "${newTaskTitle.trim()}".`);
+      await sendSystemMessage(t('dd.msg_add', { name: pseudo, task: newTaskTitle.trim() }));
       setNewTaskTitle("");
       setAddingTaskTo(null);
     } else {
@@ -186,8 +186,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!error) {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
       const pseudo = user.user_metadata?.full_name || "User";
-      const statusLabel = newStatus === 'completed' ? 'marquée comme terminée' : newStatus === 'in_progress' ? 'mise en cours' : 'repassée en attente';
-      await sendSystemMessage(`${pseudo} a mis à jour la tâche "${task.title}" (${statusLabel}).`);
+      const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label') : newStatus === 'in_progress' ? t('dd.status_progress_label') : t('dd.status_pending_label');
+      await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: task.title, status: statusLabel }));
     }
   };
 
@@ -208,16 +208,16 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
               <ClipboardCheck className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h3 className="text-base font-medium text-white mb-1">Audit & Due Diligence</h3>
+              <h3 className="text-base font-medium text-white mb-1">{t('dd.title')}</h3>
               <p className="text-xs text-white/50 font-light leading-relaxed max-w-sm">
-                Centralisez vos demandes de documents et suivez l'avancement de l'audit d'acquisition. Chaque action est synchronisée entre les deux parties.
+                {t('dd.desc')}
               </p>
             </div>
           </div>
           {total > 0 && (
             <div className="shrink-0 text-center bg-black/20 p-3 rounded-xl border border-white/5 min-w-[100px]">
               <span className="text-2xl font-light text-white block">{progressPercent}%</span>
-              <span className="text-[9px] uppercase tracking-widest text-white/40">Progression</span>
+              <span className="text-[9px] uppercase tracking-widest text-white/40">{t('dd.progress')}</span>
             </div>
           )}
         </div>
@@ -237,9 +237,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       {tasks.length === 0 ? (
         <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-10 text-center flex flex-col items-center">
           <Wand2 className="w-10 h-10 text-primary/50 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">Structurez votre Audit</h3>
+          <h3 className="text-lg font-medium text-white mb-2">{t('dd.empty_title')}</h3>
           <p className="text-sm text-white/50 font-light mb-8 max-w-md">
-            Ne partez pas de zéro. Utilisez notre checklist standard d'audit M&A pour lister immédiatement les documents indispensables (Bilans, Baux, Statuts) et cadrer la négociation.
+            {t('dd.empty_desc')}
           </p>
           <Button 
             onClick={handleGenerateDefault} 
@@ -247,7 +247,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             className="rounded-full bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8"
           >
             {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-            Générer la checklist d'audit
+            {t('dd.btn_generate')}
           </Button>
         </div>
       ) : (
@@ -255,7 +255,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           const config = CATEGORY_CONFIG[cat];
           const Icon = config.icon;
           const catTasks = tasks.filter(t => t.category === cat);
-          if (catTasks.length === 0 && cat !== 'governance' && cat !== 'financial' && cat !== 'legal') return null; // Hide empty optional categories
+          if (catTasks.length === 0 && cat !== 'governance' && cat !== 'financial' && cat !== 'legal') return null;
           
           const catCompleted = catTasks.filter(t => t.status === 'completed').length;
           const isExpanded = expandedCategory === cat;
@@ -294,7 +294,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                               task.status === 'in_progress' ? 'text-blue-400 border-blue-400/30 bg-blue-500/10' : 
                               'text-white/30 border-white/10 bg-white/5'
                             }`}>
-                              {task.status === 'in_progress' ? 'EN COURS' : task.status === 'completed' ? 'VALIDÉ' : 'À FOURNIR'}
+                              {task.status === 'in_progress' ? t('dd.badge_progress') : task.status === 'completed' ? t('dd.badge_completed') : t('dd.badge_pending')}
                             </span>
                           </div>
                         );
@@ -308,18 +308,18 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddTask(cat)}
-                            placeholder="Nom du document ou de la vérification..."
+                            placeholder={t('dd.input_placeholder')}
                             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
                           />
-                          <Button onClick={() => handleAddTask(cat)} className="h-10 px-4 rounded-xl bg-primary text-white font-medium hover:bg-primary/90">Ajouter</Button>
-                          <Button onClick={() => setAddingTaskTo(null)} variant="ghost" className="h-10 px-4 rounded-xl text-white/50 hover:text-white hover:bg-white/10">Annuler</Button>
+                          <Button onClick={() => handleAddTask(cat)} className="h-10 px-4 rounded-xl bg-primary text-white font-medium hover:bg-primary/90">{t('dd.btn_add')}</Button>
+                          <Button onClick={() => setAddingTaskTo(null)} variant="ghost" className="h-10 px-4 rounded-xl text-white/50 hover:text-white hover:bg-white/10">{t('dd.btn_cancel')}</Button>
                         </div>
                       ) : (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setAddingTaskTo(cat); }}
                           className="w-full flex items-center gap-2 px-4 py-3 text-xs text-white/40 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl mt-2 border border-dashed border-white/10"
                         >
-                          <Plus className="w-4 h-4" /> Ajouter un élément spécifique
+                          <Plus className="w-4 h-4" /> {t('dd.btn_add_specific')}
                         </button>
                       )}
                     </div>
@@ -337,7 +337,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 const ClipboardCheck = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1 2-2h2"/>
     <path d="m9 14 2 2 4-4"/>
   </svg>
 );
