@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, Scale, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
+import { Calculator, TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, Scale, PiggyBank, Briefcase, AlertTriangle, Handshake } from 'lucide-react';
 
 interface DealCalculatorProps {
   listing: { price: number; revenue_n1: number; ebitda: number; rent?: number; };
