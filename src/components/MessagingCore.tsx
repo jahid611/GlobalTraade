@@ -383,10 +383,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         </div>
       </div>
 
-      {/* Remplacement des bordures et fonds solides par "bg-transparent" pour un flottement parfait */}
-      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-[#2b2a2f] sm:bg-transparent`}>
+      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-transparent`}>
         {activeConv ? (
-          <div className="flex-1 w-full h-full overflow-hidden flex flex-col relative bg-transparent">
+          <div className="flex-1 w-full h-full sm:liquid-glass sm:dark:bg-white/[0.02] sm:border sm:border-white/30 sm:dark:border-white/5 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl">
             <ChatWindow 
               activeConv={activeConv}
               messages={filteredMessages}
@@ -402,9 +401,10 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             />
           </div>
         ) : (
-          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center bg-transparent relative overflow-hidden group">
+          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-3xl shadow-2xl relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="relative z-10 flex flex-col items-center">
-              <div className="w-[200px] mb-6 opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+              <div className="w-[200px] mb-6 opacity-90 group-hover:opacity-100 transition-opacity duration-500">
                 <img src="/astronaut-bouee.png" alt="Astronaut on a buoy" className="w-full h-auto drop-shadow-2xl" />
               </div>
               <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-2 text-white tracking-tight">{t('msg.negotiation_space')}</h3>

@@ -261,7 +261,7 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Content Area avec Masque dégradé */}
+      {/* Content Area avec Masque dégradé pour faire disparaitre les messages en douceur */}
       <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent">
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
@@ -285,7 +285,7 @@ export function ChatWindow({
                 />
               </div>
 
-              {messages.map((msg, i) => {
+              {messages.map((msg) => {
                 const isMine = msg.sender_id === userId;
                 const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
                 
@@ -308,21 +308,21 @@ export function ChatWindow({
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-1 group/msg`}
+                    className={`relative flex w-full my-1 group/msg overflow-visible`}
                   >
-                    <div className={`relative flex items-center w-full ${isMine ? 'justify-end' : 'justify-start'}`}>
-                      <motion.div 
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={isMine ? { left: 0.2, right: 0 } : { left: 0, right: 0.2 }}
-                        className={`flex items-center gap-2 max-w-[85%] sm:max-w-[70%] relative z-10`}
-                      >
+                    <motion.div 
+                      drag="x"
+                      dragConstraints={{ left: -60, right: 0 }}
+                      dragElastic={0.1}
+                      className={`relative flex items-center w-full z-10 ${isMine ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`relative flex items-center gap-2 max-w-[85%] sm:max-w-[70%]`}>
                         {isMine && (
-                          <button onClick={() => setMessageToDelete(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0" title="Supprimer">
+                          <button onClick={() => setMessageToDelete(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0 z-20" title="Supprimer">
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words relative z-20 ${
+                        <div className={`relative px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words z-20 ${
                           isMine 
                             ? 'bg-primary text-white shadow-[0_4px_20px_rgba(168,85,247,0.15)]' 
                             : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5'
@@ -330,16 +330,20 @@ export function ChatWindow({
                           {msg.content}
                         </div>
 
-                        {/* L'heure, cachée à l'extérieur, apparait au survol ou lors du glissement (drag) */}
-                        <div className={`absolute top-1/2 -translate-y-1/2 flex items-center text-[10px] text-white/40 transition-all duration-300 opacity-100 sm:opacity-0 sm:group-hover/msg:opacity-100 pointer-events-none whitespace-nowrap z-0
-                          ${isMine 
-                            ? 'right-full mr-2 sm:translate-x-2 sm:group-hover/msg:translate-x-0' 
-                            : 'left-full ml-2 sm:-translate-x-2 sm:group-hover/msg:translate-x-0'}
+                        {/* L'heure - Desktop (Hover à côté du message) */}
+                        <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 items-center text-[10px] text-white/40 transition-all duration-300 opacity-0 group-hover/msg:opacity-100 select-none pointer-events-none whitespace-nowrap z-0
+                          ${isMine ? 'right-full mr-2' : 'left-full ml-2'}
                         `}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                      </motion.div>
-                    </div>
+                      </div>
+
+                      {/* L'heure - Mobile (Drag style Instagram, fixée sur le bord droit) */}
+                      <div className="absolute left-full w-[60px] flex items-center justify-center text-[10px] text-white/40 select-none pointer-events-none md:hidden h-full z-0">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+
+                    </motion.div>
                   </motion.div>
                 );
               })}
@@ -373,7 +377,7 @@ export function ChatWindow({
 
       {/* Input Area */}
       {activeTab === 'messages' && (
-        <div className="p-2 sm:p-3 bg-transparent shrink-0 z-10">
+        <div className="p-2 sm:p-3 bg-transparent shrink-0 z-10 border-t border-white/5">
           <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg">
             <input 
               value={input}
@@ -400,9 +404,9 @@ export function ChatWindow({
               initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.95, opacity: 0 }} 
-              className="liquid-glass bg-[#2b2a2f] border border-white/10 rounded-2xl p-5 max-w-[280px] w-full text-center shadow-2xl"
+              className="liquid-glass bg-[#2b2a2f] border border-white/10 rounded-[1.5rem] p-5 max-w-[280px] w-full text-center shadow-2xl"
             >
-              <p className="text-sm text-white mb-5 font-light">Supprimer ce message pour tout le monde ?</p>
+              <p className="text-sm text-white mb-5 font-light">Supprimer pour tout le monde ?</p>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="flex-1 h-9 rounded-xl text-white hover:bg-white/10 font-medium text-xs">Annuler</Button>
                 <Button variant="destructive" onClick={() => { onDeleteMessage(messageToDelete); setMessageToDelete(null); }} className="flex-1 h-9 rounded-xl font-medium text-xs">Supprimer</Button>
