@@ -170,30 +170,32 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
   return (
     <AnimatePresence>
       <div key="main-modal" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center sm:p-6 md:p-8 pointer-events-none">
+        {/* Backdrop (Fidèle à iOS) */}
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
-          transition={{ duration: 0.3 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto" 
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto" 
           onClick={onClose} 
         />
         
         <motion.div
-          initial={{ y: isMobile ? '100%' : 40, opacity: 0, scale: isMobile ? 1 : 0.95 }}
+          initial={{ y: isMobile ? '100%' : 40, opacity: isMobile ? 1 : 0, scale: isMobile ? 1 : 0.95 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: isMobile ? '100%' : 40, opacity: 0, scale: isMobile ? 1 : 0.95 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
+          exit={{ y: isMobile ? '100%' : 40, opacity: isMobile ? 1 : 0, scale: isMobile ? 1 : 0.95 }}
+          transition={{ type: 'spring', damping: 32, stiffness: 300, mass: 0.9 }}
           drag={isMobile ? "y" : false}
           dragControls={dragControls}
           dragListener={false}
           dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0, bottom: 1 }}
-          onDragEnd={(e, info) => { if (isMobile && (info.offset.y > 100 || info.velocity.y > 300)) onClose(); }}
-          className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
+          dragElastic={{ top: 0, bottom: 1 }} // Permet de tirer vers le bas de manière ultra fluide
+          onDragEnd={(e, info) => { if (isMobile && (info.offset.y > 120 || info.velocity.y > 400)) onClose(); }}
+          className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl"
         >
-          <div className="w-full flex justify-center pt-4 pb-2 sm:hidden shrink-0 touch-none cursor-grab absolute top-0 z-20" onPointerDown={(e) => dragControls.start(e)}>
-            <div className="w-12 h-1.5 bg-white/20 shadow-md rounded-full" />
+          {/* Poignée native iOS */}
+          <div className="w-full flex justify-center pt-3 pb-5 sm:hidden shrink-0 touch-none cursor-grab absolute top-0 z-20" onPointerDown={(e) => dragControls.start(e)}>
+            <div className="w-10 h-1.5 bg-white/30 rounded-full" />
           </div>
 
           <div className="sm:hidden absolute top-4 right-4 z-30 flex items-center gap-2">
@@ -202,13 +204,13 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 <Heart size={20} className={isFavorite ? 'fill-current' : ''} />
               </button>
             )}
-            <button onClick={onClose} className="p-2 text-white hover:text-white bg-white/5 border border-white/10 rounded-full transition-colors flex items-center justify-center shadow-lg">
+            <button onClick={onClose} className="p-2 text-white hover:text-white bg-white/5 border border-white/10 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-90">
               <X size={20} />
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
-            <div className="p-6 sm:p-10 md:p-12 pt-14 sm:pt-12 relative z-10">
+            <div className="p-6 sm:p-10 md:p-12 pt-12 sm:pt-12 relative z-10">
               
               <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-8 mb-10 sm:mb-14">
                 <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-start w-full md:w-auto">
