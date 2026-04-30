@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Send, Handshake, ChevronLeft, UserPlus, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2 } from 'lucide-react';
+import { Send, Handshake, ChevronLeft, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,7 @@ import { DueDiligenceTracker } from '@/components/DueDiligenceTracker';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { generateLOI } from '@/utils/loiGenerator';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -182,24 +183,27 @@ export function ChatWindow({
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header avec empilement vertical propre */}
-      <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10">
+      <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10 border-b border-white/5">
         <div className="flex items-start gap-2 sm:gap-4 min-w-0 pr-2">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5">
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border border-white/10 bg-white/5 mt-0.5 shrink-0">
-            <AvatarImage src={activeConv.avatar_url} className="object-cover" />
-            <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
-          </Avatar>
+          <Link to={`/profile/${activeConv.other_user_id}`} className="shrink-0 transition-transform hover:scale-105 active:scale-95">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border border-white/10 bg-white/5 mt-0.5">
+              <AvatarImage src={activeConv.avatar_url} className="object-cover" />
+              <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-[13px] sm:text-[14px] truncate">{activeConv.contact_name}</span>
+              <Link to={`/profile/${activeConv.other_user_id}`} className="font-medium text-white text-[13px] sm:text-[14px] truncate hover:text-primary transition-colors">
+                {activeConv.contact_name}
+              </Link>
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
             
-            {/* L'annonce et l'offre sont maintenant empilées verticalement pour éviter l'écrasement */}
             <div className="flex flex-col mt-0.5">
               <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate max-w-[200px]">{activeConv.listing_name}</p>
               {hasAcceptedOffer && (
@@ -213,11 +217,12 @@ export function ChatWindow({
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {contactStatus === 'none' && (
-            <Button onClick={onAddContact} variant="outline" size="sm" className="hidden sm:flex rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[10px] h-8 px-3 transition-all">
-              <UserPlus className="w-3 h-3 mr-1.5" /> {t('profile.connect') || "Connecter"}
+          <Link to={`/profile/${activeConv.other_user_id}`} className="hidden sm:block">
+            <Button variant="outline" size="sm" className="rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[10px] h-8 px-3 transition-all text-white/80 hover:text-white">
+              <User className="w-3 h-3 sm:mr-1.5" /> <span className="hidden sm:inline">{t('msg.view_profile') || "Voir profil"}</span>
             </Button>
-          )}
+          </Link>
+          
           <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
             <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
