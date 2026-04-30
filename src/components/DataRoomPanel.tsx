@@ -186,20 +186,20 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className="fixed inset-0 z-[200] flex pointer-events-none justify-start">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-auto"
             onClick={onClose}
           />
           <motion.div
-            initial={{ x: '100%', opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '100%', opacity: 0.5 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-full sm:w-[500px] liquid-glass-heavy bg-[#2b2a2f]/95 border-l border-white/10 z-[210] flex flex-col shadow-2xl"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+            className="relative h-full w-full sm:w-[500px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/10 z-[210] flex flex-col shadow-2xl pointer-events-auto"
           >
             {/* VDR Header */}
             <div className="flex flex-col p-6 border-b border-white/10 bg-black/20 shrink-0">
@@ -268,7 +268,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                           <input type="file" onChange={uploadDocument} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={uploading} />
                           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors text-xs font-medium">
                             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                            {uploading ? t('vdr.importing') : t('vdr.new_doc')}
+                            {uploading ? t('vdr.uploading') : t('vdr.new_doc')}
                           </button>
                         </div>
                       </div>
@@ -454,12 +454,12 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               )}
             </div>
           </motion.div>
-        </>
+        </div>
       )}
 
       {/* DOCUMENT PREVIEW MODAL */}
       {previewDoc && (
-        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col">
+        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col pointer-events-auto">
           <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#2b2a2f]">
             <h3 className="text-white font-medium flex items-center gap-3">
               <div className="p-2 bg-primary/20 rounded-lg"><FileText className="w-4 h-4 text-primary" /></div>

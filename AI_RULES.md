@@ -18,5 +18,11 @@ Available packages and libraries:
 - You have ALL the necessary Radix UI components installed.
 - Use prebuilt components from the shadcn/ui library after importing them. Note that these files shouldn't be edited, so make new components if you need to change them.
 
+## 🌐 RÈGLES DE TRADUCTION & I18N (CRITICAL)
+- TOUT le texte affiché à l'utilisateur (frontend) DOIT être traduit à l'aide de `react-i18next`.
+- Vous ne devez **JAMAIS** laisser de texte brut en français ou en anglais dans les composants. Utilisez toujours `t('votre.cle')`.
+- Les clés de traduction non résolues (ex: affichage de "vdr.buyer_req" à l'écran) sont **strictement interdites**. Vous devez vous assurer que chaque clé utilisée dans un composant est dûment ajoutée et définie dans le fichier `src/i18n.ts` pour toutes les langues supportées (fr, en).
+- En cas de doute, ajoutez toujours un fallback : `t('ma.cle', 'Texte par défaut')`.
+
 ## ⚠️ RÈGLE D'OR (CRITICAL RULE) ⚠️
 Ne jamais, au grand jamais, réduire le code d'une page. Ne jamais enlever des éléments existants, ne jamais négliger des détails, et ne jamais simplifier une page. Lors de l'édition d'un fichier, il FAUT impérativement conserver TOUT le code, les fonctionnalités, les imports et le rendu existant sans aucune perte d'informations.

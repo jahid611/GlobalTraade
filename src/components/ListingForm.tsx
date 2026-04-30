@@ -43,7 +43,6 @@ const getListingSchema = (t: any) => {
       .optional().nullable().or(z.literal("")),
     revenue_n2: z.union([z.number().min(0, t('val.rev_min')), z.literal("")]).optional().nullable(),
     revenue_n3: z.union([z.number().min(0, t('val.rev_min')), z.literal("")]).optional().nullable(),
-    // Nouveaux champs Elite
     management_type: z.string().optional().nullable().or(z.literal("")),
     client_concentration: z.string().optional().nullable().or(z.literal("")),
     digital_maturity: z.string().optional().nullable().or(z.literal("")),
@@ -567,57 +566,56 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                       <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center border border-purple-500/30 shadow-inner">
                         <Sparkles className="w-5 h-5 text-purple-400" />
                       </div>
-                      <h2 className="text-3xl sm:text-5xl font-light text-white tracking-tight">Capital Immatériel</h2>
+                      <h2 className="text-3xl sm:text-5xl font-light text-white tracking-tight">{t('elite.title', 'Capital Immatériel')}</h2>
                     </div>
                     <p className="text-base text-white/50 font-light mt-4">
-                      Ces informations permettent à notre IA M&A d'évaluer la qualité opérationnelle de votre entreprise. 
-                      Ce sont les critères les plus regardés par les repreneurs qualifiés.
+                      {t('elite.desc', 'Ces informations permettent à notre IA M&A d\'évaluer la qualité opérationnelle de votre entreprise. Ce sont les critères les plus regardés par les repreneurs qualifiés.')}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div>
-                      <label className={labelClass}>Modèle de Management</label>
+                      <label className={labelClass}>{t('elite.management', 'Modèle de Management')}</label>
                       <select {...register('management_type')} className={getSelectClass()}>
                         <option value="">Sélectionnez...</option>
-                        <option value="autonomous">Équipe autonome (Le dirigeant est remplaçable)</option>
-                        <option value="dependent">Forte dépendance au dirigeant (Savoir-faire clé)</option>
-                        <option value="family">Entreprise familiale (Plusieurs membres impliqués)</option>
+                        <option value="autonomous">{t('elite.mgmt_auto', 'Équipe autonome (Le dirigeant est remplaçable)')}</option>
+                        <option value="dependent">{t('elite.mgmt_dep', 'Forte dépendance au dirigeant (Savoir-faire clé)')}</option>
+                        <option value="family">{t('elite.mgmt_fam', 'Entreprise familiale (Plusieurs membres impliqués)')}</option>
                       </select>
-                      <Hint text="Une équipe autonome augmente significativement la valorisation." />
+                      <Hint text={t('elite.mgmt_hint', 'Une équipe autonome augmente significativement la valorisation.')} />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Concentration de la Clientèle</label>
+                      <label className={labelClass}>{t('elite.clients', 'Concentration de la Clientèle')}</label>
                       <select {...register('client_concentration')} className={getSelectClass()}>
                         <option value="">Sélectionnez...</option>
-                        <option value="diversified">Clientèle très diversifiée (B2C ou multi-comptes)</option>
-                        <option value="medium">Dépendance modérée (Top 5 clients = 30% du CA)</option>
-                        <option value="high">Forte dépendance (Top 3 clients = 50%+ du CA)</option>
+                        <option value="diversified">{t('elite.cli_div', 'Clientèle très diversifiée (B2C ou multi-comptes)')}</option>
+                        <option value="medium">{t('elite.cli_med', 'Dépendance modérée (Top 5 clients = 30% du CA)')}</option>
+                        <option value="high">{t('elite.cli_high', 'Forte dépendance (Top 3 clients = 50%+ du CA)')}</option>
                       </select>
-                      <Hint text="Une forte dépendance client représente un risque lors d'une reprise." />
+                      <Hint text={t('elite.cli_hint', 'Une forte dépendance client représente un risque lors d\'une reprise.')} />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Maturité Digitale</label>
+                      <label className={labelClass}>{t('elite.digital', 'Maturité Digitale')}</label>
                       <select {...register('digital_maturity')} className={getSelectClass()}>
                         <option value="">Sélectionnez...</option>
-                        <option value="high">Élevée (CRM, e-commerce, process automatisés)</option>
-                        <option value="medium">Standard (Site web vitrine, compta digitalisée)</option>
-                        <option value="low">Faible (Processus principalement manuels)</option>
+                        <option value="high">{t('elite.dig_high', 'Élevée (CRM, e-commerce, process automatisés)')}</option>
+                        <option value="medium">{t('elite.dig_med', 'Standard (Site web vitrine, compta digitalisée)')}</option>
+                        <option value="low">{t('elite.dig_low', 'Faible (Processus principalement manuels)')}</option>
                       </select>
-                      <Hint text="Les entreprises digitalisées sont particulièrement prisées." />
+                      <Hint text={t('elite.dig_hint', 'Les entreprises digitalisées sont particulièrement prisées.')} />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Dynamique de Marché</label>
+                      <label className={labelClass}>{t('elite.market', 'Dynamique de Marché')}</label>
                       <select {...register('market_trend')} className={getSelectClass()}>
                         <option value="">Sélectionnez...</option>
-                        <option value="growing">En forte croissance / Niche très porteuse</option>
-                        <option value="stable">Marché mature et stable</option>
-                        <option value="declining">Marché en contraction / À réinventer</option>
+                        <option value="growing">{t('elite.mkt_grow', 'En forte croissance / Niche très porteuse')}</option>
+                        <option value="stable">{t('elite.mkt_stable', 'Marché mature et stable')}</option>
+                        <option value="declining">{t('elite.mkt_decl', 'Marché en contraction / À réinventer')}</option>
                       </select>
-                      <Hint text="Soyez honnête, un marché en contraction peut attirer des spécialistes du retournement." />
+                      <Hint text={t('elite.mkt_hint', 'Soyez honnête, un marché en contraction peut attirer des spécialistes du retournement.')} />
                     </div>
                   </div>
                 </div>

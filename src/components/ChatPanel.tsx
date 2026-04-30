@@ -269,12 +269,12 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     <>
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex pointer-events-none">
+        <div className="fixed inset-0 z-[200] flex pointer-events-none justify-start">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto" onClick={onClose} />
           
           <motion.div
-            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-            className="relative w-full sm:w-[450px] h-full liquid-glass-heavy bg-[#2b2a2f]/90 pointer-events-auto flex flex-col overflow-hidden !shadow-none border-none text-white"
+            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+            className="relative w-full sm:w-[450px] h-full liquid-glass-heavy bg-[#2b2a2f]/90 pointer-events-auto flex flex-col overflow-hidden !shadow-none border-r border-white/10 text-white"
           >
             <div className="h-[12vh] min-h-[80px] px-[6vw] sm:px-8 border-none flex items-center justify-between shrink-0 bg-transparent">
               <div className="flex items-center gap-[3vw] sm:gap-4">
