@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert, Loader2 } from 'lucide-react';
+import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert, Loader2, Unlock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { showSuccess, showError } from '@/utils/toast';
@@ -63,7 +63,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           setDocuments(docs || []);
         }
       } else {
-        // Mode Propriétaire : On récupère les docs, puis on fait le lien avec la table publique "profiles"
+        // Mode Propriétaire : On récupère les docs
         const { data: docs } = await supabase
           .from('vdr_documents')
           .select('*')
@@ -71,12 +71,12 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           .order('created_at', { ascending: false });
         setDocuments(docs || []);
 
-        // 1. Récupération des NDAs
+        // 1. Récupération des NDAs (Signés ET Révoqués)
         const { data: ndas, error: ndaError } = await supabase
           .from('ndas')
           .select('*')
           .eq('listing_id', listing.id)
-          .eq('status', 'signed')
+          .in('status', ['signed', 'revoked'])
           .order('signed_at', { ascending: false });
         
         if (ndaError) console.error("Erreur NDA:", ndaError);
@@ -147,6 +147,17 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (error) throw error;
       showSuccess(t('vdr.toast_nda_signed'));
+      fetchData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const toggleAccess = async (ndaId: string, newStatus: 'signed' | 'revoked') => {
+    try {
+      const { error } = await supabase.from('ndas').update({ status: newStatus }).eq('id', ndaId);
+      if (error) throw error;
+      showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
       fetchData();
     } catch (err: any) {
       showError(err.message);
@@ -369,10 +380,10 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                       ) : (
                         <div className="space-y-3">
                           {buyersWithNda.map((nda) => (
-                            <div key={nda.id} className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
+                            <div key={nda.id} className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${nda.status === 'revoked' ? 'bg-red-500/5 border-red-500/20' : 'bg-white/5 border-white/10'}`}>
                               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-light text-white border border-white/20 overflow-hidden shrink-0">
                                 {nda.buyer?.avatar_url ? (
-                                  <img src={nda.buyer.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                  <img src={nda.buyer.avatar_url} alt="avatar" className={`w-full h-full object-cover ${nda.status === 'revoked' ? 'grayscale' : ''}`} />
                                 ) : (
                                   nda.buyer?.full_name?.[0] || '?'
                                 )}
@@ -385,9 +396,28 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                 ) : (
                                   <p className="text-sm font-medium text-white truncate block">{t('vdr.unknown_user')}</p>
                                 )}
-                                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
-                                  <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy à HH:mm')}
-                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {nda.status === 'signed' ? (
+                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                      <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy')}
+                                    </p>
+                                  ) : (
+                                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                      <Lock size={12}/> {t('vdr.status_revoked')}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {nda.status === 'signed' ? (
+                                  <button onClick={() => toggleAccess(nda.id, 'revoked')} title={t('vdr.revoke_access')} className="p-2.5 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/50 hover:text-red-400 rounded-lg transition-colors">
+                                    <Lock size={16} />
+                                  </button>
+                                ) : (
+                                  <button onClick={() => toggleAccess(nda.id, 'signed')} title={t('vdr.restore_access')} className="p-2.5 bg-red-500/10 hover:bg-emerald-500/20 border border-red-500/20 hover:border-emerald-500/30 text-red-400 hover:text-emerald-400 rounded-lg transition-colors">
+                                    <Unlock size={16} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -431,6 +461,17 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                       )}
                     </motion.div>
                   )}
+                </div>
+              ) : ndaStatus === 'revoked' ? (
+                // BUYER VIEW - NDA REVOKED BY OWNER
+                <div className="flex flex-col items-center justify-center text-center mt-10 p-6 border border-red-500/20 bg-red-500/5 rounded-3xl">
+                  <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6 border border-red-500/20">
+                    <ShieldAlert className="w-8 h-8 text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-light text-white mb-2">{t('vdr.status_revoked')}</h3>
+                  <p className="text-sm text-red-200/70 font-light leading-relaxed">
+                    {t('vdr.access_revoked_msg')}
+                  </p>
                 </div>
               ) : ndaStatus !== 'signed' ? (
                 // BUYER VIEW - NDA NOT SIGNED
