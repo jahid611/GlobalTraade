@@ -192,6 +192,15 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     }
   };
 
+  const handleDeleteMessage = async (msgId: string) => {
+    setAllMessages(prev => prev.filter(m => m.id !== msgId));
+    const { error } = await supabase.from('messages').delete().eq('id', msgId);
+    if (error) {
+      showError(t('msg.error'));
+      fetchAllData(false);
+    }
+  };
+
   const handleOpenOffer = () => {
     const today = new Date().toDateString();
     const todayOffersCount = allMessages.filter(m => 
@@ -329,6 +338,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               messages={filteredMessages}
               userId={user?.id || ''}
               onSendMessage={handleSendMessage}
+              onDeleteMessage={handleDeleteMessage}
               onOpenOffer={handleOpenOffer}
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}
@@ -381,6 +391,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               messages={filteredMessages}
               userId={user?.id || ''}
               onSendMessage={handleSendMessage}
+              onDeleteMessage={handleDeleteMessage}
               onOpenOffer={handleOpenOffer}
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}

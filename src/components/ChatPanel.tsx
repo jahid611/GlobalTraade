@@ -167,6 +167,15 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     }
   };
 
+  const handleDeleteMessage = async (msgId: string) => {
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    const { error } = await supabase.from('messages').delete().eq('id', msgId);
+    if (error) {
+      showError(t('msg.error'));
+      fetchRef.current();
+    }
+  };
+
   const handleSendOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerAmount.trim() || !listing || !user) return;
@@ -412,16 +421,23 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                             initial={{ opacity: 0, y: 15, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-2`}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-2 group/msg`}
                           >
-                            <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
-                              isMine 
-                                ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
-                                : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
-                            }`}>
-                              {msg.content}
-                              <div className={`text-[9px] mt-1.5 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
-                                {format(new Date(msg.created_at), 'HH:mm')}
+                            <div className="flex items-center gap-2">
+                              {isMine && (
+                                <button onClick={() => handleDeleteMessage(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/40 hover:text-red-400 transition-all shrink-0" title="Supprimer le message">
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                              <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
+                                isMine 
+                                  ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
+                                  : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
+                              }`}>
+                                {msg.content}
+                                <div className={`text-[9px] mt-1.5 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
+                                  {format(new Date(msg.created_at), 'HH:mm')}
+                                </div>
                               </div>
                             </div>
                           </motion.div>

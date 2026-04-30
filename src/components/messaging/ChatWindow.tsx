@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Send, Handshake, ChevronLeft, UserPlus, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X } from 'lucide-react';
+import { Send, Handshake, ChevronLeft, UserPlus, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,7 @@ interface ChatWindowProps {
   messages: Message[];
   userId: string;
   onSendMessage: (content: string) => void;
+  onDeleteMessage: (msgId: string) => void;
   onOpenOffer: () => void;
   onOfferAction: (msg: Message, status: string) => void;
   onAddContact: () => void;
@@ -39,6 +40,7 @@ export function ChatWindow({
   messages,
   userId,
   onSendMessage,
+  onDeleteMessage,
   onOpenOffer,
   onOfferAction,
   onAddContact,
@@ -302,16 +304,23 @@ export function ChatWindow({
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                    className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-full my-2 group/msg`}
                   >
-                    <div className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl text-[14px] sm:text-[15px] font-light leading-relaxed shadow-sm ${
-                      isMine 
-                        ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
-                        : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
-                    }`}>
-                      {msg.content}
-                      <div className={`text-[8px] mt-1 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="flex items-center gap-2">
+                      {isMine && (
+                        <button onClick={() => onDeleteMessage(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/40 hover:text-red-400 transition-all shrink-0" title="Supprimer le message">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                      <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
+                        isMine 
+                          ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
+                          : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
+                      }`}>
+                        {msg.content}
+                        <div className={`text-[9px] mt-1.5 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
