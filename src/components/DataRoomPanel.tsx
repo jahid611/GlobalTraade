@@ -10,6 +10,7 @@ import { generateBlindTeaser } from '@/utils/teaserGenerator';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 interface DataRoomPanelProps {
   isOpen: boolean;
@@ -93,7 +94,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           logs = rawLogs || [];
         }
 
-        // 3. Récupération manuelle des Profils pour contourner les restrictions sur auth.users
+        // 3. Récupération manuelle des Profils
         const profileIds = new Set([
           ...(ndas || []).map(n => n.buyer_id),
           ...logs.map(l => l.viewer_id)
@@ -111,7 +112,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
           }
         }
 
-        // 4. On assemble les données pour l'affichage
+        // 4. Assemblage
         const enrichedNdas = (ndas || []).map(n => ({
           ...n,
           buyer: profilesMap.get(n.buyer_id) || null
@@ -194,7 +195,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       
       if (!isOwner) {
-        // Enregistre l'action de téléchargement
         await supabase.from('vdr_access_logs').insert({
           document_id: doc.id,
           viewer_id: user.id
@@ -218,7 +218,6 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       
       if (!isOwner) {
-        // Enregistre l'action de visualisation
         await supabase.from('vdr_access_logs').insert({
           document_id: doc.id,
           viewer_id: user.id
@@ -371,11 +370,21 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                         <div className="space-y-3">
                           {buyersWithNda.map((nda) => (
                             <div key={nda.id} className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
-                              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-light text-white border border-white/20">
-                                {nda.buyer?.full_name?.[0] || '?'}
+                              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-light text-white border border-white/20 overflow-hidden shrink-0">
+                                {nda.buyer?.avatar_url ? (
+                                  <img src={nda.buyer.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                  nda.buyer?.full_name?.[0] || '?'
+                                )}
                               </div>
-                              <div className="flex-1 truncate">
-                                <p className="text-sm font-medium text-white truncate">{nda.buyer?.full_name || t('vdr.unknown_user')}</p>
+                              <div className="flex-1 min-w-0">
+                                {nda.buyer ? (
+                                  <Link to={`/profile/${nda.buyer_id}`} className="text-sm font-medium text-white hover:text-primary transition-colors truncate block">
+                                    {nda.buyer.full_name || t('vdr.unknown_user')}
+                                  </Link>
+                                ) : (
+                                  <p className="text-sm font-medium text-white truncate block">{t('vdr.unknown_user')}</p>
+                                )}
                                 <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
                                   <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy à HH:mm')}
                                 </p>
@@ -406,7 +415,14 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
                                 <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.created_at), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">
-                                  <strong className="font-medium text-white">{log.viewer?.full_name || t('vdr.unknown_user')}</strong> {t('vdr.log_viewed')} <span className="text-primary italic">{log.document?.name || t('vdr.unknown_file')}</span>
+                                  {log.viewer ? (
+                                    <Link to={`/profile/${log.viewer_id}`} className="font-medium text-white hover:text-primary transition-colors">
+                                      {log.viewer.full_name || t('vdr.unknown_user')}
+                                    </Link>
+                                  ) : (
+                                    <strong className="font-medium text-white">{t('vdr.unknown_user')}</strong>
+                                  )}{' '}
+                                  {t('vdr.log_viewed')} <span className="text-primary italic">{log.document?.name || t('vdr.unknown_file')}</span>
                                 </p>
                               </div>
                             </div>
