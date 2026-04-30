@@ -175,21 +175,21 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Header - Tighter padding */}
-      <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
-        <div className="flex items-center gap-3 sm:gap-4">
+      {/* Header - Compact padding on mobile */}
+      <div className="px-3 sm:px-6 py-1.5 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
+        <div className="flex items-center gap-2 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Avatar className="h-9 w-9 border border-white/10 bg-white/5">
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-white/10 bg-white/5">
             <AvatarImage src={activeConv.avatar_url} className="object-cover" />
             <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-[13px] truncate">{activeConv.contact_name}</span>
+              <span className="font-medium text-white text-xs sm:text-[13px] truncate">{activeConv.contact_name}</span>
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
             <div className="flex items-center gap-2">
@@ -213,8 +213,8 @@ export function ChatWindow({
               <UserPlus className="w-3 h-3 mr-1.5" /> {t('profile.connect') || "Connecter"}
             </Button>
           )}
-          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[11px] h-8 px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
+          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-7 sm:h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
+            <Handshake className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
         </div>
       </div>

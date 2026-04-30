@@ -191,6 +191,22 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     }
   };
 
+  const handleOpenOffer = () => {
+    const today = new Date().toDateString();
+    const todayOffersCount = allMessages.filter(m => 
+      m.sender_id === user?.id && 
+      (m.type === 'offer' || m.content.startsWith('OFFRE:')) &&
+      new Date(m.created_at).toDateString() === today
+    ).length;
+
+    if (todayOffersCount >= 4) {
+      showError(t('msg.offer_limit_reached') || "Vous avez atteint la limite de 4 offres par jour.");
+      return;
+    }
+
+    setIsOfferModalOpen(true);
+  };
+
   const handleSendOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerAmount || !activeConv || !user) return;
@@ -310,7 +326,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               messages={filteredMessages}
               userId={user?.id || ''}
               onSendMessage={handleSendMessage}
-              onOpenOffer={() => setIsOfferModalOpen(true)}
+              onOpenOffer={handleOpenOffer}
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}
               contactStatus={contactStatus}
@@ -352,7 +368,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               messages={filteredMessages}
               userId={user?.id || ''}
               onSendMessage={handleSendMessage}
-              onOpenOffer={() => setIsOfferModalOpen(true)}
+              onOpenOffer={handleOpenOffer}
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}
               contactStatus={contactStatus}
