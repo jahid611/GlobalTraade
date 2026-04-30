@@ -461,7 +461,11 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                       </div>
 
                       {accessLogs.length === 0 ? (
-                        <p className="text-sm text-white/40 italic text-center py-10">{t('vdr.no_activity')}</p>
+                        <div className="text-sm text-white/40 border border-white/10 border-dashed rounded-2xl p-10 text-center bg-white/[0.02] font-light">
+                          <History className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                          <strong className="text-white/60 block mb-2">{t('vdr.no_activity_title')}</strong>
+                          {t('vdr.no_activity_desc')}
+                        </div>
                       ) : (
                         <div className="relative border-l border-white/10 ml-4 space-y-6 pb-4">
                           {accessLogs.map((log) => (
