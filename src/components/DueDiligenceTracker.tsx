@@ -61,7 +61,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   }, [listingId, buyerId, sellerId]);
 
   const fetchTasks = async () => {
-    // SÉCURITÉ MAXIMUM : On vérifie que ce sont de vrais UUIDs avant de les envoyer à Supabase
     if (!listingId || !buyerId || !sellerId || !VALID_UUID.test(listingId) || !VALID_UUID.test(buyerId) || !VALID_UUID.test(sellerId)) {
       setLoading(false);
       return;
@@ -128,7 +127,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       title: tk.title,
       category: tk.category,
       status: 'pending',
-      priority: 'medium'
+      priority: 'medium' // Assurez-vous que cette colonne existe dans la DB
     }));
 
     const { data, error } = await supabase.from('due_diligence_tasks').insert(tasksToInsert).select();
@@ -139,7 +138,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       await sendSystemMessage(t('dd.msg_init', { name: pseudo }));
       showSuccess(t('dd.toast_gen_success'));
     } else {
-      showError(t('dd.toast_gen_error'));
+      console.error("Erreur de génération DD:", error);
+      showError(error?.message || t('dd.toast_gen_error'));
     }
     
     setIsGenerating(false);
@@ -171,7 +171,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       setNewTaskTitle("");
       setAddingTaskTo(null);
     } else {
-      showError(t('msg.error'));
+      console.error("Erreur ajout tâche:", error);
+      showError(error?.message || t('msg.error'));
     }
   };
 
@@ -198,6 +199,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       const pseudo = user.user_metadata?.full_name || "User";
       const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label') : newStatus === 'in_progress' ? t('dd.status_progress_label') : t('dd.status_pending_label');
       await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: task.title, status: statusLabel }));
+    } else {
+      showError(error.message);
     }
   };
 
