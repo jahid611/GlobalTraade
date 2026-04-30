@@ -87,19 +87,19 @@ export function ChatWindow({
     }).format(amount);
 
     return (
-      <div className={`w-full max-w-sm rounded-3xl p-6 border transition-all duration-500 hover:shadow-xl ${
+      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl ${
         isMine ? 'liquid-glass bg-primary/10 border-primary/30 ml-auto shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
       }`}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/10 text-white/60 border border-white/10'}`}>
               <Handshake className="w-5 h-5" />
             </div>
             <div>
               <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                {isMine ? t('msg.your_offer') : `${t('msg.offer_from')} ${activeConv.contact_name}`}
+                {isMine ? (t('msg.your_offer') || "Votre offre") : `${t('msg.offer_from') || "Offre de"} ${activeConv.contact_name}`}
               </p>
-              <p className="text-sm font-medium text-white">{t('msg.negotiation')}</p>
+              <p className="text-[13px] font-medium text-white">{t('msg.negotiation') || "Négociation"}</p>
             </div>
           </div>
           <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
@@ -107,16 +107,16 @@ export function ChatWindow({
             status === 'declined' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
             'bg-white/5 text-white/50 border-white/10'
           }`}>
-            {status === 'accepted' ? t('msg.offer_accepted') : status === 'declined' ? t('msg.offer_declined') : t('msg.pending')}
+            {status === 'accepted' ? (t('msg.offer_accepted') || "Acceptée") : status === 'declined' ? (t('msg.offer_declined') || "Refusée") : (t('msg.pending') || "En attente")}
           </div>
         </div>
 
-        <div className="mb-6 p-4 rounded-2xl bg-[#2b2a2f]/40 border border-white/5 flex flex-col items-center justify-center">
-          <div className="text-3xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
+        <div className="mb-5 p-4 rounded-2xl bg-[#2b2a2f]/80 border border-white/5 flex flex-col items-center justify-center">
+          <div className="text-2xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing')}:</span>
-            <span className="text-[10px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-              {financing === 'cash' ? t('msg.financing_cash') : t('msg.financing_loan')}
+            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing') || "Financement"} :</span>
+            <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
+              {financing === 'cash' ? (t('msg.financing_cash') || "Fonds propres") : (t('msg.financing_loan') || "Crédit pro")}
             </span>
           </div>
         </div>
@@ -124,22 +124,22 @@ export function ChatWindow({
         <div className="space-y-4">
           {status === 'pending' ? (
             isMine ? (
-              <div className="flex items-center justify-center gap-2 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-white/40 text-xs font-light italic">
-                <Clock className="w-3.5 h-3.5 animate-spin-slow" /> {t('msg.waiting_response')}
+              <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-white/10 rounded-xl text-white/40 text-xs font-light italic">
+                <Clock className="w-3.5 h-3.5 animate-spin-slow" /> {t('msg.waiting_response') || "En attente de réponse..."}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => onOfferAction(msg, 'declined')}
-                  className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
                 >
-                  <XCircle className="w-4 h-4" /> {t('profile.decline')}
+                  <XCircle className="w-4 h-4" /> {t('profile.decline') || "Refuser"}
                 </button>
                 <button 
                   onClick={() => onOfferAction(msg, 'accepted')}
-                  className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                 >
-                  <Check className="w-4 h-4" /> {t('profile.accept')}
+                  <Check className="w-4 h-4" /> {t('profile.accept') || "Accepter"}
                 </button>
               </div>
             )
@@ -149,8 +149,8 @@ export function ChatWindow({
                 <Button 
                   onClick={() => {
                     generateLOI({
-                      buyerName: isMine ? (activeConv.my_name || 'Buyer') : activeConv.contact_name,
-                      sellerName: isMine ? activeConv.contact_name : (activeConv.my_name || 'Seller'),
+                      buyerName: isMine ? (activeConv.my_name || 'Acheteur') : activeConv.contact_name,
+                      sellerName: isMine ? activeConv.contact_name : (activeConv.my_name || 'Vendeur'),
                       listingName: activeConv.listing_name,
                       amount: amount,
                       financing: financing,
@@ -161,9 +161,9 @@ export function ChatWindow({
                     });
                   }}
                   variant="outline" 
-                  className="w-full h-12 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium transition-all group"
+                  className="w-full h-11 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-medium transition-all group"
                 >
-                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi')}
+                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi') || "Générer la LOI"}
                 </Button>
               )}
             </div>
@@ -175,31 +175,31 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* Header */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
+      {/* Header - Tighter padding */}
+      <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20 backdrop-blur-md">
         <div className="flex items-center gap-3 sm:gap-4">
           {onBack && (
             <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors">
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Avatar className="h-10 w-10 border border-white/10 bg-white/5">
+          <Avatar className="h-9 w-9 border border-white/10 bg-white/5">
             <AvatarImage src={activeConv.avatar_url} className="object-cover" />
             <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-sm truncate">{activeConv.contact_name}</span>
+              <span className="font-medium text-white text-[13px] truncate">{activeConv.contact_name}</span>
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate">{activeConv.listing_name}</p>
+              <p className="text-[9px] text-white/40 uppercase tracking-widest font-medium truncate">{activeConv.listing_name}</p>
               {hasAcceptedOffer && (
                 <>
-                  <span className="text-white/20 text-[10px]">•</span>
-                  <p className="text-[9px] text-emerald-400 font-bold uppercase flex items-center gap-1">
-                    <TrendingUp className="w-2.5 h-2.5" /> 
-                    {t('msg.accepted_offer_at')} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
+                  <span className="text-white/20 text-[9px]">•</span>
+                  <p className="text-[8px] text-emerald-400 font-bold uppercase flex items-center gap-1">
+                    <TrendingUp className="w-2 h-2" /> 
+                    {t('msg.accepted_offer_at') || "Acceptée à"} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
                   </p>
                 </>
               )}
@@ -209,26 +209,26 @@ export function ChatWindow({
 
         <div className="flex items-center gap-2 sm:gap-3">
           {contactStatus === 'none' && (
-            <Button onClick={onAddContact} variant="outline" size="sm" className="hidden sm:flex rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[11px] h-9 px-4 transition-all">
-              <UserPlus className="w-3.5 h-3.5 mr-2" /> {t('profile.connect')}
+            <Button onClick={onAddContact} variant="outline" size="sm" className="hidden sm:flex rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[10px] h-8 px-3 transition-all">
+              <UserPlus className="w-3 h-3 mr-1.5" /> {t('profile.connect') || "Connecter"}
             </Button>
           )}
-          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[11px] h-9 px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-3.5 h-3.5 sm:mr-2" /> <span className="hidden sm:inline">{t('modal.contact_seller')}</span>
+          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[11px] h-8 px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
+            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
           </Button>
         </div>
       </div>
 
-      {/* Tab Selector */}
-      <div className="px-4 sm:px-6 py-3 border-b border-white/5 flex justify-center shrink-0 bg-black/10">
+      {/* Tab Selector - Tighter padding */}
+      <div className="px-4 sm:px-6 py-2 border-b border-white/5 flex justify-center shrink-0 bg-black/10">
         <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
           <button 
             onClick={() => setActiveTab('messages')}
-            className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-5 py-1 rounded-lg text-[11px] font-medium transition-all ${
               activeTab === 'messages' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5" /> {t('nav.messages')}
+            <MessageSquare className="w-3 h-3" /> {t('nav.messages') || "Messages"}
           </button>
           <button 
             onClick={() => {
@@ -236,11 +236,11 @@ export function ChatWindow({
               setWorkflowSeen(true);
               localStorage.setItem(`workflow_seen_${activeConv?.id}`, 'true');
             }}
-            className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-xs font-medium transition-all relative ${
+            className={`flex items-center gap-2 px-5 py-1 rounded-lg text-[11px] font-medium transition-all relative ${
               activeTab === 'tasks' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
             }`}
           >
-            <ClipboardCheck className="w-3.5 h-3.5" /> 
+            <ClipboardCheck className="w-3 h-3" /> 
             Workflow
             {hasAcceptedOffer && !workflowSeen && activeTab !== 'tasks' && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
@@ -249,8 +249,8 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-hidden flex flex-col relative">
+      {/* Content Area - Maximized vertical space */}
+      <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent">
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
             <motion.div 
@@ -258,9 +258,9 @@ export function ChatWindow({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-6"
+              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 space-y-5"
             >
-              <div className="mb-8">
+              <div className="mb-6">
                 <DealTimeline 
                   listingId={activeConv.listing_id}
                   buyerId={activeConv.listing_owner_id === userId ? activeConv.other_user_id : userId}
@@ -271,8 +271,6 @@ export function ChatWindow({
 
               {messages.map((msg, i) => {
                 const isMine = msg.sender_id === userId;
-                
-                // Vérification robuste : on affiche la carte si le type est 'offer' OU si le contenu commence par 'OFFRE:' (pour contourner tout décalage d'optimistic UI)
                 const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
                 
                 if (isOffer) {
@@ -281,7 +279,7 @@ export function ChatWindow({
                       key={msg.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="w-full py-4 flex"
+                      className="w-full py-2 flex"
                     >
                       {renderOfferCard(msg, isMine)}
                     </motion.div>
@@ -296,20 +294,20 @@ export function ChatWindow({
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[85%] sm:max-w-[75%] px-5 py-3 rounded-2xl text-[14px] sm:text-[15px] font-light leading-relaxed shadow-sm ${
+                    <div className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl text-[14px] sm:text-[15px] font-light leading-relaxed shadow-sm ${
                       isMine 
                         ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
                         : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
                     }`}>
                       {msg.content}
-                      <div className={`text-[9px] mt-1.5 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
+                      <div className={`text-[8px] mt-1 tabular-nums ${isMine ? 'text-white/60 text-right' : 'text-white/40 text-left'}`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
-              <div ref={scrollRef} className="h-4" />
+              <div ref={scrollRef} className="h-2" />
             </motion.div>
           ) : (
             <motion.div 
@@ -317,7 +315,7 @@ export function ChatWindow({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6"
+              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5"
             >
               {hasAcceptedOffer ? (
                 <DueDiligenceTracker 
@@ -328,8 +326,8 @@ export function ChatWindow({
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-4">
                   <ClipboardCheck className="w-12 h-12 mb-4 stroke-1" />
-                  <h3 className="text-sm font-medium mb-1">{t('msg.workflow_not_activated')}</h3>
-                  <p className="text-xs max-w-xs">{t('msg.workflow_not_activated_desc')}</p>
+                  <h3 className="text-sm font-medium mb-1">{t('msg.workflow_not_activated') || "Workflow inactif"}</h3>
+                  <p className="text-[11px] max-w-xs">{t('msg.workflow_not_activated_desc') || "Le workflow s'activera une fois qu'une offre sera acceptée."}</p>
                 </div>
               )}
             </motion.div>
@@ -337,20 +335,20 @@ export function ChatWindow({
         </AnimatePresence>
       </div>
 
-      {/* Input Area */}
+      {/* Input Area - Tighter padding */}
       {activeTab === 'messages' && (
-        <div className="p-3 sm:p-4 bg-transparent shrink-0 border-t border-white/5">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl p-1.5 shadow-lg">
+        <div className="p-2 sm:p-3 bg-transparent shrink-0 border-t border-white/5">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t('msg.placeholder_short') || "Votre message..."}
-              className="flex-1 bg-transparent border-none px-4 py-2 sm:py-3 text-[15px] font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
+              className="flex-1 bg-transparent border-none px-4 py-2 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
             />
             <button 
               type="submit" 
               disabled={!input.trim()}
-              className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0"
             >
               <Send className="w-4 h-4 ml-0.5" />
             </button>

@@ -39,7 +39,7 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
   }, [listingId, buyerId]);
 
   const currentStep = useMemo((): Step => {
-    const offerMessages = messages.filter(m => m.type === 'offer');
+    const offerMessages = messages.filter(m => m.type === 'offer' || m.content.startsWith('OFFRE:'));
     const acceptedOffer = offerMessages.find(m => m.metadata?.status === 'accepted');
     
     if (acceptedOffer) return 'diligence';
@@ -55,11 +55,11 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
   const stepIndex = STEPS.indexOf(currentStep);
 
   const stepConfig = [
-    { key: 'contact',   icon: MessageCircle,  label: t('timeline.contact') },
-    { key: 'nda',       icon: ShieldCheck,     label: t('timeline.nda') },
-    { key: 'offer',     icon: Handshake,       label: t('timeline.offer') },
-    { key: 'accepted',  icon: CheckCircle2,    label: t('timeline.accepted') },
-    { key: 'diligence', icon: Search,          label: t('timeline.diligence') },
+    { key: 'contact',   icon: MessageCircle,  label: t('timeline.contact') || 'Contact' },
+    { key: 'nda',       icon: ShieldCheck,    label: t('timeline.nda') || 'NDA' },
+    { key: 'offer',     icon: Handshake,      label: t('timeline.offer') || 'Offre' },
+    { key: 'accepted',  icon: CheckCircle2,   label: t('timeline.accepted') || 'Accepté' },
+    { key: 'diligence', icon: Search,         label: t('timeline.diligence') || 'Diligence' },
   ];
 
   return (
@@ -80,7 +80,6 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
         {stepConfig.map((step, idx) => {
           const isCompleted = idx < stepIndex;
           const isActive = idx === stepIndex;
-          const isFuture = idx > stepIndex;
           const Icon = step.icon;
 
           return (
@@ -89,12 +88,13 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: idx * 0.1, duration: 0.3 }}
+                /* bg-[#2b2a2f] est opaque et bloque la ligne en background qui est sur le z-index inférieur */
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isCompleted
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'
                     : isActive
-                      ? 'bg-primary/20 text-primary border-2 border-primary shadow-lg shadow-primary/20'
-                      : 'bg-white/5 text-white/30 border border-white/10'
+                      ? 'bg-[#2b2a2f] text-primary border-2 border-primary shadow-lg shadow-primary/20'
+                      : 'bg-[#2b2a2f] text-white/30 border border-white/10'
                 }`}
               >
                 <Icon className="w-4 h-4" strokeWidth={isCompleted || isActive ? 2 : 1.5} />
