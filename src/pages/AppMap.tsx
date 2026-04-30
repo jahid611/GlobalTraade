@@ -100,7 +100,7 @@ export default function AppMap() {
 
   const handlePremiumClick = () => {
     if (!user) {
-      showError(t('premium.login_required'));
+      showError(t('premium.login_required', 'Connexion requise.'));
       navigate('/login', { state: { from: location.pathname } });
     } else {
       navigate('/payment');
@@ -121,21 +121,21 @@ export default function AppMap() {
   const renderLogoMenuContent = () => (
     <>
       <DropdownMenuItem onClick={() => navigate('/')} className={menuItemClass}>
-        <House className="mr-3 h-4 w-4" /> {t('nav.home')}
+        <House className="mr-3 h-4 w-4" /> {t('nav.home', 'Accueil')}
       </DropdownMenuItem>
       <DropdownMenuSeparator className="bg-white/20 my-1" />
       {user ? (
         <>
           <DropdownMenuItem onClick={() => navigate('/profile')} className={menuItemClass}>
-            <UserIcon className="mr-3 h-4 w-4" /> {t('nav.profile')}
+            <UserIcon className="mr-3 h-4 w-4" /> {t('nav.profile', 'Mon Profil')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/settings')} className={menuItemClass}>
-            <Gear className="mr-3 h-4 w-4" /> {t('nav.settings')}
+            <Gear className="mr-3 h-4 w-4" /> {t('nav.settings', 'Paramètres')}
           </DropdownMenuItem>
         </>
       ) : (
         <DropdownMenuItem onClick={() => navigate('/login')} className={menuItemClass}>
-          <UserIcon className="mr-3 h-4 w-4" /> {t('nav.login')}
+          <UserIcon className="mr-3 h-4 w-4" /> {t('nav.login', 'Connexion')}
         </DropdownMenuItem>
       )}
       <DropdownMenuSeparator className="bg-white/20 my-1" />
@@ -143,7 +143,7 @@ export default function AppMap() {
       <DropdownMenuItem onClick={toggleLanguage} className={`${menuItemClass} justify-between`}>
         <div className="flex items-center">
           <Translate className="mr-3 h-4 w-4 text-blue-400" />
-          {t('lang.switch')}
+          {t('lang.switch', 'Langue')}
         </div>
         <img
           src={i18n.language === "fr" ? "/france.png" : "/royaume-uni.png"}
@@ -154,13 +154,13 @@ export default function AppMap() {
 
       <DropdownMenuItem onClick={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }} className={menuItemClass}>
         {theme === 'dark' ? <Sun className="mr-3 h-4 w-4 text-yellow-400" /> : <Moon className="mr-3 h-4 w-4 text-slate-300" />}
-        {theme === 'dark' ? t('theme.light') : t('theme.dark')}
+        {theme === 'dark' ? t('theme.light', 'Mode Clair') : t('theme.dark', 'Mode Sombre')}
       </DropdownMenuItem>
     </>
   );
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-500">
+    <div className="relative w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-500 text-white">
       <AnimatePresence>
         {!isOverlayOpen && (
           <div className="fixed top-6 left-0 w-full z-[100] pointer-events-none h-16">
@@ -168,11 +168,11 @@ export default function AppMap() {
             {/* Contrôles de gauche + Logo sur Desktop */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
-                <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 bg-black/40 dark:bg-black/30 text-white" title="Marketplace">
+                <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 bg-black/40 dark:bg-black/30 text-white" title={t('nav.market', 'Marketplace')}>
                   <Storefront className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
               </Link>
-              <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 text-white/90 hover:text-white bg-black/40 dark:bg-black/30" title="Retour">
+              <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 text-white/90 hover:text-white bg-black/40 dark:bg-black/30" title={t('back', 'Retour')}>
                 <CaretLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
 
@@ -197,7 +197,7 @@ export default function AppMap() {
                 onClick={handlePremiumClick}
                 className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/80 dark:bg-primary/20 border-primary/40 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none hover:bg-primary/90 dark:hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
               >
-                <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.premium')}</span>
+                <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.premium', 'Premium')}</span>
                 {isMobile && <span className="xs:hidden">PREM</span>}
               </button>
               
@@ -245,7 +245,7 @@ export default function AppMap() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-[160px] sm:w-48 liquid-glass bg-black/40 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/20 rounded-xl text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none font-light h-10 transition-colors shadow-none text-xs flex justify-between items-center px-4 hover:text-white hover:bg-black/60 hover:border-white/60 outline-none focus:ring-0">
                 <span className="truncate">
-                  {selectedIndustries.length === 0 ? t('smart.all_sectors') : `${selectedIndustries.length} sélection(s)`}
+                  {selectedIndustries.length === 0 ? t('smart.all_sectors', 'Tous les secteurs') : t('filters.selections', { count: selectedIndustries.length, defaultValue: `${selectedIndustries.length} sélection(s)` })}
                 </span>
                 <CaretDown className="w-4 h-4 opacity-80 ml-2 shrink-0 text-white" />
               </Button>
@@ -255,7 +255,7 @@ export default function AppMap() {
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${selectedIndustries.length === 0 ? 'bg-primary border-primary' : 'border-white/40'}`}>
                   {selectedIndustries.length === 0 && <Check className="w-2.5 h-2.5 text-white" />}
                 </div>
-                {t('smart.all_sectors')}
+                {t('smart.all_sectors', 'Tous les secteurs')}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/20" />
               {availableIndustries.map(ind => {

@@ -210,7 +210,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     ).length;
 
     if (todayOffersCount >= 4) {
-      showError(t('msg.offer_limit_reached') || "Vous avez atteint la limite de 4 offres par jour.");
+      showError(t('msg.offer_limit_reached', "Vous avez atteint la limite de 4 offres par jour."));
       return;
     }
 
@@ -288,7 +288,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     setConversations(prev => prev.filter(c => c.id !== convToDelete.id));
     if (activeConv?.id === convToDelete.id) setActiveConv(null);
     setConvToDelete(null);
-    showSuccess(t('msg.archived'));
+    showSuccess(t('msg.archived', 'Conversation archivée.'));
   };
 
   const filteredMessages = useMemo(() => {
@@ -304,12 +304,12 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         animate={{ x: 0, opacity: 1 }} 
         exit={{ x: '-100%', opacity: 0 }} 
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 h-[100dvh] w-full sm:w-[420px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/20 dark:border-white/10 z-[150] flex flex-col shadow-[30px_0_80px_rgba(0,0,0,0.7)]"
+        className="fixed top-0 left-0 h-[100dvh] w-full sm:w-[420px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/20 dark:border-white/10 z-[150] flex flex-col shadow-[30px_0_80px_rgba(0,0,0,0.7)] text-white"
       >
         {view === 'list' && (
-          <div className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0 bg-transparent">
+          <div className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0 bg-transparent text-white">
             <h3 className="text-[clamp(1.5rem,1.8vw,1.75rem)] font-light text-white tracking-tight leading-none">
-              Messagerie <span className="text-primary font-medium">Privée</span>
+              {t('msg.title', 'Messagerie')} <span className="text-primary font-medium">{t('msg.title_private', 'Privée')}</span>
             </h3>
             <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 text-white hover:bg-white/20 dark:hover:bg-white/10 transition-all border border-white/20 dark:border-white/10 outline-none active:scale-95">
               <X className="w-4 h-4" strokeWidth={2} />
@@ -317,7 +317,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
           </div>
         )}
         
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden text-white">
           {loading ? (
             <div className="p-4 space-y-4 mt-4">
               <Skeleton className="h-20 w-full rounded-2xl bg-white/20 dark:bg-white/10" />
@@ -356,13 +356,13 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   }
 
   return (
-    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
+    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 text-white">
       <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:dark:bg-white/[0.02] sm:border-white/30 sm:dark:border-white/5 sm:rounded-3xl shadow-2xl`}>
         <div className="hidden sm:block mb-4 px-6 pt-6">
           <h1 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none mb-1">
-            Messagerie <span className="text-primary font-medium">Privée</span>
+            {t('msg.title', 'Messagerie')} <span className="text-primary font-medium">{t('msg.title_private', 'Privée')}</span>
           </h1>
-          <p className="text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('msg.subtitle_strict')}</p>
+          <p className="text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('msg.subtitle_strict', 'Échanges strictement confidentiels')}</p>
         </div>
         <div className="flex-1 overflow-hidden bg-transparent">
           {loading ? (
@@ -384,7 +384,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         </div>
       </div>
 
-      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-transparent`}>
+      <div className={`${isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col flex-1 h-full bg-transparent text-white`}>
         {activeConv ? (
           <div className="flex-1 w-full h-full sm:liquid-glass sm:dark:bg-white/[0.02] sm:border sm:border-white/30 sm:dark:border-white/5 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl">
             <ChatWindow 
@@ -408,8 +408,8 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               <div className="w-[200px] mb-6 opacity-90 group-hover:opacity-100 transition-opacity duration-500">
                 <img src="/astronaut-bouee.png" alt="Astronaut on a buoy" className="w-full h-auto drop-shadow-2xl" />
               </div>
-              <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-2 text-white tracking-tight">{t('msg.negotiation_space')}</h3>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] font-light max-w-[250px] text-white dark:text-white/60 leading-relaxed">{t('msg.select_conv')}</p>
+              <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-2 text-white tracking-tight">{t('msg.negotiation_space', 'Espace de Négociation')}</h3>
+              <p className="text-[clamp(0.875rem,1vw,1rem)] font-light max-w-[250px] text-white dark:text-white/60 leading-relaxed">{t('msg.select_conv', 'Sélectionnez une conversation pour démarrer la transaction.')}</p>
             </motion.div>
           </div>
         )}
@@ -423,16 +423,16 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       <>
         <AnimatePresence>
           {convToDelete && (
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 dark:border-white/10 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl">
                 <div className="w-14 h-14 mx-auto bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-500/40">
                   <Archive className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-light text-white mb-2 tracking-tight">{t('msg.archive_title')}</h3>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 mb-8 font-light leading-relaxed">{t('msg.archive_desc')}</p>
+                <h3 className="text-xl font-light text-white mb-2 tracking-tight">{t('msg.archive_title', 'Archiver la conversation ?')}</h3>
+                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 mb-8 font-light leading-relaxed">{t('msg.archive_desc', 'Elle ne sera plus visible dans votre liste active.')}</p>
                 <div className="flex flex-col gap-3">
-                  <Button onClick={handleArchiveConv} variant="destructive" className="rounded-full h-12 font-medium transition-all w-full outline-none [text-shadow:none]">{t('profile.remove')}</Button>
-                  <Button variant="ghost" onClick={() => setConvToDelete(null)} className="text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-full h-12 transition-colors w-full outline-none font-medium [text-shadow:none]">{t('settings.cancel')}</Button>
+                  <Button onClick={handleArchiveConv} variant="destructive" className="rounded-full h-12 font-medium transition-all w-full outline-none [text-shadow:none]">{t('profile.remove', 'Retirer')}</Button>
+                  <Button variant="ghost" onClick={() => setConvToDelete(null)} className="text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-full h-12 transition-colors w-full outline-none font-medium [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
                 </div>
               </motion.div>
             </div>
@@ -441,29 +441,29 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
         <AnimatePresence>
           {isOfferModalOpen && (
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 dark:border-white/10 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shadow-inner border border-primary/40">
                     <Handshake className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-light text-white tracking-tight">{t('msg.make_offer')}</h3>
+                  <h3 className="text-xl font-light text-white tracking-tight">{t('msg.make_offer', 'Faire une offre')}</h3>
                 </div>
                 <form onSubmit={handleSendOffer} className="space-y-6">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-3 pl-1">{t('msg.offer_amount')}</label>
+                    <label className="block text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-3 pl-1">{t('msg.offer_amount', "Montant de l'offre (€)")}</label>
                     <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all outline-none" placeholder="0 €" />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-3 pl-1">{t('msg.financing_type')}</label>
+                    <label className="block text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-3 pl-1">{t('msg.financing_type', 'Type de financement')}</label>
                     <div className="grid grid-cols-2 gap-3">
-                      <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10'}`}>{t('msg.loan')}</button>
-                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10'}`}>{t('msg.equity')}</button>
+                      <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10'}`}>{t('msg.loan', 'Emprunt')}</button>
+                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10'}`}>{t('msg.equity', 'Fonds propres')}</button>
                     </div>
                   </div>
                   <div className="flex flex-col gap-3 pt-4">
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">{t('msg.send_offer')}</Button>
-                    <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-full h-12 transition-colors font-medium w-full outline-none [text-shadow:none]">{t('settings.cancel')}</Button>
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">{t('msg.send_offer', "Envoyer l'offre")}</Button>
+                    <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-full h-12 transition-colors font-medium w-full outline-none [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
                   </div>
                 </form>
               </motion.div>

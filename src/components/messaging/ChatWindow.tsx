@@ -33,7 +33,7 @@ interface ChatWindowProps {
   contactStatus: 'none' | 'pending' | 'connected';
   onBack?: () => void;
   onClose?: () => void;
-  t: (key: string) => string;
+  t: (key: string, opts?: any) => string;
 }
 
 export function ChatWindow({
@@ -94,7 +94,7 @@ export function ChatWindow({
     }).format(amount);
 
     return (
-      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl ${
+      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
         isMine ? 'liquid-glass bg-primary/10 border-primary/30 ml-auto shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
       }`}>
         <div className="flex items-center justify-between mb-5">
@@ -104,9 +104,9 @@ export function ChatWindow({
             </div>
             <div>
               <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                {isMine ? (t('msg.your_offer') || "Votre offre") : `${t('msg.offer_from') || "Offre de"} ${activeConv.contact_name}`}
+                {isMine ? t('msg.your_offer', 'Votre offre') : `${t('msg.offer_from', 'Offre de')} ${activeConv.contact_name}`}
               </p>
-              <p className="text-[13px] font-medium text-white">{t('msg.negotiation') || "Négociation"}</p>
+              <p className="text-[13px] font-medium text-white">{t('msg.negotiation', 'Négociation')}</p>
             </div>
           </div>
           <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
@@ -114,16 +114,16 @@ export function ChatWindow({
             status === 'declined' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
             'bg-white/5 text-white/50 border-white/10'
           }`}>
-            {status === 'accepted' ? (t('msg.offer_accepted') || "Acceptée") : status === 'declined' ? (t('msg.offer_declined') || "Refusée") : (t('msg.pending') || "En attente")}
+            {status === 'accepted' ? t('msg.offer_accepted', 'Acceptée') : status === 'declined' ? t('msg.offer_declined', 'Refusée') : t('msg.pending', 'En attente')}
           </div>
         </div>
 
         <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
           <div className="text-2xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing') || "Financement"} :</span>
+            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
             <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-              {financing === 'cash' ? (t('msg.financing_cash') || "Fonds propres") : (t('msg.financing_loan') || "Crédit pro")}
+              {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
             </span>
           </div>
         </div>
@@ -132,7 +132,7 @@ export function ChatWindow({
           {status === 'pending' ? (
             isMine ? (
               <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-white/10 rounded-xl text-white/40 text-xs font-light italic">
-                <Clock className="w-3.5 h-3.5 animate-spin-slow" /> {t('msg.waiting_response') || "En attente de réponse..."}
+                <Clock className="w-3.5 h-3.5 animate-spin-slow" /> {t('msg.waiting_response', 'En attente de réponse...')}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -140,13 +140,13 @@ export function ChatWindow({
                   onClick={() => onOfferAction(msg, 'declined')}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
                 >
-                  <XCircle className="w-4 h-4" /> {t('profile.decline') || "Refuser"}
+                  <XCircle className="w-4 h-4" /> {t('profile.decline', 'Refuser')}
                 </button>
                 <button 
                   onClick={() => onOfferAction(msg, 'accepted')}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                 >
-                  <Check className="w-4 h-4" /> {t('profile.accept') || "Accepter"}
+                  <Check className="w-4 h-4" /> {t('profile.accept', 'Accepter')}
                 </button>
               </div>
             )
@@ -170,7 +170,7 @@ export function ChatWindow({
                   variant="outline" 
                   className="w-full h-11 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-medium transition-all group"
                 >
-                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi') || "Générer la LOI"}
+                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi', 'Générer la LOI')}
                 </Button>
               )}
             </div>
@@ -181,54 +181,56 @@ export function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
+    <div className="flex flex-col h-full bg-transparent text-white">
       {/* Header avec empilement vertical propre */}
       <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10 border-b border-white/5">
-        <div className="flex items-start gap-2 sm:gap-4 min-w-0 pr-2">
+        <div className="flex items-start gap-3 min-w-0 pr-2">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5">
+            <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5" title={t('back', 'Retour')}>
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
-          <Link to={`/profile/${activeConv.other_user_id}`} className="shrink-0 transition-transform hover:scale-105 active:scale-95">
-            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border border-white/10 bg-white/5 mt-0.5">
-              <AvatarImage src={activeConv.avatar_url} className="object-cover" />
-              <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
-            </Avatar>
-          </Link>
-          <div className="flex flex-col min-w-0">
+          
+          <div className="flex flex-col items-center shrink-0">
+            <Link to={`/profile/${activeConv.other_user_id}`} className="transition-transform hover:scale-105 active:scale-95" title={t('msg.view_profile', 'Voir profil')}>
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border border-white/10 bg-white/5 mt-0.5">
+                <AvatarImage src={activeConv.avatar_url} className="object-cover" />
+                <AvatarFallback className="text-white/50 font-light">{activeConv.contact_name[0]}</AvatarFallback>
+              </Avatar>
+            </Link>
+            {hasAcceptedOffer && (
+              <span className="mt-1 text-[9px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-md font-bold tracking-widest whitespace-nowrap shadow-sm">
+                {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col min-w-0 pt-0.5 sm:pt-1">
             <div className="flex items-center gap-2">
               <Link to={`/profile/${activeConv.other_user_id}`} className="font-medium text-white text-[13px] sm:text-[14px] truncate hover:text-primary transition-colors">
                 {activeConv.contact_name}
               </Link>
               <VerifiedBadge kycStatus={activeConv.contact_kyc} size="sm" />
             </div>
-            
-            <div className="flex flex-col mt-0.5">
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate max-w-[200px]">{activeConv.listing_name}</p>
-              {hasAcceptedOffer && (
-                <p className="text-[9px] text-emerald-400 font-bold uppercase flex items-center gap-1 mt-1 truncate">
-                  <TrendingUp className="w-2.5 h-2.5 shrink-0" /> 
-                  {t('msg.accepted_offer_at') || "Acceptée :"} {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
-                </p>
-              )}
-            </div>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest font-medium truncate max-w-[200px] mt-0.5">
+              {activeConv.listing_name}
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <Link to={`/profile/${activeConv.other_user_id}`} className="hidden sm:block">
             <Button variant="outline" size="sm" className="rounded-full liquid-glass border-white/10 hover:bg-white/10 hover:border-white/20 text-[10px] h-8 px-3 transition-all text-white/80 hover:text-white">
-              <User className="w-3 h-3 sm:mr-1.5" /> <span className="hidden sm:inline">{t('msg.view_profile') || "Voir profil"}</span>
+              <User className="w-3 h-3 sm:mr-1.5" /> <span className="hidden sm:inline">{t('msg.view_profile', 'Voir profil')}</span>
             </Button>
           </Link>
           
           <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer') || "Faire une offre"}</span>
+            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer', 'Faire une offre')}</span>
           </Button>
           
           {onClose && (
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all border border-white/10 ml-1" title={t('settings.cancel', 'Fermer')}>
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
           )}
@@ -244,7 +246,7 @@ export function ChatWindow({
               activeTab === 'messages' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5" /> {t('nav.messages') || "Messages"}
+            <MessageSquare className="w-3.5 h-3.5" /> {t('nav.messages', 'Messages')}
           </button>
           <button 
             onClick={() => {
@@ -257,7 +259,7 @@ export function ChatWindow({
             }`}
           >
             <ClipboardCheck className="w-3.5 h-3.5" /> 
-            Workflow
+            {t('msg.workflow', 'Workflow')}
             {hasAcceptedOffer && !workflowSeen && activeTab !== 'tasks' && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
             )}
@@ -318,12 +320,12 @@ export function ChatWindow({
                       <motion.div 
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={{ left: 0.25, right: 0 }} // Glissement autorisé uniquement vers la gauche
-                        dragSnapToOrigin={true} // Oblige à rebondir toujours à 0
+                        dragElastic={{ left: 0.25, right: 0 }} 
+                        dragSnapToOrigin={true} 
                         className={`flex items-center gap-2 max-w-[85%] sm:max-w-[70%] relative z-10`}
                       >
                         {isMine && (
-                          <button onClick={() => setMessageToDelete(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0 z-20" title="Supprimer">
+                          <button onClick={() => setMessageToDelete(msg.id)} className="opacity-0 group-hover/msg:opacity-100 p-1.5 text-white/30 hover:text-red-400 transition-all shrink-0 z-20" title={t('profile.remove', 'Supprimer')}>
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -335,7 +337,7 @@ export function ChatWindow({
                           {msg.content}
                         </div>
 
-                        {/* L'heure - Desktop (Hover à côté du message) */}
+                        {/* L'heure - Desktop */}
                         <div className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 items-center text-[10px] text-white/40 transition-all duration-300 opacity-0 group-hover/msg:opacity-100 pointer-events-none whitespace-nowrap z-0
                           ${isMine 
                             ? 'right-full mr-2 translate-x-2 group-hover/msg:translate-x-0' 
@@ -344,7 +346,7 @@ export function ChatWindow({
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
 
-                        {/* L'heure - Mobile (Toujours à droite de la pastille, visible au drag) */}
+                        {/* L'heure - Mobile */}
                         <div className={`sm:hidden absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center text-[10px] text-white/40 pointer-events-none whitespace-nowrap z-0`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
@@ -370,10 +372,10 @@ export function ChatWindow({
                   sellerId={activeConv.listing_owner_id === userId ? userId : activeConv.other_user_id}
                 />
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-4">
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-4 text-white">
                   <ClipboardCheck className="w-12 h-12 mb-4 stroke-1" />
-                  <h3 className="text-sm font-medium mb-1">{t('msg.workflow_not_activated') || "Workflow inactif"}</h3>
-                  <p className="text-[11px] max-w-xs">{t('msg.workflow_not_activated_desc') || "Le workflow s'activera une fois qu'une offre sera acceptée."}</p>
+                  <h3 className="text-sm font-medium mb-1">{t('msg.workflow_not_activated', 'Workflow inactif')}</h3>
+                  <p className="text-[11px] max-w-xs">{t('msg.workflow_not_activated_desc', "Le workflow s'activera une fois qu'une offre sera acceptée.")}</p>
                 </div>
               )}
             </motion.div>
@@ -384,11 +386,11 @@ export function ChatWindow({
       {/* Input Area */}
       {activeTab === 'messages' && (
         <div className="p-2 sm:p-3 bg-transparent shrink-0 z-10 border-t border-white/5">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg text-white">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={t('msg.placeholder_short') || "Votre message..."}
+              placeholder={t('msg.placeholder_short', 'Votre message...')}
               className="flex-1 bg-transparent border-none px-4 py-2 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
             />
             <button 
@@ -410,12 +412,12 @@ export function ChatWindow({
               initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.95, opacity: 0 }} 
-              className="liquid-glass bg-[#2b2a2f] border border-white/10 rounded-[1.5rem] p-5 max-w-[280px] w-full text-center shadow-2xl"
+              className="liquid-glass bg-[#2b2a2f] border border-white/10 rounded-[1.5rem] p-5 max-w-[280px] w-full text-center shadow-2xl text-white"
             >
-              <p className="text-sm text-white mb-5 font-light">Supprimer pour tout le monde ?</p>
+              <p className="text-sm text-white mb-5 font-light">{t('msg.delete_for_all', 'Supprimer pour tout le monde ?')}</p>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="flex-1 h-9 rounded-xl text-white hover:bg-white/10 font-medium text-xs">Annuler</Button>
-                <Button variant="destructive" onClick={() => { onDeleteMessage(messageToDelete); setMessageToDelete(null); }} className="flex-1 h-9 rounded-xl font-medium text-xs">Supprimer</Button>
+                <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="flex-1 h-9 rounded-xl text-white hover:bg-white/10 font-medium text-xs">{t('settings.cancel', 'Annuler')}</Button>
+                <Button variant="destructive" onClick={() => { onDeleteMessage(messageToDelete); setMessageToDelete(null); }} className="flex-1 h-9 rounded-xl font-medium text-xs">{t('profile.remove', 'Supprimer')}</Button>
               </div>
             </motion.div>
           </div>

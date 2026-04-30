@@ -26,7 +26,7 @@ interface ConversationListProps {
   onSelect: (conv: Conversation) => void;
   onDelete: (conv: Conversation) => void;
   language: string;
-  t: (key: string) => string;
+  t: (key: string, opts?: any) => string;
 }
 
 export function ConversationList({ 
@@ -42,19 +42,19 @@ export function ConversationList({
   const formatMsgDate = (dateStr: string) => {
     const d = new Date(dateStr);
     if (isToday(d)) return format(d, 'HH:mm');
-    if (isYesterday(d)) return language === 'fr' ? 'Hier' : 'Yesterday';
+    if (isYesterday(d)) return t('msg.yesterday', 'Hier');
     return format(d, 'd MMM', { locale: dateLocale });
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
+    <div className="flex flex-col h-full bg-transparent text-white">
       {/* Search Bar - Liquid Glass Style */}
       <div className="px-4 pb-3 pt-2 shrink-0 border-b border-white/5">
         <div className="relative flex items-center">
           <Search className="absolute left-3 w-4 h-4 text-white/30" />
           <input 
             type="text" 
-            placeholder="Rechercher"
+            placeholder={t('msg.search_placeholder', 'Rechercher')}
             className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
           />
         </div>
@@ -117,10 +117,10 @@ export function ConversationList({
             ))}
           </AnimatePresence>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40 text-white">
             <MessageCircle className="w-10 h-10 mb-3 text-white/50 stroke-1" />
-            <h3 className="text-sm font-medium text-white mb-1">Aucune conversation</h3>
-            <p className="text-xs font-light text-white/50">{t('msg.no_conv')}</p>
+            <h3 className="text-sm font-medium text-white mb-1">{t('msg.no_conv', 'Aucune conversation')}</h3>
+            <p className="text-xs font-light text-white/50">{t('msg.no_conv_desc', 'Vos échanges apparaîtront ici.')}</p>
           </div>
         )}
       </div>
