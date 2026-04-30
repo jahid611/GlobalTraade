@@ -274,7 +274,7 @@ export default function Dashboard() {
               </p>
             </div>
             {profile?.kyc_status !== 'verified' && (
-              <Button onClick={() => navigate('/profile')} variant="outline" className="w-full rounded-full liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10 h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
+              <Button onClick={() => navigate('/profile')} variant="outline" className="w-fit rounded-full liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10 h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
                 {t('dash.start_verification')}
               </Button>
             )}
@@ -298,7 +298,7 @@ export default function Dashboard() {
               </p>
             </div>
             {profile?.plan_type !== 'premium' && (
-              <Button onClick={() => navigate('/payment')} className="w-full rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
+              <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
                 Débloquer Premium
               </Button>
             )}
