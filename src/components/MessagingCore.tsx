@@ -336,9 +336,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     );
   }
 
-  // Dashboard Full Screen version - Remonté juste sous la navbar (pt-[60px])
+  // Dashboard Full Screen version - Remonté complètement en haut !
   return (
-    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[65px] sm:pt-[75px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
+    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6">
       <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-white/[0.02] sm:border-white/5 sm:rounded-3xl shadow-2xl`}>
         <div className="hidden sm:block mb-4 px-6 pt-6">
           <h1 className="text-2xl font-light text-white tracking-tight mb-1">{t('msg.title') || "Messagerie"}</h1>

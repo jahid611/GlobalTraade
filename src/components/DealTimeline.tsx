@@ -88,13 +88,14 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: idx * 0.1, duration: 0.3 }}
-                /* bg-black/40 backdrop-blur-md donne le look verre givré transparent ! */
+                /* IMPORTANT: bg-[#0B0B0C] est 100% opaque. 
+                   Ca bloque la ligne d'arrière-plan sans effet de verre. */
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isCompleted
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'
                     : isActive
-                      ? 'liquid-glass bg-black/40 backdrop-blur-md text-primary border-2 border-primary shadow-lg shadow-primary/20'
-                      : 'liquid-glass bg-black/40 backdrop-blur-md text-white/30 border border-white/10'
+                      ? 'bg-[#0B0B0C] text-primary border-2 border-primary shadow-lg shadow-primary/20'
+                      : 'bg-[#0B0B0C] text-white/30 border border-white/10'
                 }`}
               >
                 <Icon className="w-4 h-4" strokeWidth={isCompleted || isActive ? 2 : 1.5} />
