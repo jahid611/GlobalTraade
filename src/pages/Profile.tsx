@@ -18,6 +18,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { initNativeFeel } from '@/utils/nativeFeel';
+
+// Injection du style natif global
+initNativeFeel();
 
 export default function Profile() {
   const { id: routeId } = useParams();

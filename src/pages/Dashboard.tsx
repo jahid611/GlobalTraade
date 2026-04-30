@@ -20,6 +20,10 @@ import { Sparkles, Target, Activity } from 'lucide-react';
 import { MarketPulse } from '@/components/MarketPulse';
 import { LiveActivityFeed } from '@/components/LiveActivityFeed';
 import { OfferComparator } from '@/components/OfferComparator';
+import { initNativeFeel } from '@/utils/nativeFeel';
+
+// Injection du style natif global
+initNativeFeel();
 
 export default function Dashboard() {
   const { user } = useAuth();

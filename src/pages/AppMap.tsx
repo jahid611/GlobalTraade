@@ -20,6 +20,10 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { showError } from '@/utils/toast';
+import { initNativeFeel } from '@/utils/nativeFeel';
+
+// Injection du style natif global
+initNativeFeel();
 
 export default function AppMap() {
   const navigate = useNavigate();
@@ -162,14 +166,14 @@ export default function AppMap() {
           <div className="fixed top-6 left-0 w-full z-[100] pointer-events-none h-16">
             
             {/* Contrôles de gauche + Logo sur Desktop */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-6 top-0 flex items-center gap-3 pointer-events-auto">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
-                <button className="w-12 h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 bg-black/30 text-white" title="Marketplace">
-                  <Store className="w-5 h-5 text-white" />
+                <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 bg-black/30 text-white" title="Marketplace">
+                  <Store className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
               </Link>
-              <button onClick={() => navigate(-1)} className="w-12 h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 text-white/80 hover:text-white bg-black/30" title="Retour">
-                <ChevronLeft className="w-6 h-6 text-white" />
+              <button onClick={() => navigate(-1)} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/40 text-white/80 hover:text-white bg-black/30" title="Retour">
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
 
               {/* Logo pour Desktop, placé juste à côté des contrôles */}
@@ -188,32 +192,32 @@ export default function AppMap() {
             </motion.div>
 
             {/* Contrôles de droite + Logo sur Mobile */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute right-6 top-0 flex items-center gap-2 sm:gap-4 pointer-events-auto">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute right-2 sm:right-6 top-0 flex items-center gap-1.5 sm:gap-4 pointer-events-auto">
               <button 
                 onClick={handlePremiumClick}
-                className="flex h-12 px-4 sm:px-6 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[10px] sm:text-xs font-medium tracking-wide uppercase items-center"
+                className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
               >
                 <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.premium')}</span>
-                {isMobile && <span className="xs:hidden">PREMIUM</span>}
+                {isMobile && <span className="xs:hidden">PREM</span>}
               </button>
               
               {user && (
                 <>
                   <NotificationsMenu user={user} />
-                  <button onClick={() => setIsSidebarMessagingOpen(true)} className="relative flex items-center justify-center w-12 h-12 rounded-full border border-white/20 liquid-glass bg-black/30 text-white/80 hover:text-white hover:border-white/40 transition-all outline-none group cursor-pointer">
-                    <MessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
+                  <button onClick={() => setIsSidebarMessagingOpen(true)} className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 liquid-glass bg-black/30 text-white/80 hover:text-white hover:border-white/40 transition-all outline-none group cursor-pointer">
+                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                     {hasUnread && (
-                      <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
+                      <span className="absolute top-2 right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
                     )}
                   </button>
                 </>
               )}
               {/* Logo visible uniquement sur mobile */}
-              <div className="sm:hidden block ml-1">
+              <div className="sm:hidden block ml-0.5">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none flex items-center justify-center">
-                      <img src="/logo.png" alt="GlobeTrade" className="h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
+                      <img src="/logo.png" alt="GlobeTrade" className="h-10 sm:h-14 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 p-1.5 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white z-[150] overflow-hidden" align="end" sideOffset={8}>
