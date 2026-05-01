@@ -34,7 +34,8 @@ export const exportDueDiligenceReport = (tasks: any[], listingName: string, t: a
     task.title,
     task.status === 'completed' ? (lang === 'fr' ? 'Validé' : 'Completed') : 
     task.status === 'in_progress' ? (lang === 'fr' ? 'En cours' : 'In Progress') : (lang === 'fr' ? 'En attente' : 'Pending'),
-    task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy HH:mm') : '-'
+    // Remplacement du tiret par la date de génération actuelle du rapport
+    task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy HH:mm') : format(new Date(), 'dd/MM/yyyy HH:mm')
   ]);
 
   autoTable(doc, {

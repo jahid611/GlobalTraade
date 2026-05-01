@@ -28,3 +28,8 @@ Available packages and libraries:
 Ne jamais, au grand jamais, réduire le code d'une page. Ne jamais enlever des éléments existants, ne jamais négliger des détails, et ne jamais simplifier une page. 
 En cas de création ou d'édition, **ne JAMAIS enlever des fonctionnalités sans demande explicite de l'utilisateur**. 
 Lors de l'édition d'un fichier, il FAUT impérativement conserver TOUT le code, les fonctionnalités, les imports et le rendu existant sans aucune perte d'informations ou de logique métier.
+
+## 🚫 MODALES NATIVES INTERDITES (CRITICAL RULE)
+- Vous ne devez **JAMAIS** utiliser les modales ou boîtes de dialogue natives du navigateur (`window.alert`, `window.confirm`, `window.prompt`).
+- Ces méthodes bloquent le fil d'exécution et cassent l'expérience utilisateur globale.
+- **Toute confirmation d'action (comme une suppression) DOIT être gérée avec une modale React / Framer Motion personnalisée et stylisée**.

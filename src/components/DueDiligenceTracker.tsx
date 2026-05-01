@@ -105,6 +105,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [editCategoryInput, setEditCategoryInput] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("Folder");
 
+  // État de suppression de rubrique (Modale personnalisée)
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+
   const getCategoryConfig = (cat: string) => {
     const predefined: Record<string, { icon: React.ElementType; label: string; color: string }> = {
       governance: { icon: Building, label: t('dd.governance', 'Gouvernance & Corporate'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
@@ -222,7 +225,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     setIsGenerating(false);
   };
 
-  // Liste dynamique des catégories (basée uniquement sur les tâches existantes + rubriques créées à la main)
   const allCategories = useMemo(() => {
     const activeCategories = new Set([
       ...tasks.map(t => t.category),
@@ -283,15 +285,16 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     setEditingCategoryName(null);
   };
 
-  const handleDeleteCategory = async (cat: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!window.confirm(t('dd.confirm_delete_cat', 'Voulez-vous vraiment supprimer cette rubrique et toutes les tâches qu\'elle contient ?'))) return;
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    const cat = categoryToDelete;
 
     const hasTasks = tasks.some(t => t.category === cat);
     if (hasTasks) {
       const { error } = await supabase.from('due_diligence_tasks').delete().eq('listing_id', listingId).eq('category', cat);
       if (error) {
         showError(t('msg.error', 'Erreur'));
+        setCategoryToDelete(null);
         return;
       }
       setTasks(prev => prev.filter(t => t.category !== cat));
@@ -300,6 +303,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     setCustomCategories(prev => prev.filter(c => c !== cat));
     if (expandedCategory === cat) setExpandedCategory(null);
     showSuccess(t('profile.deleted', 'Supprimé.'));
+    setCategoryToDelete(null);
   };
 
   const handleAddTask = async (category: string) => {
@@ -323,7 +327,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
     if (data && !error) {
       setTasks(prev => [...prev, data]);
-      // S'assurer que la catégorie est bien stockée localement au cas où la requête échoue plus tard
       if (!customCategories.includes(category)) setCustomCategories(prev => [...prev, category]);
       const pseudo = user.user_metadata?.full_name || "User";
       await sendSystemMessage(t('dd.msg_add', { name: pseudo, task: newTaskTitle.trim() }));
@@ -597,7 +600,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                         <button onClick={(e) => { e.stopPropagation(); startEditingCategory(cat); }} className="p-1.5 text-white/40 hover:text-white transition-colors" title={t('dash.edit', 'Modifier')}>
                           <Edit2 size={14} />
                         </button>
-                        <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-1.5 text-white/40 hover:text-red-400 transition-colors" title={t('dash.remove', 'Supprimer')}>
+                        <button onClick={(e) => { e.stopPropagation(); setCategoryToDelete(cat); }} className="p-1.5 text-white/40 hover:text-red-400 transition-colors" title={t('dash.remove', 'Supprimer')}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -764,6 +767,27 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           </div>
         </div>
       )}
+
+      {/* Modale de confirmation de suppression de rubrique */}
+      <AnimatePresence>
+        {categoryToDelete && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl">
+              <div className="w-14 h-14 mx-auto bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-500/40">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-light text-white mb-2 tracking-tight">Supprimer la rubrique ?</h3>
+              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/60 mb-8 font-light leading-relaxed">
+                Toutes les tâches contenues dans cette rubrique seront définitivement supprimées. Cette action est irréversible.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button onClick={confirmDeleteCategory} variant="destructive" className="rounded-full h-12 font-medium transition-all w-full outline-none [text-shadow:none]">{t('profile.remove', 'Supprimer')}</Button>
+                <Button variant="ghost" onClick={() => setCategoryToDelete(null)} className="text-white hover:text-white hover:bg-white/20 rounded-full h-12 transition-colors w-full outline-none font-medium [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
