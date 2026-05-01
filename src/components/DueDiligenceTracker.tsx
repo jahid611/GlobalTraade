@@ -90,7 +90,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('governance');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
@@ -158,6 +158,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
       if (!error && data) {
         setTasks(data);
+        if (data.length > 0) setExpandedCategory(data[0].category);
       }
     } catch (e) {
       console.error(e);
@@ -210,6 +211,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
     if (!error && data) {
       setTasks(data);
+      if (data.length > 0) setExpandedCategory('governance');
       const pseudo = user.user_metadata?.full_name || "User";
       await sendSystemMessage(t('dd.msg_init', { name: pseudo }));
       showSuccess(t('dd.toast_gen_success', 'Checklist générée avec succès.'));
@@ -220,12 +222,13 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     setIsGenerating(false);
   };
 
+  // Liste dynamique des catégories (basée uniquement sur les tâches existantes + rubriques créées à la main)
   const allCategories = useMemo(() => {
-    return Array.from(new Set([
-      'governance', 'financial', 'legal', 'social', 'operational', 'tax', 
-      ...customCategories, 
-      ...tasks.map(t => t.category)
-    ]));
+    const activeCategories = new Set([
+      ...tasks.map(t => t.category),
+      ...customCategories
+    ]);
+    return Array.from(activeCategories);
   }, [tasks, customCategories]);
 
   const handleAddCategory = () => {
@@ -295,6 +298,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     }
     
     setCustomCategories(prev => prev.filter(c => c !== cat));
+    if (expandedCategory === cat) setExpandedCategory(null);
     showSuccess(t('profile.deleted', 'Supprimé.'));
   };
 
@@ -319,6 +323,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
     if (data && !error) {
       setTasks(prev => [...prev, data]);
+      // S'assurer que la catégorie est bien stockée localement au cas où la requête échoue plus tard
+      if (!customCategories.includes(category)) setCustomCategories(prev => [...prev, category]);
       const pseudo = user.user_metadata?.full_name || "User";
       await sendSystemMessage(t('dd.msg_add', { name: pseudo, task: newTaskTitle.trim() }));
       setNewTaskTitle("");
@@ -539,7 +545,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             const config = getCategoryConfig(cat);
             const Icon = config.icon;
             const catTasks = tasks.filter(t => t.category === cat);
-            if (catTasks.length === 0 && !cat.includes('::') && cat !== 'governance' && cat !== 'financial' && cat !== 'legal') return null;
+            
+            // Ne pas afficher si la catégorie n'a pas de tâches ET n'est pas dans les catégories personnalisées actives
+            if (catTasks.length === 0 && !customCategories.includes(cat)) return null;
             
             const catCompleted = catTasks.filter(t => t.status === 'completed').length;
             const isExpanded = expandedCategory === cat;
