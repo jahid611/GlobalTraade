@@ -95,20 +95,16 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   
-  // États de création de rubrique
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedIconName, setSelectedIconName] = useState<string>("Folder");
 
-  // États d'édition de rubrique
   const [editingCategoryName, setEditingCategoryName] = useState<string | null>(null);
   const [editCategoryInput, setEditCategoryInput] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("Folder");
 
-  // État de suppression de rubrique
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
-  // Ref pour le conteneur Kanban
   const kanbanContainerRef = useRef<HTMLDivElement>(null);
 
   const handleDragEdgeScroll = (clientX: number) => {
@@ -116,11 +112,10 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!container || clientX === 0) return;
 
     const rect = container.getBoundingClientRect();
-    const threshold = 100; // Plus grande marge pour faciliter sur mobile
+    const threshold = 80;
     const now = Date.now();
     const lastScroll = Number(container.dataset.lastScroll || 0);
 
-    // Changement de page fluide type iOS
     if (now - lastScroll > 300) {
       if (clientX > rect.right - threshold) {
         container.scrollBy({ left: container.clientWidth * 0.8, behavior: 'smooth' });
@@ -389,7 +384,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     const task = tasks.find(t => t.id === taskId);
     if (!task || !user || task.status === newStatus) return;
     
-    // Mise à jour optimiste pour une réactivité immédiate (sensation native)
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any, completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
 
     const { error } = await supabase.from('due_diligence_tasks').update({ 
@@ -403,7 +397,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label', 'marquée comme terminée') : newStatus === 'in_progress' ? t('dd.status_progress_label', 'mise en cours') : t('dd.status_pending_label', 'mise en attente');
       await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: getTaskDisplayTitle(task.title), status: statusLabel }));
     } else {
-      // Revert en cas d'erreur
       setTasks(prev => prev.map(t => t.id === taskId ? { ...task } : t));
       showError(error.message);
     }
@@ -434,90 +427,12 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   const filteredKanbanTasks = kanbanFilter ? tasks.filter(t => t.category === kanbanFilter) : tasks;
 
-  const KanbanColumn = ({ status, label, colorClass, borderClass }: { status: string, label: string, colorClass: string, borderClass: string }) => {
-    const colTasks = filteredKanbanTasks.filter(t => t.status === status);
-    return (
-      <div 
-        className={`kanban-col flex-1 min-w-[85vw] sm:min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col min-h-0`}
-        data-status={status}
-      >
-        <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${colorClass}`}>
-          <span className="text-xs font-bold uppercase tracking-widest text-white">{label}</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
-        </div>
-        <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
-          {colTasks.map(task => {
-             const catConfig = getCategoryConfig(task.category);
-             const isEditing = editingTaskId === task.id;
-             const StatusIcon = STATUS_ICON[task.status] || Circle;
-
-             return (
-              <motion.div 
-                key={task.id}
-                layout
-                drag={!isEditing}
-                dragSnapToOrigin
-                whileDrag={{ zIndex: 100, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
-                onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
-                onDragEnd={(e, info) => {
-                  const cols = document.querySelectorAll('.kanban-col');
-                  cols.forEach(col => {
-                    const rect = col.getBoundingClientRect();
-                    // On élargit un peu la zone de drop verticalement pour faciliter sur mobile
-                    if (
-                      info.point.x >= rect.left && 
-                      info.point.x <= rect.right && 
-                      info.point.y >= (rect.top - 50) && 
-                      info.point.y <= (rect.bottom + 50)
-                    ) {
-                      const targetStatus = col.getAttribute('data-status');
-                      if (targetStatus && targetStatus !== task.status) {
-                        updateTaskStatus(task.id, targetStatus);
-                      }
-                    }
-                  });
-                }}
-                className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md text-white touch-none"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
-                    <catConfig.icon size={10} className="text-white" /> {catConfig.label}
-                  </span>
-                  <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
-                    <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
-                    <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
-                    <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
-                  </div>
-                </div>
-                {isEditing ? (
-                  <input 
-                    autoFocus
-                    value={editTaskTitle}
-                    onChange={(e) => setEditTaskTitle(e.target.value)}
-                    onBlur={handleUpdateTaskTitle}
-                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
-                  />
-                ) : (
-                  <p className="text-sm font-light text-white leading-snug pointer-events-none">{getTaskDisplayTitle(task.title)}</p>
-                )}
-                <div className="flex justify-between items-end mt-3">
-                   <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
-                    <StatusIcon className={`w-4 h-4 transition-all ${
-                      task.status === 'completed' ? 'text-emerald-400' : 
-                      task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
-                      'text-white/20'
-                    }`} />
-                  </button>
-                  <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto pointer-events-none" />
-                </div>
-              </motion.div>
-             );
-          })}
-        </div>
-      </div>
-    );
-  };
+  // Configuration des colonnes pour le rendu Kanban (déclaré ici pour éviter de démonter les noeuds)
+  const KANBAN_COLUMNS = [
+    { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/5' },
+    { status: 'in_progress', label: t('dd.badge_progress', 'En Cours'), colorClass: 'text-blue-400', borderClass: 'border-blue-500/20' },
+    { status: 'completed', label: t('dd.badge_completed', 'Vérifié'), colorClass: 'text-emerald-400', borderClass: 'border-emerald-500/20' }
+  ];
 
   return (
     <div className="space-y-4 text-white w-full h-full flex flex-col">
@@ -597,7 +512,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             const Icon = config.icon;
             const catTasks = tasks.filter(t => t.category === cat);
             
-            // Ne pas afficher si la catégorie n'a pas de tâches ET n'est pas dans les catégories personnalisées actives
             if (catTasks.length === 0 && !customCategories.includes(cat)) return null;
             
             const catCompleted = catTasks.filter(t => t.status === 'completed').length;
@@ -811,11 +725,96 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           <div 
             ref={kanbanContainerRef}
             onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-4 min-h-0 px-1 scroll-smooth"
+            className="flex-1 flex gap-4 overflow-x-auto snap-x snap-mandatory custom-scrollbar pb-4 min-h-0 px-4 sm:px-1 scroll-smooth"
           >
-            <KanbanColumn status="pending" label={t('dd.badge_pending', 'À Fournir')} colorClass="text-white/60" borderClass="border-white/5" />
-            <KanbanColumn status="in_progress" label={t('dd.badge_progress', 'En Cours')} colorClass="text-blue-400" borderClass="border-blue-500/20" />
-            <KanbanColumn status="completed" label={t('dd.badge_completed', 'Vérifié')} colorClass="text-emerald-400" borderClass="border-emerald-500/20" />
+            {KANBAN_COLUMNS.map((col) => {
+              const colTasks = filteredKanbanTasks.filter(t => t.status === col.status);
+              return (
+                <div 
+                  key={col.status}
+                  className={`kanban-col snap-center flex-1 min-w-[85vw] sm:min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${col.borderClass} rounded-2xl flex flex-col min-h-0 shrink-0`}
+                  data-status={col.status}
+                >
+                  <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${col.colorClass}`}>
+                    <span className="text-xs font-bold uppercase tracking-widest text-white">{col.label}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
+                  </div>
+                  
+                  <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
+                    <AnimatePresence mode="popLayout">
+                      {colTasks.map(task => {
+                        const catConfig = getCategoryConfig(task.category);
+                        const isEditing = editingTaskId === task.id;
+                        const StatusIcon = STATUS_ICON[task.status] || Circle;
+
+                        return (
+                          <motion.div 
+                            key={task.id}
+                            layoutId={`task-${task.id}`}
+                            layout
+                            drag={!isEditing}
+                            dragSnapToOrigin
+                            whileDrag={{ zIndex: 100, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+                            onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
+                            onDragEnd={(e, info) => {
+                              const cols = document.querySelectorAll('.kanban-col');
+                              cols.forEach(column => {
+                                const rect = column.getBoundingClientRect();
+                                if (
+                                  info.point.x >= rect.left && 
+                                  info.point.x <= rect.right && 
+                                  info.point.y >= (rect.top - 50) && 
+                                  info.point.y <= (rect.bottom + 50)
+                                ) {
+                                  const targetStatus = column.getAttribute('data-status');
+                                  if (targetStatus && targetStatus !== task.status) {
+                                    updateTaskStatus(task.id, targetStatus);
+                                  }
+                                }
+                              });
+                            }}
+                            className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md text-white touch-none"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
+                                <catConfig.icon size={10} className="text-white" /> {catConfig.label}
+                              </span>
+                              <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
+                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
+                                <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
+                                <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
+                              </div>
+                            </div>
+                            {isEditing ? (
+                              <input 
+                                autoFocus
+                                value={editTaskTitle}
+                                onChange={(e) => setEditTaskTitle(e.target.value)}
+                                onBlur={handleUpdateTaskTitle}
+                                onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
+                                className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
+                              />
+                            ) : (
+                              <p className="text-sm font-light text-white leading-snug pointer-events-none">{getTaskDisplayTitle(task.title)}</p>
+                            )}
+                            <div className="flex justify-between items-end mt-3">
+                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
+                                <StatusIcon className={`w-4 h-4 transition-all ${
+                                  task.status === 'completed' ? 'text-emerald-400' : 
+                                  task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
+                                  'text-white/20'
+                                }`} />
+                              </button>
+                              <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto pointer-events-none" />
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
