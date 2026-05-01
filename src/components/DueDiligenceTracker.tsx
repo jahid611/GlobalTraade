@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { 
   CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, 
   Briefcase, Scale, Users, Settings2, FileText, Loader2, Building, Wand2, 
@@ -75,6 +75,91 @@ const FR_TO_KEY: Record<string, string> = {
   "Passif social": "dd.task_soc3"
 };
 
+// Composant interne pour une carte Kanban
+// Il possède son propre useDragControls pour gérer le glisser-déposer proprement
+function KanbanTaskCard({ 
+  task, col, catConfig, isEditing, editTaskTitle, setEditTaskTitle, 
+  handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask, 
+  handleDragEdgeScroll, updateTaskStatus, t, getTaskDisplayTitle, setDraggingCol 
+}: any) {
+  const dragControls = useDragControls();
+  const StatusIcon = STATUS_ICON[task.status as string] || Circle;
+
+  return (
+    <motion.div 
+      layoutId={`task-${task.id}`}
+      layout
+      drag={!isEditing}
+      dragControls={dragControls}
+      dragListener={false} // CRITIQUE : Désactive le drag sur toute la carte. Laisse le scroll natif libre !
+      dragSnapToOrigin
+      dragElastic={0.1}
+      whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
+      onDragStart={() => setDraggingCol(col.status)}
+      onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
+      onDragEnd={(e, info) => {
+        setDraggingCol(null);
+        const cols = document.querySelectorAll('.kanban-col');
+        cols.forEach(column => {
+          const rect = column.getBoundingClientRect();
+          if (
+            info.point.x >= (rect.left - 20) && 
+            info.point.x <= (rect.right + 20) && 
+            info.point.y >= (rect.top - 50) && 
+            info.point.y <= (rect.bottom + 50)
+          ) {
+            const targetStatus = column.getAttribute('data-status');
+            if (targetStatus && targetStatus !== task.status) {
+              updateTaskStatus(task.id, targetStatus);
+            }
+          }
+        });
+      }}
+      className="bg-black/80 border border-white/10 rounded-xl p-3 hover:bg-white/5 transition-colors group relative shadow-md text-white"
+    >
+      <div className="flex gap-2 items-start">
+        {/* POIGNÉE DE GLISSER-DÉPOSER (Drag Handle) */}
+        <div 
+          className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0"
+          onPointerDown={(e) => { if (!isEditing) dragControls.start(e); }}
+          title={t('dd.drag_to_move', 'Glisser pour déplacer')}
+        >
+          <GripVertical size={16} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-start mb-2">
+            <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
+              <catConfig.icon size={10} className="text-white" /> {catConfig.label}
+            </span>
+            
+            <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10">
+              <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
+              <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
+              <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
+            </div>
+          </div>
+
+          {isEditing ? (
+            <input 
+              autoFocus
+              value={editTaskTitle}
+              onChange={(e) => setEditTaskTitle(e.target.value)}
+              onBlur={handleUpdateTaskTitle}
+              onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
+            />
+          ) : (
+            <p className="text-sm font-light text-white leading-snug pointer-events-none pr-6 sm:pr-0">
+              {getTaskDisplayTitle(task.title)}
+            </p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligenceTrackerProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -113,18 +198,13 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!container || clientX === 0) return;
 
     const rect = container.getBoundingClientRect();
-    const threshold = 100;
-    const now = Date.now();
-    const lastScroll = Number(container.dataset.lastScroll || 0);
+    const threshold = 80;
 
-    if (now - lastScroll > 300) {
-      if (clientX > rect.right - threshold) {
-        container.scrollBy({ left: container.clientWidth * 0.8, behavior: 'smooth' });
-        container.dataset.lastScroll = now.toString();
-      } else if (clientX < rect.left + threshold) {
-        container.scrollBy({ left: -container.clientWidth * 0.8, behavior: 'smooth' });
-        container.dataset.lastScroll = now.toString();
-      }
+    // Défilement fluide pendant le drag
+    if (clientX > rect.right - threshold) {
+      container.scrollLeft += 8;
+    } else if (clientX < rect.left + threshold) {
+      container.scrollLeft -= 8;
     }
   };
 
@@ -428,7 +508,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   const filteredKanbanTasks = kanbanFilter ? tasks.filter(t => t.category === kanbanFilter) : tasks;
 
-  // Configuration des colonnes pour le rendu Kanban
   const KANBAN_COLUMNS = [
     { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/10' },
     { status: 'in_progress', label: t('dd.badge_progress', 'En Cours'), colorClass: 'text-blue-400', borderClass: 'border-blue-500/20' },
@@ -734,8 +813,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           <div 
             ref={kanbanContainerRef}
             onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            /* MODIF : w-full, touch-pan-x et WebkitOverflowScrolling pour forcer le comportement horizontal sur mobile */
-            className="flex-1 w-full flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-auto snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-1 items-start scroll-smooth touch-pan-x"
+            /* MODIF : w-full, touch-pan-x et WebkitOverflowScrolling */
+            className="flex-1 w-full flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-hidden snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-2 items-start touch-pan-x"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {KANBAN_COLUMNS.map((col) => {
@@ -743,9 +822,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
               return (
                 <div 
                   key={col.status}
-                  /* MODIF : Supression des limites de hauteur pour la colonne, 
-                     plus de liquid-glass (backdrop-filter) pour éviter le clipping visuel lors du drag.
-                     z-index dynamique géré par le state draggingCol. */
                   className={`kanban-col snap-center relative w-[85vw] sm:min-w-[280px] sm:max-w-[350px] bg-[#2b2a2f] border ${col.borderClass} rounded-2xl flex flex-col shrink-0 min-h-[150px] ${draggingCol === col.status ? 'z-50' : 'z-10'}`}
                   data-status={col.status}
                 >
@@ -754,81 +830,28 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                     <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
                   </div>
                   
-                  {/* MODIF : overflow-visible absolu pour que les cartes puissent sortir du cadre de la colonne */}
-                  <div className="p-3 space-y-3 overflow-visible w-full">
+                  <div className="p-3 space-y-3 overflow-y-auto overflow-x-hidden w-full h-full custom-scrollbar pb-8">
                     <AnimatePresence mode="popLayout">
-                      {colTasks.map(task => {
-                        const catConfig = getCategoryConfig(task.category);
-                        const isEditing = editingTaskId === task.id;
-                        const StatusIcon = STATUS_ICON[task.status] || Circle;
-
-                        return (
-                          <motion.div 
-                            key={task.id}
-                            layoutId={`task-${task.id}`}
-                            layout
-                            drag={!isEditing}
-                            dragSnapToOrigin
-                            dragElastic={0.2} // Rendu moins élastique pour un drag propre style iPhone
-                            whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
-                            onDragStart={() => setDraggingCol(col.status)}
-                            onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
-                            onDragEnd={(e, info) => {
-                              setDraggingCol(null);
-                              const cols = document.querySelectorAll('.kanban-col');
-                              cols.forEach(column => {
-                                const rect = column.getBoundingClientRect();
-                                // Tolérance propre (20px horizontal, 50px vertical)
-                                if (
-                                  info.point.x >= (rect.left - 20) && 
-                                  info.point.x <= (rect.right + 20) && 
-                                  info.point.y >= (rect.top - 50) && 
-                                  info.point.y <= (rect.bottom + 50)
-                                ) {
-                                  const targetStatus = column.getAttribute('data-status');
-                                  if (targetStatus && targetStatus !== task.status) {
-                                    updateTaskStatus(task.id, targetStatus);
-                                  }
-                                }
-                              });
-                            }}
-                            className="bg-black/80 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors group relative shadow-md text-white"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
-                                <catConfig.icon size={10} className="text-white" /> {catConfig.label}
-                              </span>
-                              <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
-                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
-                                <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
-                                <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
-                              </div>
-                            </div>
-                            {isEditing ? (
-                              <input 
-                                autoFocus
-                                value={editTaskTitle}
-                                onChange={(e) => setEditTaskTitle(e.target.value)}
-                                onBlur={handleUpdateTaskTitle}
-                                onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
-                                className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
-                              />
-                            ) : (
-                              <p className="text-sm font-light text-white leading-snug pointer-events-none">{getTaskDisplayTitle(task.title)}</p>
-                            )}
-                            <div className="flex justify-between items-end mt-3">
-                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
-                                <StatusIcon className={`w-4 h-4 transition-all ${
-                                  task.status === 'completed' ? 'text-emerald-400' : 
-                                  task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
-                                  'text-white/20'
-                                }`} />
-                              </button>
-                              <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto pointer-events-none" />
-                            </div>
-                          </motion.div>
-                        );
-                      })}
+                      {colTasks.map(task => (
+                        <KanbanTaskCard 
+                          key={task.id} 
+                          task={task} 
+                          col={col} 
+                          catConfig={getCategoryConfig(task.category)}
+                          isEditing={editingTaskId === task.id}
+                          editTaskTitle={editTaskTitle}
+                          setEditTaskTitle={setEditTaskTitle}
+                          handleUpdateTaskTitle={handleUpdateTaskTitle}
+                          cycleTaskStatus={cycleTaskStatus}
+                          setEditingTaskId={setEditingTaskId}
+                          handleDeleteTask={handleDeleteTask}
+                          handleDragEdgeScroll={handleDragEdgeScroll}
+                          updateTaskStatus={updateTaskStatus}
+                          t={t}
+                          getTaskDisplayTitle={getTaskDisplayTitle}
+                          setDraggingCol={setDraggingCol}
+                        />
+                      ))}
                     </AnimatePresence>
                   </div>
                 </div>
