@@ -87,7 +87,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [kanbanFilter, setKanbanFilter] = useState<string | null>(null);
-  const [draggingCol, setDraggingCol] = useState<string | null>(null); // Pour la gestion du z-index
+  const [draggingCol, setDraggingCol] = useState<string | null>(null);
   
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -704,7 +704,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
       ) : (
 
-        /* VUE KANBAN iOS NATIVE / DESKTOP */
+        /* VUE KANBAN HORIZONTALE (Mobile & Desktop) */
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
           <div className="flex justify-between items-center mb-4 shrink-0 px-1">
              <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
@@ -734,17 +734,18 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           <div 
             ref={kanbanContainerRef}
             onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            /* MODIF : flex-col sur mobile (empilement vertical), flex-row sur desktop */
-            className="flex-1 flex flex-col md:flex-row gap-6 overflow-y-auto md:overflow-x-auto pb-4 px-1 scroll-smooth"
+            /* MODIF : flex-row constant. scroll-x actif. alignement start pour que les colonnes grandissent selon le contenu. */
+            className="flex-1 flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-auto snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-1 items-start scroll-smooth"
           >
             {KANBAN_COLUMNS.map((col) => {
               const colTasks = filteredKanbanTasks.filter(t => t.status === col.status);
               return (
                 <div 
                   key={col.status}
-                  /* MODIF : Application du z-index dynamique en fonction de draggingCol.
-                     Suppression du "liquid-glass" pour ne pas bloquer le z-index par le backdrop-filter */
-                  className={`kanban-col relative flex-1 w-full md:min-w-[280px] md:max-w-[350px] bg-[#2b2a2f] border ${col.borderClass} rounded-2xl flex flex-col shrink-0 min-h-[150px] md:min-h-0 ${draggingCol === col.status ? 'z-50' : 'z-10'}`}
+                  /* MODIF : Supression des limites de hauteur pour la colonne, 
+                     plus de liquid-glass (backdrop-filter) pour éviter le clipping visuel lors du drag.
+                     z-index dynamique géré par le state draggingCol. */
+                  className={`kanban-col snap-center relative w-[85vw] sm:min-w-[280px] sm:max-w-[350px] bg-[#2b2a2f] border ${col.borderClass} rounded-2xl flex flex-col shrink-0 min-h-[150px] ${draggingCol === col.status ? 'z-50' : 'z-10'}`}
                   data-status={col.status}
                 >
                   <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${col.colorClass}`}>
@@ -752,8 +753,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                     <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
                   </div>
                   
-                  {/* MODIF : Laisse déborder visuellement les cartes (overflow-visible) */}
-                  <div className="flex-1 p-3 space-y-3 overflow-visible md:overflow-y-auto custom-scrollbar">
+                  {/* MODIF : overflow-visible absolu pour que les cartes puissent sortir du cadre de la colonne */}
+                  <div className="p-3 space-y-3 overflow-visible w-full">
                     <AnimatePresence mode="popLayout">
                       {colTasks.map(task => {
                         const catConfig = getCategoryConfig(task.category);
@@ -767,18 +768,19 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                             layout
                             drag={!isEditing}
                             dragSnapToOrigin
-                            whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+                            dragElastic={0.2} // Rendu moins élastique pour un drag propre style iPhone
+                            whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
                             onDragStart={() => setDraggingCol(col.status)}
                             onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
                             onDragEnd={(e, info) => {
-                              setDraggingCol(null); // Fin du drag
+                              setDraggingCol(null);
                               const cols = document.querySelectorAll('.kanban-col');
                               cols.forEach(column => {
                                 const rect = column.getBoundingClientRect();
-                                // La tolérance de hauteur permet de dropper plus facilement
+                                // Tolérance propre (20px horizontal, 50px vertical)
                                 if (
-                                  info.point.x >= rect.left && 
-                                  info.point.x <= rect.right && 
+                                  info.point.x >= (rect.left - 20) && 
+                                  info.point.x <= (rect.right + 20) && 
                                   info.point.y >= (rect.top - 50) && 
                                   info.point.y <= (rect.bottom + 50)
                                 ) {
@@ -789,14 +791,14 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                                 }
                               });
                             }}
-                            className="bg-black/80 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors group relative shadow-md text-white touch-none"
+                            className="bg-black/80 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors group relative shadow-md text-white"
                           >
                             <div className="flex justify-between items-start mb-2">
                               <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
                                 <catConfig.icon size={10} className="text-white" /> {catConfig.label}
                               </span>
-                              <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
-                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white md:hidden"><StatusIcon size={12}/></button>
+                              <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
+                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
                                 <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
                               </div>
@@ -814,14 +816,14 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                               <p className="text-sm font-light text-white leading-snug pointer-events-none">{getTaskDisplayTitle(task.title)}</p>
                             )}
                             <div className="flex justify-between items-end mt-3">
-                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none md:hidden">
+                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
                                 <StatusIcon className={`w-4 h-4 transition-all ${
                                   task.status === 'completed' ? 'text-emerald-400' : 
                                   task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
                                   'text-white/20'
                                 }`} />
                               </button>
-                              <GripVertical size={12} className="text-white/30 hidden md:block ml-auto pointer-events-none" />
+                              <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto pointer-events-none" />
                             </div>
                           </motion.div>
                         );
