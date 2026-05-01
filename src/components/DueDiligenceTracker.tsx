@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -105,8 +105,32 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [editCategoryInput, setEditCategoryInput] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("Folder");
 
-  // État de suppression de rubrique (Modale personnalisée)
+  // État de suppression de rubrique
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+
+  // Ref pour le conteneur Kanban
+  const kanbanContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleDragEdgeScroll = (clientX: number) => {
+    const container = kanbanContainerRef.current;
+    if (!container || clientX === 0) return;
+
+    const rect = container.getBoundingClientRect();
+    const threshold = 80; // Distance depuis le bord pour déclencher le scroll
+    const now = Date.now();
+    const lastScroll = Number(container.dataset.lastScroll || 0);
+
+    // Cooldown de 500ms pour imiter le changement de page à la iOS
+    if (now - lastScroll > 500) {
+      if (clientX > rect.right - threshold) {
+        container.scrollBy({ left: container.clientWidth * 0.8, behavior: 'smooth' });
+        container.dataset.lastScroll = now.toString();
+      } else if (clientX < rect.left + threshold) {
+        container.scrollBy({ left: -container.clientWidth * 0.8, behavior: 'smooth' });
+        container.dataset.lastScroll = now.toString();
+      }
+    }
+  };
 
   const getCategoryConfig = (cat: string) => {
     const predefined: Record<string, { icon: React.ElementType; label: string; color: string }> = {
@@ -372,7 +396,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     }).eq('id', taskId);
 
     if (!error) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any } : t));
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any, completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
       const pseudo = user.user_metadata?.full_name || "User";
       const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label', 'marquée comme terminée') : newStatus === 'in_progress' ? t('dd.status_progress_label', 'mise en cours') : t('dd.status_pending_label', 'mise en attente');
       await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: getTaskDisplayTitle(task.title), status: statusLabel }));
@@ -407,7 +431,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     return (
       <div 
         className={`flex-1 min-w-[85vw] sm:min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col min-h-0 snap-center`}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
         onDrop={(e) => {
           e.preventDefault();
           const taskId = e.dataTransfer.getData('taskId');
@@ -429,6 +453,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                 key={task.id}
                 draggable={!isEditing}
                 onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                onDrag={(e) => handleDragEdgeScroll(e.clientX)}
+                onTouchMove={(e) => handleDragEdgeScroll(e.touches[0].clientX)}
                 className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md text-white"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -760,7 +786,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
              </DropdownMenu>
           </div>
           
-          <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-4 snap-x snap-mandatory min-h-0 px-1">
+          <div 
+            ref={kanbanContainerRef}
+            onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
+            className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-4 snap-x snap-mandatory min-h-0 px-1 scroll-smooth"
+          >
             <KanbanColumn status="pending" label={t('dd.badge_pending', 'À Fournir')} colorClass="text-white/60" borderClass="border-white/5" />
             <KanbanColumn status="in_progress" label={t('dd.badge_progress', 'En Cours')} colorClass="text-blue-400" borderClass="border-blue-500/20" />
             <KanbanColumn status="completed" label={t('dd.badge_completed', 'Vérifié')} colorClass="text-emerald-400" borderClass="border-emerald-500/20" />
