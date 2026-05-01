@@ -363,7 +363,7 @@ export function ChatWindow({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5"
+              className="flex-1 flex flex-col min-h-0 overflow-hidden w-full p-1 sm:p-3"
             >
               {hasAcceptedOffer ? (
                 <DueDiligenceTracker 
