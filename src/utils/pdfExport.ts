@@ -30,31 +30,33 @@ export const exportDueDiligenceReport = (tasks: any[], listingName: string, t: a
   doc.text(lang === 'fr' ? "État d'avancement des tâches" : "Task Progress Status", 15, 55);
 
   const tableData = tasks.map(task => [
-    task.category.toUpperCase(), // Le nom de la catégorie sera déjà nettoyé avant d'arriver ici
+    task.category.toUpperCase(),
     task.title,
+    task.created_at ? format(new Date(task.created_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
     task.status === 'completed' ? (lang === 'fr' ? 'Validé' : 'Completed') : 
     task.status === 'in_progress' ? (lang === 'fr' ? 'En cours' : 'In Progress') : (lang === 'fr' ? 'En attente' : 'Pending'),
-    // Uniquement la date (sans l'heure) et seulement si le statut est "completed"
-    task.status === 'completed' ? format(new Date(task.completed_at || new Date()), 'dd/MM/yyyy') : ""
+    task.status === 'completed' && task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy') : ""
   ]);
 
   autoTable(doc, {
     startY: 65,
     head: [[
       lang === 'fr' ? "Catégorie" : "Category", 
-      lang === 'fr' ? "Tâche / Vérification" : "Task / Verification", 
+      lang === 'fr' ? "Tâche" : "Task", 
+      lang === 'fr' ? "Créée le" : "Created At",
       lang === 'fr' ? "Statut" : "Status", 
       lang === 'fr' ? "Terminée le" : "Completed At"
     ]],
     body: tableData,
     theme: 'grid',
     headStyles: { fillColor: ACCENT_COLOR, textColor: 255 },
-    styles: { font: 'helvetica', fontSize: 9 },
+    styles: { font: 'helvetica', fontSize: 8 },
     columnStyles: { 
       0: { cellWidth: 35 }, 
-      1: { cellWidth: 85 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 30 }
+      1: { cellWidth: 70 },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 28 }
     }
   });
 
