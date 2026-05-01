@@ -87,6 +87,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [kanbanFilter, setKanbanFilter] = useState<string | null>(null);
+  const [draggingCol, setDraggingCol] = useState<string | null>(null); // Pour la gestion du z-index
   
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -112,7 +113,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!container || clientX === 0) return;
 
     const rect = container.getBoundingClientRect();
-    const threshold = 80;
+    const threshold = 100;
     const now = Date.now();
     const lastScroll = Number(container.dataset.lastScroll || 0);
 
@@ -427,15 +428,16 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   const filteredKanbanTasks = kanbanFilter ? tasks.filter(t => t.category === kanbanFilter) : tasks;
 
-  // Configuration des colonnes pour le rendu Kanban (déclaré ici pour éviter de démonter les noeuds)
+  // Configuration des colonnes pour le rendu Kanban
   const KANBAN_COLUMNS = [
-    { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/5' },
+    { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/10' },
     { status: 'in_progress', label: t('dd.badge_progress', 'En Cours'), colorClass: 'text-blue-400', borderClass: 'border-blue-500/20' },
     { status: 'completed', label: t('dd.badge_completed', 'Vérifié'), colorClass: 'text-emerald-400', borderClass: 'border-emerald-500/20' }
   ];
 
   return (
     <div className="space-y-4 text-white w-full h-full flex flex-col">
+      {/* HEADER GLOBALE */}
       {viewMode === 'list' && (
         <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-2 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
@@ -489,6 +491,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
         </div>
       )}
 
+      {/* VUE VIDE INITIALE */}
       {tasks.length === 0 ? (
         <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-8 text-center flex flex-col items-center text-white flex-1 justify-center">
           <Wand2 className="w-10 h-10 text-primary/50 mb-4" />
@@ -506,6 +509,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           </Button>
         </div>
       ) : viewMode === 'list' ? (
+        
+        /* VUE LISTE CLASSIQUE */
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 pb-10">
           {allCategories.map(cat => {
             const config = getCategoryConfig(cat);
@@ -652,6 +657,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             );
           })}
 
+          {/* AJOUT DE RUBRIQUE */}
           <div className="pt-4 border-t border-white/5">
             {isAddingCategory ? (
               <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex flex-col gap-4">
@@ -695,7 +701,10 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           </div>
 
         </div>
+
       ) : (
+
+        /* VUE KANBAN iOS NATIVE / DESKTOP */
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
           <div className="flex justify-between items-center mb-4 shrink-0 px-1">
              <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
@@ -725,14 +734,17 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           <div 
             ref={kanbanContainerRef}
             onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            className="flex-1 flex gap-4 overflow-x-auto snap-x snap-mandatory custom-scrollbar pb-4 min-h-0 px-4 sm:px-1 scroll-smooth"
+            /* MODIF : flex-col sur mobile (empilement vertical), flex-row sur desktop */
+            className="flex-1 flex flex-col md:flex-row gap-6 overflow-y-auto md:overflow-x-auto pb-4 px-1 scroll-smooth"
           >
             {KANBAN_COLUMNS.map((col) => {
               const colTasks = filteredKanbanTasks.filter(t => t.status === col.status);
               return (
                 <div 
                   key={col.status}
-                  className={`kanban-col snap-center flex-1 min-w-[85vw] sm:min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${col.borderClass} rounded-2xl flex flex-col min-h-0 shrink-0`}
+                  /* MODIF : Application du z-index dynamique en fonction de draggingCol.
+                     Suppression du "liquid-glass" pour ne pas bloquer le z-index par le backdrop-filter */
+                  className={`kanban-col relative flex-1 w-full md:min-w-[280px] md:max-w-[350px] bg-[#2b2a2f] border ${col.borderClass} rounded-2xl flex flex-col shrink-0 min-h-[150px] md:min-h-0 ${draggingCol === col.status ? 'z-50' : 'z-10'}`}
                   data-status={col.status}
                 >
                   <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${col.colorClass}`}>
@@ -740,7 +752,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                     <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
                   </div>
                   
-                  <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
+                  {/* MODIF : Laisse déborder visuellement les cartes (overflow-visible) */}
+                  <div className="flex-1 p-3 space-y-3 overflow-visible md:overflow-y-auto custom-scrollbar">
                     <AnimatePresence mode="popLayout">
                       {colTasks.map(task => {
                         const catConfig = getCategoryConfig(task.category);
@@ -754,12 +767,15 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                             layout
                             drag={!isEditing}
                             dragSnapToOrigin
-                            whileDrag={{ zIndex: 100, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+                            whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+                            onDragStart={() => setDraggingCol(col.status)}
                             onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
                             onDragEnd={(e, info) => {
+                              setDraggingCol(null); // Fin du drag
                               const cols = document.querySelectorAll('.kanban-col');
                               cols.forEach(column => {
                                 const rect = column.getBoundingClientRect();
+                                // La tolérance de hauteur permet de dropper plus facilement
                                 if (
                                   info.point.x >= rect.left && 
                                   info.point.x <= rect.right && 
@@ -773,14 +789,14 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                                 }
                               });
                             }}
-                            className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md text-white touch-none"
+                            className="bg-black/80 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors group relative shadow-md text-white touch-none"
                           >
                             <div className="flex justify-between items-start mb-2">
                               <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
                                 <catConfig.icon size={10} className="text-white" /> {catConfig.label}
                               </span>
-                              <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
-                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
+                              <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
+                                <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white md:hidden"><StatusIcon size={12}/></button>
                                 <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
                               </div>
@@ -798,14 +814,14 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                               <p className="text-sm font-light text-white leading-snug pointer-events-none">{getTaskDisplayTitle(task.title)}</p>
                             )}
                             <div className="flex justify-between items-end mt-3">
-                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
+                               <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none md:hidden">
                                 <StatusIcon className={`w-4 h-4 transition-all ${
                                   task.status === 'completed' ? 'text-emerald-400' : 
                                   task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
                                   'text-white/20'
                                 }`} />
                               </button>
-                              <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto pointer-events-none" />
+                              <GripVertical size={12} className="text-white/30 hidden md:block ml-auto pointer-events-none" />
                             </div>
                           </motion.div>
                         );
