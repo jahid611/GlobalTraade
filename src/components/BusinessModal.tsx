@@ -148,12 +148,12 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
       content: reportText.trim()
     });
     if (error) {
-      showError("Erreur lors de l'envoi du signalement.");
+      showError(t('modal.report_error', "Erreur lors de l'envoi du signalement."));
     } else {
       setHasReported(true);
       setIsReportModalOpen(false);
       setReportText("");
-      showSuccess(t('modal.report_success') || "Signalement envoyé avec succès !");
+      showSuccess(t('modal.report_success'));
     }
   };
 
@@ -544,8 +544,8 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-light text-white">Signaler un problème</h3>
-                  <p className="text-xs text-white/50">Sur l'annonce {listing.name}</p>
+                  <h3 className="text-xl font-light text-white">{t('modal.report_problem', 'Signaler un problème')}</h3>
+                  <p className="text-xs text-white/50">{t('modal.on_listing', 'Sur l\'annonce')} {listing.name}</p>
                 </div>
               </div>
               
@@ -553,25 +553,25 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 <textarea 
                   value={reportText}
                   onChange={(e) => setReportText(e.target.value)}
-                  placeholder="Décrivez le problème rencontré avec cette annonce ou ce vendeur (ex: fausses informations, arnaque, injures)..."
+                  placeholder={t('modal.report_placeholder', 'Décrivez le problème rencontré...')}
                   className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all resize-none placeholder:text-white/30"
                   maxLength={1500}
                 />
                 <div className="absolute bottom-3 right-4 text-[10px] text-white/30">
-                  {reportText.split(/\s+/).filter(w => w.length > 0).length} / 300 mots max
+                  {reportText.split(/\s+/).filter(w => w.length > 0).length} {t('modal.report_words_max', '/ 300 mots max')}
                 </div>
               </div>
 
               <div className="mt-6 flex gap-3">
                 <button onClick={() => setIsReportModalOpen(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-all">
-                  Annuler
+                  {t('settings.cancel', 'Annuler')}
                 </button>
                 <button 
                   onClick={submitReport} 
                   disabled={!reportText.trim()}
                   className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-500 text-white text-sm font-medium transition-all shadow-lg shadow-red-500/20"
                 >
-                  Envoyer
+                  {t('modal.send', 'Envoyer')}
                 </button>
               </div>
             </motion.div>

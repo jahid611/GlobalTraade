@@ -176,7 +176,7 @@ export default function Profile() {
     setIsDeleting(true);
     const { error } = await supabase.from('listings').delete().eq('id', listingToDelete.id);
     if (error) {
-      showError("Erreur");
+      showError(t('profile.error_generic', "Une erreur est survenue."));
     } else { 
       await queryClient.invalidateQueries({ queryKey: ['profile', targetId] });
       await queryClient.invalidateQueries({ queryKey: ['listings'] });
@@ -382,7 +382,7 @@ export default function Profile() {
                         showSuccess(t('kyc.submitted_success'));
                         refetch();
                       } catch (err) {
-                        showError('Upload error');
+                        showError(t('kyc.upload_error', 'Erreur lors de l\'upload.'));
                       }
                       setKycUploading(false);
                     }}
@@ -435,7 +435,7 @@ export default function Profile() {
                         showSuccess(t('kyc.submitted_success'));
                         refetch();
                       } catch (err) {
-                        showError('Upload error');
+                        showError(t('kyc.upload_error', 'Erreur lors de l\'upload.'));
                       }
                       setKycUploading(false);
                     }}

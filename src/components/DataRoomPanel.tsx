@@ -253,7 +253,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
   const handleExportAuditPDF = () => {
     exportVDRAuditTrail(accessLogs, listing?.name || 'Dossier', t, i18n.language);
-    showSuccess("Registre d'audit généré avec succès.");
+    showSuccess(t('vdr.toast_audit_success', "Registre d'audit généré avec succès."));
   };
 
   return (
@@ -454,7 +454,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                               onClick={handleExportAuditPDF} 
                               className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-[10px] uppercase tracking-widest font-medium transition-colors"
                             >
-                              <Download className="w-3.5 h-3.5" /> Exporter PDF
+                              <Download className="w-3.5 h-3.5" /> {t('vdr.export_pdf', 'Exporter PDF')}
                             </button>
                           )}
                         </div>

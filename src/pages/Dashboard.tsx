@@ -190,7 +190,7 @@ export default function Dashboard() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-[4vh] mb-[8vh] border-b border-white/20 pb-[3vh]">
           <div>
             <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-light leading-[1.1] tracking-tighter text-white mb-[1vh]">
-              Cockpit <span className="text-primary font-medium">Direction</span>
+              {t('dash.cockpit_title1')} <span className="text-primary font-medium">{t('dash.cockpit_title2')}</span>
             </h1>
             <p className="text-[clamp(1rem,1.1vw,1.125rem)] text-white dark:text-white/90 font-light max-w-2xl leading-relaxed">
               {t('dash.subtitle')}
@@ -264,7 +264,7 @@ export default function Dashboard() {
                   <ShieldCheck className="w-7 h-7 text-blue-400" />
                 </div>
                 <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white flex flex-wrap items-center gap-3">
-                  Trust & Safety <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
+                  {t('dash.trust_safety')} <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
                 </p>
               </div>
               <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
@@ -288,18 +288,18 @@ export default function Dashboard() {
                   <Crown className="w-7 h-7 text-primary" />
                 </div>
                 <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white">
-                  Licence d'Accès
+                  {t('dash.license_access')}
                 </p>
               </div>
               <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
                 {profile?.plan_type === 'premium' 
-                  ? 'Vous bénéficiez d\'une exposition maximale, d\'une assistance prioritaire et de l\'absence de limitations.' 
-                  : 'Passez au niveau supérieur. Obtenez une visibilité globale prioritaire et un accès sans limite aux données.'}
+                  ? t('dash.premium_active_desc') 
+                  : t('dash.premium_inactive_desc')}
               </p>
             </div>
             {profile?.plan_type !== 'premium' && (
               <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
-                Débloquer Premium
+                {t('dash.unlock_premium')}
               </Button>
             )}
           </div>
@@ -337,7 +337,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none flex items-center gap-3">
-                  GlobalTrade AI <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-white border border-primary/50 uppercase tracking-widest">Radar</span>
+                  {t('dash.radar_title1')} <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-white border border-primary/50 uppercase tracking-widest">{t('dash.radar_title2')}</span>
                 </h2>
                 <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light mt-2">
                   {hasCriteria 
@@ -388,7 +388,7 @@ export default function Dashboard() {
                 <p className="text-white dark:text-white/60 font-light mb-8 max-w-md leading-relaxed text-[clamp(0.875rem,1vw,1rem)]">
                   {t('dash.no_sales_desc')}
                 </p>
-                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
+                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
                   {t('dash.create_first')}
                 </Button>
               </div>
@@ -398,8 +398,8 @@ export default function Dashboard() {
                   <BusinessCard key={listing.id} listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
-                        <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>
-                        <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-5 h-5" /></button>
+                        <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>
+                        <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-5 h-5" /></button>
                       </div>
                     }
                   />
@@ -461,8 +461,8 @@ export default function Dashboard() {
                 {t('dash.modal_delete_desc', { name: listingToDelete.name })}
               </p>
               <div className="flex flex-col gap-3">
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 outline-none font-medium">{t('dash.confirm_delete')}</Button>
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 outline-none font-medium text-white hover:bg-white/20">{t('dash.cancel')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 outline-none font-medium [text-shadow:none]">{t('dash.confirm_delete')}</Button>
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 outline-none font-medium text-white hover:bg-white/20 [text-shadow:none]">{t('dash.cancel')}</Button>
               </div>
             </motion.div>
           </div>
