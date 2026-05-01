@@ -705,7 +705,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       ) : (
 
         /* VUE KANBAN HORIZONTALE (Mobile & Desktop) */
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full overflow-hidden pb-4">
           <div className="flex justify-between items-center mb-4 shrink-0 px-1">
              <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
                <ChevronLeft size={14} /> {t('back_to_list', 'Retour Liste')}
@@ -734,8 +734,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           <div 
             ref={kanbanContainerRef}
             onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            /* MODIF : flex-row constant. scroll-x actif. alignement start pour que les colonnes grandissent selon le contenu. */
-            className="flex-1 flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-auto snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-1 items-start scroll-smooth"
+            /* MODIF : w-full, touch-pan-x et WebkitOverflowScrolling pour forcer le comportement horizontal sur mobile */
+            className="flex-1 w-full flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-auto snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-1 items-start scroll-smooth touch-pan-x"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {KANBAN_COLUMNS.map((col) => {
               const colTasks = filteredKanbanTasks.filter(t => t.status === col.status);
