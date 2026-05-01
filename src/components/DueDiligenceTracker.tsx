@@ -80,6 +80,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const { user } = useAuth();
   
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]); // Gère les rubriques vides créées localement
   const [listingName, setListingName] = useState<string>("Dossier");
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -214,8 +215,12 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   };
 
   const allCategories = useMemo(() => {
-    return Array.from(new Set(['governance', 'financial', 'legal', 'social', 'operational', 'tax', ...tasks.map(t => t.category)]));
-  }, [tasks]);
+    return Array.from(new Set([
+      'governance', 'financial', 'legal', 'social', 'operational', 'tax', 
+      ...customCategories, 
+      ...tasks.map(t => t.category)
+    ]));
+  }, [tasks, customCategories]);
 
   const handleAddCategory = () => {
     const catName = newCategoryName.trim();
@@ -225,6 +230,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       return;
     }
     const finalCatStr = `${selectedIconName}::${catName}`;
+    setCustomCategories(prev => [...prev, finalCatStr]); // Sauvegarde locale de la rubrique
     setExpandedCategory(finalCatStr);
     setAddingTaskTo(finalCatStr);
     setNewCategoryName("");
@@ -617,7 +623,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
           <div className="flex justify-between items-center mb-4 shrink-0 px-1">
              <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
-               <ChevronLeft size={14} /> Retour Liste
+               <ChevronLeft size={14} /> {t('back_to_list', 'Retour Liste')}
              </button>
              
              <DropdownMenu>
