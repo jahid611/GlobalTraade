@@ -10,7 +10,7 @@ export default function Messages() {
   useScrollLock(true);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-transparent text-white overflow-hidden relative [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
+    <div className="flex flex-col h-[100dvh] bg-[#2b2a2f] text-white overflow-hidden relative [text-shadow:none]">
       <SolarSystem />
       <Navbar />
       <MessagingCore variant="page" />

@@ -182,7 +182,7 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-transparent text-white">
-      {/* Header avec empilement vertical propre */}
+      {/* Header */}
       <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10 border-b border-white/5">
         <div className="flex items-start gap-3 min-w-0 pr-2">
           {onBack && (
@@ -267,7 +267,7 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Content Area avec Masque dégradé pour faire disparaitre les messages en douceur */}
+      {/* Content Area */}
       <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent">
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
@@ -386,7 +386,7 @@ export function ChatWindow({
       {/* Input Area */}
       {activeTab === 'messages' && (
         <div className="p-2 sm:p-3 bg-transparent shrink-0 z-10 border-t border-white/5">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg text-white">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/10 rounded-[1.25rem] p-1 shadow-lg text-white">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}

@@ -55,7 +55,7 @@ export function ConversationList({
           <input 
             type="text" 
             placeholder={t('msg.search_placeholder', 'Rechercher')}
-            className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
+            className="w-full liquid-glass bg-[#2b2a2f] sm:bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
           />
         </div>
       </div>

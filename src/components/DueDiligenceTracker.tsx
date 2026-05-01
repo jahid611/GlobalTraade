@@ -6,9 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, Circle, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, 
   Briefcase, Scale, Users, Settings2, FileText, Loader2, Building, Wand2, 
-  Download, LayoutList, LayoutGrid, Trash2, Edit2, Folder, GripVertical, Check, X
+  Download, LayoutList, LayoutGrid, Trash2, Edit2, Folder, GripVertical, Check, X,
+  Shield, Zap, TrendingUp, Landmark, Globe, Smartphone, Truck, ShoppingCart, 
+  Coffee, Book, HeartPulse, Camera, Music, Anchor, Box, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/components/AuthProvider';
 import { showSuccess, showError } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
@@ -38,9 +41,14 @@ const STATUS_ICON: Record<string, React.ElementType> = {
   blocked: AlertTriangle,
 };
 
+const AVAILABLE_ICONS: Record<string, React.ElementType> = {
+  Briefcase, Scale, Users, Settings2, FileText, Building, Folder, 
+  Shield, Zap, TrendingUp, Landmark, Globe, Smartphone, Truck, 
+  ShoppingCart, Coffee, Book, HeartPulse, Camera, Music, Anchor, Box
+};
+
 const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Rétro-compatibilité pour traduire les textes déjà insérés en dur dans la DB
 const FR_TO_KEY: Record<string, string> = {
   "Statuts à jour et KBIS de moins de 3 mois": "dd.task_gov1",
   "Procès-verbaux d'AG des 3 dernières années": "dd.task_gov2",
@@ -88,19 +96,29 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [localCategories, setLocalCategories] = useState<string[]>([]);
-
-  const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-    governance: { icon: Building, label: t('dd.governance', 'Gouvernance & Corporate'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
-    financial: { icon: Briefcase, label: t('dd.financial', 'Audit Financier'), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-    legal: { icon: Scale, label: t('dd.legal', 'Audit Juridique'), color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    social: { icon: Users, label: t('dd.social', 'Audit Social & RH'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-    operational: { icon: Settings2, label: t('dd.operational', 'Audit Opérationnel'), color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
-    tax: { icon: FileText, label: t('dd.tax', 'Audit Fiscal'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  };
+  const [selectedIconName, setSelectedIconName] = useState<string>("Folder");
 
   const getCategoryConfig = (cat: string) => {
-    if (CATEGORY_CONFIG[cat]) return CATEGORY_CONFIG[cat];
+    const predefined: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+      governance: { icon: Building, label: t('dd.governance', 'Gouvernance & Corporate'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+      financial: { icon: Briefcase, label: t('dd.financial', 'Audit Financier'), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+      legal: { icon: Scale, label: t('dd.legal', 'Audit Juridique'), color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+      social: { icon: Users, label: t('dd.social', 'Audit Social & RH'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+      operational: { icon: Settings2, label: t('dd.operational', 'Audit Opérationnel'), color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+      tax: { icon: FileText, label: t('dd.tax', 'Audit Fiscal'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    };
+
+    if (predefined[cat]) return predefined[cat];
+
+    if (cat.includes('::')) {
+      const [iconStr, labelStr] = cat.split('::');
+      return { 
+        icon: AVAILABLE_ICONS[iconStr] || Folder, 
+        label: labelStr, 
+        color: 'text-white bg-white/10 border-white/20' 
+      };
+    }
+
     return { icon: Folder, label: cat, color: 'text-white bg-white/10 border-white/20' };
   };
 
@@ -156,7 +174,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!user) return;
     setIsGenerating(true);
 
-    // On insère LES CLÉS, pas le texte traduit !
     const defaultTasks = [
       { category: 'governance', title: 'dd.task_gov1' },
       { category: 'governance', title: 'dd.task_gov2' },
@@ -197,19 +214,19 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   };
 
   const allCategories = useMemo(() => {
-    return Array.from(new Set([...Object.keys(CATEGORY_CONFIG), ...tasks.map(t => t.category), ...localCategories]));
-  }, [tasks, localCategories]);
+    return Array.from(new Set(['governance', 'financial', 'legal', 'social', 'operational', 'tax', ...tasks.map(t => t.category)]));
+  }, [tasks]);
 
   const handleAddCategory = () => {
-    const cat = newCategoryName.trim();
-    if (!cat) return;
-    if (allCategories.length >= 10) {
-      showError(t('dd.max_categories', 'Maximum 10 rubriques autorisées.'));
+    const catName = newCategoryName.trim();
+    if (!catName) return;
+    if (allCategories.length >= 15) {
+      showError(t('dd.max_categories', 'Maximum de rubriques atteint.'));
       return;
     }
-    setLocalCategories(prev => [...prev, cat]);
-    setExpandedCategory(cat);
-    setAddingTaskTo(cat);
+    const finalCatStr = `${selectedIconName}::${catName}`;
+    setExpandedCategory(finalCatStr);
+    setAddingTaskTo(finalCatStr);
     setNewCategoryName("");
     setIsAddingCategory(false);
   };
@@ -296,7 +313,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   };
 
   const handleExportPDF = () => {
-    // Inject the translated titles into the export
     const translatedTasks = tasks.map(t => ({ ...t, title: getTaskDisplayTitle(t.title) }));
     exportDueDiligenceReport(translatedTasks, listingName, t, i18n.language);
     showSuccess(t('dd.pdf_success', "Rapport PDF généré avec succès."));
@@ -314,7 +330,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     const colTasks = filteredKanbanTasks.filter(t => t.status === status);
     return (
       <div 
-        className={`flex-1 min-w-[280px] max-w-[350px] liquid-glass bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col`}
+        className={`flex-1 min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col min-h-0`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -322,11 +338,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
           if (taskId) updateTaskStatus(taskId, status);
         }}
       >
-        <div className={`p-4 border-b border-white/5 flex items-center justify-between ${colorClass}`}>
+        <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${colorClass}`}>
           <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
           <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10">{colTasks.length}</span>
         </div>
-        <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar min-h-[400px]">
+        <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
           {colTasks.map(task => {
              const catConfig = getCategoryConfig(task.category);
              const isEditing = editingTaskId === task.id;
@@ -340,10 +356,10 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                 className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20`}>
-                    {catConfig.label}
+                  <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1`}>
+                    <catConfig.icon size={10} /> {catConfig.label}
                   </span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
                     <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
                     <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
                     <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
@@ -361,8 +377,15 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                 ) : (
                   <p className="text-sm font-light text-white leading-snug">{getTaskDisplayTitle(task.title)}</p>
                 )}
-                <div className="flex justify-end mt-2 opacity-30 group-hover:opacity-60 hidden sm:flex">
-                  <GripVertical size={12} className="text-white cursor-grab" />
+                <div className="flex justify-between items-end mt-3">
+                   <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform outline-none sm:hidden">
+                    <StatusIcon className={`w-4 h-4 transition-all ${
+                      task.status === 'completed' ? 'text-emerald-400' : 
+                      task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
+                      'text-white/20'
+                    }`} />
+                  </button>
+                  <GripVertical size={12} className="text-white/30 hidden sm:block ml-auto cursor-grab" />
                 </div>
               </div>
              );
@@ -374,57 +397,58 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   return (
     <div className="space-y-4 text-white w-full h-full flex flex-col">
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-2 shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-              <ClipboardCheck className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-base font-medium text-white leading-tight">{t('dd.title', 'Audit & Due Diligence')}</h3>
-              <p className="text-[10px] text-white/50 font-light mt-0.5">{listingName}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* View Toggles */}
-            <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
-              <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_list', 'Vue Liste')}>
-                <LayoutList size={16} />
-              </button>
-              <button onClick={() => setViewMode('kanban')} className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_kanban', 'Vue Kanban')}>
-                <LayoutGrid size={16} />
-              </button>
-            </div>
-
-            {total > 0 && (
-              <div className="shrink-0 text-center bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
-                <span className="text-lg font-light text-white block leading-none">{progressPercent}%</span>
-                <span className="text-[8px] uppercase tracking-widest text-white/40 block mt-0.5">{t('dd.progress', 'Progression')}</span>
+      {viewMode === 'list' && (
+        <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-2 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                <ClipboardCheck className="w-5 h-5 text-primary" />
               </div>
-            )}
+              <div>
+                <h3 className="text-base font-medium text-white leading-tight">{t('dd.title', 'Audit & Due Diligence')}</h3>
+                <p className="text-[10px] text-white/50 font-light mt-0.5">{listingName}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
+                <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_list', 'Vue Liste')}>
+                  <LayoutList size={16} />
+                </button>
+                <button onClick={() => setViewMode('kanban')} className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_kanban', 'Vue Kanban')}>
+                  <LayoutGrid size={16} />
+                </button>
+              </div>
+
+              {total > 0 && (
+                <div className="shrink-0 text-center bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
+                  <span className="text-lg font-light text-white block leading-none">{progressPercent}%</span>
+                  <span className="text-[8px] uppercase tracking-widest text-white/40 block mt-0.5">{t('dd.progress', 'Progression')}</span>
+                </div>
+              )}
+            </div>
           </div>
+
+          {total > 0 && (
+            <div className="flex gap-3 items-center mt-4">
+              <Button onClick={handleExportPDF} variant="outline" className="flex-1 py-2 h-auto rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs outline-none shadow-none">
+                <Download className="w-3.5 h-3.5 mr-2" /> {t('dd.export_pdf', 'Exporter le rapport PDF')}
+              </Button>
+            </div>
+          )}
+
+          {total > 0 && (
+            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-4">
+              <motion.div 
+                initial={{ width: 0 }} 
+                animate={{ width: `${progressPercent}%` }} 
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="h-full bg-primary rounded-full" 
+              />
+            </div>
+          )}
         </div>
-
-        {total > 0 && (
-          <div className="flex gap-3 items-center mt-4">
-            <Button onClick={handleExportPDF} variant="outline" className="flex-1 py-2 h-auto rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs outline-none shadow-none">
-              <Download className="w-3.5 h-3.5 mr-2" /> {t('dd.export_pdf', 'Exporter le rapport PDF')}
-            </Button>
-          </div>
-        )}
-
-        {total > 0 && (
-          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-4">
-            <motion.div 
-              initial={{ width: 0 }} 
-              animate={{ width: `${progressPercent}%` }} 
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="h-full bg-primary rounded-full" 
-            />
-          </div>
-        )}
-      </div>
+      )}
 
       {tasks.length === 0 ? (
         <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-8 text-center flex flex-col items-center text-white flex-1 justify-center">
@@ -448,11 +472,13 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             const config = getCategoryConfig(cat);
             const Icon = config.icon;
             const catTasks = tasks.filter(t => t.category === cat);
+            if (catTasks.length === 0 && !cat.includes('::') && cat !== 'governance' && cat !== 'financial' && cat !== 'legal') return null;
+            
             const catCompleted = catTasks.filter(t => t.status === 'completed').length;
             const isExpanded = expandedCategory === cat;
 
             return (
-              <div key={cat} className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 text-white">
+              <div key={cat} className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 text-white">
                 <div className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${config.color}`}><Icon className="w-4 h-4" /></div>
@@ -505,7 +531,6 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                                 {task.status === 'in_progress' ? t('dd.badge_progress', 'EN COURS') : task.status === 'completed' ? t('dd.badge_completed', 'VALIDÉ') : t('dd.badge_pending', 'À FOURNIR')}
                               </span>
 
-                              {/* Actions on hover */}
                               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-md backdrop-blur-md px-1.5 py-1">
                                 <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white transition-colors"><Edit2 size={14}/></button>
                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400 transition-colors"><Trash2 size={14}/></button>
@@ -545,10 +570,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             );
           })}
 
-          {/* ADD CATEGORY BUTTON */}
           <div className="pt-4 border-t border-white/5">
             {isAddingCategory ? (
-              <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
+              <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex flex-col gap-4">
                 <input 
                   autoFocus
                   value={newCategoryName}
@@ -557,6 +581,22 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                   placeholder={t('dd.category_name', 'Nom de la rubrique...')}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none"
                 />
+                
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block">{t('dd.choose_icon', 'Choisir une icône')}</span>
+                  <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                    {Object.entries(AVAILABLE_ICONS).map(([name, Icon]) => (
+                      <button 
+                        key={name} 
+                        onClick={() => setSelectedIconName(name)} 
+                        className={`p-2 rounded-lg border transition-all shrink-0 outline-none ${selectedIconName === name ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
+                      >
+                        <Icon size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={handleAddCategory} className="flex-1 rounded-xl bg-white text-black hover:bg-white/90 font-medium text-xs border-none outline-none shadow-none"><Check className="w-4 h-4 mr-1"/> Créer</Button>
                   <Button onClick={() => setIsAddingCategory(false)} variant="ghost" className="w-12 rounded-xl text-white/50 hover:text-white hover:bg-white/10 text-xs outline-none shadow-none p-0"><X className="w-4 h-4"/></Button>
@@ -565,7 +605,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             ) : (
               <button 
                 onClick={() => setIsAddingCategory(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 outline-none font-medium"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white transition-colors bg-[#2b2a2f] sm:bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 outline-none font-medium"
               >
                 <Folder className="w-4 h-4" /> {t('dd.add_category', 'Nouvelle Rubrique')}
               </button>
@@ -574,21 +614,33 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden pb-4">
-          <div className="mb-4">
-            <select 
-              value={kanbanFilter || ''} 
-              onChange={(e) => setKanbanFilter(e.target.value || null)}
-              className="w-full sm:w-auto bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none appearance-none"
-            >
-              <option value="" className="bg-[#2b2a2f] text-white">Toutes les rubriques</option>
-              {allCategories.map(cat => (
-                <option key={cat} value={cat} className="bg-[#2b2a2f] text-white">{getCategoryConfig(cat).label}</option>
-              ))}
-            </select>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-4">
+          <div className="flex justify-between items-center mb-4 shrink-0 px-1">
+             <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
+               <ChevronLeft size={14} /> Retour Liste
+             </button>
+             
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-8 rounded-full bg-black/40 border-white/10 text-white hover:bg-white/10 text-xs font-light px-4 flex gap-2">
+                    <span className="truncate max-w-[150px]">{kanbanFilter ? getCategoryConfig(kanbanFilter).label : t('dd.all_categories', 'Toutes les rubriques')}</span>
+                    <ChevronDown size={14} className="text-white/50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="liquid-glass-heavy bg-[#2b2a2f]/95 border-white/10 rounded-xl w-[220px] shadow-2xl z-[300]">
+                  <DropdownMenuItem onClick={() => setKanbanFilter(null)} className="text-white hover:bg-white/10 text-xs cursor-pointer focus:bg-white/10 focus:text-white">
+                    {t('dd.all_categories', 'Toutes les rubriques')}
+                  </DropdownMenuItem>
+                  {allCategories.map(cat => (
+                    <DropdownMenuItem key={cat} onClick={() => setKanbanFilter(cat)} className="text-white hover:bg-white/10 text-xs cursor-pointer focus:bg-white/10 focus:text-white flex items-center gap-2">
+                      {getCategoryConfig(cat).label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+             </DropdownMenu>
           </div>
           
-          <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-2 snap-x">
+          <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-2 snap-x min-h-0">
             <KanbanColumn status="pending" label={t('dd.badge_pending', 'À Fournir')} colorClass="text-white/60" borderClass="border-white/5" />
             <KanbanColumn status="in_progress" label={t('dd.badge_progress', 'En Cours')} colorClass="text-blue-400" borderClass="border-blue-500/20" />
             <KanbanColumn status="completed" label={t('dd.badge_completed', 'Vérifié')} colorClass="text-emerald-400" borderClass="border-emerald-500/20" />

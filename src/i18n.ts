@@ -1180,6 +1180,10 @@ const resources = {
       "dd.btn_add_specific": "Add specific item",
       "dd.export_pdf": "Export PDF report",
       "dd.pdf_success": "PDF report successfully generated.",
+      "dd.all_categories": "All categories",
+      "dd.choose_icon": "Choose an icon",
+      "dd.category_name": "Category name...",
+      "dd.add_category": "New Category",
 
       ...flatIndustriesEn,
       ...reverseIndustriesEn,
@@ -1993,6 +1997,10 @@ const resources = {
       "dd.btn_add_specific": "Ajouter un élément spécifique",
       "dd.export_pdf": "Exporter le rapport PDF",
       "dd.pdf_success": "Rapport PDF généré avec succès.",
+      "dd.all_categories": "Toutes les rubriques",
+      "dd.choose_icon": "Choisir une icône",
+      "dd.category_name": "Nom de la rubrique...",
+      "dd.add_category": "Nouvelle Rubrique",
 
       ...flatIndustriesFr,
       ...reverseIndustriesFr,
