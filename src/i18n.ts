@@ -1184,6 +1184,7 @@ const resources = {
       "dd.choose_icon": "Choose an icon",
       "dd.category_name": "Category name...",
       "dd.add_category": "New Category",
+      "dd.back_to_list": "Back to list",
 
       ...flatIndustriesEn,
       ...reverseIndustriesEn,
@@ -2001,6 +2002,7 @@ const resources = {
       "dd.choose_icon": "Choisir une icône",
       "dd.category_name": "Nom de la rubrique...",
       "dd.add_category": "Nouvelle Rubrique",
+      "dd.back_to_list": "Retour Liste",
 
       ...flatIndustriesFr,
       ...reverseIndustriesFr,
