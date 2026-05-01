@@ -413,7 +413,12 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   };
 
   const handleExportPDF = () => {
-    const translatedTasks = tasks.map(t => ({ ...t, title: getTaskDisplayTitle(t.title) }));
+    // IMPORTANT : On passe la version TRADUITE de la catégorie, pour éviter de voir les raw IDs comme "SETTINGS2::JIII"
+    const translatedTasks = tasks.map(t => ({ 
+      ...t, 
+      category: getCategoryConfig(t.category).label,
+      title: getTaskDisplayTitle(t.title) 
+    }));
     exportDueDiligenceReport(translatedTasks, listingName, t, i18n.language);
     showSuccess(t('dd.pdf_success', "Rapport PDF généré avec succès."));
   };

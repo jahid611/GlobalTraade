@@ -30,11 +30,12 @@ export const exportDueDiligenceReport = (tasks: any[], listingName: string, t: a
   doc.text(lang === 'fr' ? "État d'avancement des tâches" : "Task Progress Status", 15, 55);
 
   const tableData = tasks.map(task => [
-    task.category.toUpperCase(),
+    task.category.toUpperCase(), // Le nom de la catégorie sera déjà nettoyé avant d'arriver ici
     task.title,
     task.status === 'completed' ? (lang === 'fr' ? 'Validé' : 'Completed') : 
     task.status === 'in_progress' ? (lang === 'fr' ? 'En cours' : 'In Progress') : (lang === 'fr' ? 'En attente' : 'Pending'),
-    task.status === 'completed' && task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy HH:mm') : ""
+    // Uniquement la date (sans l'heure) et seulement si le statut est "completed"
+    task.status === 'completed' ? format(new Date(task.completed_at || new Date()), 'dd/MM/yyyy') : ""
   ]);
 
   autoTable(doc, {
