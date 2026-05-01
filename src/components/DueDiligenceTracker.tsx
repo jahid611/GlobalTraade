@@ -80,7 +80,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const { user } = useAuth();
   
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [customCategories, setCustomCategories] = useState<string[]>([]); // Gère les rubriques vides créées localement
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [listingName, setListingName] = useState<string>("Dossier");
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -95,9 +95,15 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   
+  // États de création de rubrique
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedIconName, setSelectedIconName] = useState<string>("Folder");
+
+  // États d'édition de rubrique
+  const [editingCategoryName, setEditingCategoryName] = useState<string | null>(null);
+  const [editCategoryInput, setEditCategoryInput] = useState("");
+  const [editCategoryIcon, setEditCategoryIcon] = useState("Folder");
 
   const getCategoryConfig = (cat: string) => {
     const predefined: Record<string, { icon: React.ElementType; label: string; color: string }> = {
@@ -230,11 +236,66 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       return;
     }
     const finalCatStr = `${selectedIconName}::${catName}`;
-    setCustomCategories(prev => [...prev, finalCatStr]); // Sauvegarde locale de la rubrique
+    setCustomCategories(prev => [...prev, finalCatStr]);
     setExpandedCategory(finalCatStr);
     setAddingTaskTo(finalCatStr);
     setNewCategoryName("");
     setIsAddingCategory(false);
+  };
+
+  const startEditingCategory = (cat: string) => {
+    const config = getCategoryConfig(cat);
+    setEditingCategoryName(cat);
+    setEditCategoryInput(config.label);
+    const iconName = Object.keys(AVAILABLE_ICONS).find(key => AVAILABLE_ICONS[key] === config.icon) || 'Folder';
+    setEditCategoryIcon(iconName);
+  };
+
+  const handleUpdateCategory = async (oldCat: string) => {
+    const catName = editCategoryInput.trim();
+    if (!catName) return;
+    const newCatStr = `${editCategoryIcon}::${catName}`;
+    
+    if (newCatStr === oldCat) {
+      setEditingCategoryName(null);
+      return;
+    }
+
+    const hasTasks = tasks.some(t => t.category === oldCat);
+    if (hasTasks) {
+      const { error } = await supabase.from('due_diligence_tasks').update({ category: newCatStr }).eq('listing_id', listingId).eq('category', oldCat);
+      if (error) {
+        showError(t('msg.error', 'Erreur'));
+        return;
+      }
+      setTasks(prev => prev.map(t => t.category === oldCat ? { ...t, category: newCatStr } : t));
+    }
+
+    setCustomCategories(prev => {
+      const filtered = prev.filter(c => c !== oldCat);
+      return [...filtered, newCatStr];
+    });
+    
+    if (expandedCategory === oldCat) setExpandedCategory(newCatStr);
+    setEditingCategoryName(null);
+  };
+
+  const handleDeleteCategory = async (cat: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(t('dd.confirm_delete_cat', 'Voulez-vous vraiment supprimer cette rubrique et toutes les tâches qu\'elle contient ?'))) return;
+
+    const hasTasks = tasks.some(t => t.category === cat);
+    if (hasTasks) {
+      const { error } = await supabase.from('due_diligence_tasks').delete().eq('listing_id', listingId).eq('category', cat);
+      if (error) {
+        showError(t('msg.error', 'Erreur'));
+        return;
+      }
+      setTasks(prev => prev.filter(t => t.category !== cat));
+    }
+    
+    setCustomCategories(prev => prev.filter(c => c !== cat));
+    showSuccess(t('profile.deleted', 'Supprimé.'));
   };
 
   const handleAddTask = async (category: string) => {
@@ -336,7 +397,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     const colTasks = filteredKanbanTasks.filter(t => t.status === status);
     return (
       <div 
-        className={`flex-1 min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col min-h-0`}
+        className={`flex-1 min-w-[85vw] sm:min-w-[280px] max-w-[350px] liquid-glass bg-[#2b2a2f] sm:bg-white/[0.02] border ${borderClass} rounded-2xl flex flex-col min-h-0 snap-center`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -345,8 +406,8 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
         }}
       >
         <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${colorClass}`}>
-          <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10">{colTasks.length}</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-white">{label}</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
         </div>
         <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
           {colTasks.map(task => {
@@ -359,13 +420,13 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                 key={task.id}
                 draggable={!isEditing}
                 onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md"
+                className="bg-black/40 border border-white/10 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-all group relative shadow-md text-white"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1`}>
-                    <catConfig.icon size={10} /> {catConfig.label}
+                  <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white`}>
+                    <catConfig.icon size={10} className="text-white" /> {catConfig.label}
                   </span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
+                  <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10 absolute right-2 top-2">
                     <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
                     <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
                     <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
@@ -482,22 +543,64 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
             
             const catCompleted = catTasks.filter(t => t.status === 'completed').length;
             const isExpanded = expandedCategory === cat;
+            const isEditingCat = editingCategoryName === cat;
 
             return (
               <div key={cat} className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 text-white">
-                <div className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${config.color}`}><Icon className="w-4 h-4" /></div>
-                    <span className="text-sm font-medium text-white">{config.label}</span>
+                {isEditingCat ? (
+                  <div className="bg-[#2b2a2f] sm:bg-black/20 p-4 flex flex-col gap-4">
+                    <input 
+                      autoFocus
+                      value={editCategoryInput}
+                      onChange={(e) => setEditCategoryInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(cat)}
+                      placeholder={t('dd.category_name', 'Nom de la rubrique...')}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none"
+                    />
+                    
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block">{t('dd.choose_icon', 'Choisir une icône')}</span>
+                      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        {Object.entries(AVAILABLE_ICONS).map(([name, IconComp]) => (
+                          <button 
+                            key={name} 
+                            onClick={() => setEditCategoryIcon(name)} 
+                            className={`p-2 rounded-lg border transition-all shrink-0 outline-none ${editCategoryIcon === name ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
+                          >
+                            <IconComp size={16} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleUpdateCategory(cat)} className="flex-1 rounded-xl bg-white text-black hover:bg-white/90 font-medium text-xs border-none outline-none shadow-none"><Check className="w-4 h-4 mr-1"/> {t('settings.save', 'Enregistrer')}</Button>
+                      <Button onClick={() => setEditingCategoryName(null)} variant="ghost" className="w-12 rounded-xl text-white/50 hover:text-white hover:bg-white/10 text-xs outline-none shadow-none p-0"><X className="w-4 h-4"/></Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[10px] text-white/40 font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/5">{catCompleted} / {catTasks.length}</span>
-                    {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+                ) : (
+                  <div className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group/catheader" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${config.color}`}><Icon className="w-4 h-4" /></div>
+                      <span className="text-sm font-medium text-white truncate">{config.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/catheader:opacity-100 transition-opacity">
+                        <button onClick={(e) => { e.stopPropagation(); startEditingCategory(cat); }} className="p-1.5 text-white/40 hover:text-white transition-colors" title={t('dash.edit', 'Modifier')}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-1.5 text-white/40 hover:text-red-400 transition-colors" title={t('dash.remove', 'Supprimer')}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-white/40 font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/5">{catCompleted} / {catTasks.length}</span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 <AnimatePresence>
-                  {isExpanded && (
+                  {isExpanded && !isEditingCat && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
                       <div className="p-3 space-y-1.5">
                         {catTasks.map(task => {
@@ -537,7 +640,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                                 {task.status === 'in_progress' ? t('dd.badge_progress', 'EN COURS') : task.status === 'completed' ? t('dd.badge_completed', 'VALIDÉ') : t('dd.badge_pending', 'À FOURNIR')}
                               </span>
 
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-md backdrop-blur-md px-1.5 py-1">
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-black/60 rounded-md backdrop-blur-md px-1.5 py-1">
                                 <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white transition-colors"><Edit2 size={14}/></button>
                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400 transition-colors"><Trash2 size={14}/></button>
                               </div>
@@ -646,7 +749,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
              </DropdownMenu>
           </div>
           
-          <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-2 snap-x min-h-0">
+          <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-4 snap-x snap-mandatory min-h-0 px-1">
             <KanbanColumn status="pending" label={t('dd.badge_pending', 'À Fournir')} colorClass="text-white/60" borderClass="border-white/5" />
             <KanbanColumn status="in_progress" label={t('dd.badge_progress', 'En Cours')} colorClass="text-blue-400" borderClass="border-blue-500/20" />
             <KanbanColumn status="completed" label={t('dd.badge_completed', 'Vérifié')} colorClass="text-emerald-400" borderClass="border-emerald-500/20" />
