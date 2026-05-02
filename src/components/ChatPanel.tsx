@@ -21,9 +21,10 @@ interface ChatPanelProps {
   onClose: () => void;
   listing: Record<string, any> | null;
   user: { id: string; user_metadata?: Record<string, any>; [key: string]: any } | null;
+  initialNeed?: any;
 }
 
-export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
+export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatPanelProps) {
   useScrollLock(isOpen);
   const isMobile = useIsMobile();
   const { t, i18n } = useTranslation();
@@ -35,12 +36,20 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
   
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  const [offerConditions, setOfferConditions] = useState("");
+  const [offerMessage, setOfferMessage] = useState("");
   const [offerFinancing, setOfferFinancing] = useState("loan");
   const [offerToEdit, setOfferToEdit] = useState<Record<string, any> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (isOpen && initialNeed) {
+      setIsOfferModalOpen(true);
+    }
+  }, [isOpen, initialNeed]);
 
   const fetchMessages = React.useCallback(async () => {
     if (!listing?.id || !user?.id) return;
@@ -180,16 +189,33 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     e.preventDefault();
     if (!offerAmount.trim() || !listing || !user) return;
     
-    const amount = Number(offerAmount.replace(/\D/g, ''));
-    if (isNaN(amount) || amount <= 0) return;
+    const amount = initialNeed?.type === 'financial' ? Number(offerAmount.replace(/\D/g, '')) : offerAmount;
+    if (initialNeed?.type === 'financial' && (isNaN(amount as number) || amount <= 0)) return;
 
-    if (listing.price > 0 && amount < (listing.price * 0.05)) {
+    if (!initialNeed && listing.price > 0 && typeof amount === 'number' && amount < (listing.price * 0.05)) {
       showError(t('msg.offer_too_low'));
       return;
     }
 
-    const content = `OFFRE: ${amount}€`;
-    const metadata = { amount, financing: offerFinancing, status: 'pending' };
+    const content = initialNeed ? `PROPOSITION AIDE: ${amount}` : `OFFRE: ${amount}€`;
+    let metadata: any = { amount, status: 'pending' };
+
+    if (initialNeed) {
+      metadata = {
+        ...metadata,
+        need_id: initialNeed.id,
+        need_title: initialNeed.title,
+        conditions: offerConditions,
+        message: offerMessage
+      };
+    } else {
+      metadata = {
+        ...metadata,
+        financing: offerFinancing
+      };
+    }
+
+    const type = initialNeed ? 'need_offer' : 'offer';
 
     if (offerToEdit) {
       const optimMessages = messages.map(m => m.id === offerToEdit.id ? { ...m, content, metadata } : m);
@@ -197,7 +223,9 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       setIsOfferModalOpen(false);
       setOfferToEdit(null);
       setOfferAmount("");
-      showSuccess(t('msg.offer_sent_success'));
+      setOfferConditions("");
+      setOfferMessage("");
+      showSuccess(t('needs.toast_sent', 'Proposition envoyée avec succès.'));
 
       await supabase.from('messages').update({ content, metadata }).eq('id', offerToEdit.id);
       return;
@@ -209,7 +237,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
       sender_id: user.id,
       receiver_id: listing.owner_id,
       content,
-      type: 'offer',
+      type,
       metadata,
       created_at: new Date().toISOString()
     };
@@ -218,10 +246,12 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     setMessages(newMessagesList);
     setIsOfferModalOpen(false);
     setOfferAmount("");
-    showSuccess(t('msg.offer_sent_success'));
+    setOfferConditions("");
+    setOfferMessage("");
+    showSuccess(t('needs.toast_sent', 'Proposition envoyée avec succès.'));
 
     const { data } = await supabase.from('messages')
-      .insert([{ listing_id: listing.id, sender_id: user.id, receiver_id: listing.owner_id, content, type: 'offer', metadata }])
+      .insert([{ listing_id: listing.id, sender_id: user.id, receiver_id: listing.owner_id, content, type, metadata }])
       .select().single();
       
     if (data) {
@@ -263,6 +293,116 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     if (isToday(d)) return t('msg.today');
     if (isYesterday(d)) return t('msg.yesterday');
     return format(d, 'd MMM', { locale: dateLocale });
+  };
+
+  const renderOfferCard = (msg: any, isMine: boolean) => {
+    const isNeedOffer = msg.type === 'need_offer';
+    const status = msg.metadata?.status || 'pending';
+    const amount = msg.metadata?.amount || 0;
+    const financing = msg.metadata?.financing || 'loan';
+    
+    const formattedAmount = isNeedOffer && isNaN(Number(amount)) 
+      ? amount 
+      : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
+      }).format(amount);
+
+    return (
+      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
+        isMine ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] ml-auto' : 'liquid-glass bg-white/[0.03] border-white/10'
+      }`}>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/10 text-white/60 border border-white/10'}`}>
+              <Handshake className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
+                {isMine ? (isNeedOffer ? t('needs.your_proposal', 'Votre proposition') : t('msg.your_offer', 'Votre offre')) : (isNeedOffer ? `${t('needs.proposal_from', 'Proposition de')} ${contactProfile?.full_name || t('msg.seller')}` : `${t('msg.offer_from', 'Offre de')} ${contactProfile?.full_name || t('msg.seller')}`)}
+              </p>
+              <p className="text-[13px] font-medium text-white">{isNeedOffer ? msg.metadata?.need_title : t('msg.negotiation', 'Négociation')}</p>
+            </div>
+          </div>
+          <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
+            status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+            status === 'declined' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+            'bg-white/5 text-white/50 border-white/10'
+          }`}>
+            {status === 'accepted' ? t('msg.offer_accepted', 'Acceptée') : status === 'declined' ? t('msg.offer_declined', 'Refusée') : t('msg.pending', 'En attente')}
+          </div>
+        </div>
+        
+        <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
+          <div className="text-2xl font-light text-white tracking-tight mb-2 text-center break-words">{formattedAmount}</div>
+          {!isNeedOffer && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
+              <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
+                {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {isNeedOffer && msg.metadata?.conditions && (
+          <div className="mb-4 bg-white/5 p-3 rounded-xl border border-white/10">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-medium">{t('needs.offer_conditions', 'Conditions')}</p>
+            <p className="text-xs text-white/80 font-light">{msg.metadata.conditions}</p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {status === 'pending' ? (
+            isMine ? (
+              <div className="flex gap-2">
+                <button onClick={() => handleDeleteOffer(msg)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/50 hover:text-red-500 text-xs font-medium transition-all flex items-center justify-center gap-2">
+                  <Trash2 size={14} /> {t('msg.offer_delete', 'Retirer l\'offre')}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => handleOfferAction(msg, 'declined')}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
+                >
+                  <XCircle className="w-4 h-4" /> {t('profile.decline', 'Refuser')}
+                </button>
+                <button 
+                  onClick={() => handleOfferAction(msg, 'accepted')}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                >
+                  <Check className="w-4 h-4" /> {t('profile.accept', 'Accepter')}
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="space-y-3">
+              {!isNeedOffer && status === 'accepted' && (
+                <Button 
+                  onClick={() => {
+                    generateLOI({
+                      buyerName: isMine ? (user?.user_metadata?.full_name || 'Acheteur') : (contactProfile?.full_name || 'Vendeur'),
+                      sellerName: isMine ? (contactProfile?.full_name || 'Vendeur') : (user?.user_metadata?.full_name || 'Acheteur'),
+                      listingName: listing?.name || 'N/A',
+                      amount: amount,
+                      financing: financing,
+                      offerDate: msg.created_at,
+                      acceptedDate: new Date().toISOString(),
+                      lang: i18n.language,
+                      t,
+                    });
+                  }}
+                  variant="outline" 
+                  className="w-full h-11 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-medium transition-all group"
+                >
+                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi', 'Générer la LOI')}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -321,7 +461,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                   )}
                   {messages.map((msg, i) => {
                     const isMine = msg.sender_id === user?.id;
-                    const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
+                    const isOffer = msg.type === 'offer' || msg.type === 'need_offer' || msg.content.startsWith('OFFRE:') || msg.content.startsWith('PROPOSITION AIDE:');
                     const showDate = i === 0 || formatMessageDate(msg.created_at) !== formatMessageDate(messages[i-1].created_at);
                     
                     return (
@@ -334,87 +474,7 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
                         
                         {isOffer ? (
                           <div className="w-full flex justify-center my-8">
-                            <div className={`w-full max-w-[90%] sm:max-w-sm rounded-3xl p-6 border transition-all duration-500 hover:shadow-2xl ${
-                              isMine ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
-                            }`}>
-                              <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white/60'}`}>
-                                    <Handshake className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] font-medium text-white/40 uppercase tracking-[0.2em]">
-                                      {isMine ? t('msg.offer_you_made') : `${t('msg.offer_from')} ${contactProfile?.full_name || t('msg.seller')}`}
-                                    </p>
-                                    <p className="text-sm font-medium text-white">{t('msg.negotiation')}</p>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="mb-6 p-4 rounded-2xl bg-[#2b2a2f]/40 border border-white/5 flex flex-col items-center justify-center">
-                                <div className="text-3xl font-light text-white tracking-tight mb-2">
-                                  {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(msg.metadata?.amount || 0)}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing')}:</span>
-                                  <span className="text-[10px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase">
-                                    {msg.metadata?.financing === 'cash' ? t('msg.financing_cash') : t('msg.financing_loan')}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {msg.metadata?.status === 'pending' ? (
-                                isMine ? (
-                                  <div className="flex gap-2">
-                                    <button onClick={() => handleDeleteOffer(msg)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/50 hover:text-red-500 text-xs font-medium transition-all flex items-center justify-center gap-2">
-                                      <Trash2 size={14} /> {t('msg.offer_delete')}
-                                    </button>
-                                    <button onClick={() => { setOfferAmount(msg.metadata.amount.toString()); setOfferFinancing(msg.metadata.financing); setOfferToEdit(msg); setIsOfferModalOpen(true); }} className="flex-1 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-medium transition-all flex items-center justify-center gap-2">
-                                      {t('msg.offer_modify')}
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex gap-2">
-                                    <button onClick={() => handleOfferAction(msg, 'declined')} className="flex-1 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 text-sm font-medium transition-all flex items-center justify-center gap-2">
-                                      <XCircle size={16} /> {t('msg.offer_decline')}
-                                    </button>
-                                    <button onClick={() => handleOfferAction(msg, 'accepted')} className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
-                                      <Check size={16} /> {t('msg.offer_accept')}
-                                    </button>
-                                  </div>
-                                )
-                              ) : (
-                                <div className="space-y-2">
-                                  <div className={`w-full text-center py-2.5 rounded-xl text-xs font-medium uppercase tracking-wider ${msg.metadata?.status === 'accepted' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                    {msg.metadata?.status === 'accepted' ? t('msg.offer_status_accepted') : t('msg.offer_status_declined')}
-                                  </div>
-                                  {msg.metadata?.status === 'accepted' && (
-                                    <button
-                                      onClick={() => {
-                                        generateLOI({
-                                          buyerName: isMine ? (user?.user_metadata?.full_name || 'Buyer') : (contactProfile?.full_name || 'Seller'),
-                                          sellerName: isMine ? (contactProfile?.full_name || 'Seller') : (user?.user_metadata?.full_name || 'Buyer'),
-                                          listingName: listing?.name || 'N/A',
-                                          amount: msg.metadata.amount,
-                                          financing: msg.metadata.financing,
-                                          offerDate: msg.created_at,
-                                          acceptedDate: new Date().toISOString(),
-                                          lang: i18n.language,
-                                          t,
-                                        });
-                                        showSuccess(t('msg.loi_generated'));
-                                      }}
-                                      className="w-full py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-medium transition-all flex items-center justify-center gap-2"
-                                    >
-                                      <Download size={14} /> {t('msg.generate_loi')}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                              <div className="text-[10px] text-white/40 mt-4 text-center">
-                                {format(new Date(msg.created_at), 'HH:mm')}
-                              </div>
-                            </div>
+                            {renderOfferCard(msg, isMine)}
                           </div>
                         ) : (
                           <motion.div 
@@ -486,56 +546,83 @@ export function ChatPanel({ isOpen, onClose, listing, user }: ChatPanelProps) {
     <AnimatePresence>
       {isOfferModalOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-[#2b2a2f]/80 backdrop-blur-md">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); }} />
-          <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="relative liquid-glass border border-white/10 rounded-[2rem] p-8 max-w-sm w-full text-left shadow-2xl z-10">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); setOfferConditions(""); setOfferMessage(""); }} />
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="relative liquid-glass border border-white/10 rounded-[2rem] p-8 max-w-sm w-full text-left shadow-2xl z-10 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-start mb-8">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shadow-inner">
                   <Handshake className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-light text-white tracking-tight">{t('msg.offer_title')}</h3>
-                  <p className="text-xs text-white/50">{listing?.name}</p>
+                  <h3 className="text-xl font-light text-white tracking-tight">{initialNeed ? t('needs.offer_modal_title', 'Soumettre une proposition') : t('msg.offer_title')}</h3>
+                  <p className="text-xs text-white/50">{initialNeed ? initialNeed.title : listing?.name}</p>
                 </div>
               </div>
-              <button onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); }} className="text-white/50 hover:text-white transition-colors p-1 bg-white/5 rounded-full hover:bg-white/10">
+              <button onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); setOfferConditions(""); setOfferMessage(""); }} className="text-white/50 hover:text-white transition-colors p-1 bg-white/5 rounded-full hover:bg-white/10">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={handleSendOffer} className="space-y-6">
               <div>
-                <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.offer_amount')}</label>
+                <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{initialNeed ? t('needs.offer_amount', 'Votre Apport (Montant ou Description)') : t('msg.offer_amount')}</label>
                 <div className="relative">
                   <input
-                    type="text"
+                    type={initialNeed && initialNeed.type !== 'financial' ? "text" : "text"}
                     required
-                    placeholder="0"
+                    placeholder={initialNeed && initialNeed.type !== 'financial' ? "Ex: 10h/semaine" : "0"}
                     value={offerAmount}
-                    onChange={(e) => setOfferAmount(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => setOfferAmount(initialNeed && initialNeed.type !== 'financial' ? e.target.value : e.target.value.replace(/\D/g, ''))}
                     className="w-full liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner"
                   />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 text-xl font-light">€</span>
+                  {(!initialNeed || initialNeed.type === 'financial') && <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 text-xl font-light">€</span>}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.offer_financing')}</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
-                    {t('msg.financing_loan')}
-                  </button>
-                  <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
-                    {t('msg.financing_cash')}
-                  </button>
+              {initialNeed ? (
+                <>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('needs.offer_conditions', 'Contrepartie demandée / Conditions')}</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={t('needs.offer_conditions_ph', 'Ex: 5% du capital, prêt à 3%, etc.')}
+                      value={offerConditions}
+                      onChange={(e) => setOfferConditions(e.target.value)}
+                      className="w-full liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm font-light focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('needs.offer_message', 'Message d\'accompagnement')}</label>
+                    <textarea
+                      required
+                      placeholder={t('needs.offer_message_ph', 'Pourquoi croyez-vous en ce projet ?')}
+                      value={offerMessage}
+                      onChange={(e) => setOfferMessage(e.target.value)}
+                      rows={3}
+                      className="w-full liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm font-light focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner resize-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.offer_financing')}</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
+                      {t('msg.financing_loan')}
+                    </button>
+                    <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
+                      {t('msg.financing_cash')}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-4 flex flex-col gap-3">
                 <Button type="submit" disabled={!offerAmount} className="w-full rounded-xl h-14 bg-primary hover:bg-primary/90 text-white text-[15px] font-medium transition-all shadow-[0_0_25px_rgba(168,85,247,0.4)] border-none">
                   {offerToEdit ? t('msg.offer_modify') : t('msg.offer_submit')}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); }} className="w-full rounded-xl h-12 text-white/50 hover:text-white hover:bg-white/5 transition-colors border-none">
+                <Button type="button" variant="ghost" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); setOfferConditions(""); setOfferMessage(""); }} className="w-full rounded-xl h-12 text-white/50 hover:text-white hover:bg-white/5 transition-colors border-none">
                   {t('msg.offer_cancel')}
                 </Button>
               </div>

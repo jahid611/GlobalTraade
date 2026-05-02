@@ -81,17 +81,21 @@ export function ChatWindow({
 
   const acceptedOffer = [...messages]
     .reverse()
-    .find(m => (m.type === 'offer' || m.content.startsWith('OFFRE:')) && m.metadata?.status === 'accepted');
+    .find(m => (m.type === 'offer' || m.type === 'need_offer' || m.content.startsWith('OFFRE:') || m.content.startsWith('PROPOSITION AIDE:')) && m.metadata?.status === 'accepted');
   
   const hasAcceptedOffer = !!acceptedOffer;
 
   const renderOfferCard = (msg: Message, isMine: boolean) => {
+    const isNeedOffer = msg.type === 'need_offer';
     const status = msg.metadata?.status || 'pending';
     const amount = msg.metadata?.amount || 0;
     const financing = msg.metadata?.financing || 'loan';
-    const formattedAmount = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
-      style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
-    }).format(amount);
+    
+    const formattedAmount = isNeedOffer && isNaN(Number(amount)) 
+      ? amount 
+      : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
+      }).format(amount);
 
     return (
       <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
@@ -104,9 +108,9 @@ export function ChatWindow({
             </div>
             <div>
               <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                {isMine ? t('msg.your_offer', 'Votre offre') : `${t('msg.offer_from', 'Offre de')} ${activeConv.contact_name}`}
+                {isMine ? (isNeedOffer ? t('needs.your_proposal', 'Votre proposition') : t('msg.your_offer', 'Votre offre')) : (isNeedOffer ? `${t('needs.proposal_from', 'Proposition de')} ${activeConv.contact_name}` : `${t('msg.offer_from', 'Offre de')} ${activeConv.contact_name}`)}
               </p>
-              <p className="text-[13px] font-medium text-white">{t('msg.negotiation', 'Négociation')}</p>
+              <p className="text-[13px] font-medium text-white">{isNeedOffer ? msg.metadata?.need_title : t('msg.negotiation', 'Négociation')}</p>
             </div>
           </div>
           <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
@@ -119,14 +123,23 @@ export function ChatWindow({
         </div>
 
         <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
-          <div className="text-2xl font-light text-white tracking-tight mb-2">{formattedAmount}</div>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
-            <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-              {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
-            </span>
-          </div>
+          <div className="text-2xl font-light text-white tracking-tight mb-2 text-center break-words">{formattedAmount}</div>
+          {!isNeedOffer && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
+              <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
+                {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
+              </span>
+            </div>
+          )}
         </div>
+
+        {isNeedOffer && msg.metadata?.conditions && (
+          <div className="mb-4 bg-white/5 p-3 rounded-xl border border-white/10">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-medium">{t('needs.offer_conditions', 'Conditions')}</p>
+            <p className="text-xs text-white/80 font-light">{msg.metadata.conditions}</p>
+          </div>
+        )}
 
         <div className="space-y-4">
           {status === 'pending' ? (
@@ -152,7 +165,7 @@ export function ChatWindow({
             )
           ) : (
             <div className="space-y-3">
-              {status === 'accepted' && (
+              {!isNeedOffer && status === 'accepted' && (
                 <Button 
                   onClick={() => {
                     generateLOI({
@@ -293,7 +306,7 @@ export function ChatWindow({
 
               {messages.map((msg) => {
                 const isMine = msg.sender_id === userId;
-                const isOffer = msg.type === 'offer' || msg.content.startsWith('OFFRE:');
+                const isOffer = msg.type === 'offer' || msg.type === 'need_offer' || msg.content.startsWith('OFFRE:') || msg.content.startsWith('PROPOSITION AIDE:');
                 
                 if (isOffer) {
                   return (

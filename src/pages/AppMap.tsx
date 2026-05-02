@@ -43,6 +43,7 @@ export default function AppMap() {
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatListing, setChatListing] = useState<any>(null);
+  const [selectedNeed, setSelectedNeed] = useState<any>(null);
   const [isSidebarMessagingOpen, setIsSidebarMessagingOpen] = useState(false);
 
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
@@ -107,7 +108,6 @@ export default function AppMap() {
     }
   };
 
-  // Trier les secteurs d'activité de manière alphabétique selon leur TRADUCTION et non leur nom anglais
   const availableIndustries = Array.from(new Set(listings.map(l => l.industry))).sort((a, b) => {
     return t(`industry.${a}`, { defaultValue: a }).localeCompare(t(`industry.${b}`, { defaultValue: b }));
   });
@@ -165,7 +165,6 @@ export default function AppMap() {
         {!isOverlayOpen && (
           <div className="fixed top-6 left-0 w-full z-[100] pointer-events-none h-16">
             
-            {/* Contrôles de gauche + Logo sur Desktop */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
                 <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full shadow-2xl border border-white/40 dark:border-white/20 liquid-glass transition-all hover:scale-105 hover:border-white/60 bg-black/40 dark:bg-black/30 text-white" title={t('nav.market', 'Marketplace')}>
@@ -176,7 +175,6 @@ export default function AppMap() {
                 <CaretLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
 
-              {/* Logo pour Desktop, placé juste à côté des contrôles */}
               <div className="hidden sm:block pointer-events-auto ml-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -191,7 +189,6 @@ export default function AppMap() {
               </div>
             </motion.div>
 
-            {/* Contrôles de droite + Logo sur Mobile */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute right-2 sm:right-6 top-0 flex items-center gap-1.5 sm:gap-4 pointer-events-auto">
               <button 
                 onClick={handlePremiumClick}
@@ -212,7 +209,6 @@ export default function AppMap() {
                   </button>
                 </>
               )}
-              {/* Logo visible uniquement sur mobile */}
               <div className="sm:hidden block ml-0.5">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -304,7 +300,11 @@ export default function AppMap() {
         listing={selectedListing} 
         user={user} 
         onClose={() => setSelectedListing(null)} 
-        onContact={(l) => { setChatListing(l); setIsChatOpen(true); }} 
+        onContact={(l, need) => { 
+          setChatListing(l); 
+          setSelectedNeed(need || null);
+          setIsChatOpen(true); 
+        }} 
         onEdit={(l) => { setSelectedListing(null); setListingToEdit(l); setIsFormOpen(true); }} 
       />
       
@@ -314,6 +314,7 @@ export default function AppMap() {
         onClose={() => setIsChatOpen(false)} 
         listing={chatListing} 
         user={user} 
+        initialNeed={selectedNeed}
       />
     </div>
   );

@@ -13,6 +13,7 @@ import { DataRoomPanel } from './DataRoomPanel';
 import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
+import { InvestmentBoard } from './InvestmentBoard';
 
 const businessCache: Record<string, { viewCount?: number, isFavorite?: boolean, ownerProfile?: any }> = {};
 
@@ -20,7 +21,7 @@ interface BusinessModalProps {
   listing: any;
   user: any;
   onClose: () => void;
-  onContact: (listing: any) => void;
+  onContact: (listing: any, need?: any) => void;
   onEdit?: (listing: any) => void;
 }
 
@@ -367,7 +368,7 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* Deal Calculator Pro — Désormais visible pour TOUT LE MONDE (user connecté, avec prix et EBITDA) */}
+              {/* Deal Calculator Pro */}
               {user && listing.price > 0 && listing.ebitda && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
@@ -375,13 +376,29 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* AI Insights — Pour les connectés avec données suffisantes (vendeurs inclus) */}
+              {/* AI Insights */}
               {user && listing.ebitda && listing.revenue_n1 && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
                   <AIInsightsPanel listing={listing} />
                 </div>
               )}
+
+              {/* Investment Needs Board */}
+              <div className="mb-12 sm:mb-16">
+                <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
+                <InvestmentBoard 
+                  listing={listing} 
+                  user={user} 
+                  onProposeHelp={(need) => {
+                    if (!user) {
+                      navigate('/login');
+                      return;
+                    }
+                    onContact(listing, need);
+                  }} 
+                />
+              </div>
 
               {/* Offer Comparator — For sellers only */}
               {isOwner && user && (
