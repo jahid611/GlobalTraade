@@ -494,11 +494,15 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                   <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shadow-inner border border-primary/40">
                     <Handshake className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-light text-white tracking-tight">{t('msg.make_offer', 'Faire une offre')}</h3>
+                  <h3 className="text-xl font-light text-white tracking-tight">
+                    {activeConv.project_id ? "Proposer une collaboration" : t('msg.make_offer', 'Faire une offre')}
+                  </h3>
                 </div>
                 <form onSubmit={handleSendOffer} className="space-y-6">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">{t('msg.offer_amount', "Montant de l'offre (€)")}</label>
+                    <label className="block text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">
+                      {activeConv.project_id ? "Montant de l'investissement (€)" : t('msg.offer_amount', "Montant de l'offre (€)")}
+                    </label>
                     <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full liquid-glass bg-white/[0.02] border-white/20 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all outline-none" placeholder="0 €" />
                   </div>
                   <div>
@@ -509,7 +513,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                     </div>
                   </div>
                   <div className="flex flex-col gap-3 pt-4">
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">{t('msg.send_offer', "Envoyer l'offre")}</Button>
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">
+                      {activeConv.project_id ? "Envoyer la proposition" : t('msg.send_offer', "Envoyer l'offre")}
+                    </Button>
                     <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white hover:text-white hover:bg-white/20 rounded-full h-12 transition-colors font-medium w-full outline-none [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
                   </div>
                 </form>

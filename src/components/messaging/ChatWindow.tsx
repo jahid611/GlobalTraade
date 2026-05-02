@@ -245,7 +245,10 @@ export function ChatWindow({
           </Link>
           
           <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
-            <Handshake className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">{t('msg.make_offer', 'Faire une offre')}</span>
+            <Handshake className="w-3 h-3 sm:mr-2" /> 
+            <span className="hidden sm:inline">
+              {activeConv.project_id ? "Valider collaboration" : (t('msg.make_offer', 'Faire une offre'))}
+            </span>
           </Button>
           
           {onClose && (
@@ -298,6 +301,7 @@ export function ChatWindow({
               <div className="mb-6 pt-2">
                 <DealTimeline 
                   listingId={activeConv.listing_id}
+                  projectId={activeConv.project_id}
                   buyerId={activeConv.listing_owner_id === userId ? activeConv.other_user_id : userId}
                   sellerId={activeConv.listing_owner_id === userId ? userId : activeConv.other_user_id}
                   messages={messages}

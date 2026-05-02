@@ -120,7 +120,13 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 // ── Express interest ──────────────────────────────────────────
-export async function expressInterest(project: Project, userId: string, helpType: HelpType, message?: string) {
+export async function expressInterest(
+  project: Project, 
+  userId: string, 
+  helpType: HelpType, 
+  message?: string,
+  labels?: { title: string; project: string; type: string; intro: string; defaultMsg: string; helpValue: string }
+) {
   const { data, error } = await supabase
     .from('project_interests')
     .upsert({ project_id: project.id, user_id: userId, help_type: helpType, message }, { onConflict: 'project_id,user_id,help_type' })
@@ -129,21 +135,25 @@ export async function expressInterest(project: Project, userId: string, helpType
     
   if (error) throw error;
 
-  const helpLabels: Record<string, string> = {
-    financial: "Investissement financier",
-    human: "Soutien opérationnel / RH",
-    material: "Apport de ressources matérielles",
-    expertise: "Conseil et expertise métier",
-    network: "Mise en relation / Réseau"
+  // Si on ne fournit pas de labels (fallback legacy), on utilise le français par défaut
+  const l = labels || {
+    title: "MANIFESTATION D'INTÉRÊT OFFICIELLE",
+    project: "PROJET",
+    type: "TYPE D'ACCOMPAGNEMENT",
+    intro: "Un membre de la communauté GlobalTrade souhaite collaborer à votre projet. Voici sa proposition :",
+    defaultMsg: "Souhaite entrer en contact pour discuter des modalités de collaboration.",
+    helpValue: helpType === 'financial' ? "Investissement financier" : 
+               helpType === 'human' ? "Soutien opérationnel / RH" :
+               helpType === 'material' ? "Apport de ressources matérielles" :
+               helpType === 'expertise' ? "Conseil et expertise métier" : "Mise en relation / Réseau"
   };
 
-  // Structure exacte demandée avec les sauts de ligne précis
   const professionalMessage = 
-    `MANIFESTATION D'INTÉRÊT OFFICIELLE\n\n` +
-    `PROJET : ${project.title.toUpperCase()}\n` +
-    `TYPE D'ACCOMPAGNEMENT : ${helpLabels[helpType] || helpType}\n\n` +
-    `Un membre de la communauté GlobalTrade souhaite collaborer à votre projet. Voici sa proposition :\n\n` +
-    `${message || "Souhaite entrer en contact pour discuter des modalités de collaboration."}`;
+    `${l.title}\n\n` +
+    `${l.project} : ${project.title.toUpperCase()}\n` +
+    `${l.type} : ${l.helpValue}\n\n` +
+    `${l.intro}\n\n` +
+    `${message || l.defaultMsg}`;
 
   await supabase.from('messages').insert([{
     project_id: project.id,
