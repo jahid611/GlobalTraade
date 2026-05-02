@@ -29,7 +29,8 @@ interface Task {
 }
 
 interface DueDiligenceTrackerProps {
-  listingId: string;
+  listingId?: string;
+  projectId?: string;
   buyerId: string;
   sellerId: string;
 }
@@ -75,12 +76,10 @@ const FR_TO_KEY: Record<string, string> = {
   "Passif social": "dd.task_soc3"
 };
 
-// Composant interne pour une carte Kanban
-// Il possède son propre useDragControls pour gérer le glisser-déposer proprement
 function KanbanTaskCard({ 
   task, col, catConfig, isEditing, editTaskTitle, setEditTaskTitle, 
   handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask, 
-  handleDragEdgeScroll, updateTaskStatus, t, getTaskDisplayTitle, setDraggingCol 
+  handleDragEdgeScroll, updateTaskStatus, t, getTaskDisplayTitle, setDraggingCol, setIsAnyDragging
 }: any) {
   const dragControls = useDragControls();
   const StatusIcon = STATUS_ICON[task.status as string] || Circle;
@@ -91,22 +90,32 @@ function KanbanTaskCard({
       layout
       drag={!isEditing}
       dragControls={dragControls}
-      dragListener={false} // CRITIQUE : Désactive le drag sur toute la carte. Laisse le scroll natif libre !
+      dragListener={false}
       dragSnapToOrigin
-      dragElastic={0.1}
-      whileDrag={{ zIndex: 999, scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
-      onDragStart={() => setDraggingCol(col.status)}
+      dragElastic={0}
+      dragMomentum={false}
+      dragTransition={{ type: "spring", stiffness: 1000, damping: 60 }}
+      whileDrag={{ 
+        zIndex: 1000, 
+        scale: 1.1, 
+        rotate: 2,
+        boxShadow: "0 50px 100px rgba(0,0,0,0.8)",
+        filter: "brightness(1.1) contrast(1.1)",
+        cursor: "grabbing"
+      }}
+      onDragStart={() => { setDraggingCol(col.status); setIsAnyDragging(true); }}
       onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
       onDragEnd={(e, info) => {
         setDraggingCol(null);
+        setIsAnyDragging(false);
         const cols = document.querySelectorAll('.kanban-col');
         cols.forEach(column => {
           const rect = column.getBoundingClientRect();
           if (
-            info.point.x >= (rect.left - 20) && 
-            info.point.x <= (rect.right + 20) && 
-            info.point.y >= (rect.top - 50) && 
-            info.point.y <= (rect.bottom + 50)
+            info.point.x >= (rect.left - 40) && 
+            info.point.x <= (rect.right + 40) && 
+            info.point.y >= (rect.top - 100) && 
+            info.point.y <= (rect.bottom + 100)
           ) {
             const targetStatus = column.getAttribute('data-status');
             if (targetStatus && targetStatus !== task.status) {
@@ -115,28 +124,26 @@ function KanbanTaskCard({
           }
         });
       }}
-      className="bg-black/80 border border-white/10 rounded-xl p-3 hover:bg-white/5 transition-colors group relative shadow-md text-white"
+      whileHover={{ scale: 1.02, y: -2, backgroundColor: "rgba(255, 255, 255, 0.08)" }}
+      className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 transition-all group relative shadow-lg text-white"
     >
-      <div className="flex gap-2 items-start">
-        {/* POIGNÉE DE GLISSER-DÉPOSER (Drag Handle) */}
+      <div className="flex gap-3 items-start">
         <div 
-          className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0"
+          className="mt-1.5 cursor-grab active:cursor-grabbing touch-none p-1.5 -ml-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/30 hover:text-white transition-colors shrink-0"
           onPointerDown={(e) => { if (!isEditing) dragControls.start(e); }}
-          title={t('dd.drag_to_move', 'Glisser pour déplacer')}
         >
-          <GripVertical size={16} />
+          <GripVertical size={18} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-2">
-            <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md border ${catConfig.color} bg-opacity-20 flex items-center gap-1 text-white pointer-events-none`}>
-              <catConfig.icon size={10} className="text-white" /> {catConfig.label}
+          <div className="flex justify-between items-start mb-3">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${catConfig.color} bg-opacity-10 flex items-center gap-1.5 text-white pointer-events-none`}>
+              <catConfig.icon size={12} /> {catConfig.label}
             </span>
             
-            <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex gap-1 bg-black/60 rounded-md backdrop-blur-md px-1 py-0.5 z-10">
-              <button onClick={() => cycleTaskStatus(task.id)} className="p-1 text-white/50 hover:text-white sm:hidden"><StatusIcon size={12}/></button>
-              <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white" title={t('dd.edit_task', 'Modifier')}><Edit2 size={12}/></button>
-              <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400" title={t('dd.delete_task', 'Supprimer')}><Trash2 size={12}/></button>
+            <div className="flex gap-1.5 bg-black/40 rounded-lg backdrop-blur-md p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1.5 text-white/50 hover:text-white"><Edit2 size={14}/></button>
+              <button onClick={() => handleDeleteTask(task.id)} className="p-1.5 text-white/50 hover:text-red-400"><Trash2 size={14}/></button>
             </div>
           </div>
 
@@ -147,32 +154,48 @@ function KanbanTaskCard({
               onChange={(e) => setEditTaskTitle(e.target.value)}
               onBlur={handleUpdateTaskTitle}
               onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
             />
           ) : (
-            <p className="text-sm font-light text-white leading-snug pointer-events-none pr-6 sm:pr-0">
+            <p className="text-[15px] font-light text-white/90 leading-relaxed pointer-events-none">
               {getTaskDisplayTitle(task.title)}
             </p>
           )}
+          
+          <div className="mt-4 flex items-center justify-between">
+            <button onClick={() => cycleTaskStatus(task.id)} className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+              task.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+              task.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+              'bg-white/5 text-white/40 border border-white/10'
+            }`}>
+              <StatusIcon size={12} /> {t(`dd.badge_${task.status === 'in_progress' ? 'progress' : task.status === 'completed' ? 'completed' : 'pending'}`)}
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }
 
-export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligenceTrackerProps) {
-  const { t, i18n } = useTranslation();
+export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }: DueDiligenceTrackerProps) {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [listingName, setListingName] = useState<string>("Dossier");
+  
+  const referenceFilter = projectId ? { project_id: projectId } : { listing_id: listingId };
+  const referenceKey = projectId ? 'project_id' : 'listing_id';
+  const referenceValue = projectId || listingId;
+  
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [kanbanFilter, setKanbanFilter] = useState<string | null>(null);
   const [draggingCol, setDraggingCol] = useState<string | null>(null);
+  const [isAnyDragging, setIsAnyDragging] = useState(false);
   
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -198,24 +221,23 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!container || clientX === 0) return;
 
     const rect = container.getBoundingClientRect();
-    const threshold = 80;
+    const threshold = 100;
 
-    // Défilement fluide pendant le drag
     if (clientX > rect.right - threshold) {
-      container.scrollLeft += 8;
+      container.scrollLeft += 12;
     } else if (clientX < rect.left + threshold) {
-      container.scrollLeft -= 8;
+      container.scrollLeft -= 12;
     }
   };
 
   const getCategoryConfig = (cat: string) => {
     const predefined: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-      governance: { icon: Building, label: t('dd.governance', 'Gouvernance & Corporate'), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
-      financial: { icon: Briefcase, label: t('dd.financial', 'Audit Financier'), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-      legal: { icon: Scale, label: t('dd.legal', 'Audit Juridique'), color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-      social: { icon: Users, label: t('dd.social', 'Audit Social & RH'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-      operational: { icon: Settings2, label: t('dd.operational', 'Audit Opérationnel'), color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
-      tax: { icon: FileText, label: t('dd.tax', 'Audit Fiscal'), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+      governance: { icon: Building, label: t('dd.governance', 'Gouvernance & Corporate'), color: 'text-indigo-400 border-indigo-500/20' },
+      financial: { icon: Briefcase, label: t('dd.financial', 'Audit Financier'), color: 'text-blue-400 border-blue-500/20' },
+      legal: { icon: Scale, label: t('dd.legal', 'Audit Juridique'), color: 'text-purple-400 border-purple-500/20' },
+      social: { icon: Users, label: t('dd.social', 'Audit Social & RH'), color: 'text-emerald-400 border-emerald-500/20' },
+      operational: { icon: Settings2, label: t('dd.operational', 'Audit Opérationnel'), color: 'text-cyan-400 border-cyan-500/20' },
+      tax: { icon: FileText, label: t('dd.tax', 'Audit Fiscal'), color: 'text-amber-400 border-amber-500/20' },
     };
 
     if (predefined[cat]) return predefined[cat];
@@ -225,11 +247,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       return { 
         icon: AVAILABLE_ICONS[iconStr] || Folder, 
         label: labelStr, 
-        color: 'text-white bg-white/10 border-white/20' 
+        color: 'text-white border-white/20' 
       };
     }
 
-    return { icon: Folder, label: cat, color: 'text-white bg-white/10 border-white/20' };
+    return { icon: Folder, label: cat, color: 'text-white border-white/20' };
   };
 
   const getTaskDisplayTitle = (title: string) => {
@@ -240,23 +262,24 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
   useEffect(() => {
     fetchTasks();
-  }, [listingId, buyerId, sellerId]);
+  }, [listingId, projectId, buyerId, sellerId]);
 
   const fetchTasks = async () => {
-    if (!listingId || !buyerId || !sellerId || !VALID_UUID.test(listingId) || !VALID_UUID.test(buyerId) || !VALID_UUID.test(sellerId)) {
+    if (!referenceValue || !buyerId || !sellerId) {
       setLoading(false);
       return;
     }
 
     try {
-      const { data: listingData } = await supabase.from('listings').select('name').eq('id', listingId).single();
-      if (listingData) setListingName(listingData.name);
+      if (listingId && VALID_UUID.test(listingId)) {
+        const { data: listingData } = await supabase.from('listings').select('name').eq('id', listingId).single();
+        if (listingData) setListingName(listingData.name);
+      }
 
       const { data, error } = await supabase
         .from('due_diligence_tasks')
         .select('*')
-        .eq('listing_id', listingId)
-        .eq('buyer_id', buyerId)
+        .match(referenceFilter)
         .order('created_at', { ascending: true });
 
       if (!error && data) {
@@ -274,6 +297,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     const receiverId = user.id === buyerId ? sellerId : buyerId;
     await supabase.from('messages').insert([{
       listing_id: listingId,
+      project_id: projectId,
       sender_id: user.id,
       receiver_id: receiverId,
       content,
@@ -287,21 +311,13 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
     const defaultTasks = [
       { category: 'governance', title: 'dd.task_gov1' },
-      { category: 'governance', title: 'dd.task_gov2' },
-      { category: 'governance', title: 'dd.task_gov3' },
       { category: 'financial', title: 'dd.task_fin1' },
-      { category: 'financial', title: 'dd.task_fin2' },
-      { category: 'financial', title: 'dd.task_fin3' },
       { category: 'legal', title: 'dd.task_leg1' },
-      { category: 'legal', title: 'dd.task_leg2' },
-      { category: 'legal', title: 'dd.task_leg3' },
-      { category: 'social', title: 'dd.task_soc1' },
-      { category: 'social', title: 'dd.task_soc2' },
-      { category: 'social', title: 'dd.task_soc3' }
+      { category: 'social', title: 'dd.task_soc1' }
     ];
 
     const tasksToInsert = defaultTasks.map(tk => ({
-      listing_id: listingId,
+      [referenceKey]: referenceValue,
       buyer_id: buyerId,
       seller_id: sellerId,
       title: tk.title,
@@ -336,14 +352,9 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const handleAddCategory = () => {
     const catName = newCategoryName.trim();
     if (!catName) return;
-    if (allCategories.length >= 15) {
-      showError(t('dd.max_categories', 'Maximum de rubriques atteint.'));
-      return;
-    }
     const finalCatStr = `${selectedIconName}::${catName}`;
     setCustomCategories(prev => [...prev, finalCatStr]);
     setExpandedCategory(finalCatStr);
-    setAddingTaskTo(finalCatStr);
     setNewCategoryName("");
     setIsAddingCategory(false);
   };
@@ -368,19 +379,11 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
 
     const hasTasks = tasks.some(t => t.category === oldCat);
     if (hasTasks) {
-      const { error } = await supabase.from('due_diligence_tasks').update({ category: newCatStr }).eq('listing_id', listingId).eq('category', oldCat);
-      if (error) {
-        showError(t('msg.error', 'Erreur'));
-        return;
-      }
-      setTasks(prev => prev.map(t => t.category === oldCat ? { ...t, category: newCatStr } : t));
+      const { error } = await supabase.from('due_diligence_tasks').update({ category: newCatStr }).match(referenceFilter).eq('category', oldCat);
+      if (!error) setTasks(prev => prev.map(t => t.category === oldCat ? { ...t, category: newCatStr } : t));
     }
 
-    setCustomCategories(prev => {
-      const filtered = prev.filter(c => c !== oldCat);
-      return [...filtered, newCatStr];
-    });
-    
+    setCustomCategories(prev => [...prev.filter(c => c !== oldCat), newCatStr]);
     if (expandedCategory === oldCat) setExpandedCategory(newCatStr);
     setEditingCategoryName(null);
   };
@@ -388,63 +391,38 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   const confirmDeleteCategory = async () => {
     if (!categoryToDelete) return;
     const cat = categoryToDelete;
-
-    const hasTasks = tasks.some(t => t.category === cat);
-    if (hasTasks) {
-      const { error } = await supabase.from('due_diligence_tasks').delete().eq('listing_id', listingId).eq('category', cat);
-      if (error) {
-        showError(t('msg.error', 'Erreur'));
-        setCategoryToDelete(null);
-        return;
-      }
+    const { error } = await supabase.from('due_diligence_tasks').delete().match(referenceFilter).eq('category', cat);
+    if (!error) {
       setTasks(prev => prev.filter(t => t.category !== cat));
+      setCustomCategories(prev => prev.filter(c => c !== cat));
+      if (expandedCategory === cat) setExpandedCategory(null);
+      showSuccess(t('profile.deleted', 'Supprimé.'));
     }
-    
-    setCustomCategories(prev => prev.filter(c => c !== cat));
-    if (expandedCategory === cat) setExpandedCategory(null);
-    showSuccess(t('profile.deleted', 'Supprimé.'));
     setCategoryToDelete(null);
   };
 
-  const handleAddTask = async (category: string) => {
+  const handleAddTask = async (cat: string) => {
     if (!newTaskTitle.trim() || !user) return;
-    
-    const catTasks = tasks.filter(t => t.category === category);
-    if (catTasks.length >= 25) {
-      showError(t('dd.max_tasks', 'Maximum 25 tâches par rubrique.'));
-      return;
-    }
-
     const { data, error } = await supabase.from('due_diligence_tasks').insert([{
-      listing_id: listingId,
+      [referenceKey]: referenceValue,
       buyer_id: buyerId,
       seller_id: sellerId,
       title: newTaskTitle.trim(),
-      category,
+      category: cat,
       status: 'pending',
       priority: 'medium'
     }]).select().single();
 
     if (data && !error) {
       setTasks(prev => [...prev, data]);
-      if (!customCategories.includes(category)) setCustomCategories(prev => [...prev, category]);
-      const pseudo = user.user_metadata?.full_name || "User";
-      await sendSystemMessage(t('dd.msg_add', { name: pseudo, task: newTaskTitle.trim() }));
       setNewTaskTitle("");
       setAddingTaskTo(null);
-    } else {
-      showError(error?.message || t('msg.error', 'Erreur'));
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     const { error } = await supabase.from('due_diligence_tasks').delete().eq('id', taskId);
-    if (!error) {
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      showSuccess(t('profile.deleted', 'Supprimé.'));
-    } else {
-      showError(t('msg.error', 'Erreur'));
-    }
+    if (!error) setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
   const handleUpdateTaskTitle = async () => {
@@ -453,11 +431,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       return;
     }
     const { error } = await supabase.from('due_diligence_tasks').update({ title: editTaskTitle.trim() }).eq('id', editingTaskId);
-    if (!error) {
-      setTasks(prev => prev.map(t => t.id === editingTaskId ? { ...t, title: editTaskTitle.trim() } : t));
-    } else {
-      showError(t('msg.error', 'Erreur'));
-    }
+    if (!error) setTasks(prev => prev.map(t => t.id === editingTaskId ? { ...t, title: editTaskTitle.trim() } : t));
     setEditingTaskId(null);
   };
 
@@ -466,28 +440,22 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
     if (!task || !user || task.status === newStatus) return;
     
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any, completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
-
-    const { error } = await supabase.from('due_diligence_tasks').update({ 
+    await supabase.from('due_diligence_tasks').update({ 
       status: newStatus, 
       completed_at: newStatus === 'completed' ? new Date().toISOString() : null, 
       updated_at: new Date().toISOString() 
     }).eq('id', taskId);
 
-    if (!error) {
-      const pseudo = user.user_metadata?.full_name || "User";
-      const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label', 'marquée comme terminée') : newStatus === 'in_progress' ? t('dd.status_progress_label', 'mise en cours') : t('dd.status_pending_label', 'mise en attente');
-      await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: getTaskDisplayTitle(task.title), status: statusLabel }));
-    } else {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...task } : t));
-      showError(error.message);
-    }
+    const pseudo = user.user_metadata?.full_name || "User";
+    const statusLabel = newStatus === 'completed' ? t('dd.status_completed_label', 'terminée') : newStatus === 'in_progress' ? t('dd.status_progress_label', 'en cours') : t('dd.status_pending_label', 'en attente');
+    await sendSystemMessage(t('dd.msg_update', { name: pseudo, task: getTaskDisplayTitle(task.title), status: statusLabel }));
   };
 
   const cycleTaskStatus = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    const nextStatusMap: Record<string, string> = { pending: 'in_progress', in_progress: 'completed', completed: 'pending', blocked: 'in_progress' };
-    updateTaskStatus(taskId, nextStatusMap[task.status] || 'pending');
+    const next: Record<string, string> = { pending: 'in_progress', in_progress: 'completed', completed: 'pending', blocked: 'in_progress' };
+    updateTaskStatus(taskId, next[task.status] || 'pending');
   };
 
   const handleExportPDF = () => {
@@ -497,16 +465,14 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
       title: getTaskDisplayTitle(t.title) 
     }));
     exportDueDiligenceReport(translatedTasks, listingName, t, i18n.language);
-    showSuccess(t('dd.pdf_success', "Rapport PDF généré avec succès."));
+    showSuccess(t('dd.pdf_success', "Rapport PDF généré."));
   };
 
   const completed = tasks.filter(t => t.status === 'completed').length;
   const total = tasks.length;
   const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  if (loading) return <div className="animate-pulse bg-white/5 rounded-2xl h-32 w-full" />;
-
-  const filteredKanbanTasks = kanbanFilter ? tasks.filter(t => t.category === kanbanFilter) : tasks;
+  if (loading) return <div className="animate-pulse bg-white/5 rounded-2xl h-full w-full" />;
 
   const KANBAN_COLUMNS = [
     { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/10' },
@@ -515,322 +481,126 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
   ];
 
   return (
-    <div className="space-y-4 text-white w-full h-full flex flex-col">
-      {/* HEADER GLOBALE */}
-      {viewMode === 'list' && (
-        <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-2 shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                <ClipboardCheck className="w-5 h-5 text-primary" />
+    <div className="flex flex-col h-full w-full text-white overflow-hidden relative">
+      
+      {/* Header Bar */}
+      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 bg-transparent z-20">
+        <div className="flex items-center gap-4">
+          <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
+            <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white'}`}>
+              <LayoutList size={20} />
+            </button>
+            <button onClick={() => setViewMode('kanban')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'kanban' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white'}`}>
+              <LayoutGrid size={20} />
+            </button>
+          </div>
+          <div className="hidden sm:block h-8 w-px bg-white/10 mx-2" />
+          <div className="flex flex-col">
+            <h2 className="text-xl font-light tracking-tight text-white leading-none mb-1">{t('dd.title', 'Audit & Due Diligence')}</h2>
+            <div className="flex items-center gap-2">
+              <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} className="h-full bg-primary" />
               </div>
-              <div>
-                <h3 className="text-base font-medium text-white leading-tight">{t('dd.title', 'Audit & Due Diligence')}</h3>
-                <p className="text-[10px] text-white/50 font-light mt-0.5">{listingName}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
-                <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_list', 'Vue Liste')}>
-                  <LayoutList size={16} />
-                </button>
-                <button onClick={() => setViewMode('kanban')} className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'}`} title={t('dd.view_kanban', 'Vue Kanban')}>
-                  <LayoutGrid size={16} />
-                </button>
-              </div>
-
-              {total > 0 && (
-                <div className="shrink-0 text-center bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
-                  <span className="text-lg font-light text-white block leading-none">{progressPercent}%</span>
-                  <span className="text-[8px] uppercase tracking-widest text-white/40 block mt-0.5">{t('dd.progress', 'Progression')}</span>
-                </div>
-              )}
+              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{progressPercent}%</span>
             </div>
           </div>
+        </div>
 
+        <div className="flex items-center gap-2">
           {total > 0 && (
-            <div className="flex gap-3 items-center mt-4">
-              <Button onClick={handleExportPDF} variant="outline" className="flex-1 py-2 h-auto rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs outline-none shadow-none">
-                <Download className="w-3.5 h-3.5 mr-2" /> {t('dd.export_pdf', 'Exporter le rapport PDF')}
-              </Button>
-            </div>
+            <Button onClick={handleExportPDF} variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 h-10 px-5 text-xs text-white">
+              <Download className="w-3.5 h-3.5 mr-2" /> PDF
+            </Button>
           )}
-
-          {total > 0 && (
-            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-4">
-              <motion.div 
-                initial={{ width: 0 }} 
-                animate={{ width: `${progressPercent}%` }} 
-                transition={{ duration: 1, ease: "easeOut" }}
-                className="h-full bg-primary rounded-full" 
-              />
-            </div>
+          {viewMode === 'list' && (
+            <Button onClick={() => setIsAddingCategory(true)} className="rounded-full bg-primary hover:bg-primary/90 h-10 px-6 text-xs text-white">
+              <Plus className="w-3.5 h-3.5 mr-2" /> Rubrique
+            </Button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* VUE VIDE INITIALE */}
-      {tasks.length === 0 ? (
-        <div className="liquid-glass border-white/10 border-dashed rounded-[2rem] p-8 text-center flex flex-col items-center text-white flex-1 justify-center">
-          <Wand2 className="w-10 h-10 text-primary/50 mb-4" />
-          <h3 className="text-base font-medium text-white mb-2">{t('dd.empty_title', 'Structurez votre Audit')}</h3>
-          <p className="text-xs text-white/50 font-light mb-6 max-w-md leading-relaxed">
-            {t('dd.empty_desc', 'Ne partez pas de zéro. Utilisez notre checklist standard.')}
-          </p>
-          <Button 
-            onClick={handleGenerateDefault} 
-            disabled={isGenerating}
-            className="rounded-full bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(168,85,247,0.3)] h-10 px-6 text-xs w-full max-w-xs outline-none border-none"
-          >
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
-            {t('dd.btn_generate', "Générer la checklist")}
-          </Button>
-        </div>
-      ) : viewMode === 'list' ? (
-        
-        /* VUE LISTE CLASSIQUE */
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 pb-10">
-          {allCategories.map(cat => {
-            const config = getCategoryConfig(cat);
-            const Icon = config.icon;
-            const catTasks = tasks.filter(t => t.category === cat);
-            
-            if (catTasks.length === 0 && !customCategories.includes(cat)) return null;
-            
-            const catCompleted = catTasks.filter(t => t.status === 'completed').length;
-            const isExpanded = expandedCategory === cat;
-            const isEditingCat = editingCategoryName === cat;
+      {/* Main Container */}
+      <div className={`flex-1 min-h-0 relative z-10 w-full ${isAnyDragging ? 'overflow-visible' : 'overflow-hidden'}`}>
+        {tasks.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+            <Wand2 className="w-16 h-16 text-primary/20 mb-6" />
+            <h3 className="text-2xl font-light mb-2">{t('dd.empty_title', 'Structurez votre Audit')}</h3>
+            <p className="text-sm text-white/40 font-light mb-8 max-w-sm">{t('dd.empty_desc', 'Générez une checklist standard pour gagner du temps.')}</p>
+            <Button onClick={handleGenerateDefault} disabled={isGenerating} className="rounded-full bg-primary hover:bg-primary/90 h-12 px-10 text-sm">
+              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
+              {t('dd.btn_generate', "Générer la checklist")}
+            </Button>
+          </div>
+        ) : viewMode === 'list' ? (
+          <div className="h-full overflow-y-auto px-6 pb-12 custom-scrollbar space-y-4">
+            {allCategories.map(cat => {
+              const config = getCategoryConfig(cat);
+              const catTasks = tasks.filter(t => t.category === cat);
+              if (catTasks.length === 0 && !customCategories.includes(cat)) return null;
+              const isExpanded = expandedCategory === cat;
 
-            return (
-              <div key={cat} className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 text-white">
-                {isEditingCat ? (
-                  <div className="bg-[#2b2a2f] sm:bg-black/20 p-4 flex flex-col gap-4">
-                    <input 
-                      autoFocus
-                      value={editCategoryInput}
-                      onChange={(e) => setEditCategoryInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(cat)}
-                      placeholder={t('dd.category_name', 'Nom de la rubrique...')}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none"
-                    />
-                    
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block">{t('dd.choose_icon', 'Choisir une icône')}</span>
-                      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                        {Object.entries(AVAILABLE_ICONS).map(([name, IconComp]) => (
-                          <button 
-                            key={name} 
-                            onClick={() => setEditCategoryIcon(name)} 
-                            className={`p-2 rounded-lg border transition-all shrink-0 outline-none ${editCategoryIcon === name ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
-                          >
-                            <IconComp size={16} />
-                          </button>
-                        ))}
-                      </div>
+              return (
+                <div key={cat} className="liquid-glass-heavy border-white/10 rounded-3xl overflow-hidden transition-all">
+                  <div className="flex items-center justify-between p-5 cursor-pointer hover:bg-white/[0.03]" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${config.color} bg-white/5`}><config.icon size={20} /></div>
+                      <span className="text-lg font-light">{config.label}</span>
                     </div>
-
-                    <div className="flex gap-2">
-                      <Button onClick={() => handleUpdateCategory(cat)} className="flex-1 rounded-xl bg-white text-black hover:bg-white/90 font-medium text-xs border-none outline-none shadow-none"><Check className="w-4 h-4 mr-1"/> {t('settings.save', 'Enregistrer')}</Button>
-                      <Button onClick={() => setEditingCategoryName(null)} variant="ghost" className="w-12 rounded-xl text-white/50 hover:text-white hover:bg-white/10 text-xs outline-none shadow-none p-0"><X className="w-4 h-4"/></Button>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full">{catTasks.filter(t=>t.status==='completed').length} / {catTasks.length}</span>
+                      {isExpanded ? <ChevronUp className="w-5 h-5 opacity-40" /> : <ChevronDown className="w-5 h-5 opacity-40" />}
                     </div>
                   </div>
-                ) : (
-                  <div className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-colors cursor-pointer group/catheader" onClick={() => setExpandedCategory(isExpanded ? null : cat)}>
-                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${config.color}`}><Icon className="w-4 h-4" /></div>
-                      <span className="text-sm font-medium text-white truncate">{config.label}</span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/catheader:opacity-100 transition-opacity">
-                        <button onClick={(e) => { e.stopPropagation(); startEditingCategory(cat); }} className="p-1.5 text-white/40 hover:text-white transition-colors" title={t('dash.edit', 'Modifier')}>
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setCategoryToDelete(cat); }} className="p-1.5 text-white/40 hover:text-red-400 transition-colors" title={t('dash.remove', 'Supprimer')}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-white/40 font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/5">{catCompleted} / {catTasks.length}</span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
-                    </div>
-                  </div>
-                )}
-                
-                <AnimatePresence>
-                  {isExpanded && !isEditingCat && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 bg-black/20">
-                      <div className="p-3 space-y-1.5">
-                        {catTasks.map(task => {
-                          const StatusIcon = STATUS_ICON[task.status] || Circle;
-                          const isEditing = editingTaskId === task.id;
-
-                          return (
-                            <div key={task.id} className="group flex items-start gap-3 px-3 py-2.5 hover:bg-white/[0.04] rounded-xl transition-all border border-transparent hover:border-white/5 bg-white/[0.01] relative">
-                              <button onClick={() => cycleTaskStatus(task.id)} className="shrink-0 active:scale-90 transition-transform mt-0.5 outline-none">
-                                <StatusIcon className={`w-5 h-5 transition-all ${
-                                  task.status === 'completed' ? 'text-emerald-400' : 
-                                  task.status === 'in_progress' ? 'text-blue-400 animate-pulse' : 
-                                  'text-white/20 group-hover:text-white/40'
-                                }`} />
-                              </button>
-                              <div className="flex-1 min-w-0 pr-12">
-                                {isEditing ? (
-                                  <input 
-                                    autoFocus
-                                    value={editTaskTitle}
-                                    onChange={(e) => setEditTaskTitle(e.target.value)}
-                                    onBlur={handleUpdateTaskTitle}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateTaskTitle()}
-                                    className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
-                                  />
-                                ) : (
-                                  <span className={`text-sm font-light block leading-snug transition-all ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/80'}`}>
-                                    {getTaskDisplayTitle(task.title)}
-                                  </span>
-                                )}
-                              </div>
-                              <span className={`shrink-0 text-[8px] uppercase tracking-wider px-2 py-1 rounded-md border font-bold mt-0.5 hidden sm:block ${
-                                task.status === 'completed' ? 'text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5' : 
-                                task.status === 'in_progress' ? 'text-blue-400 border-blue-400/30 bg-blue-500/10' : 
-                                'text-white/30 border-white/10 bg-white/5'
-                              }`}>
-                                {task.status === 'in_progress' ? t('dd.badge_progress', 'EN COURS') : task.status === 'completed' ? t('dd.badge_completed', 'VALIDÉ') : t('dd.badge_pending', 'À FOURNIR')}
-                              </span>
-
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-black/60 rounded-md backdrop-blur-md px-1.5 py-1">
-                                <button onClick={() => { setEditingTaskId(task.id); setEditTaskTitle(getTaskDisplayTitle(task.title)); }} className="p-1 text-white/50 hover:text-white transition-colors"><Edit2 size={14}/></button>
-                                <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-white/50 hover:text-red-400 transition-colors"><Trash2 size={14}/></button>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {addingTaskTo === cat ? (
-                          <div className="p-2 mt-2 flex flex-col gap-2">
-                            <input 
-                              autoFocus
-                              value={newTaskTitle}
-                              onChange={(e) => setNewTaskTitle(e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleAddTask(cat)}
-                              placeholder={t('dd.input_placeholder', 'Nom du document...')}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none"
-                            />
-                            <div className="flex gap-2">
-                              <Button onClick={() => handleAddTask(cat)} className="flex-1 h-8 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 text-xs border-none outline-none shadow-none">{t('dd.btn_add', 'Ajouter')}</Button>
-                              <Button onClick={() => setAddingTaskTo(null)} variant="ghost" className="flex-1 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 text-xs outline-none shadow-none">{t('dd.btn_cancel', 'Annuler')}</Button>
-                            </div>
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 p-4 space-y-2 bg-black/10">
+                        {catTasks.map(task => (
+                          <div key={task.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 group border border-transparent hover:border-white/5">
+                            <button onClick={() => cycleTaskStatus(task.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              task.status === 'completed' ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'
+                            }`}>{task.status === 'completed' && <Check size={14} className="text-white" />}</button>
+                            <span className={`flex-1 text-[15px] font-light ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/90'}`}>{getTaskDisplayTitle(task.title)}</span>
+                            <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                           </div>
-                        ) : (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setAddingTaskTo(cat); }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs text-white/40 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl mt-2 border border-dashed border-white/10 outline-none"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> {t('dd.btn_add_specific', 'Ajouter un élément spécifique')}
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-
-          {/* AJOUT DE RUBRIQUE */}
-          <div className="pt-4 border-t border-white/5">
-            {isAddingCategory ? (
-              <div className="bg-[#2b2a2f] sm:bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex flex-col gap-4">
-                <input 
-                  autoFocus
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                  placeholder={t('dd.category_name', 'Nom de la rubrique...')}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors outline-none"
-                />
-                
-                <div>
-                  <span className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block">{t('dd.choose_icon', 'Choisir une icône')}</span>
-                  <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                    {Object.entries(AVAILABLE_ICONS).map(([name, Icon]) => (
-                      <button 
-                        key={name} 
-                        onClick={() => setSelectedIconName(name)} 
-                        className={`p-2 rounded-lg border transition-all shrink-0 outline-none ${selectedIconName === name ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
-                      >
-                        <Icon size={16} />
-                      </button>
-                    ))}
-                  </div>
+                        ))}
+                        <div className="pt-2">
+                          {addingTaskTo === cat ? (
+                            <div className="flex gap-2">
+                              <input autoFocus value={newTaskTitle} onChange={e=>setNewTaskTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAddTask(cat)} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none" />
+                              <Button onClick={()=>handleAddTask(cat)} className="bg-primary px-4 rounded-xl text-xs">Ajouter</Button>
+                            </div>
+                          ) : (
+                            <button onClick={()=>setAddingTaskTo(cat)} className="w-full py-3 border border-dashed border-white/10 rounded-2xl text-xs text-white/30 hover:text-white/60 transition-all">+ Ajouter un élément</button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-
-                <div className="flex gap-2">
-                  <Button onClick={handleAddCategory} className="flex-1 rounded-xl bg-white text-black hover:bg-white/90 font-medium text-xs border-none outline-none shadow-none"><Check className="w-4 h-4 mr-1"/> Créer</Button>
-                  <Button onClick={() => setIsAddingCategory(false)} variant="ghost" className="w-12 rounded-xl text-white/50 hover:text-white hover:bg-white/10 text-xs outline-none shadow-none p-0"><X className="w-4 h-4"/></Button>
-                </div>
-              </div>
-            ) : (
-              <button 
-                onClick={() => setIsAddingCategory(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white transition-colors bg-[#2b2a2f] sm:bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 outline-none font-medium"
-              >
-                <Folder className="w-4 h-4" /> {t('dd.add_category', 'Nouvelle Rubrique')}
-              </button>
-            )}
+              );
+            })}
           </div>
-
-        </div>
-
-      ) : (
-
-        /* VUE KANBAN HORIZONTALE (Mobile & Desktop) */
-        <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full overflow-hidden pb-4">
-          <div className="flex justify-between items-center mb-4 shrink-0 px-1">
-             <button onClick={() => setViewMode('list')} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors outline-none bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
-               <ChevronLeft size={14} /> {t('back_to_list', 'Retour Liste')}
-             </button>
-             
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-8 rounded-full bg-black/40 border-white/10 text-white hover:bg-white/10 text-xs font-light px-4 flex gap-2">
-                    <span className="truncate max-w-[150px]">{kanbanFilter ? getCategoryConfig(kanbanFilter).label : t('dd.all_categories', 'Toutes les rubriques')}</span>
-                    <ChevronDown size={14} className="text-white/50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="liquid-glass-heavy bg-[#2b2a2f]/95 border-white/10 rounded-xl w-[220px] shadow-2xl z-[300]">
-                  <DropdownMenuItem onClick={() => setKanbanFilter(null)} className="text-white hover:bg-white/10 text-xs cursor-pointer focus:bg-white/10 focus:text-white">
-                    {t('dd.all_categories', 'Toutes les rubriques')}
-                  </DropdownMenuItem>
-                  {allCategories.map(cat => (
-                    <DropdownMenuItem key={cat} onClick={() => setKanbanFilter(cat)} className="text-white hover:bg-white/10 text-xs cursor-pointer focus:bg-white/10 focus:text-white flex items-center gap-2">
-                      {getCategoryConfig(cat).label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-             </DropdownMenu>
-          </div>
-          
+        ) : (
           <div 
             ref={kanbanContainerRef}
-            onDragOver={(e) => { e.preventDefault(); handleDragEdgeScroll(e.clientX); }}
-            /* MODIF : w-full, touch-pan-x et WebkitOverflowScrolling */
-            className="flex-1 w-full flex flex-row gap-4 sm:gap-6 overflow-x-auto overflow-y-hidden snap-x snap-mandatory custom-scrollbar pb-8 px-4 sm:px-2 items-start touch-pan-x"
+            className={`h-full w-full flex flex-row gap-6 px-6 pb-10 custom-scrollbar items-stretch touch-pan-x overscroll-contain ${isAnyDragging ? 'overflow-visible' : 'overflow-x-auto overflow-y-hidden'}`}
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {KANBAN_COLUMNS.map((col) => {
-              const colTasks = filteredKanbanTasks.filter(t => t.status === col.status);
+              const colTasks = tasks.filter(t => t.status === col.status);
               return (
                 <div 
                   key={col.status}
-                  className={`kanban-col snap-center relative w-[85vw] sm:min-w-[280px] sm:max-w-[350px] bg-[#2b2a2f] border ${col.borderClass} rounded-2xl flex flex-col shrink-0 min-h-[150px] ${draggingCol === col.status ? 'z-50' : 'z-10'}`}
+                  className={`kanban-col relative w-[85vw] sm:w-[350px] shrink-0 h-full flex flex-col ${isAnyDragging ? 'z-50' : 'z-10'}`}
                   data-status={col.status}
                 >
-                  <div className={`p-4 border-b border-white/5 flex items-center justify-between shrink-0 ${col.colorClass}`}>
-                    <span className="text-xs font-bold uppercase tracking-widest text-white">{col.label}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-black/20 rounded-md border border-white/10 text-white">{colTasks.length}</span>
+                  <div className={`p-4 mb-4 flex items-center justify-between rounded-2xl bg-white/5 border border-white/5 ${col.colorClass}`}>
+                    <span className="text-xs font-bold uppercase tracking-widest">{col.label}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-black/40 rounded-full">{colTasks.length}</span>
                   </div>
                   
-                  <div className="p-3 space-y-3 overflow-y-auto overflow-x-hidden w-full h-full custom-scrollbar pb-8">
+                  <div className={`flex-1 space-y-4 custom-scrollbar pb-10 ${isAnyDragging ? 'overflow-visible' : 'overflow-y-auto overflow-x-hidden'}`}>
                     <AnimatePresence mode="popLayout">
                       {colTasks.map(task => (
                         <KanbanTaskCard 
@@ -850,6 +620,7 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
                           t={t}
                           getTaskDisplayTitle={getTaskDisplayTitle}
                           setDraggingCol={setDraggingCol}
+                          setIsAnyDragging={setIsAnyDragging}
                         />
                       ))}
                     </AnimatePresence>
@@ -858,37 +629,57 @@ export function DueDiligenceTracker({ listingId, buyerId, sellerId }: DueDiligen
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Modale de confirmation de suppression de rubrique */}
+      {/* Modals */}
       <AnimatePresence>
-        {categoryToDelete && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl">
-              <div className="w-14 h-14 mx-auto bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-500/40">
-                <AlertTriangle className="w-6 h-6" />
+        {isAddingCategory && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="liquid-glass-heavy bg-[#2b2a2f] border border-white/20 p-8 rounded-[2.5rem] max-w-sm w-full shadow-2xl">
+              <h3 className="text-2xl font-light mb-6 text-white">Nouvelle Rubrique</h3>
+              <input autoFocus value={newCategoryName} onChange={e=>setNewCategoryName(e.target.value)} placeholder="Nom de la rubrique..." className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white mb-6 focus:outline-none focus:border-primary/50" />
+              
+              <div className="mb-8">
+                <label className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3 block">Choisir une Icône Professionnelle</label>
+                <div className="grid grid-cols-6 gap-2 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
+                  {Object.entries(AVAILABLE_ICONS).map(([name, Icon]) => (
+                    <button
+                      key={name}
+                      onClick={() => setSelectedIconName(name)}
+                      className={`p-3 rounded-xl flex items-center justify-center transition-all ${
+                        selectedIconName === name 
+                          ? 'bg-primary text-white scale-110 shadow-lg' 
+                          : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icon size={20} />
+                    </button>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-light text-white mb-2 tracking-tight">Supprimer la rubrique ?</h3>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/60 mb-8 font-light leading-relaxed">
-                Toutes les tâches contenues dans cette rubrique seront définitivement supprimées. Cette action est irréversible.
-              </p>
+
               <div className="flex flex-col gap-3">
-                <Button onClick={confirmDeleteCategory} variant="destructive" className="rounded-full h-12 font-medium transition-all w-full outline-none [text-shadow:none]">{t('profile.remove', 'Supprimer')}</Button>
-                <Button variant="ghost" onClick={() => setCategoryToDelete(null)} className="text-white hover:text-white hover:bg-white/20 rounded-full h-12 transition-colors w-full outline-none font-medium [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
+                <Button onClick={handleAddCategory} className="w-full bg-primary h-14 rounded-full font-medium">Créer</Button>
+                <Button onClick={()=>setIsAddingCategory(false)} variant="ghost" className="w-full h-12 rounded-full text-white/50">Annuler</Button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+      `}} />
     </div>
   );
 }
 
 const ClipboardCheck = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1 2-2h2"/>
-    <path d="m9 14 2 2 4-4"/>
+    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>
   </svg>
 );

@@ -13,7 +13,7 @@ import { DataRoomPanel } from './DataRoomPanel';
 import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
-import { InvestmentBoard } from './InvestmentBoard';
+
 
 const businessCache: Record<string, { viewCount?: number, isFavorite?: boolean, ownerProfile?: any }> = {};
 
@@ -383,22 +383,6 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                   <AIInsightsPanel listing={listing} />
                 </div>
               )}
-
-              {/* Investment Needs Board */}
-              <div className="mb-12 sm:mb-16">
-                <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                <InvestmentBoard 
-                  listing={listing} 
-                  user={user} 
-                  onProposeHelp={(need) => {
-                    if (!user) {
-                      navigate('/login');
-                      return;
-                    }
-                    onContact(listing, need);
-                  }} 
-                />
-              </div>
 
               {/* Offer Comparator — For sellers only */}
               {isOwner && user && (

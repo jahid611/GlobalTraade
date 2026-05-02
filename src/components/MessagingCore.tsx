@@ -33,6 +33,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   
   const [isMobileListOpen, setIsMobileListOpen] = useState(true);
   const [contactStatus, setContactStatus] = useState<'none' | 'pending' | 'connected'>('none');
+  const [activeTab, setActiveTab] = useState<'messages' | 'workflow'>('messages');
 
   useEffect(() => {
     if (user) {
@@ -54,7 +55,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   const markMessagesAsRead = async () => {
     if (!activeConv || !user) return;
     const unreadMsgs = allMessages.filter(m => 
-      m.listing_id === activeConv.listing_id && 
+      (m.listing_id === activeConv.listing_id || m.project_id === activeConv.project_id) && 
       m.receiver_id === user.id && 
       !m.is_read
     );
@@ -104,34 +105,41 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     if (messages && messages.length > 0) {
       const profileIds = Array.from(new Set(messages.flatMap(m => [m.sender_id, m.receiver_id])));
       const listingIds = Array.from(new Set(messages.map(m => m.listing_id).filter(Boolean)));
+      const projectIds = Array.from(new Set(messages.map(m => m.project_id).filter(Boolean)));
 
-      const [profilesRes, listingsRes] = await Promise.all([
+      const [profilesRes, listingsRes, projectsRes] = await Promise.all([
         supabase.from('profiles').select('*').in('id', profileIds),
         listingIds.length > 0 
           ? supabase.from('listings').select('*').in('id', listingIds)
+          : Promise.resolve({ data: [] }),
+        projectIds.length > 0
+          ? supabase.from('projects').select('*').in('id', projectIds)
           : Promise.resolve({ data: [] })
       ]);
 
       const profileMap = new Map(profilesRes.data?.map(p => [p.id, p]));
       const listingMap = new Map(listingsRes.data?.map(l => [l.id, l]));
+      const projectMap = new Map(projectsRes.data?.map(p => [p.id, p]));
 
       const convMap = new Map();
       const enrichedMessages = messages.map(msg => {
         const sender = profileMap.get(msg.sender_id);
         const receiver = profileMap.get(msg.receiver_id);
         const listing = listingMap.get(msg.listing_id);
+        const project = projectMap.get(msg.project_id);
         
         const otherUser = msg.sender_id === user.id ? receiver : sender;
-        if (!otherUser) return { ...msg, sender, receiver, listing };
+        if (!otherUser) return { ...msg, sender, receiver, listing, project };
 
-        const convId = `${msg.listing_id}_${otherUser.id}`;
+        const convId = msg.project_id ? `project_${msg.project_id}_${otherUser.id}` : `${msg.listing_id}_${otherUser.id}`;
         
         if (!convMap.has(convId)) {
           convMap.set(convId, {
             id: convId,
             listing_id: msg.listing_id,
-            listing_name: listing?.title || listing?.name || 'Business',
-            listing_owner_id: listing?.owner_id,
+            project_id: msg.project_id,
+            listing_name: project?.title || listing?.title || listing?.name || 'Discussion',
+            listing_owner_id: project?.owner_id || listing?.owner_id,
             other_user_id: otherUser.id,
             contact_name: otherUser.full_name || 'Utilisateur',
             contact_kyc: otherUser.kyc_status || 'not_started',
@@ -150,7 +158,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             unread: existing.unread || (msg.receiver_id === user.id && !msg.is_read)
           });
         }
-        return { ...msg, sender, receiver, listing };
+        return { ...msg, sender, receiver, listing, project };
       });
 
       setAllMessages(prev => {
@@ -169,6 +177,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     const tempMsg = {
       id: `temp-${Date.now()}`,
       listing_id: activeConv.listing_id,
+      project_id: activeConv.project_id,
       sender_id: user.id,
       receiver_id: activeConv.other_user_id,
       content,
@@ -179,6 +188,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
     const { error } = await supabase.from('messages').insert([{
       listing_id: activeConv.listing_id,
+      project_id: activeConv.project_id,
       sender_id: user.id,
       receiver_id: activeConv.other_user_id,
       content
@@ -225,6 +235,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     const tempMsg = {
       id: `temp-${Date.now()}`,
       listing_id: activeConv.listing_id,
+      project_id: activeConv.project_id,
       sender_id: user.id,
       receiver_id: activeConv.other_user_id,
       content: `OFFRE: ${amount}€`,
@@ -237,6 +248,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
     const { error } = await supabase.from('messages').insert([{
       listing_id: activeConv.listing_id,
+      project_id: activeConv.project_id,
       sender_id: user.id,
       receiver_id: activeConv.other_user_id,
       content: `OFFRE: ${amount}€`,
@@ -285,15 +297,40 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
   const handleArchiveConv = async () => {
     if (!convToDelete || !user) return;
+    
+    // Suppression locale immédiate
     setConversations(prev => prev.filter(c => c.id !== convToDelete.id));
     if (activeConv?.id === convToDelete.id) setActiveConv(null);
-    setConvToDelete(null);
-    showSuccess(t('msg.archived', 'Conversation archivée.'));
+
+    try {
+      let query = supabase.from('messages').delete();
+      
+      if (convToDelete.project_id) {
+        query = query.eq('project_id', convToDelete.project_id);
+      } else {
+        query = query.eq('listing_id', convToDelete.listing_id);
+      }
+
+      // Supprimer tous les messages échangés avec cet utilisateur précis pour cette référence
+      const { error } = await query.or(`sender_id.eq.${convToDelete.other_user_id},receiver_id.eq.${convToDelete.other_user_id}`);
+
+      if (error) throw error;
+      showSuccess(t('msg.deleted', 'Conversation supprimée.'));
+    } catch (err) {
+      console.error("Delete conversation error:", err);
+      showError(t('msg.error'));
+      fetchAllData(false);
+    } finally {
+      setConvToDelete(null);
+    }
   };
 
   const filteredMessages = useMemo(() => {
     if (!activeConv) return [];
-    return allMessages.filter(m => m.listing_id === activeConv.listing_id && (m.sender_id === activeConv.other_user_id || m.receiver_id === activeConv.other_user_id));
+    return allMessages.filter(m => 
+      (activeConv.project_id ? m.project_id === activeConv.project_id : m.listing_id === activeConv.listing_id) && 
+      (m.sender_id === activeConv.other_user_id || m.receiver_id === activeConv.other_user_id)
+    );
   }, [allMessages, activeConv]);
 
   if (variant === 'sidebar') {
@@ -304,7 +341,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         animate={{ x: 0, opacity: 1 }} 
         exit={{ x: '-100%', opacity: 0 }} 
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 h-[100dvh] w-full sm:w-[420px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/20 z-[150] flex flex-col shadow-[30px_0_80px_rgba(0,0,0,0.7)] text-white"
+        className={`fixed top-0 left-0 h-[100dvh] ${activeTab === 'workflow' ? 'w-full' : 'w-full sm:w-[420px]'} liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/20 z-[150] flex flex-col shadow-[30px_0_80px_rgba(0,0,0,0.7)] text-white transition-all duration-500`}
       >
         {view === 'list' && (
           <div className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0 bg-transparent text-white">
@@ -317,7 +354,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
           </div>
         )}
         
-        <div className="flex-1 overflow-hidden text-white">
+        <div className={`flex-1 ${activeTab === 'workflow' ? 'overflow-visible' : 'overflow-hidden'} text-white`}>
           {loading ? (
             <div className="p-4 space-y-4 mt-4">
               <Skeleton className="h-20 w-full rounded-2xl bg-white/20" />
@@ -344,8 +381,13 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}
               contactStatus={contactStatus}
-              onBack={() => setView('list')}
+              onBack={() => {
+                if (activeTab === 'workflow') setActiveTab('messages');
+                else setView('list');
+              }}
               onClose={onClose}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
               t={t}
             />
           )}
@@ -356,8 +398,8 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   }
 
   return (
-    <div className="flex h-[100dvh] w-full max-w-[1400px] mx-auto overflow-hidden bg-transparent pt-[60px] pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 text-white">
-      <div className={`${!isMobileListOpen ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-black/40 sm:border-white/20 sm:rounded-3xl shadow-2xl text-white`}>
+    <div className={`flex flex-1 h-full w-full ${activeTab === 'workflow' ? 'max-w-full' : 'max-w-[1400px]'} mx-auto overflow-hidden bg-transparent pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 text-white`}>
+      <div className={`${(!isMobileListOpen || activeTab === 'workflow') ? 'hidden md:flex' : 'flex'} ${activeTab === 'workflow' ? 'md:hidden' : ''} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-black/40 sm:border-white/20 sm:rounded-3xl shadow-2xl text-white`}>
         <div className="hidden sm:block mb-4 px-6 pt-6 text-white">
           <h1 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none mb-1">
             {t('msg.title', 'Messagerie')} <span className="text-primary font-medium">{t('msg.title_private', 'Privée')}</span>
@@ -375,7 +417,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             <ConversationList 
               conversations={conversations} 
               activeConvId={activeConv?.id}
-              onSelect={(c) => { setActiveConv(c); setIsMobileListOpen(false); }}
+              onSelect={(c) => { setActiveConv(c); setIsMobileListOpen(false); setActiveTab('messages'); }}
               onDelete={setConvToDelete}
               language={i18n.language}
               t={t}
@@ -397,7 +439,12 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
               onOfferAction={handleOfferAction}
               onAddContact={handleAddContact}
               contactStatus={contactStatus}
-              onBack={() => setIsMobileListOpen(true)}
+              onBack={() => {
+                if (activeTab === 'workflow') setActiveTab('messages');
+                else setIsMobileListOpen(true);
+              }}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
               t={t}
             />
           </div>
@@ -428,8 +475,8 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                 <div className="w-14 h-14 mx-auto bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-500/40">
                   <Archive className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-light text-white mb-2 tracking-tight">{t('msg.archive_title', 'Archiver la conversation ?')}</h3>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/60 mb-8 font-light leading-relaxed">{t('msg.archive_desc', 'Elle ne sera plus visible dans votre liste active.')}</p>
+                <h3 className="text-xl font-light text-white mb-2 tracking-tight">{t('msg.delete_title', 'Supprimer la conversation ?')}</h3>
+                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/60 mb-8 font-light leading-relaxed">{t('msg.delete_desc', 'Cette action est irréversible et supprimera tous les messages.')}</p>
                 <div className="flex flex-col gap-3">
                   <Button onClick={handleArchiveConv} variant="destructive" className="rounded-full h-12 font-medium transition-all w-full outline-none [text-shadow:none]">{t('profile.remove', 'Retirer')}</Button>
                   <Button variant="ghost" onClick={() => setConvToDelete(null)} className="text-white hover:text-white hover:bg-white/20 rounded-full h-12 transition-colors w-full outline-none font-medium [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>
@@ -458,7 +505,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                     <label className="block text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">{t('msg.financing_type', 'Type de financement')}</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/20 text-white hover:bg-white/20'}`}>{t('msg.loan', 'Emprunt')}</button>
-                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/20 text-white hover:bg-white/20'}`}>{t('msg.equity', 'Fonds propres')}</button>
+                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/20 text-white hover:bg-white/20'}`}>{t('msg.equity', 'Fonds propres')}</button>
                     </div>
                   </div>
                   <div className="flex flex-col gap-3 pt-4">

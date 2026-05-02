@@ -2,26 +2,29 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, ShieldCheck, Handshake, CheckCircle2, Search } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Handshake, CheckCircle2, Search, Zap, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
 interface DealTimelineProps {
-  listingId: string;
+  listingId?: string;
+  projectId?: string;
   buyerId: string;
   sellerId: string;
   messages: any[];
 }
 
-const STEPS = ['contact', 'nda', 'offer', 'accepted', 'diligence'] as const;
-type Step = typeof STEPS[number];
+const MARKETPLACE_STEPS = ['contact', 'nda', 'offer', 'accepted', 'diligence'] as const;
+const PROJECT_STEPS = ['contact', 'interest', 'accepted', 'collaboration'] as const;
 
-export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTimelineProps) {
+export function DealTimeline({ listingId, projectId, buyerId, sellerId, messages }: DealTimelineProps) {
   const { t } = useTranslation();
   const [ndaSigned, setNdaSigned] = useState(false);
+  const isProject = !!projectId;
+  const steps = isProject ? PROJECT_STEPS : MARKETPLACE_STEPS;
 
   useEffect(() => {
-    if (!listingId || !buyerId) return;
+    if (!listingId || !buyerId || isProject) return;
     
     const checkNda = async () => {
       const { data } = await supabase
@@ -36,31 +39,48 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
     };
     
     checkNda();
-  }, [listingId, buyerId]);
+  }, [listingId, buyerId, isProject]);
 
-  const currentStep = useMemo((): Step => {
-    const offerMessages = messages.filter(m => m.type === 'offer' || m.content.startsWith('OFFRE:'));
-    const acceptedOffer = offerMessages.find(m => m.metadata?.status === 'accepted');
-    
-    if (acceptedOffer) return 'diligence';
-    if (offerMessages.length > 0) {
-      const hasAccepted = offerMessages.some(m => m.metadata?.status === 'accepted');
-      if (hasAccepted) return 'diligence';
-      return 'offer';
+  const currentStep = useMemo(() => {
+    if (isProject) {
+      const interestMessages = messages.filter(m => m.type === 'project_interest');
+      const acceptedInterest = interestMessages.find(m => m.metadata?.status === 'accepted');
+      
+      // Si une tâche Kanban existe, on est en collaboration
+      const hasTasks = messages.some(m => m.type === 'task_update'); // Juste un exemple
+      
+      if (acceptedInterest) return 'collaboration';
+      if (interestMessages.length > 0) return 'interest';
+      return 'contact';
+    } else {
+      const offerMessages = messages.filter(m => m.type === 'offer' || m.content.startsWith('OFFRE:'));
+      const acceptedOffer = offerMessages.find(m => m.metadata?.status === 'accepted');
+      
+      if (acceptedOffer) return 'diligence';
+      if (offerMessages.length > 0) return 'offer';
+      if (ndaSigned) return 'nda';
+      return 'contact';
     }
-    if (ndaSigned) return 'nda';
-    return 'contact';
-  }, [messages, ndaSigned]);
+  }, [messages, ndaSigned, isProject]);
 
-  const stepIndex = STEPS.indexOf(currentStep);
+  const stepIndex = steps.indexOf(currentStep as any);
 
-  const stepConfig = [
+  const marketplaceConfig = [
     { key: 'contact',   icon: MessageCircle,  label: t('timeline.contact') || 'Contact' },
     { key: 'nda',       icon: ShieldCheck,    label: t('timeline.nda') || 'NDA' },
     { key: 'offer',     icon: Handshake,      label: t('timeline.offer') || 'Offre' },
     { key: 'accepted',  icon: CheckCircle2,   label: t('timeline.accepted') || 'Accepté' },
     { key: 'diligence', icon: Search,         label: t('timeline.diligence') || 'Diligence' },
   ];
+
+  const projectConfig = [
+    { key: 'contact',       icon: MessageCircle,  label: 'Contact' },
+    { key: 'interest',      icon: Zap,            label: 'Intérêt' },
+    { key: 'accepted',      icon: CheckCircle2,   label: 'Validé' },
+    { key: 'collaboration', icon: Star,           label: 'Suivi' },
+  ];
+
+  const stepConfig = isProject ? projectConfig : marketplaceConfig;
 
   return (
     <div className="w-full px-2 py-3">
@@ -72,7 +92,7 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
         <motion.div 
           className="absolute top-[18px] left-[24px] h-[2px] bg-gradient-to-r from-primary to-primary/60 z-[1]"
           initial={{ width: '0%' }}
-          animate={{ width: `${(stepIndex / (STEPS.length - 1)) * 100}%` }}
+          animate={{ width: `${(stepIndex / (steps.length - 1)) * 100}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
           style={{ maxWidth: 'calc(100% - 48px)' }}
         />
@@ -83,13 +103,11 @@ export function DealTimeline({ listingId, buyerId, sellerId, messages }: DealTim
           const Icon = step.icon;
 
           return (
-            <div key={step.key} className="flex flex-col items-center z-10 relative" style={{ width: `${100 / STEPS.length}%` }}>
+            <div key={step.key} className="flex flex-col items-center z-10 relative" style={{ width: `${100 / steps.length}%` }}>
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: idx * 0.1, duration: 0.3 }}
-                /* IMPORTANT: bg-[#0B0B0C] est 100% opaque. 
-                   Ca bloque la ligne d'arrière-plan sans effet de verre. */
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isCompleted
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'

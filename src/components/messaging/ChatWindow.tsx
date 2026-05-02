@@ -33,6 +33,8 @@ interface ChatWindowProps {
   contactStatus: 'none' | 'pending' | 'connected';
   onBack?: () => void;
   onClose?: () => void;
+  activeTab: 'messages' | 'workflow';
+  onTabChange: (tab: 'messages' | 'workflow') => void;
   t: (key: string, opts?: any) => string;
 }
 
@@ -48,10 +50,11 @@ export function ChatWindow({
   contactStatus,
   onBack,
   onClose,
+  activeTab,
+  onTabChange,
   t
 }: ChatWindowProps) {
   const { i18n } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'messages' | 'tasks'>('messages');
   const [input, setInput] = useState("");
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   
@@ -61,7 +64,6 @@ export function ChatWindow({
 
   useEffect(() => {
     setWorkflowSeen(localStorage.getItem(`workflow_seen_${activeConv?.id}`) === 'true');
-    setActiveTab('messages');
   }, [activeConv?.id]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -199,7 +201,11 @@ export function ChatWindow({
       <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shrink-0 bg-transparent z-10 border-b border-white/5">
         <div className="flex items-start gap-3 min-w-0 pr-2">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5" title={t('back', 'Retour')}>
+            <button 
+              onClick={onBack} 
+              className={`${activeTab === 'workflow' ? 'flex' : 'md:hidden'} p-2 -ml-2 text-white/50 hover:text-white transition-colors mt-0.5`} 
+              title={t('back', 'Retour')}
+            >
               <ChevronLeft className="w-6 h-6" strokeWidth={2} />
             </button>
           )}
@@ -252,44 +258,38 @@ export function ChatWindow({
 
       {/* Tab Selector */}
       <div className="px-4 sm:px-6 py-2 flex justify-center shrink-0 bg-transparent z-10">
-        <div className="bg-white/5 p-1 rounded-xl flex gap-1 liquid-glass !shadow-none border-white/5">
+        <div className="flex bg-black/40 rounded-full p-1 border border-white/5">
           <button 
-            onClick={() => setActiveTab('messages')}
-            className={`flex items-center gap-2 px-5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
-              activeTab === 'messages' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
-            }`}
+            onClick={() => onTabChange('messages')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-light transition-all ${activeTab === 'messages' ? 'bg-primary/20 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
           >
-            <MessageSquare className="w-3.5 h-3.5" /> {t('nav.messages', 'Messages')}
+            <MessageSquare size={14} /> {t('msg.tab_messages', 'Messages')}
           </button>
           <button 
             onClick={() => {
-              setActiveTab('tasks');
+              onTabChange('workflow');
               setWorkflowSeen(true);
               localStorage.setItem(`workflow_seen_${activeConv?.id}`, 'true');
             }}
-            className={`flex items-center gap-2 px-5 py-1.5 rounded-lg text-[11px] font-medium transition-all relative ${
-              activeTab === 'tasks' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/60'
-            }`}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-light transition-all relative ${activeTab === 'workflow' ? 'bg-primary/20 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
           >
-            <ClipboardCheck className="w-3.5 h-3.5" /> 
-            {t('msg.workflow', 'Workflow')}
-            {hasAcceptedOffer && !workflowSeen && activeTab !== 'tasks' && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-            )}
+            <ClipboardCheck size={14} /> {t('msg.tab_workflow', 'Workflow')}
+            {!workflowSeen && <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />}
           </button>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent">
+      <div className={`flex-1 ${activeTab === 'workflow' ? 'overflow-visible' : 'overflow-hidden'} flex flex-col relative bg-transparent`}>
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
             <motion.div 
               key="messages"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
               className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-3 sm:p-5 space-y-[4px]"
+              ref={scrollRef}
               style={{
                 maskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)',
                 WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)'
@@ -342,7 +342,7 @@ export function ChatWindow({
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words relative z-20 ${
+                        <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words relative z-20 whitespace-pre-wrap ${
                           isMine 
                             ? 'bg-primary text-white shadow-[0_4px_20px_rgba(168,85,247,0.15)]' 
                             : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5'
@@ -376,11 +376,12 @@ export function ChatWindow({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="flex-1 flex flex-col min-h-0 overflow-hidden w-full p-1 sm:p-3"
+              className="flex-1 flex flex-col min-h-0 w-full"
             >
               {hasAcceptedOffer ? (
                 <DueDiligenceTracker 
                   listingId={activeConv.listing_id}
+                  projectId={activeConv.project_id}
                   buyerId={activeConv.listing_owner_id === userId ? activeConv.other_user_id : userId}
                   sellerId={activeConv.listing_owner_id === userId ? userId : activeConv.other_user_id}
                 />

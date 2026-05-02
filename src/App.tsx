@@ -34,6 +34,7 @@ const Privacy = React.lazy(() => import("./pages/Privacy"));
 const Legal = React.lazy(() => import("./pages/Legal"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const Payment = React.lazy(() => import("./pages/Payment"));
+const Projects = React.lazy(() => import("./pages/Projects"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -83,6 +84,7 @@ const App = () => (
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/legal" element={<Legal />} />
                     <Route path="/payment" element={<Payment />} />
+                    <Route path="/projects" element={<Projects />} />
                     
                     {/* Routes Protégées */}
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
