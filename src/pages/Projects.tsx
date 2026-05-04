@@ -100,7 +100,7 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
         <div className="flex items-center gap-3 text-white/30 text-xs">
           {project.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/>{project.city}</span>}
           <span className="flex items-center gap-1"><Eye className="w-3 h-3"/>{project.view_count} {t('hub.views')}</span>
-          {project.interests_count > 0 && <span className="flex items-center gap-1"><Heart className="w-3 h-3"/>{project.interests_count} {t('hub.interests')}</span>}
+          {project.interest_count > 0 && <span className="flex items-center gap-1"><Heart className="w-3 h-3"/>{project.interest_count} {t('hub.interests')}</span>}
           {project.budget_max && (
             <span className="flex items-center gap-1 text-emerald-400/70">
               <Money className="w-3 h-3"/>{t('project.detail.budget')} : {project.budget_max.toLocaleString()}€

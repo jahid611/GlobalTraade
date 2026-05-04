@@ -201,7 +201,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
       // Clean up joined or read-only fields
       delete payload.profiles;
       delete payload.view_count;
-      delete payload.interests_count;
+      delete payload.interest_count;
       delete payload.id;
       delete payload.created_at;
 
