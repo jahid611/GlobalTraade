@@ -1457,7 +1457,7 @@ const resources = {
       "index.features.f2.extradesc": "Notre processus rigoureux de vérification interne garantit que chaque entité avec laquelle vous interagissez est une entreprise légitime et légalement enregistrée, réduisant considérablement la fraude B2B et les risques opérationnels.",
       "index.features.f3.title": "Messagerie Privée",
       "index.features.f3.desc": "Négociez et partagez vos documents comptables dans un environnement totalement sécurisé.",
-      "index.features.f3.extradesc": "Communicate en toute sécurité grâce à des protocoles de chiffrement de pointe. Vos négociations commerciales, contrats stratégiques et données d'entreprise internes restent strictement confidentiels à tout moment.",
+      "index.features.f3.extradesc": "Communiquez en toute sécurité grâce à des protocoles de chiffrement de pointe. Vos négociations commerciales, contrats stratégiques et données d'entreprise internes restent strictement confidentiels à tout moment.",
 
       "index.seo.title": "La Plateforme Ultime pour le Commerce B2B Mondial",
       "index.seo.p1": "Naviguer dans la complexité du commerce international et de la chaîne d'approvisionnement n'a jamais été aussi simple. Notre plateforme révolutionnaire réunit les fabricants, distributeurs spécialisés, grossistes et détaillants sur une place de marché B2B unique et unifiée. En s'appuyant sur une cartographie géospatiale avancée et des outils de communication en temps réel, les entreprises visionnaires peuvent rapidement découvrir de nouvelles opportunités lucratives dans leur région ou à travers le monde.",
@@ -1673,7 +1673,7 @@ const resources = {
       "form.hint_established": "L'année de création rassure les investisseurs et les banques sur la pérennité de l'affaire.",
       "form.hint_website": "Optionnel. Un site web rassure et donne beaucoup plus de contexte aux repreneurs potentiels.",
 
-      "form.privacy_notice_title": "Confidentiality Garantie",
+      "form.privacy_notice_title": "Confidentialité Garantie",
       "form.privacy_notice_desc": "Votre adresse exacte sert uniquement à positionner votre affaire dans une zone géographique large sur la carte 3D. Les acheteurs ne verront jamais la rue ou le numéro exact.",
 
       "val.name_req": "Nom requis (min 2 caractères)",
@@ -1781,7 +1781,7 @@ const resources = {
       "terms.s1_title": "1. Acceptation des Conditions",
       "terms.s1_desc": "En accédant et en utilisant la plateforme GlobeTrade, vous acceptez d'être lié par les termes et dispositions du présent accord. Si vous n'acceptez pas de vous conformer à ces conditions, veuillez ne pas utiliser notre service. Ces conditions s'appliquent à tous les visiteurs, utilisateurs et autres personnes qui accèdent ou utilisent la plateforme.",
       "terms.s2_title": "2. Description du Service",
-      "terms.s2_desc": "GlobeTrade fournit une place de marché en ligne permettant aux propriétaires d'entreprises vérifiés de lister leurs actifs à la vente et aux investisseurs qualifiés de découvrir et d'acquérir ces actifs. GlobeTrade agit uniquement en tant que facilitateur technologique et ne prend pas part au transfert légal des actifs ou des fonds entre acheteurs et vendeurs. Nous n'agissons pas en tant courtier, agent ou conseiller financier.",
+      "terms.s2_desc": "GlobeTrade fournit une place de marché en ligne permettant aux propriétaires d'entreprises vérifiés de lister leurs actifs à la vente et aux investisseurs qualifiés de découvrir et d'acquérir ces actifs. GlobeTrade agit uniquement en tant que facilitateur technologique et ne prend pas part au transfert légal des actifs ou des fonds entre acheteurs et vendeurs. Nous n'agissons pas en tant que courtier, agent ou conseiller financier.",
       "terms.s3_title": "3. Obligations et Conduite de l'Utilisateur",
       "terms.s3_desc": "Les utilisateurs doivent fournir des informations exactes, à jour et complètes lors de l'inscription et de la création d'annonces. Il est strictement interdit de publier de fausses données financières, de s'engager dans des activités frauduleuses ou d'utiliser la plateforme pour distribuer du spam ou des logiciels malveillants. GlobeTrade se réserve le droit de suspendre ou de fermer tout compte violant ces directives sans préavis.",
       "terms.s4_title": "4. Politique Zéro Commission",
@@ -1798,10 +1798,10 @@ const resources = {
       "privacy.s2_desc": "Les données que nous collectons sont strictement utilisées pour fournir, maintenir et améliorer nos services. Plus précisément, nous utilisons vos informations pour vérifier votre identité, traiter vos annonces, faciliter la communication entre acheteurs et vendeurs, fournir une assistance client et assurer la sécurité de la plateforme contre la fraude et les abus.",
       "privacy.s3_title": "3. Partage et Divulgation des Données",
       "privacy.s3_desc": "GlobeTrade ne vend, ne loue ni n'échange vos données personnelles ou d'entreprise à des tiers. Votre profil public et les détails publics de vos annonces sont visibles par les autres utilisateurs inscrits. Si vous choisissez de lister votre entreprise de manière confidentielle, vos détails sensibles (tels que l'emplacement exact et le SIRET) resteront masqués jusqu'à ce que vous accordiez explicitement l'accès à un acheteur potentiel.",
-      "privacy.s4_title": "4. Securité des Données",
+      "privacy.s4_title": "4. Sécurité des Données",
       "privacy.s4_desc": "Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles de pointe conçues pour protéger vos données personnelles contre la destruction, la perte, l'altération, la divulgation ou l'accès non autorisé, qu'ils soient accidentels ou illicites. Notre système de messagerie utilise un chiffrement de bout en bout pour garantir le secret des affaires.",
       "privacy.s5_title": "5. Vos Droits (RGPD)",
-      "privacy.s5_desc": "Si vous résidez dans l'Espace Économique Européen (EEA), vous avez le droit d'accéder, de rectifier ou d'effacer vos données personnelles, ainsi que le droit de limiter ou de vous opposer à certaines activités de traitement. Vous pouvez exercer ces droits à tout moment en accédant aux paramètres de votre compte ou en contactant directement notre délégué à la protection des données.",
+      "privacy.s5_desc": "Si vous résidez dans l'Espace Économique Européen (EEE), vous avez le droit d'accéder, de rectifier ou d'effacer vos données personnelles, ainsi que le droit de limiter ou de vous opposer à certaines activités de traitement. Vous pouvez exercer ces droits à tout moment en accédant aux paramètres de votre compte ou en contactant directement notre délégué à la protection des données.",
 
       "legal.title": "Mentions Légales",
       "legal.subtitle": "Informations légales et détails de l'entreprise concernant la plateforme GlobeTrade.",
@@ -2156,7 +2156,7 @@ const resources = {
       "dd.status_progress_label": "mise en cours",
       "dd.status_pending_label": "repassée en attente",
       "dd.title": "Audit & Due Diligence",
-      "dd.desc": "Centralize vos demandes de documents et suivez l'avancement de l'audit d'acquisition. Chaque action est synchronisée entre les deux parties.",
+      "dd.desc": "Centralisez vos demandes de documents et suivez l'avancement de l'audit d'acquisition. Chaque action est synchronisée entre les deux parties.",
       "dd.progress": "Progression",
       "dd.empty_title": "Structurez votre Audit",
       "dd.empty_desc": "Ne partez pas de zéro. Utilisez notre checklist standard d'audit M&A pour lister immédiatement les documents indispensables (Bilans, Baux, Statuts) et cadrer la négociation.",
