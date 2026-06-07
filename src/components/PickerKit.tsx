@@ -110,9 +110,9 @@ export function Dropdown({
               style={panelStyle(coords)}
               initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.12 }}
-              className="rounded-xl bg-[#211f25] border border-white/10 shadow-2xl p-1.5 overflow-auto no-scrollbar"
+              className="rounded-xl bg-[#211f25] border border-white/10 shadow-2xl p-1.5"
             >
-              <div style={{ maxHeight: coords.maxHeight }} className="overflow-auto no-scrollbar">
+              <div style={{ maxHeight: coords.maxHeight, WebkitOverflowScrolling: "touch" }} className="overflow-y-auto overscroll-contain no-scrollbar">
                 {options.map((o) => (
                   <button
                     key={o.value}
@@ -204,7 +204,7 @@ export function SearchableSelect({
                   />
                 </div>
               </div>
-              <div style={{ maxHeight: coords.maxHeight - 60 }} className="overflow-auto p-1.5 no-scrollbar">
+              <div style={{ maxHeight: coords.maxHeight - 60, WebkitOverflowScrolling: "touch" }} className="overflow-y-auto overscroll-contain p-1.5 no-scrollbar">
                 {filtered.length === 0 && (
                   <div className="px-3 py-6 text-center text-white/30 text-sm">Aucun secteur trouvé</div>
                 )}

@@ -127,7 +127,7 @@ export default function Radar() {
   const TabBtn = ({ id, label, icon: Icon, badge }: { id: "search" | "crm"; label: string; icon: React.ElementType; badge?: number }) => (
     <button
       onClick={() => setTab(id)}
-      className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all text-sm font-medium ${
+      className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 rounded-full transition-all text-sm font-medium ${
         tab === id ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-white/40 hover:text-white hover:bg-white/5"
       }`}
     >
@@ -143,19 +143,19 @@ export default function Radar() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[20vh] pb-20 px-[6vw] max-w-7xl mx-auto">
+      <main className="relative z-10 pt-24 md:pt-[20vh] pb-20 px-5 md:px-[6vw] max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10">
-          <div>
-            <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-4 transition-colors">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 md:gap-6 mb-8 md:mb-10">
+          <div className="min-w-0">
+            <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-3 md:mb-4 transition-colors">
               <ArrowLeft size={14} /> Tableau de bord
             </Link>
-            <h1 className="text-4xl font-light mb-2 tracking-tight flex items-center gap-3">
-              <RadarIcon className="text-primary" /> Prospection
+            <h1 className="text-3xl md:text-4xl font-light mb-2 tracking-tight flex items-center gap-3">
+              <RadarIcon className="text-primary shrink-0" /> Prospection
             </h1>
-            <p className="text-white/40 font-light italic">Trouve les entreprises de ton secteur (code APE) et contacte-les directement.</p>
+            <p className="text-white/40 font-light italic text-sm md:text-base">Trouve les entreprises de ton secteur (code APE) et contacte-les directement.</p>
           </div>
-          <div className="flex gap-2 p-1.5 rounded-full bg-black/20 border border-white/5">
+          <div className="flex gap-2 p-1.5 rounded-full bg-black/20 border border-white/5 w-full md:w-auto">
             <TabBtn id="search" label="Recherche" icon={Search} />
             <TabBtn id="crm" label="CRM" icon={Users2} badge={prospects.length} />
           </div>
@@ -205,28 +205,32 @@ export default function Radar() {
               {results.map((c) => {
                 const inCrm = prospectSirens.has(c.siren);
                 return (
-                  <div key={c.siren} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col md:flex-row md:items-center gap-4">
-                    <ScoreBadge score={c.score} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{c.nom}</div>
-                      <div className="text-white/40 text-sm truncate">
-                        {c.code_postal} {c.ville} · {c.nature_juridique} · {c.tranche_effectif}
+                  <div key={c.siren} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                    <div className="flex items-start gap-3 md:contents">
+                      <ScoreBadge score={c.score} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{c.nom}</div>
+                        <div className="text-white/40 text-sm truncate">
+                          {c.code_postal} {c.ville} · {c.nature_juridique} · {c.tranche_effectif}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-white/60 md:w-44 flex items-center gap-1.5">
-                      {c.dirigeant_nom ? (
-                        <><User size={13} className="text-white/30 shrink-0" /><span className="truncate">{c.dirigeant_nom}{c.dirigeant_age ? <span className="text-amber-300 font-medium"> · {c.dirigeant_age} ans</span> : null}</span></>
-                      ) : <span className="text-white/30">dirigeant n/c</span>}
+                    <div className="flex items-center justify-between gap-4 md:contents">
+                      <div className="text-sm text-white/60 md:w-44 flex items-center gap-1.5 min-w-0">
+                        {c.dirigeant_nom ? (
+                          <><User size={13} className="text-white/30 shrink-0" /><span className="truncate">{c.dirigeant_nom}{c.dirigeant_age ? <span className="text-amber-300 font-medium"> · {c.dirigeant_age} ans</span> : null}</span></>
+                        ) : <span className="text-white/30">dirigeant n/c</span>}
+                      </div>
+                      <div className="text-sm text-white/50 md:w-24 shrink-0">{c.anciennete != null ? `${c.anciennete} ans` : "—"}</div>
                     </div>
-                    <div className="text-sm text-white/50 md:w-24">{c.anciennete != null ? `${c.anciennete} ans` : "—"}</div>
                     <div className="flex items-center gap-2">
-                      <a href={annuaire(c.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Fiche annuaire-entreprises">
+                      <a href={annuaire(c.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white shrink-0" title="Fiche annuaire-entreprises">
                         <ExternalLink size={16} />
                       </a>
                       <Button
                         onClick={() => handleAdd(c)}
                         disabled={inCrm || adding === c.siren}
-                        className={`h-9 rounded-lg text-sm ${inCrm ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20" : "bg-white/10 hover:bg-white/20 text-white"}`}
+                        className={`flex-1 md:flex-none h-9 rounded-lg text-sm ${inCrm ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20" : "bg-white/10 hover:bg-white/20 text-white"}`}
                       >
                         {adding === c.siren ? <Loader2 size={14} className="animate-spin" /> : inCrm ? <><Check size={14} className="mr-1" /> Dans le CRM</> : <><Plus size={14} className="mr-1" /> Ajouter</>}
                       </Button>
@@ -275,27 +279,31 @@ export default function Radar() {
             ) : (
               <div className="space-y-3">
                 {prospects.map((p) => (
-                  <div key={p.id} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col md:flex-row md:items-center gap-4">
-                    <ScoreBadge score={p.score} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.nom}</div>
-                      <div className="text-white/40 text-sm truncate">
-                        {p.code_postal} {p.ville}
-                        {p.dirigeant_nom ? ` · ${p.dirigeant_nom}${p.dirigeant_age ? ` (${p.dirigeant_age} ans)` : ""}` : ""}
-                        {p.email ? ` · ${p.email}` : ""}
+                  <div key={p.id} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                    <div className="flex items-start gap-3 md:contents">
+                      <ScoreBadge score={p.score} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{p.nom}</div>
+                        <div className="text-white/40 text-sm truncate">
+                          {p.code_postal} {p.ville}
+                          {p.dirigeant_nom ? ` · ${p.dirigeant_nom}${p.dirigeant_age ? ` (${p.dirigeant_age} ans)` : ""}` : ""}
+                          {p.email ? ` · ${p.email}` : ""}
+                        </div>
                       </div>
                     </div>
-                    <Dropdown
-                      value={p.status}
-                      onChange={(v) => handleStatus(p, v as ProspectStatus)}
-                      options={STATUS_OPTIONS}
-                      className="md:w-44 shrink-0"
-                      buttonClassName={`w-full flex items-center justify-between gap-2 h-9 rounded-lg px-3 text-sm ${STATUS_META[p.status].color}`}
-                    />
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Email & message"><StickyNote size={16} /></button>
-                      <a href={annuaire(p.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Fiche entreprise"><ExternalLink size={16} /></a>
-                      <button onClick={() => setToDelete(p)} className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title="Retirer"><Trash2 size={16} /></button>
+                    <div className="flex items-center gap-2 md:contents">
+                      <Dropdown
+                        value={p.status}
+                        onChange={(v) => handleStatus(p, v as ProspectStatus)}
+                        options={STATUS_OPTIONS}
+                        className="flex-1 md:flex-none md:w-44 md:shrink-0"
+                        buttonClassName={`w-full flex items-center justify-between gap-2 h-9 rounded-lg px-3 text-sm ${STATUS_META[p.status].color}`}
+                      />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Email & message"><StickyNote size={16} /></button>
+                        <a href={annuaire(p.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Fiche entreprise"><ExternalLink size={16} /></a>
+                        <button onClick={() => setToDelete(p)} className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title="Retirer"><Trash2 size={16} /></button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -385,11 +393,11 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-start md:items-center justify-center p-3 md:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
     >
       <motion.div
-        className="liquid-glass-heavy rounded-[2rem] p-8 border border-white/10 w-full max-w-xl my-8"
+        className="liquid-glass-heavy rounded-[1.75rem] md:rounded-[2rem] p-5 md:p-8 border border-white/10 w-full max-w-xl my-4 md:my-8"
         initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
         onClick={(e) => e.stopPropagation()}
       >
