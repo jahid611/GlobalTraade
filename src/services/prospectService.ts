@@ -115,3 +115,19 @@ ${senderName}
 Vous recevez ce message car votre entreprise exerce dans un secteur concerné par nos activités de transmission d'entreprise. Vous pouvez vous opposer à toute nouvelle prise de contact en répondant simplement « STOP » à cet email.`;
   return { subject, body };
 }
+
+function csvCell(s: string): string {
+  return `"${(s || "").replace(/"/g, '""')}"`;
+}
+
+// Construit un CSV de campagne (1 ligne par entreprise) prêt à importer dans
+// un outil d'emailing (Brevo, Mailchimp…) pour un envoi groupé.
+export function buildCampaignCsv(prospects: Prospect[], senderName: string): string {
+  const header = ["Entreprise", "Email", "Dirigeant", "Ville", "Objet", "Message"];
+  const lines = [header.map(csvCell).join(",")];
+  for (const p of prospects) {
+    const { subject, body } = buildOutreachEmail(p, senderName);
+    lines.push([p.nom, p.email || "", p.dirigeant_nom || "", p.ville || "", subject, body].map(csvCell).join(","));
+  }
+  return lines.join("\r\n");
+}

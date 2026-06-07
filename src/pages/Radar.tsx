@@ -10,15 +10,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Radar as RadarIcon, Search, Loader2, Plus, Check, ExternalLink, Trash2,
   Users2, Flame, Sparkles, ArrowLeft, Mail, StickyNote, X, ChevronLeft, ChevronRight, Crosshair,
-  Send, Copy, RefreshCw, User,
+  Send, Copy, RefreshCw, User, Download, CheckSquare, Square, Zap,
 } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
 import { searchCompanies, type CompanyResult } from "@/services/sireneService";
 import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
+import { PricingModal } from "@/components/PricingModal";
 import {
-  listProspects, addProspect, updateProspect, deleteProspect, buildOutreachEmail,
+  listProspects, addProspect, updateProspect, deleteProspect, buildOutreachEmail, buildCampaignCsv,
   STATUS_META, STATUS_ORDER, type Prospect, type ProspectStatus,
 } from "@/services/prospectService";
 
@@ -65,6 +66,30 @@ export default function Radar() {
   const prospectSirens = useMemo(() => new Set(prospects.map((p) => p.siren)), [prospects]);
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [toDelete, setToDelete] = useState<Prospect | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showPricing, setShowPricing] = useState(false);
+
+  const toggleSel = (id: string) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const allSelected = prospects.length > 0 && selected.size === prospects.length;
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(prospects.map((p) => p.id)));
+
+  const exportCampaign = () => {
+    const list = prospects.filter((p) => selected.has(p.id) && p.email);
+    if (list.length === 0) { showError("Aucun sélectionné avec un email renseigné"); return; }
+    const csv = "﻿" + buildCampaignCsv(list, senderName);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `campagne-${list.length}-contacts.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showSuccess(`${list.length} contact(s) exporté(s) — importe le CSV dans ton outil d'emailing`);
+  };
 
   const runSearch = async (goPage = 1) => {
     setSearching(true);
@@ -269,6 +294,24 @@ export default function Radar() {
               ))}
             </div>
 
+            {/* Barre campagne / envoi groupé */}
+            {prospects.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 liquid-glass rounded-2xl px-4 py-3 border border-white/5">
+                <button onClick={toggleAll} className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors w-fit">
+                  {allSelected ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} />}
+                  {selected.size > 0 ? `${selected.size} sélectionné(s)` : "Tout sélectionner"}
+                </button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={exportCampaign} disabled={selected.size === 0} className="flex-1 sm:flex-none h-9 rounded-lg bg-white/10 hover:bg-white/20 text-sm disabled:opacity-40">
+                    <Download size={15} className="mr-1.5" /> Exporter CSV
+                  </Button>
+                  <Button onClick={() => setShowPricing(true)} className="flex-1 sm:flex-none h-9 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-sm border border-primary/30">
+                    <Zap size={15} className="mr-1.5" /> Envoi auto
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {crmLoading ? (
               <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
             ) : prospects.length === 0 ? (
@@ -281,6 +324,12 @@ export default function Radar() {
                 {prospects.map((p) => (
                   <div key={p.id} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
                     <div className="flex items-start gap-3 md:contents">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p.id)}
+                        onChange={() => toggleSel(p.id)}
+                        className="mt-1.5 md:mt-0 md:self-center accent-primary w-4 h-4 shrink-0 cursor-pointer"
+                      />
                       <ScoreBadge score={p.score} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{p.nom}</div>
@@ -333,6 +382,8 @@ export default function Radar() {
         onConfirm={() => toDelete && doDelete(toDelete)}
         onClose={() => setToDelete(null)}
       />
+
+      <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
     </div>
   );
 }
