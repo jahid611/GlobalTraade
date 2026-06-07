@@ -17,6 +17,8 @@ import {
   Moon,
   Translate,
   Handshake,
+  UsersThree,
+  Crosshair,
 } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,6 +57,8 @@ export function Navbar() {
     { name: t("nav.market"), path: "/marketplace", icon: Storefront },
     { name: t("nav.dashboard"), path: "/dashboard", icon: SquaresFour },
     { name: t("nav.projects"), path: "/projects", icon: Handshake },
+    { name: t("nav.sector"), path: "/secteur", icon: UsersThree },
+    { name: t("nav.prospect"), path: "/radar", icon: Crosshair },
   ];
 
   useEffect(() => {

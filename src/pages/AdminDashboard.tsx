@@ -5,7 +5,8 @@ import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon } from 'lucide-react';
+import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -118,8 +119,11 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-4xl font-light mb-2 tracking-tight">Console Maître</h1>
             <p className="text-white/40 font-light italic">Flux global et modération temps-réel.</p>
+            <Link to="/radar" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-full bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-sm font-medium transition-all">
+              <Radar size={16} /> Prospection
+            </Link>
           </div>
-          
+
           <div className="flex bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
             <TabButton id="overview" label={t('admin.tab_overview') || 'Aperçu'} icon={Eye} />
             <TabButton id="listings" label={t('admin.tab_listings') || 'Annonces'} icon={Store} />

@@ -103,3 +103,5 @@ input, textarea, select {
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.6); border-radius: 10px; }
+.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
