@@ -102,33 +102,32 @@ export function Dropdown({
         <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {createPortal(
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              ref={panelRef}
-              style={panelStyle(coords)}
-              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.12 }}
-              className="rounded-xl bg-[#211f25] border border-white/10 shadow-2xl p-1.5"
-            >
-              <div style={{ maxHeight: coords.maxHeight, WebkitOverflowScrolling: "touch" }} className="overflow-y-auto overscroll-contain no-scrollbar">
-                {options.map((o) => (
-                  <button
-                    key={o.value}
-                    onClick={() => { onChange(o.value); setOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
-                      o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="truncate">{o.label}</span>
-                    {o.value === value && <Check size={14} className="shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[999]" style={{ touchAction: "none" }} onClick={() => setOpen(false)} />
+          <motion.div
+            ref={panelRef}
+            style={panelStyle(coords)}
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.12 }}
+            className="rounded-xl bg-[#211f25] border border-white/10 shadow-2xl p-1.5"
+          >
+            <div style={{ maxHeight: coords.maxHeight, WebkitOverflowScrolling: "touch" }} className="overflow-y-auto overscroll-contain no-scrollbar">
+              {options.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
+                    o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"
+                  }`}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {o.value === value && <Check size={14} className="shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </>,
         document.body
       )}
     </div>
@@ -184,17 +183,17 @@ export function SearchableSelect({
         <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {createPortal(
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              ref={panelRef}
-              style={panelStyle(coords)}
-              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.12 }}
-              className="rounded-2xl bg-[#211f25] border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-            >
-              <div className="p-2 border-b border-white/5">
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[999]" style={{ touchAction: "none" }} onClick={() => setOpen(false)} />
+          <motion.div
+            ref={panelRef}
+            style={panelStyle(coords)}
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.12 }}
+            className="rounded-2xl bg-[#211f25] border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="p-2 border-b border-white/5">
                 <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 h-10">
                   <Search size={15} className="text-white/30 shrink-0" />
                   <input
@@ -227,9 +226,8 @@ export function SearchableSelect({
                   </div>
                 ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
+          </motion.div>
+        </>,
         document.body
       )}
     </div>
