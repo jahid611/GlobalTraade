@@ -482,7 +482,12 @@ export default function Radar() {
 
 function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prospect; senderName: string; onClose: () => void; onSaved: () => void }) {
   const { t, i18n } = useTranslation();
-  const initialLang: "fr" | "en" = i18n.language?.startsWith("en") ? "en" : "fr";
+  // Langue mémorisée par prospect (localStorage) ; sinon on suit la langue du site.
+  const langKey = `gt:mailLang:${prospect.id}`;
+  const readStoredLang = (): "fr" | "en" | null => {
+    try { const v = localStorage.getItem(langKey); return v === "en" || v === "fr" ? v : null; } catch { return null; }
+  };
+  const initialLang: "fr" | "en" = readStoredLang() || (i18n.language?.startsWith("en") ? "en" : "fr");
   const [mailLang, setMailLang] = useState<"fr" | "en">(initialLang);
   const [email, setEmail] = useState(prospect.email || "");
   const [notes, setNotes] = useState(prospect.notes || "");
@@ -495,6 +500,7 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
   const applyMailLang = (lang: "fr" | "en") => {
     if (lang === mailLang) return;
     setMailLang(lang);
+    try { localStorage.setItem(langKey, lang); } catch {}
     const m = buildOutreachEmail(prospect, senderName, lang);
     setSubject(m.subject);
     setBody(m.body);
