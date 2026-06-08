@@ -59,9 +59,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const refreshUser = async () => {
+    // getUser() interroge le serveur et renvoie les métadonnées à jour (ex: nouvel avatar).
+    // getSession() lit le cache local et garderait l'ancienne photo jusqu'au prochain refresh.
+    const { data: { user: freshUser } } = await supabase.auth.getUser();
     const { data: { session } } = await supabase.auth.getSession();
     setSession(session);
-    setUser(session?.user || null);
+    setUser(freshUser ?? session?.user ?? null);
   };
 
   return (

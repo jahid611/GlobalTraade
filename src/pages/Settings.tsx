@@ -144,18 +144,20 @@ export default function Settings() {
 
       const { error } = await supabase.auth.updateUser({ data: authPayload });
       if (error) throw error;
-      
-      await refreshUser();
-      
-      const { error: dbError } = await supabase.from('profiles').upsert({ 
-        id: user.id, 
-        ...payload, 
+
+      const { error: dbError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        ...payload,
         target_sectors: targetSectors,
         target_budget: targetBudget,
         target_geo: targetGeo,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       });
       if (dbError) throw dbError;
+
+      // Rafraîchit l'utilisateur APRÈS la mise à jour de la table profiles,
+      // pour que la Navbar (qui relit profiles au changement de user) ait déjà la nouvelle photo.
+      await refreshUser();
 
       setInitialData(authPayload);
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
