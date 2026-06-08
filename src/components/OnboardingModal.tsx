@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ChevronRight, ChevronLeft, Check, Building2, Target, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "react-i18next";
+
+// Gate global : affiche l'onboarding pour TOUT utilisateur connecté (email OU
+// Google OAuth) dont onboarding_completed n'est pas true. Monté une fois dans App.
+export function OnboardingGate() {
+  const { user, loading } = useAuth();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (loading || !user) { setShow(false); return; }
+    let active = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!active) return;
+        // Fail-open : si la colonne n'existe pas encore (avant migration) ou erreur,
+        // on n'impose pas l'onboarding pour ne bloquer personne.
+        if (error) { setShow(false); return; }
+        setShow(data?.onboarding_completed !== true);
+      } catch {
+        if (active) setShow(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [user, loading]);
+
+  if (!show) return null;
+  return <OnboardingModal onDone={() => setShow(false)} />;
+}
 
 // Onboarding légal (inspiré du parcours Bpifrance) : profil → entité → objectifs → légal.
 export function OnboardingModal({ onDone }: { onDone: () => void }) {

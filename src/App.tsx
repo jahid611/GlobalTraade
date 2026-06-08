@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OnboardingGate } from "@/components/OnboardingModal";
 
 // Stripe
 import { Elements } from '@stripe/react-stripe-js';
@@ -48,7 +49,8 @@ const queryClient = new QueryClient({
   },
 });
 
-const stripePromise = loadStripe('pk_test_your_key_here');
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 // Skeleton moderne au lieu du rond qui tourne
 const PageLoaderSkeleton = () => (
@@ -72,6 +74,7 @@ const App = () => (
             <Elements stripe={stripePromise}>
               <BrowserRouter>
                 <GlobalNotifications />
+                <OnboardingGate />
                 <HotToaster position="top-right" />
                 <SonnerToaster position="bottom-right" />
                 <Suspense fallback={<PageLoaderSkeleton />}>
