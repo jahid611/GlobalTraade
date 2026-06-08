@@ -565,7 +565,7 @@ const resources = {
       "filters.reset": "Reset",
       "filters.submit": "Show results",
 
-      "index.hero.title1": "Buy or sell a business,",
+      "index.hero.title1": "With Globly, buy or sell a business,",
       "index.hero.title2": "simply.",
       "index.hero.desc": "The right buyer, the right deal — zero commission.",
 
@@ -1735,7 +1735,7 @@ const resources = {
       "filters.reset": "Réinitialiser",
       "filters.submit": "Voir les résultats",
 
-      "index.hero.title1": "Cédez ou reprenez une entreprise,",
+      "index.hero.title1": "Avec Globly, cédez ou reprenez une entreprise,",
       "index.hero.title2": "simplement.",
       "index.hero.desc": "Le bon repreneur, la bonne affaire — sans commission.",
 
