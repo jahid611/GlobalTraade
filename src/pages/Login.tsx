@@ -198,8 +198,8 @@ export default function Login() {
                   ) : (
                     <div>
                       <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">
-                        {t('auth.welcome.title1')} <br/>
-                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">{t('auth.welcome.title2')}</span>
+                        {t('auth.welcome.title1')}{' '}
+                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
                       </h2>
                       <p className="text-slate-800 dark:text-white/90 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">{t('auth.welcome.desc')}</p>
                       <ul className="space-y-5 text-slate-800 dark:text-white/90 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
