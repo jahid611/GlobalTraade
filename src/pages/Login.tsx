@@ -186,23 +186,23 @@ export default function Login() {
 
                   {mode === 'signup' ? (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_1px_1px_rgba(255,255,255,0.7),0_3px_6px_rgba(0,0,0,0.32)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.hero.title1')} <br/>
-                        <span className="font-medium text-primary [text-shadow:0_2px_6px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">{t('auth.hero.title2')}</span>
+                        <span className="font-medium text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">{t('auth.hero.title2')}</span>
                       </h2>
-                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_1px_2px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.hero.desc')}</p>
-                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.hero.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.signup_f${i}`)}</li>)}
                       </ul>
                     </div>
                   ) : (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_1px_1px_rgba(255,255,255,0.7),0_3px_6px_rgba(0,0,0,0.32)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.welcome.title1')}{' '}
-                        <span className="font-medium text-primary [text-shadow:0_2px_6px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
+                        <span className="font-medium text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
                       </h2>
-                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_1px_2px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.welcome.desc')}</p>
-                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.welcome.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.login_f${i}`)}</li>)}
                       </ul>
                     </div>
