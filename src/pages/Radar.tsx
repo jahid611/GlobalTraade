@@ -44,7 +44,8 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export default function Radar() {
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const siteLang: "fr" | "en" = i18n.language?.startsWith("en") ? "en" : "fr";
   const { user } = useAuth();
   const senderName = user?.user_metadata?.full_name || user?.email || "[Votre nom]";
   const [tab, setTab] = useState<"search" | "crm">("search");
@@ -90,7 +91,7 @@ export default function Radar() {
   const exportCampaign = () => {
     const list = prospects.filter((p) => selected.has(p.id) && p.email);
     if (list.length === 0) { showError("Aucun sélectionné avec un email renseigné"); return; }
-    const csv = "﻿" + buildCampaignCsv(list, senderName);
+    const csv = "﻿" + buildCampaignCsv(list, senderName, siteLang);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -439,9 +440,9 @@ export default function Radar() {
                         buttonClassName={`w-full flex items-center justify-between gap-2 h-9 rounded-lg px-3 text-sm ${STATUS_META[p.status].color}`}
                       />
                       <div className="flex items-center gap-2 shrink-0">
-                        <button onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Email & message"><StickyNote size={16} /></button>
-                        <a href={annuaire(p.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title="Fiche entreprise"><ExternalLink size={16} /></a>
-                        <button onClick={() => setToDelete(p)} className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title="Retirer"><Trash2 size={16} /></button>
+                        <button onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title={t('crm.action_email', 'Email & message')}><StickyNote size={16} /></button>
+                        <a href={annuaire(p.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white" title={t('crm.action_sheet', "Fiche entreprise")}><ExternalLink size={16} /></a>
+                        <button onClick={() => setToDelete(p)} className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400" title={t('crm.action_remove', 'Retirer')}><Trash2 size={16} /></button>
                       </div>
                     </div>
                   </div>
@@ -466,9 +467,10 @@ export default function Radar() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Retirer ce prospect ?"
-        message={toDelete ? `${toDelete.nom} sera retiré de ton CRM.` : ""}
-        confirmLabel="Retirer"
+        title={t('crm.delete_title', 'Retirer ce prospect ?')}
+        message={toDelete ? t('crm.delete_msg', { nom: toDelete.nom, defaultValue: '{{nom}} sera retiré de ton CRM.' }) : ""}
+        confirmLabel={t('crm.delete_confirm', 'Retirer')}
+        cancelLabel={t('common.cancel', 'Annuler')}
         onConfirm={() => toDelete && doDelete(toDelete)}
         onClose={() => setToDelete(null)}
       />
@@ -479,28 +481,40 @@ export default function Radar() {
 }
 
 function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prospect; senderName: string; onClose: () => void; onSaved: () => void }) {
+  const { t, i18n } = useTranslation();
+  const initialLang: "fr" | "en" = i18n.language?.startsWith("en") ? "en" : "fr";
+  const [mailLang, setMailLang] = useState<"fr" | "en">(initialLang);
   const [email, setEmail] = useState(prospect.email || "");
   const [notes, setNotes] = useState(prospect.notes || "");
-  const initial = buildOutreachEmail(prospect, senderName);
+  const initial = buildOutreachEmail(prospect, senderName, initialLang);
   const [subject, setSubject] = useState(initial.subject);
   const [body, setBody] = useState(initial.body);
   const [saving, setSaving] = useState(false);
 
-  const regenerate = () => {
-    const m = buildOutreachEmail(prospect, senderName);
+  // Change la langue de CE mail uniquement — n'affecte pas la langue du site.
+  const applyMailLang = (lang: "fr" | "en") => {
+    if (lang === mailLang) return;
+    setMailLang(lang);
+    const m = buildOutreachEmail(prospect, senderName, lang);
     setSubject(m.subject);
     setBody(m.body);
-    showSuccess("Message régénéré");
+  };
+
+  const regenerate = () => {
+    const m = buildOutreachEmail(prospect, senderName, mailLang);
+    setSubject(m.subject);
+    setBody(m.body);
+    showSuccess(t('crm.mail.regenerated', 'Message régénéré'));
   };
 
   const save = async () => {
     setSaving(true);
     try {
       await updateProspect(prospect.id, { email: email.trim() || null, notes: notes.trim() || null });
-      showSuccess("Enregistré");
+      showSuccess(t('crm.mail.saved', 'Enregistré'));
       onSaved();
     } catch {
-      showError("Erreur d'enregistrement");
+      showError(t('crm.mail.save_err', "Erreur d'enregistrement"));
     } finally {
       setSaving(false);
     }
@@ -509,24 +523,24 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
   const copyMessage = async () => {
     try {
       await navigator.clipboard.writeText(`${subject}\n\n${body}`);
-      showSuccess("Message copié");
+      showSuccess(t('crm.mail.copied', 'Message copié'));
     } catch {
-      showError("Copie impossible");
+      showError(t('crm.mail.copy_err', 'Copie impossible'));
     }
   };
 
   // Ouvre la messagerie de l'utilisateur (Gmail/Outlook/Mail) pré-remplie, puis marque "Contacté"
   const sendViaMailbox = async () => {
-    if (!email.trim()) { showError("Renseigne d'abord l'email du dirigeant"); return; }
+    if (!email.trim()) { showError(t('crm.mail.email_required', "Renseigne d'abord l'email du dirigeant")); return; }
     const mailto = `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
     try {
       const nextStatus: ProspectStatus = prospect.status === "a_qualifier" || prospect.status === "email_trouve" ? "contacte" : prospect.status;
       await updateProspect(prospect.id, { email: email.trim(), notes: notes.trim() || null, status: nextStatus });
-      showSuccess("Ouvert dans ta messagerie — marqué « Contacté »");
+      showSuccess(t('crm.mail.opened', 'Ouvert dans ta messagerie — marqué « Contacté »'));
       onSaved();
     } catch {
-      showError("Email ouvert, mais maj statut échouée");
+      showError(t('crm.mail.opened_err', 'Email ouvert, mais maj statut échouée'));
     }
   };
 
@@ -552,47 +566,62 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
 
         {prospect.dirigeant_nom && (
           <div className="mb-5 text-sm text-white/60">
-            Dirigeant : <strong className="text-white">{prospect.dirigeant_nom}</strong>
-            {prospect.dirigeant_age ? ` · ${prospect.dirigeant_age} ans` : ""}
+            {t('crm.mail.director', 'Dirigeant')} : <strong className="text-white">{prospect.dirigeant_nom}</strong>
+            {prospect.dirigeant_age ? ` · ${t('radar.years', { n: prospect.dirigeant_age, defaultValue: '{{n}} ans' })}` : ""}
           </div>
         )}
 
-        <label className="text-xs uppercase tracking-widest text-white/40 mb-2 flex items-center gap-2"><Mail size={12} /> Email du dirigeant</label>
+        <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2"><Mail size={12} /> {t('crm.mail.director_email', 'Email du dirigeant')}</label>
         <div className="flex gap-2 mb-1">
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contact@entreprise.fr"
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('crm.mail.email_ph', 'contact@entreprise.fr')}
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 h-11 text-white outline-none focus:border-primary/50" />
-          <a href={findEmail} target="_blank" rel="noreferrer" className="px-3 h-11 flex items-center rounded-xl bg-white/5 hover:bg-white/10 text-white/60 text-sm whitespace-nowrap" title="Chercher l'email sur le web">
-            <Search size={14} className="mr-1" /> Trouver
+          <a href={findEmail} target="_blank" rel="noreferrer" className="px-3 h-11 flex items-center rounded-xl bg-white/5 hover:bg-white/10 text-white/60 text-sm whitespace-nowrap" title={t('crm.mail.find_tip', "Chercher l'email sur le web")}>
+            <Search size={14} className="mr-1" /> {t('crm.mail.find', 'Trouver')}
           </a>
         </div>
-        <p className="text-white/30 text-xs mb-6">Sirene ne fournit pas l'email — trouve-le via « Trouver » (site web de la boîte) et colle-le ici.</p>
+        <p className="text-white/40 text-xs mb-6">{t('crm.mail.find_hint', "Sirene ne fournit pas l'email — trouve-le via « Trouver » (site web de la boîte) et colle-le ici.")}</p>
 
         {/* --- Message de prise de contact --- */}
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs uppercase tracking-widest text-white/40 flex items-center gap-2"><Send size={12} /> Message de contact</label>
-          <button onClick={regenerate} className="text-xs text-white/40 hover:text-white flex items-center gap-1"><RefreshCw size={11} /> Régénérer</button>
+        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <label className="text-xs uppercase tracking-widest text-white/50 flex items-center gap-2"><Send size={12} /> {t('crm.mail.message', 'Message de contact')}</label>
+          <div className="flex items-center gap-2">
+            {/* Langue de l'email — indépendante de la langue du site */}
+            <div className="flex items-center gap-1 p-0.5 rounded-full bg-white/5 border border-white/10" title={t('crm.mail.lang_tip', "Langue de cet email (n'affecte pas la langue du site)")}>
+              {(["fr", "en"] as const).map((lng) => (
+                <button
+                  key={lng}
+                  type="button"
+                  onClick={() => applyMailLang(lng)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium uppercase transition-colors ${mailLang === lng ? 'bg-primary text-white' : 'text-white/50 hover:text-white'}`}
+                >
+                  {lng}
+                </button>
+              ))}
+            </div>
+            <button onClick={regenerate} className="text-xs text-white/50 hover:text-white flex items-center gap-1"><RefreshCw size={11} /> {t('crm.mail.regen', 'Régénérer')}</button>
+          </div>
         </div>
-        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Objet"
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t('crm.mail.subject_ph', 'Objet')}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-11 text-white outline-none focus:border-primary/50 mb-2" />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50 resize-none mb-2 leading-relaxed" />
         <div className="flex gap-2 mb-6">
-          <Button onClick={sendViaMailbox} disabled={!email.trim()} className="flex-1 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-40">
-            <Send size={15} className="mr-2" /> Ouvrir dans ma messagerie
+          <Button onClick={sendViaMailbox} disabled={!email.trim()} className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white disabled:opacity-40">
+            <Send size={15} className="mr-2" /> {t('crm.mail.open_mailbox', 'Ouvrir dans ma messagerie')}
           </Button>
-          <Button onClick={copyMessage} className="rounded-xl bg-white/5 hover:bg-white/10" title="Copier le message">
+          <Button onClick={copyMessage} className="rounded-xl bg-white/5 hover:bg-white/10 text-white" title={t('crm.mail.copy', 'Copier le message')}>
             <Copy size={15} />
           </Button>
         </div>
 
-        <label className="text-xs uppercase tracking-widest text-white/40 mb-2 flex items-center gap-2"><StickyNote size={12} /> Notes</label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Contexte, historique d'échange, prochaines étapes…"
+        <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2"><StickyNote size={12} /> {t('crm.mail.notes', 'Notes')}</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('crm.mail.notes_ph', "Contexte, historique d'échange, prochaines étapes…")}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 resize-none mb-6" />
 
         <div className="flex gap-3 justify-end">
-          <Button onClick={onClose} className="rounded-xl bg-white/5 hover:bg-white/10">Fermer</Button>
-          <Button onClick={save} disabled={saving} className="rounded-xl bg-white/10 hover:bg-white/20">
-            {saving ? <Loader2 size={16} className="animate-spin" /> : "Enregistrer"}
+          <Button onClick={onClose} className="rounded-xl bg-white/5 hover:bg-white/10 text-white">{t('crm.mail.close', 'Fermer')}</Button>
+          <Button onClick={save} disabled={saving} className="rounded-xl bg-white/10 hover:bg-white/20 text-white">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : t('crm.mail.save', 'Enregistrer')}
           </Button>
         </div>
       </motion.div>

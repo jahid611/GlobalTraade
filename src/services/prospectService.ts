@@ -99,7 +99,27 @@ export async function deleteProspect(id: string): Promise<void> {
 
 // Génère un email de prise de contact (cession / rapprochement) personnalisé.
 // B2B : inclut une identification + une possibilité d'opposition (conforme CNIL).
-export function buildOutreachEmail(p: Prospect, senderName = "[Votre nom]"): { subject: string; body: string } {
+export function buildOutreachEmail(p: Prospect, senderName = "[Votre nom]", lang: "fr" | "en" = "fr"): { subject: string; body: string } {
+  if (lang === "en") {
+    const greeting = p.dirigeant_nom ? `Hello ${p.dirigeant_nom},` : "Hello,";
+    const ville = p.ville ? ` in the ${p.ville} area` : "";
+    const subject = `Business transfer / partnership — ${p.nom}`;
+    const body = `${greeting}
+
+I'm reaching out regarding a possible business combination between companies in our sector${ville}.
+
+Your company ${p.nom} caught my attention. If you are considering — even in the medium term — a sale, a transfer or a partnership, I would be glad to discuss it with you in full confidence, with no commitment on your part.
+
+Would you be available for a short phone call in the coming days?
+
+Best regards,
+${senderName}
+
+---
+You are receiving this message because your company operates in a sector related to our business-transfer activities. You can object to any further contact by simply replying "STOP" to this email.`;
+    return { subject, body };
+  }
+
   const greeting = p.dirigeant_nom ? `Bonjour ${p.dirigeant_nom},` : "Bonjour,";
   const ville = p.ville ? ` dans le secteur de ${p.ville}` : "";
   const subject = `Transmission / rapprochement — ${p.nom}`;
@@ -125,11 +145,13 @@ function csvCell(s: string): string {
 
 // Construit un CSV de campagne (1 ligne par entreprise) prêt à importer dans
 // un outil d'emailing (Brevo, Mailchimp…) pour un envoi groupé.
-export function buildCampaignCsv(prospects: Prospect[], senderName: string): string {
-  const header = ["Entreprise", "Email", "Dirigeant", "Ville", "Objet", "Message"];
+export function buildCampaignCsv(prospects: Prospect[], senderName: string, lang: "fr" | "en" = "fr"): string {
+  const header = lang === "en"
+    ? ["Company", "Email", "Director", "City", "Subject", "Message"]
+    : ["Entreprise", "Email", "Dirigeant", "Ville", "Objet", "Message"];
   const lines = [header.map(csvCell).join(",")];
   for (const p of prospects) {
-    const { subject, body } = buildOutreachEmail(p, senderName);
+    const { subject, body } = buildOutreachEmail(p, senderName, lang);
     lines.push([p.nom, p.email || "", p.dirigeant_nom || "", p.ville || "", subject, body].map(csvCell).join(","));
   }
   return lines.join("\r\n");
