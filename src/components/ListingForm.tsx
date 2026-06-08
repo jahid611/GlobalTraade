@@ -20,6 +20,13 @@ import { Dropdown } from '@/components/PickerKit';
 
 const getListingSchema = (t: any) => {
   const currentYear = new Date().getFullYear();
+  // Nombre OBLIGATOIRE : un champ vide ("") est rejeté (≠ 0). 0 reste accepté
+  // s'il est saisi explicitement. Évite que z.coerce.number() transforme "" en 0.
+  const reqNum = (min: number, msg: string) =>
+    z.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+      z.number({ required_error: msg, invalid_type_error: msg }).min(min, msg)
+    );
   return z.object({
     name: z.string().min(2, t('val.name_req')),
     siret: z.string().regex(/^[0-9]{14}$/, t('val.siret_req')),
@@ -29,12 +36,12 @@ const getListingSchema = (t: any) => {
     address: z.string().min(5, t('val.address_req')),
     lat: z.number({ required_error: t('val.address_req') }),
     lng: z.number({ required_error: t('val.address_req') }),
-    price: z.coerce.number({ invalid_type_error: t('val.price_min') }).min(1, t('val.price_min')),
-    revenue_n1: z.coerce.number({ invalid_type_error: t('val.rev_min') }).min(0, t('val.rev_min')),
-    ebitda: z.coerce.number({ invalid_type_error: t('val.rev_min') }).min(-1000000000, t('val.rev_min')),
-    rent: z.coerce.number({ invalid_type_error: t('val.rev_min') }).min(0, t('val.rev_min')),
-    employees: z.coerce.number({ invalid_type_error: t('val.rev_min') }).min(0, t('val.rev_min')),
-    surface: z.coerce.number({ invalid_type_error: t('val.rev_min') }).min(0, t('val.rev_min')),
+    price: reqNum(1, t('val.price_min')),
+    revenue_n1: reqNum(0, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
+    ebitda: reqNum(-1000000000, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
+    rent: reqNum(0, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
+    employees: reqNum(0, t('val.amount_req', 'Champ requis — indiquez 0 si aucun')),
+    surface: reqNum(0, t('val.amount_req', 'Champ requis — indiquez 0 si aucun')),
     lease_details: z.string().min(2, t('val.lease_min')),
     description: z.string().min(10, t('val.desc_min')),
     reason_for_selling: z.string().optional().nullable().or(z.literal("")),
