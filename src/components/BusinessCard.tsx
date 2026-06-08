@@ -16,9 +16,10 @@ interface BusinessCardProps {
   variant?: 'default' | 'dashboard';
   actions?: React.ReactNode;
   onFavoriteToggle?: (listingId: string, isFavorite: boolean) => void;
+  matchScore?: number;
 }
 
-export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: BusinessCardProps) {
+export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matchScore }: BusinessCardProps) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const [isFavorite, setIsFavorite] = useState(false);
@@ -98,8 +99,22 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle }: Bu
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full shadow-none border-white/10 overflow-hidden"
+      className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full shadow-none border-white/10 overflow-hidden"
     >
+      {typeof matchScore === 'number' && (
+        <div
+          className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md"
+          style={
+            matchScore >= 80
+              ? { background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.35)' }
+              : matchScore >= 55
+              ? { background: 'rgba(89,85,232,0.2)', color: '#a5b4fc', borderColor: 'rgba(89,85,232,0.35)' }
+              : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)' }
+          }
+        >
+          {matchScore}% {t('card.match', 'match')}
+        </div>
+      )}
       <div className="p-5 sm:p-7 flex flex-col flex-1">
         
         <div className="flex justify-between items-start mb-6 gap-4">

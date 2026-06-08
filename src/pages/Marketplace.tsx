@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria } from '@/components/SmartMatchForm';
+import { scoreListing, ProfileCriteria } from '@/lib/matching';
 import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
@@ -60,59 +61,61 @@ export default function Marketplace() {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  
+  const [matchCriteria, setMatchCriteria] = useState<MatchCriteria | null>(null);
+
   const navigate = useNavigate();
+
+  // Critères d'investissement du profil (renseignés à l'onboarding / Réglages).
+  const profileCriteria = useMemo<ProfileCriteria>(() => ({
+    target_sectors: (user?.user_metadata as any)?.target_sectors,
+    target_budget: (user?.user_metadata as any)?.target_budget,
+    target_geo: (user?.user_metadata as any)?.target_geo,
+  }), [user]);
 
   const availableIndustries = useMemo(() => {
     return Array.from(new Set(listings.map(l => l.industry))).sort();
   }, [listings]);
 
-  const filteredListings = useMemo(() => {
+  const displayedListings = useMemo(() => {
     let result = [...listings];
 
+    // Filtres manuels (panneau « Ajuster les filtres »)
     if (filters.region && filters.region !== "All Countries") {
       result = result.filter(l => l.address && l.address.toLowerCase().includes(filters.region.split(' ')[0].toLowerCase()));
     }
-
     if (filters.industry) result = result.filter(l => l.industry === filters.industry);
     if (filters.priceMin) result = result.filter(l => l.price >= Number(filters.priceMin));
     if (filters.priceMax) result = result.filter(l => l.price <= Number(filters.priceMax));
     if (filters.revenueMin) result = result.filter(l => l.revenue_n1 >= Number(filters.revenueMin));
     if (filters.ebitdaMin) result = result.filter(l => l.ebitda >= Number(filters.ebitdaMin));
 
-    if (filters.sortBy === 'recent') {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    } else if (filters.sortBy === 'price_asc') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (filters.sortBy === 'price_desc') {
-      result.sort((a, b) => b.price - a.price);
-    } else if (filters.sortBy === 'views') {
-      result.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-    } else if (filters.sortBy === 'roi') {
-      result.sort((a, b) => {
-        const roiA = a.price > 0 ? (a.ebitda / a.price) : 0;
-        const roiB = b.price > 0 ? (b.ebitda / b.price) : 0;
-        return roiB - roiA;
-      });
+    // Recherche intelligente -> score de pertinence réel + tri décroissant
+    if (matchCriteria) {
+      return result
+        .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
+        .sort((a, b) => (b._matchScore || 0) - (a._matchScore || 0));
     }
 
+    // Sinon, tri classique
+    if (filters.sortBy === 'recent') result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    else if (filters.sortBy === 'price_asc') result.sort((a, b) => a.price - b.price);
+    else if (filters.sortBy === 'price_desc') result.sort((a, b) => b.price - a.price);
+    else if (filters.sortBy === 'views') result.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+    else if (filters.sortBy === 'roi') result.sort((a, b) => {
+      const roiA = a.price > 0 ? (a.ebitda / a.price) : 0;
+      const roiB = b.price > 0 ? (b.ebitda / b.price) : 0;
+      return roiB - roiA;
+    });
+
     return result;
-  }, [listings, filters]);
+  }, [listings, filters, matchCriteria, profileCriteria]);
 
   const handleSmartMatch = (criteria: MatchCriteria) => {
+    setMatchCriteria(criteria);
     document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
     setIsMatching(true);
-    
-    setTimeout(() => {
-      setFilters(prev => ({
-        ...prev,
-        industry: criteria.industry || "",
-        region: criteria.region || "",
-        priceMax: criteria.budget > 0 ? criteria.budget.toString() : "",
-        sortBy: criteria.budget > 0 ? 'roi' : prev.sortBy
-      }));
-      setIsMatching(false);
-    }, 1500);
+    // Courte transition (le calcul est réel et instantané, c'est juste l'animation).
+    setTimeout(() => setIsMatching(false), 600);
   };
 
   const getActiveFilterCount = () => {
@@ -132,9 +135,9 @@ export default function Marketplace() {
 
       <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
         <motion.div
-          animate={{ y: [0, -20, 0] }}
+          animate={{ y: [0, -18, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-9%] right-[-12%] md:top-[-12%] md:right-[-7%] w-[150px] md:w-[300px] z-0 pointer-events-none opacity-70 hidden sm:block"
+          className="absolute top-[26%] right-[-9%] md:top-[24%] md:right-[-4%] w-[130px] md:w-[230px] z-0 pointer-events-none opacity-80 hidden lg:block"
         >
           <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
@@ -159,8 +162,17 @@ export default function Marketplace() {
             <div>
               <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-[0.5vh] text-white">{t('market.portfolios')}</h2>
               <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/90 font-light">
-                {filteredListings.length} {t('market.found')}
+                {displayedListings.length} {t('market.found')}
               </p>
+              {matchCriteria && (
+                <button
+                  onClick={() => setMatchCriteria(null)}
+                  className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  {t('market.sorted_relevance', 'Trié par pertinence')} · {t('market.clear_match', 'réinitialiser')}
+                </button>
+              )}
             </div>
             <Button 
               variant="ghost" 
@@ -186,7 +198,7 @@ export default function Marketplace() {
                  {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
                </div>
             </motion.div>
-          ) : filteredListings.length === 0 ? (
+          ) : displayedListings.length === 0 ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-[15vh] text-center flex flex-col items-center bg-black/20 border border-white/20 border-dashed rounded-[2rem] backdrop-blur-md">
               <Store className="w-[10vw] sm:w-12 h-[10vw] sm:h-12 text-white/50 mx-auto mb-[3vh]" strokeWidth={1} />
               <h3 className="text-xl font-medium text-white mb-2">{t('market.no_match_title')}</h3>
@@ -207,11 +219,12 @@ export default function Marketplace() {
               }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]"
             >
-              {filteredListings.map((l) => (
+              {displayedListings.map((l) => (
                 <motion.div key={l.id} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }}}>
-                  <BusinessCard 
-                    listing={l} 
-                    onClick={() => navigate('/app', { state: { focusId: l.id } })} 
+                  <BusinessCard
+                    listing={l}
+                    matchScore={(l as any)._matchScore}
+                    onClick={() => navigate('/app', { state: { focusId: l.id } })}
                   />
                 </motion.div>
               ))}
