@@ -283,21 +283,23 @@ export default function Index() {
                  className="absolute z-0 rounded-[50%] bg-black/55 blur-[38px] pointer-events-none"
                  style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
                />
-               <div
-                 className="absolute z-0 overflow-hidden left-0 max-md:-left-[6px]"
-                 style={{
-                   top: 0, width: '257px', height: '600px',
-                   borderRadius: '30px',
-                   transformOrigin: '0 0',
-                   transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
-                 }}
-               >
-                 <video
-                   ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
-                   src="/demo-mobile.mp4"
-                   preload="auto" autoPlay loop muted playsInline
-                   className="w-full h-full object-cover"
-                 />
+               <div className="absolute inset-0 z-0 origin-center max-md:scale-[0.955]">
+                 <div
+                   className="absolute overflow-hidden"
+                   style={{
+                     top: 0, left: 0, width: '257px', height: '600px',
+                     borderRadius: '30px',
+                     transformOrigin: '0 0',
+                     transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
+                   }}
+                 >
+                   <video
+                     ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
+                     src="/demo-mobile.mp4"
+                     preload="auto" autoPlay loop muted playsInline
+                     className="w-full h-full object-cover"
+                   />
+                 </div>
                </div>
                <img
                  src="/mockup-phone3d.png"
