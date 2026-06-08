@@ -257,8 +257,8 @@ export function Navbar() {
 
           <div className="flex items-center gap-3 sm:gap-5">
             {user ? (
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="relative group flex">
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                <div className="relative group flex shrink-0">
                   <NotificationsMenu user={user} />
                   <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
                     {t('notif.title', 'Notifications')}
@@ -284,7 +284,7 @@ export function Navbar() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden outline-none hover:scale-105 transition-transform hover:ring-2 hover:ring-white/20 ml-2 sm:ml-1">
+                    <button className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full overflow-hidden outline-none hover:scale-105 transition-transform hover:ring-2 hover:ring-white/20 ml-2 sm:ml-1">
                       <Avatar className="h-full w-full rounded-full">
                         <AvatarImage
                           src={getAvatarUrl()}

@@ -218,18 +218,22 @@ export default function Login() {
                       className="absolute z-0 rounded-[50%] bg-black/50 blur-[28px] pointer-events-none"
                       style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
                     />
-                    <video
-                      ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                      src="/demo-mobile.mp4"
-                      preload="auto" autoPlay loop muted playsInline
-                      className="absolute z-0 object-cover"
+                    <div
+                      className="absolute z-0 overflow-hidden"
                       style={{
                         top: 0, left: 0, width: '183px', height: '428px',
                         borderRadius: '22px',
                         transformOrigin: '0 0',
                         transform: 'matrix3d(0.8308191,0.02715642,0,-0.0005000255,-0.1752786,0.8737384,0,-0.0001427559,0,0,1,0,94.09488,26.13724,0,1)',
                       }}
-                    />
+                    >
+                      <video
+                        ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
+                        src="/demo-mobile.mp4"
+                        preload="auto" autoPlay loop muted playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <img
                       src="/mockup-phone3d.png"
                       alt="Aperçu Globly sur mobile"

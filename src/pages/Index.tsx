@@ -150,7 +150,7 @@ export default function Index() {
             />
             <div className="absolute z-0 overflow-hidden rounded-[3px]" style={{ top: '2.2%', left: '10.8%', right: '11%', bottom: '0.8%' }}>
               <video
-                ref={(el) => { if (el) el.playbackRate = 1.2; }}
+                ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
                 src="/demo-desktop.mp4"
                 preload="auto" autoPlay loop muted playsInline
                 className="w-full h-full object-cover"
@@ -283,18 +283,22 @@ export default function Index() {
                  className="absolute z-0 rounded-[50%] bg-black/55 blur-[38px] pointer-events-none"
                  style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
                />
-               <video
-                 ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                 src="/demo-mobile.mp4"
-                 preload="auto" autoPlay loop muted playsInline
-                 className="absolute z-0 object-cover"
+               <div
+                 className="absolute z-0 overflow-hidden"
                  style={{
                    top: 0, left: 0, width: '257px', height: '600px',
                    borderRadius: '30px',
                    transformOrigin: '0 0',
                    transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
                  }}
-               />
+               >
+                 <video
+                   ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
+                   src="/demo-mobile.mp4"
+                   preload="auto" autoPlay loop muted playsInline
+                   className="w-full h-full object-cover"
+                 />
+               </div>
                <img
                  src="/mockup-phone3d.png"
                  alt="Aperçu Globly sur mobile"
