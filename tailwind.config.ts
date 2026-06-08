@@ -33,9 +33,8 @@ export default {
         border: palette.c4,
         input: palette.c1,
         ring: palette.c5,
-        // Pilotés par variables CSS -> basculent automatiquement light/dark.
-        background: "hsl(var(--background) / <alpha-value>)",
-        foreground: "hsl(var(--foreground) / <alpha-value>)",
+        background: palette.c3,
+        foreground: palette.c2,
         primary: {
           DEFAULT: palette.c7,
           foreground: palette.c2,
@@ -64,9 +63,7 @@ export default {
           DEFAULT: palette.c3,
           foreground: palette.c2,
         },
-        // "white" devient théme-aware via --ink : gris clair (#d2d1dd) en dark,
-        // encre foncée en light. Couvre les 1000+ text-white / bg-white/x / border-white/x.
-        white: "hsl(var(--ink) / <alpha-value>)",
+        white: palette.c2,
         black: palette.c3,
         slate: {
           100: palette.c2,
