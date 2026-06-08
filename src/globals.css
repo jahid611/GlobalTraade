@@ -6,8 +6,10 @@
   :root {
     --background: 210 40% 98%;
     --foreground: 0 0% 10%;
+    /* Texte clair (token "white") : BLANC PUR en mode jour pour rester net sur le ciel bleu */
+    --ink: 0 0% 100%;
     /* Bleu Océan profond / Tech */
-    --primary: 221 83% 53%; 
+    --primary: 221 83% 53%;
     --radius: 1.5rem;
     
     /* MODE CLAIR : Verre plus sombre et plus opaque pour contraster avec le fond lumineux */
@@ -18,8 +20,10 @@
   }
 
   .dark {
-    --background: 240 10% 4%; 
+    --background: 240 10% 4%;
     --foreground: 0 0% 100%;
+    /* Texte clair (token "white") inchangé en sombre : gris lavande #d2d1dd */
+    --ink: 220 13% 84%;
     /* Bleu vibrant et lumineux pour le mode sombre */
     --primary: 217 91% 60%;
     

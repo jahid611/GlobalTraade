@@ -63,7 +63,9 @@ export default {
           DEFAULT: palette.c3,
           foreground: palette.c2,
         },
-        white: palette.c2,
+        // Texte clair théme-aware via --ink : BLANC PUR en mode jour (net sur le ciel
+        // bleu), gris lavande #d2d1dd en sombre (inchangé). Couvre tous les text-white.
+        white: "hsl(var(--ink) / <alpha-value>)",
         black: palette.c3,
         slate: {
           100: palette.c2,

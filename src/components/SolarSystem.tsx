@@ -112,8 +112,8 @@ export function SolarSystem() {
       <div 
         className={`absolute inset-0 pointer-events-none transition-all duration-700 ${
           isDark 
-            ? 'bg-gradient-to-b from-transparent via-transparent to-[#020204] opacity-80' 
-            : 'bg-black/30 backdrop-blur-[16px]'
+            ? 'bg-gradient-to-b from-transparent via-transparent to-[#020204] opacity-80'
+            : 'bg-black/45 backdrop-blur-[16px]'
         }`} 
       />
     </motion.div>
