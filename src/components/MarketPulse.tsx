@@ -75,81 +75,81 @@ export function MarketPulse({ listings }: MarketPulseProps) {
         </div>
       </div>
 
-      {/* Sparkline */}
-      <div className="flex items-end gap-1.5 h-16 mb-3 relative z-10">
-        {stats.sparkData.map((h, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center justify-end group/bar">
-            <div
-              className={`w-full rounded-sm transition-all duration-500 ${i === stats.sparkData.length - 1 ? 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'bg-white/30 dark:bg-white/10 group-hover/bar:bg-white/50 dark:group-hover/bar:bg-white/20'}`}
-              style={{ height: `${Math.max(h, 6)}%` }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between text-[10px] text-white dark:text-white/40 font-medium mb-8">
-        <span>{t('pulse.8weeks')}</span>
-        <span>{t('pulse.this_week')}</span>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
-          <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.thisWeek}</p>
-          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.this_week')}</p>
-        </div>
-        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
-          <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.totalListings}</p>
-          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.total')}</p>
-        </div>
-        <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.5rem] p-4 border-white/30 dark:border-white/5">
-          <p className={`text-2xl sm:text-3xl font-light tabular-nums mb-1 ${stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {stats.trend >= 0 ? '+' : ''}{stats.trend.toFixed(0)}%
-          </p>
-          <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.trend')}</p>
-        </div>
-      </div>
-
-      {/* Info Volume */}
-      <div className="mb-8 p-5 rounded-[1.5rem] bg-primary/20 dark:bg-primary/5 border border-primary/40 dark:border-primary/10 shadow-[0_0_20px_rgba(168,85,247,0.1)] dark:shadow-none">
-        <div className="flex items-start gap-4">
-          <TrendingUp className="w-5 h-5 text-primary mt-0.5" />
-          <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/70 leading-relaxed font-light">
-            {t('pulse.volume_desc')}
-          </p>
-        </div>
-      </div>
-
-      {/* Top sectors */}
-      <div className="space-y-4 mb-10">
-        <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium block mb-2">{t('pulse.top_sectors')}</span>
-        {stats.topSectors.map(([name, count]) => (
-          <div key={name} className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-white/20 dark:bg-white/10 rounded-full overflow-hidden border border-white/30 dark:border-white/5">
-              <div className="h-full bg-emerald-500/80 dark:bg-emerald-500/50 rounded-full" style={{ width: `${(count / stats.totalListings) * 100}%` }} />
+      <div className="grid md:grid-cols-2 gap-6 md:gap-10 relative z-10">
+        {/* Colonne gauche : tendance + chiffres */}
+        <div className="space-y-6">
+          {/* Sparkline */}
+          <div>
+            <div className="flex items-end gap-1.5 h-16 mb-2">
+              {stats.sparkData.map((h, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end group/bar">
+                  <div
+                    className={`w-full rounded-sm transition-all duration-500 ${i === stats.sparkData.length - 1 ? 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'bg-white/30 dark:bg-white/10 group-hover/bar:bg-white/50 dark:group-hover/bar:bg-white/20'}`}
+                    style={{ height: `${Math.max(h, 6)}%` }}
+                  />
+                </div>
+              ))}
             </div>
-            <span className="text-[10px] text-white dark:text-white/60 font-medium w-28 truncate text-right">
-              {t(`industry.${name}`, { defaultValue: name })}
-            </span>
-            <span className="text-[11px] text-white font-medium tabular-nums w-8 text-right">{count}</span>
+            <div className="flex items-center justify-between text-[10px] text-white dark:text-white/40 font-medium">
+              <span>{t('pulse.8weeks')}</span>
+              <span>{t('pulse.this_week')}</span>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Strategic Note */}
-      <div className="pt-6 border-t border-white/30 dark:border-white/10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
-          <span className="text-[10px] text-white uppercase tracking-widest font-medium">{t('pulse.strategic_note')}</span>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
+              <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.thisWeek}</p>
+              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.new_this_week')}</p>
+            </div>
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
+              <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.totalListings}</p>
+              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.total')}</p>
+            </div>
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
+              <p className={`text-2xl sm:text-3xl font-light tabular-nums mb-1 ${stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.trend >= 0 ? '+' : ''}{stats.trend.toFixed(0)}%
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.trend')}</p>
+            </div>
+          </div>
+
+          {/* Average price */}
+          <div className="pt-5 border-t border-white/30 dark:border-white/10 flex items-center justify-between">
+            <span className="text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.avg_price')}</span>
+            <span className="text-xl sm:text-2xl font-light text-white tabular-nums tracking-tight">{fmt(stats.avgPrice)}</span>
+          </div>
         </div>
-        <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 leading-relaxed font-light italic">
-          {t('pulse.note_desc', { trend: stats.trend >= 0 ? 'augmentation' : 'correction' })}
-        </p>
-      </div>
 
-      {/* Average price */}
-      <div className="mt-8 pt-6 border-t border-white/30 dark:border-white/10 flex items-center justify-between">
-        <span className="text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium">{t('pulse.avg_price')}</span>
-        <span className="text-xl sm:text-2xl font-light text-white tabular-nums tracking-tight">{fmt(stats.avgPrice)}</span>
+        {/* Colonne droite : secteurs + note */}
+        <div className="space-y-6 md:border-l md:border-white/10 md:pl-10">
+          {/* Top sectors */}
+          <div className="space-y-3">
+            <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium block mb-1">{t('pulse.top_sectors')}</span>
+            {stats.topSectors.map(([name, count]) => (
+              <div key={name} className="flex items-center gap-3">
+                <div className="flex-1 h-2 bg-white/20 dark:bg-white/10 rounded-full overflow-hidden border border-white/30 dark:border-white/5">
+                  <div className="h-full bg-emerald-500/80 dark:bg-emerald-500/50 rounded-full" style={{ width: `${(count / stats.totalListings) * 100}%` }} />
+                </div>
+                <span className="text-[10px] text-white dark:text-white/60 font-medium w-28 truncate text-right">
+                  {t(`industry.${name}`, { defaultValue: name })}
+                </span>
+                <span className="text-[11px] text-white font-medium tabular-nums w-8 text-right">{count}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Strategic Note */}
+          <div className="p-5 rounded-[1.5rem] bg-primary/20 dark:bg-primary/5 border border-primary/40 dark:border-primary/10">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-[10px] text-white uppercase tracking-widest font-medium">{t('pulse.strategic_note')}</span>
+            </div>
+            <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/70 leading-relaxed font-light">
+              {t('pulse.note_desc')}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

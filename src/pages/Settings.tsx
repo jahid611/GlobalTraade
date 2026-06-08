@@ -38,6 +38,15 @@ export default function Settings() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Scroll pile sur la section critères si on arrive via /settings#criteres
+  useEffect(() => {
+    if (!loading && typeof window !== 'undefined' && window.location.hash === '#criteres') {
+      setTimeout(() => {
+        document.getElementById('criteres')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
+    }
+  }, [loading]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
@@ -278,7 +287,7 @@ export default function Settings() {
               </div>
             </section>
 
-            <section className="border-t border-white/10 pt-[8vh]">
+            <section id="criteres" className="border-t border-white/10 pt-[8vh] scroll-mt-[16vh]">
               <h3 className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-primary mb-[2vh]">{t('settings.radar_title')}</h3>
               <p className="text-sm text-white/40 font-light mb-[4vh] max-w-xl">
                 {t('settings.radar_desc')}

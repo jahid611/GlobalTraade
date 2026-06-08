@@ -182,7 +182,7 @@ export default function Dashboard() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-2%] md:top-[14vh] md:right-[22%] lg:right-[26%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
+          className="absolute top-[12vh] right-[-8%] md:top-[14vh] md:right-[14%] lg:right-[18%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
         >
           <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
@@ -305,14 +305,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* COCKPIT: Market Intelligence + Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-[8vh] relative z-20">
-          <div className="lg:col-span-2">
-            <MarketPulse listings={allSuggested} />
-          </div>
-          <div className="lg:col-span-1">
-            <LiveActivityFeed />
-          </div>
+        {/* Market Pulse — pleine largeur, horizontal */}
+        <div className="mb-[6vh] relative z-20">
+          <MarketPulse listings={allSuggested} />
+        </div>
+        <div className="mb-[8vh] relative z-20">
+          <LiveActivityFeed />
         </div>
 
         {/* Offer Comparators for seller's listings */}
@@ -340,10 +338,16 @@ export default function Dashboard() {
                   {t('dash.radar_title1')} <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-white border border-primary/50 uppercase tracking-widest">{t('dash.radar_title2')}</span>
                 </h2>
                 <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light mt-2">
-                  {hasCriteria 
+                  {hasCriteria
                     ? `${t('dash.radar_based_on')}${[targetSectors, targetGeo].filter(Boolean).join(' • ') || t('dash.active_search')}`
                     : t('dash.radar_configure')}
                 </p>
+                <button
+                  onClick={() => navigate('/settings#criteres')}
+                  className="mt-3 inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-colors font-medium uppercase tracking-widest"
+                >
+                  <Target className="w-3.5 h-3.5" /> {t('dash.edit_criteria', { defaultValue: 'Modifier mes critères' })}
+                </button>
               </div>
             </div>
 
