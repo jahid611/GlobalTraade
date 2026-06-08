@@ -199,6 +199,7 @@ export function Navbar() {
                 />
               </Link>
 
+              <div className="hidden md:flex items-center gap-1 lg:gap-2">
               <div className="relative group flex">
                 <Link
                   to="/app"
@@ -230,8 +231,9 @@ export function Navbar() {
                   </div>
                 );
               })}
+              </div>
 
-              <div className="hidden sm:flex items-center gap-1 ml-1 sm:ml-2 border-l border-white/20 pl-2 sm:pl-3">
+              <div className="hidden md:flex items-center gap-1 ml-1 sm:ml-2 border-l border-white/20 pl-2 sm:pl-3">
                 <button
                   onClick={toggleLanguage}
                   className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-transparent transition-all text-xl"
