@@ -24,6 +24,20 @@ interface SmartMatchFormProps {
 
 const REGIONS = ["All Countries", "France - Paris Area", "France - South", "France - West", "International"];
 const DEAL_TYPES = ["Majority Acquisition (> 50%)", "Minority Acquisition (< 50%)", "Business Assets / Goodwill"];
+
+// Affichage traduit (les VALEURS ci-dessus restent stables pour le filtrage Marketplace).
+const REGION_LABELS: Record<string, string> = {
+  "All Countries": "smart.region_all",
+  "France - Paris Area": "smart.region_paris",
+  "France - South": "smart.region_south",
+  "France - West": "smart.region_west",
+  "International": "smart.region_intl",
+};
+const DEAL_LABELS: Record<string, string> = {
+  "Majority Acquisition (> 50%)": "smart.deal_majority",
+  "Minority Acquisition (< 50%)": "smart.deal_minority",
+  "Business Assets / Goodwill": "smart.deal_assets",
+};
 const BUDGETS = [
   { label: "< 500 k€", value: 500000 },
   { label: "500 k€ - 1 M€", value: 1000000 },
@@ -200,7 +214,7 @@ export function SmartMatchForm({ onResults, availableIndustries }: SmartMatchFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 {REGIONS.map(region => (
                   <OptionButton key={region} selected={criteria.region === region} onClick={() => handleSelect('region', region)}>
-                    {region}
+                    {t(REGION_LABELS[region], region)}
                   </OptionButton>
                 ))}
               </div>
@@ -236,7 +250,7 @@ export function SmartMatchForm({ onResults, availableIndustries }: SmartMatchFor
               <div className="flex flex-col gap-3 mt-4">
                 {DEAL_TYPES.map(type => (
                   <OptionButton key={type} selected={criteria.dealType === type} onClick={() => handleSelect('dealType', type)}>
-                    {type}
+                    {t(DEAL_LABELS[type], type)}
                   </OptionButton>
                 ))}
               </div>
