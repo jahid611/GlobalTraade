@@ -294,14 +294,13 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
   const labelClass = "text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/70 block";
 
   // Années : de l'année en cours jusqu'à 1700 (décroissant) -> plus de "3012".
+  // NB: simple constante (pas de useMemo) car on est APRÈS le `return null` plus
+  // haut — un hook ici violerait les Rules of Hooks et planterait à l'ouverture.
   const currentYear = new Date().getFullYear();
-  const yearOptions = useMemo(
-    () => Array.from({ length: currentYear - 1700 + 1 }, (_, i) => {
-      const y = String(currentYear - i);
-      return { value: y, label: y };
-    }),
-    [currentYear]
-  );
+  const yearOptions = Array.from({ length: currentYear - 1700 + 1 }, (_, i) => {
+    const y = String(currentYear - i);
+    return { value: y, label: y };
+  });
 
   // Options des critères "Capital Immatériel" (étape 5)
   const mgmtOptions = [
