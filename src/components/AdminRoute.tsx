@@ -30,10 +30,8 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error || !data?.is_admin) {
-        console.log("Accès admin refusé pour:", user.email);
         setIsAdmin(false);
       } else {
-        console.log("Accès admin accordé !");
         setIsAdmin(true);
       }
       setLoading(false);

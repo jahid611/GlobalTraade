@@ -94,7 +94,7 @@ function KanbanTaskCard({
       dragSnapToOrigin
       dragElastic={0}
       dragMomentum={false}
-      dragTransition={{ type: "spring", stiffness: 1000, damping: 60 }}
+      dragTransition={{ bounceStiffness: 1000, bounceDamping: 60 }}
       whileDrag={{ 
         zIndex: 1000, 
         scale: 1.1, 

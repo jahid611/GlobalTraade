@@ -177,7 +177,7 @@ export default function AdminDashboard() {
                     {adminData?.listings.slice(0, 5).map(l => (
                       <div key={l.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
                         <div className="flex items-center gap-3">
-                          {l.logo_url ? <img src={l.logo_url} className="w-8 h-8 rounded-lg object-cover" /> : <div className="w-8 h-8 rounded-lg bg-white/10" />}
+                          {l.logo_url ? <img src={l.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" /> : <div className="w-8 h-8 rounded-lg bg-white/10" />}
                           <div>
                             <p className="text-sm font-medium">{l.name}</p>
                             <p className="text-[10px] text-white/40">{l.industry}</p>
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
                           <tr key={l.id} className="hover:bg-white/[0.02] transition-colors group">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                {l.logo_url && <img src={l.logo_url} className="w-10 h-10 rounded-xl object-cover border border-white/10" />}
+                                {l.logo_url && <img src={l.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />}
                                 <div>
                                   <p className="text-sm font-medium">{l.name}</p>
                                   <p className="text-[10px] text-white/30 uppercase tracking-tighter">{l.industry}</p>

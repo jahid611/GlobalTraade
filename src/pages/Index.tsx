@@ -152,7 +152,7 @@ export default function Index() {
               <video
                 ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
                 src="/demo-desktop.mp4"
-                preload="auto" autoPlay loop muted playsInline
+                preload="metadata" autoPlay loop muted playsInline
                 className="w-full h-full object-cover"
               />
             </div>
@@ -296,7 +296,7 @@ export default function Index() {
                    <video
                      ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
                      src="/demo-mobile.mp4"
-                     preload="auto" autoPlay loop muted playsInline
+                     preload="metadata" autoPlay loop muted playsInline
                      className="w-full h-full object-cover"
                    />
                  </div>

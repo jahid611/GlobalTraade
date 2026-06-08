@@ -13,7 +13,7 @@ export default function Messages() {
     <div className="flex flex-col h-[100dvh] bg-[#2b2a2f] text-white overflow-hidden relative [text-shadow:none]">
       <SolarSystem />
       <Navbar />
-      <MessagingCore variant="page" />
+      <MessagingCore variant="full" />
     </div>
   );
 }

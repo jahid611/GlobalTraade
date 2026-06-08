@@ -15,7 +15,7 @@ import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
 
 
-const businessCache: Record<string, { viewCount?: number, isFavorite?: boolean, ownerProfile?: any }> = {};
+const businessCache: Record<string, any> = {};
 
 interface BusinessModalProps {
   listing: any;

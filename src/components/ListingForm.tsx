@@ -392,7 +392,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                       <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar mt-2">
                         {galleryImages.map((img, idx) => (
                           <div key={idx} className="w-24 h-24 rounded-full border border-white/20 shrink-0 relative overflow-hidden group">
-                            <img src={img} className="w-full h-full object-cover" />
+                            <img src={img} alt="" className="w-full h-full object-cover" />
                             <button onClick={() => setGalleryImages(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                               <X className="w-3 h-3 text-white"/>
                             </button>

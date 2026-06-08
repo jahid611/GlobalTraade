@@ -190,7 +190,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     if (!offerAmount.trim() || !listing || !user) return;
     
     const amount = initialNeed?.type === 'financial' ? Number(offerAmount.replace(/\D/g, '')) : offerAmount;
-    if (initialNeed?.type === 'financial' && (isNaN(amount as number) || amount <= 0)) return;
+    if (initialNeed?.type === 'financial' && (isNaN(amount as number) || (amount as number) <= 0)) return;
 
     if (!initialNeed && listing.price > 0 && typeof amount === 'number' && amount < (listing.price * 0.05)) {
       showError(t('msg.offer_too_low'));
