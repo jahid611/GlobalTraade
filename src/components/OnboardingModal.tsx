@@ -10,6 +10,30 @@ import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "react-i18next";
 
+// Parse un montant écrit librement (450k, 450 000, 1,5M, 450000€) en nombre.
+function parseAmount(raw: string): number | null {
+  let s = (raw || "").toLowerCase().replace(/[€\s  ]/g, "").replace(",", ".");
+  let mult = 1;
+  if (s.endsWith("k")) { mult = 1_000; s = s.slice(0, -1); }
+  else if (s.endsWith("m")) { mult = 1_000_000; s = s.slice(0, -1); }
+  if (!/^\d*\.?\d+$/.test(s)) return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : Math.round(n * mult);
+}
+
+// Uniformise un budget (simple ou fourchette) en "450 000 €" / "100 000 € – 5 000 000 €".
+function normalizeBudget(input: string): string {
+  const v = (input || "").trim();
+  if (!v) return "";
+  const parts = v.split(/\s*(?:-|–|—|à|to)\s*/i).filter(Boolean);
+  const out = parts.map((p) => {
+    const n = parseAmount(p);
+    return n == null ? null : n.toLocaleString("fr-FR").replace(/[  ]/g, " ") + " €";
+  });
+  if (out.some((x) => x == null)) return v; // illisible -> on laisse tel quel
+  return out.join(" – ");
+}
+
 // Gate global : affiche l'onboarding pour TOUT utilisateur connecté (email OU
 // Google OAuth) dont onboarding_completed n'est pas true. Monté une fois dans App.
 export function OnboardingGate() {
@@ -231,7 +255,11 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.siren", "SIREN")}</label>
-                    <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres" inputMode="numeric" />
+                    <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres — ex: 394 927 081" inputMode="numeric" />
+                    <p className="text-white/30 text-[11px] font-light mt-1.5">
+                      {t("onb.siren_hint", "SIREN = 9 chiffres (votre société). À ne pas confondre avec le SIRET (14 chiffres) qui désigne un établissement précis.")}
+                      {siren.length > 0 && siren.length < 9 && <span className="text-[#fca5a5]"> · {t("onb.siren_incomplete", "il manque {{n}} chiffre(s)", { n: 9 - siren.length })}</span>}
+                    </p>
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.legal_form", "Forme juridique")}</label>
@@ -255,7 +283,15 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.budget", "Budget")}</label>
-                    <input value={targetBudget} onChange={(e) => setTargetBudget(e.target.value)} className={inputClass} placeholder="ex: 100k€ - 5M€" />
+                    <input
+                      value={targetBudget}
+                      onChange={(e) => setTargetBudget(e.target.value)}
+                      onBlur={() => setTargetBudget(normalizeBudget(targetBudget))}
+                      className={inputClass}
+                      placeholder="ex: 450 000 €"
+                      inputMode="text"
+                    />
+                    <p className="text-white/30 text-[11px] font-light mt-1.5">{t("onb.budget_hint", "Écris comme tu veux (450k, 450000, 100k - 5M…), le montant est mis au format automatiquement.")}</p>
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.geo", "Zone géographique")}</label>
