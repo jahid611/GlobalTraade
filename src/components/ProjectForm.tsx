@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash, Users, Money, Package, Brain, Globe, CaretDown, Lightbulb, Wrench, RocketLaunch, ChartLineUp } from "phosphor-react";
 import { Button } from "@/components/ui/button";
@@ -19,98 +20,106 @@ const lbl = "text-xs uppercase tracking-widest text-white/50 font-medium mb-2 bl
 
 interface Option { v: string; l: string; icon?: any; }
 
-function CustomSelect({ value, options, onChange, parentScrollRef }: { value: string; options: Option[]; onChange: (v:string)=>void; parentScrollRef: React.RefObject<HTMLDivElement> }) {
+function CustomSelect({ value, options, onChange }: { value: string; options: Option[]; onChange: (v:string)=>void; parentScrollRef?: any }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number }>({ left: 0, width: 0, top: 0, maxH: 280 });
   const current = options.find(o => o.v === value) || options[0];
-  // Le menu s'ouvre toujours vers le haut (superposition)
-  const direction = 'up';
+  const searchable = true; // barre de recherche toujours affichée, mais sans autofocus (clavier seulement au tap)
 
-  // Reset search when opening
-  useEffect(() => {
-    if (open) setSearch("");
-  }, [open]);
+  const reposition = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const dropUp = spaceBelow < 260 && r.top > spaceBelow;
+    setCoords({
+      left: r.left, width: r.width,
+      top: dropUp ? undefined : r.bottom + 6,
+      bottom: dropUp ? window.innerHeight - r.top + 6 : undefined,
+      maxH: (dropUp ? r.top : spaceBelow) - 16,
+    });
+  };
 
-  // Fermer uniquement si on clique ailleurs
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    if (!open) return;
+    setSearch("");
+    reposition();
+    const onMove = () => reposition();
+    window.addEventListener("scroll", onMove, true);
+    window.addEventListener("resize", onMove);
+    const onDown = (e: MouseEvent) => {
+      const tg = e.target as Node;
+      if (triggerRef.current?.contains(tg) || panelRef.current?.contains(tg)) return;
+      setOpen(false);
     };
-    
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("scroll", onMove, true);
+      window.removeEventListener("resize", onMove);
+      document.removeEventListener("mousedown", onDown);
+    };
   }, [open]);
 
-  const filteredOptions = useMemo(() => {
-    if (!search) return options;
-    return options.filter(o => o.l.toLowerCase().includes(search.toLowerCase()));
-  }, [options, search]);
+  const filtered = useMemo(() => !search ? options : options.filter(o => o.l.toLowerCase().includes(search.toLowerCase())), [options, search]);
 
   return (
-    <div className="relative">
-      <button 
-        ref={btnRef}
+    <div>
+      <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(o => !o)}
         className="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-white flex items-center justify-between hover:border-white/30 transition-all text-sm outline-none"
       >
         <div className="flex items-center gap-2.5 truncate">
-          {current.icon && <current.icon className="w-4 h-4 text-white/40" />}
-          <span className="truncate">{current.l}</span>
+          {current?.icon && <current.icon className="w-4 h-4 text-white/40" />}
+          <span className="truncate">{current?.l}</span>
         </div>
         <CaretDown className={`w-4 h-4 text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      <AnimatePresence>
-        {open && (
-          <div className="absolute left-0 right-0 bottom-full z-[501]">
-            <motion.div 
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="mb-2 backdrop-blur-3xl bg-black/80 border border-white/20 rounded-2xl overflow-hidden shadow-2xl py-1.5"
-              style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
-            >
-              <div className="px-3 pb-2 pt-1 border-b border-white/10">
-                <input 
+
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[510]" style={{ touchAction: "none" }} onClick={() => setOpen(false)} />
+          <motion.div
+            ref={panelRef}
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12 }}
+            style={{ position: "fixed", left: coords.left, width: coords.width, top: coords.top, bottom: coords.bottom, zIndex: 520 }}
+            className="bg-[#17161b] border border-white/15 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col"
+          >
+            {searchable && (
+              <div className="p-2 border-b border-white/10">
+                <input
                   type="text"
-                  autoFocus
-                  placeholder={t('hub.search_ph', "Rechercher...")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary/40 transition-all"
+                  placeholder={t('hub.search_ph', "Rechercher...")}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary/40"
                 />
               </div>
-              <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-                {filteredOptions.length > 0 ? (
-                  filteredOptions.map(o => (
-                    <button
-                      key={o.v}
-                      type="button"
-                      onClick={() => { onChange(o.v); setOpen(false); }}
-                      className={`w-full px-4 py-2.5 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 ${value === o.v ? 'text-primary font-medium' : 'text-white/70'}`}
-                    >
-                      {o.icon && <o.icon className="w-4 h-4 opacity-50" />}
-                      <span>{o.l}</span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-4 text-center text-xs text-white/30">
-                    {t('hub.no_results', "Aucun résultat")}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            )}
+            <div style={{ maxHeight: searchable ? Math.max(120, coords.maxH - 58) : coords.maxH }} className="overflow-y-auto custom-scrollbar p-1">
+              {filtered.length > 0 ? filtered.map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => { onChange(o.v); setOpen(false); }}
+                  className={`w-full px-3 py-2.5 text-left text-sm rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2.5 ${value === o.v ? 'text-primary font-medium bg-primary/10' : 'text-white/80'}`}
+                >
+                  {o.icon && <o.icon className="w-4 h-4 opacity-50" />}
+                  <span className="truncate">{o.l}</span>
+                </button>
+              )) : (
+                <div className="px-4 py-4 text-center text-xs text-white/30">{t('hub.no_results', "Aucun résultat")}</div>
+              )}
+            </div>
+          </motion.div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
@@ -120,7 +129,31 @@ function CustomSelect({ value, options, onChange, parentScrollRef }: { value: st
 export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const CATEGORIES = INDUSTRIES;
+  const CATEGORIES = [
+    { id: "Tech & IA", key: "cat.tech" },
+    { id: "Agriculture", key: "cat.agri" },
+    { id: "Santé", key: "cat.health" },
+    { id: "Éducation", key: "cat.edu" },
+    { id: "Finance", key: "cat.fin" },
+    { id: "Industrie", key: "cat.indus" },
+    { id: "Commerce", key: "cat.comm" },
+    { id: "Restauration", key: "cat.food" },
+    { id: "Artisanat", key: "cat.craft" },
+    { id: "Mode & Textile", key: "cat.fashion" },
+    { id: "Beauté & Bien-être", key: "cat.beauty" },
+    { id: "Sport & Loisirs", key: "cat.sport" },
+    { id: "Tourisme & Hôtellerie", key: "cat.tourism" },
+    { id: "Culture & Art", key: "cat.culture" },
+    { id: "Médias & Communication", key: "cat.media" },
+    { id: "BTP & Construction", key: "cat.btp" },
+    { id: "Immobilier", key: "cat.immo" },
+    { id: "Transport", key: "cat.transp" },
+    { id: "Énergie", key: "cat.energy" },
+    { id: "Environnement", key: "cat.env" },
+    { id: "Services", key: "cat.services" },
+    { id: "Automobile", key: "cat.auto" },
+    { id: "Autre", key: "cat.other" },
+  ];
   const HELP_ICONS: Record<HelpType, any> = { financial: Money, human: Users, material: Package, expertise: Brain, network: Globe };
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
@@ -172,11 +205,44 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
+  // --- Validation ---
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const setField = (k: string, v: any) => {
+    set(k, v);
+    setErrors(e => { if (!e[k]) return e; const n = { ...e }; delete n[k]; return n; });
+  };
+  const errCls = (k: string) => (errors[k] ? "border-red-500/60 focus:border-red-500/60" : "");
+
+  const validateStep = (s: number): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (s === 0) {
+      if (!form.title?.trim()) e.title = t('project.form.err_title');
+      if (!form.description?.trim() || form.description.trim().length < 10) e.description = t('project.form.err_desc');
+      if (!form.category) e.category = t('project.form.err_category');
+    }
+    if (s === 1) {
+      if (!(form.help_types || []).length) e.help = t('project.form.err_help');
+      if ((form.help_types || []).includes("financial")) {
+        const min = Number(form.budget_min) || 0, max = Number(form.budget_max) || 0;
+        if (min && max && max < min) e.budget = t('project.form.err_budget');
+      }
+    }
+    return e;
+  };
+
+  const goNext = () => {
+    const e = validateStep(step);
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setErrors({});
+    setStep(s => s + 1);
+  };
+
   const toggleHelp = (h: HelpType) => {
     const cur = form.help_types || [];
     const next = cur.includes(h) ? cur.filter(x => x !== h) : [...cur, h];
     set("help_types", next);
     set(`${h}_needed`, !cur.includes(h));
+    setErrors(e => { if (!e.help) return e; const n = { ...e }; delete n.help; return n; });
   };
 
   const addRole = () => set("team_roles", [...(form.team_roles||[]), { title:"", skills:"", type:"full", count:1 }]);
@@ -188,7 +254,11 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
   const updateMat = (i: number, k: string, v: any) => set("material_items", (form.material_items||[]).map((m:MaterialItem,idx:number)=>idx===i?{...m,[k]:v}:m));
 
   const handleSave = async () => {
-    if (!user || !form.title || !form.description || !form.category) return showError(t('project.form.error_missing'));
+    const e0 = validateStep(0);
+    if (Object.keys(e0).length) { setStep(0); setErrors(e0); return; }
+    const e1 = validateStep(1);
+    if (Object.keys(e1).length) { setStep(1); setErrors(e1); return; }
+    if (!user) return showError(t('project.form.error_missing'));
     setSaving(true);
     try {
       const cleanForm = { ...form };
@@ -255,7 +325,8 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                 <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} className="space-y-4">
                   <div>
                     <label className={lbl}>{t('project.form.p_title')} *</label>
-                    <input className={inp} placeholder={t('project.form.p_title_ph')} value={form.title||""} onChange={e=>set("title",e.target.value)}/>
+                    <input className={`${inp} ${errCls('title')}`} placeholder={t('project.form.p_title_ph')} value={form.title||""} onChange={e=>setField("title",e.target.value)}/>
+                    {errors.title && <p className="text-red-400 text-xs mt-1.5">{errors.title}</p>}
                   </div>
                   <div>
                     <label className={lbl}>{t('project.form.tagline')}</label>
@@ -263,17 +334,19 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                   </div>
                   <div>
                     <label className={lbl}>{t('project.form.p_desc')} *</label>
-                    <textarea className={`${inp} min-h-[120px] resize-none`} placeholder={t('project.form.p_desc_ph')} value={form.description||""} onChange={e=>set("description",e.target.value)}/>
+                    <textarea className={`${inp} min-h-[120px] resize-none ${errCls('description')}`} placeholder={t('project.form.p_desc_ph')} value={form.description||""} onChange={e=>setField("description",e.target.value)}/>
+                    {errors.description && <p className="text-red-400 text-xs mt-1.5">{errors.description}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={lbl}>{t('project.form.category')} *</label>
-                      <CustomSelect 
-                        value={form.category||""} 
-                        options={CATEGORIES.map(c => ({v:c, l: t(`industry.${c}`, c)}))} 
-                        onChange={v => set("category", v)} 
+                      <CustomSelect
+                        value={form.category||""}
+                        options={CATEGORIES.map(c => ({v:c.id, l: String(t(c.key, { defaultValue: c.id }))}))}
+                        onChange={v => setField("category", v)}
                         parentScrollRef={scrollRef}
                       />
+                      {errors.category && <p className="text-red-400 text-xs mt-1.5">{errors.category}</p>}
                     </div>
                     <div>
                       <label className={lbl}>{t('project.form.stage')}</label>
@@ -310,14 +383,16 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                       );
                     })}
                   </div>
+                  {errors.help && <p className="text-red-400 text-xs -mt-1">{errors.help}</p>}
 
                   {(form.help_types||[]).includes("financial") && (
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 space-y-3">
                       <h4 className="text-emerald-400 font-medium text-sm flex items-center gap-2"><Money className="w-4 h-4"/>{t('project.form.financial_details')}</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className={lbl}>{t('project.form.budget_min')} (€)</label><input type="number" className={inp} placeholder={t('project.form.budget_min_ph')} value={form.budget_min||""} onChange={e=>set("budget_min",Number(e.target.value))}/></div>
-                        <div><label className={lbl}>{t('project.form.budget_max')} (€)</label><input type="number" className={inp} placeholder={t('project.form.budget_max_ph')} value={form.budget_max||""} onChange={e=>set("budget_max",Number(e.target.value))}/></div>
+                        <div><label className={lbl}>{t('project.form.budget_min')} (€)</label><input type="number" min="0" className={`${inp} ${errCls('budget')}`} placeholder={t('project.form.budget_min_ph')} value={form.budget_min||""} onChange={e=>setField("budget_min",Number(e.target.value))}/></div>
+                        <div><label className={lbl}>{t('project.form.budget_max')} (€)</label><input type="number" min="0" className={`${inp} ${errCls('budget')}`} placeholder={t('project.form.budget_max_ph')} value={form.budget_max||""} onChange={e=>setField("budget_max",Number(e.target.value))}/></div>
                       </div>
+                      {errors.budget && <p className="text-red-400 text-xs">{errors.budget}</p>}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className={lbl}>{t('project.form.inv_type')}</label>
@@ -415,7 +490,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
               {step===3 && (
                 <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} className="space-y-5">
                   <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-5">
-                    <div><p className="text-white font-medium text-sm">🚨 {t('project.form.is_urgent')}</p><p className="text-white/40 text-xs mt-0.5">{t('project.form.urgent_desc')}</p></div>
+                    <div><p className="text-white font-medium text-sm">{t('project.form.is_urgent')}</p><p className="text-white/40 text-xs mt-0.5">{t('project.form.urgent_desc')}</p></div>
                     <button onClick={()=>set("is_urgent",!form.is_urgent)} className={`w-12 h-6 rounded-full transition-all relative ${form.is_urgent?"bg-red-500":"bg-white/10"}`}>
                       <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${form.is_urgent?"left-6":"left-0.5"}`}/>
                     </button>
@@ -425,7 +500,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                     <input type="date" className={inp} value={form.deadline||""} onChange={e=>set("deadline",e.target.value)}/>
                   </div>
                   <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 space-y-2">
-                    <p className="text-white font-medium text-sm">📋 {t('project.form.summary')}</p>
+                    <p className="text-white font-medium text-sm">{t('project.form.summary')}</p>
                     <p className="text-white/60 text-sm"><span className="text-white/40">{t('project.form.p_title')} :</span> {form.title||"—"}</p>
                     <p className="text-white/60 text-sm"><span className="text-white/40">{t('project.form.category')} :</span> {t(`industry.${form.category}`, form.category)}</p>
                     <p className="text-white/60 text-sm"><span className="text-white/40">{t('project.form.needs')} :</span> {(form.help_types||[]).map((h:HelpType)=>HELP_LABELS[h]).join(", ")||"—"}</p>
@@ -439,7 +514,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
             <div className="px-8 pb-8 pt-4 shrink-0 flex gap-3">
               {step>0 && <Button variant="ghost" onClick={()=>setStep(s=>s-1)} className="rounded-full text-white/60 hover:text-white hover:bg-white/10 h-12 px-6">{t('back')}</Button>}
               {step<steps.length-1
-                ? <Button onClick={()=>setStep(s=>s+1)} className="flex-1 rounded-full bg-primary hover:bg-primary/90 text-white h-12">{t('project.form.next')}</Button>
+                ? <Button onClick={goNext} className="flex-1 rounded-full bg-primary hover:bg-primary/90 text-white h-12">{t('project.form.next')}</Button>
                 : <Button onClick={handleSave} disabled={saving} className="flex-1 rounded-full bg-primary hover:bg-primary/90 text-white h-12 font-medium">{saving ? t('hub.sending') : t('project.form.submit')}</Button>
               }
             </div>

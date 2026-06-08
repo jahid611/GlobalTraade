@@ -37,3 +37,4 @@ dist-ssr
 !public/demo-desktop.mp4
 
 supabase-selfhosted/
+supabase/.temp/

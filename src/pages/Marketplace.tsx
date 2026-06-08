@@ -10,6 +10,7 @@ import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
 import { AdvancedFilters, FilterState } from '@/components/AdvancedFilters';
+import { HelpBanner } from '@/components/HelpBanner';
 import { Store, Filter, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -138,7 +139,7 @@ export default function Marketplace() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[20vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
+      <main className="relative z-10 pt-[15vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
         <motion.div
           animate={{ y: [0, -18, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
@@ -147,15 +148,22 @@ export default function Marketplace() {
           <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
         
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 relative z-10">
+          <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
+            {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
+          </h1>
+          <p className="text-white/50 text-sm md:text-base font-light mt-2">
+            {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
+          </p>
+        </motion.div>
+
+        <HelpBanner
+          title={t('help.market_title', 'Comment fonctionne la marketplace ?') as string}
+          desc={t('help.market_desc', '') as string}
+          className="max-w-3xl mx-auto mb-8 relative z-10"
+        />
+
         <div className="relative z-10 max-w-xl mx-auto mb-[10vh]">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-5">
-            <h1 className="text-xl sm:text-2xl font-light text-white/90">
-              {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
-            </h1>
-            <p className="text-white/50 text-sm font-light mt-2">
-              {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
-            </p>
-          </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
             <SmartMatchForm onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
           </motion.div>

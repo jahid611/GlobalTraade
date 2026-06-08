@@ -55,10 +55,11 @@ export function Navbar() {
 
   const NAV_LINKS = [
     { name: t("nav.market"), path: "/marketplace", icon: Storefront },
-    { name: t("nav.dashboard"), path: "/dashboard", icon: SquaresFour },
+    { name: t("nav.prospect"), path: "/radar", icon: Crosshair },
     { name: t("nav.projects"), path: "/projects", icon: Handshake },
     { name: t("nav.sector"), path: "/secteur", icon: UsersThree },
-    { name: t("nav.prospect"), path: "/radar", icon: Crosshair },
+    { name: t("nav.map"), path: "/app", icon: Globe },
+    { name: t("nav.dashboard"), path: "/dashboard", icon: SquaresFour },
   ];
 
   useEffect(() => {
@@ -187,31 +188,20 @@ export function Navbar() {
         <div className="bg-black/10 backdrop-blur-sm border border-white/10 shadow-lg px-4 sm:px-6 py-3 sm:py-3.5 rounded-full flex items-center justify-between relative overflow-visible pointer-events-auto min-h-[72px]">
           <div className="flex items-center gap-2 sm:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">
-              <Link
-                to="/"
-                className="relative z-10 flex items-center shrink-0 mr-1 sm:mr-4"
-                title={t("nav.home")}
-              >
-                <img
-                  src="/logo.png"
-                  alt="Logo"
-                  className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105"
-                />
-              </Link>
-
-              <div className="hidden md:flex items-center gap-1 lg:gap-2">
-              <div className="relative group flex">
-                <Link
-                  to="/app"
-                  aria-label={t("nav.map")}
-                  className={`flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all ${location.pathname === "/app" ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"}`}
-                >
-                  <Globe className="w-[18px] h-[18px]" />
+              <div className="relative group flex shrink-0 mr-1 sm:mr-4">
+                <Link to="/" aria-label={t("nav.home")} className="relative z-10 flex items-center">
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105"
+                  />
                 </Link>
                 <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
-                  {t("nav.map")}
+                  {t("nav.home")}
                 </span>
               </div>
+
+              <div className="hidden md:flex items-center gap-1 lg:gap-2">
 
               {NAV_LINKS.map((link) => {
                 const Icon = link.icon;
@@ -268,10 +258,16 @@ export function Navbar() {
           <div className="flex items-center gap-3 sm:gap-5">
             {user ? (
               <div className="flex items-center gap-2 sm:gap-4">
-                <NotificationsMenu user={user} />
+                <div className="relative group flex">
+                  <NotificationsMenu user={user} />
+                  <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                    {t('notif.title', 'Notifications')}
+                  </span>
+                </div>
 
                 <Link
                   to="/messages"
+                  aria-label={t('nav.messages', 'Messages')}
                   className="hidden sm:flex relative items-center justify-center text-white/60 hover:text-white transition-colors outline-none group p-1.5 sm:p-2 cursor-pointer"
                 >
                   <ChatCircle
@@ -281,6 +277,9 @@ export function Navbar() {
                   {hasUnread && (
                     <span className="absolute top-1 right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
                   )}
+                  <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                    {t('nav.messages', 'Messages')}
+                  </span>
                 </Link>
 
                 <DropdownMenu>
@@ -298,7 +297,7 @@ export function Navbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
-                    className="w-64 liquid-glass-heavy border border-white/10 text-white rounded-[1.5rem] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-[110] overflow-hidden"
+                    className="w-64 bg-[#1c1b20]/95 backdrop-blur-2xl border border-white/10 text-white rounded-[1.5rem] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.7)] z-[110] overflow-hidden"
                     align="end"
                     sideOffset={16}
                   >
@@ -382,13 +381,6 @@ export function Navbar() {
             </div>
 
             <div className="relative z-10 flex flex-col gap-6 flex-1 justify-center px-4">
-              <Link
-                to="/app"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-2xl font-medium text-white tracking-tight flex items-center gap-4"
-              >
-                <Globe className="w-6 h-6 text-white/50" /> {t("nav.map")}
-              </Link>
               {NAV_LINKS.map((link, i) => {
                 const Icon = link.icon;
                 return (

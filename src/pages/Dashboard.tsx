@@ -17,6 +17,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { MarketPulse } from '@/components/MarketPulse';
+import { HelpBanner } from '@/components/HelpBanner';
 import { LiveActivityFeed } from '@/components/LiveActivityFeed';
 import { OfferComparator } from '@/components/OfferComparator';
 import { initNativeFeel } from '@/utils/nativeFeel';
@@ -98,7 +99,7 @@ export default function Dashboard() {
         </div>
         <SolarSystem />
         <Navbar />
-        <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 pt-[20vh] pb-20">
+        <main className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-[6vw] pt-[20vh] pb-20">
           <Skeleton className="h-10 w-[350px] mb-12 bg-white/5 dark:bg-white/10" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-[380px] rounded-[2rem] bg-white/5 dark:bg-white/10" />)}
@@ -177,22 +178,22 @@ export default function Dashboard() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-[6vw] sm:px-8 pt-[15vh] sm:pt-[20vh] pb-20">
+      <main className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-[6vw] pt-[15vh] sm:pt-[20vh] pb-20">
         
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-8%] md:top-[14vh] md:right-[14%] lg:right-[18%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
+          className="absolute top-[12vh] right-[-4%] md:top-[14vh] md:right-[19%] lg:right-[24%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
         >
           <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-[4vh] mb-[8vh] border-b border-white/20 pb-[3vh]">
           <div>
-            <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-light leading-[1.1] tracking-tighter text-white mb-[1vh]">
+            <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] mb-[1vh]">
               {t('dash.cockpit_title1')} <span className="text-primary font-medium">{t('dash.cockpit_title2')}</span>
             </h1>
-            <p className="text-[clamp(1rem,1.1vw,1.125rem)] text-white dark:text-white/90 font-light max-w-2xl leading-relaxed">
+            <p className="text-sm md:text-base text-white/50 font-light max-w-2xl leading-relaxed">
               {t('dash.subtitle')}
             </p>
           </div>
@@ -201,10 +202,15 @@ export default function Dashboard() {
           </Button>
         </div>
 
+        <HelpBanner
+          title={t('help.dash_title', 'Comment fonctionne votre tableau de bord ?') as string}
+          desc={t('help.dash_desc', '') as string}
+          className="mb-[6vh] relative z-10"
+        />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[4vh] sm:gap-6 mb-[8vh]">
           {/* Vues Annonces */}
           <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/10 flex items-center justify-center mb-6 border border-primary/40 dark:border-primary/20">
               <Eye className="w-6 h-6 text-primary" />
             </div>
@@ -217,7 +223,6 @@ export default function Dashboard() {
 
           {/* Vues Profil */}
           <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-12 h-12 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/40 dark:border-blue-500/20">
               <UserIcon className="w-6 h-6 text-blue-400" />
             </div>
@@ -230,7 +235,6 @@ export default function Dashboard() {
 
           {/* Messages */}
           <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500 cursor-pointer" onClick={() => navigate('/messages')} role="button">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-12 h-12 rounded-2xl bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/30 dark:border-white/10 group-hover:border-white/50 transition-colors">
               <ChatTeardrop className="w-6 h-6 text-white" />
             </div>
@@ -243,7 +247,6 @@ export default function Dashboard() {
 
           {/* Réseau / CRM */}
           <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500 cursor-pointer" onClick={() => navigate('/profile', { state: { activeTab: 'relations' } })} role="button">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/5 flex items-center justify-center mb-6 border border-primary/40 dark:border-primary/20 group-hover:border-primary/60 transition-colors">
               <Users className="w-6 h-6 text-primary" />
             </div>

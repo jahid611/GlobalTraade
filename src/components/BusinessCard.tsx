@@ -99,7 +99,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full shadow-none border-white/10 overflow-hidden"
+      className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
     >
       {typeof matchScore === 'number' && (
         <div

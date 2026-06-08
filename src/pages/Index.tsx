@@ -94,7 +94,7 @@ export default function Index() {
           className="relative z-10 text-[clamp(2.5rem,4.5vw,4.5rem)] font-light leading-[1.1] tracking-tighter text-white mb-[4vh] drop-shadow-2xl max-w-5xl mx-auto"
         >
           {t('index.hero.title1')} <br />
-          <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">{t('index.hero.title2')}</span>
+          <span className="font-medium text-blue-600 dark:text-primary">{t('index.hero.title2')}</span>
         </motion.h1>
 
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} className="relative z-10 text-[clamp(1rem,1.1vw,1.25rem)] text-white/90 mb-[6vh] max-w-3xl font-light px-[2vw] leading-relaxed">
@@ -111,7 +111,7 @@ export default function Index() {
             const Icon = c.icon;
             return (
               <Link key={i} to={c.to} className="group">
-                <motion.div variants={fadeInUp} className="h-full flex flex-col items-start text-left p-5 sm:p-7 bg-white/[0.03] border border-white/10 rounded-3xl hover:bg-white/[0.06] hover:border-white/20 hover:-translate-y-1 transition-all duration-300">
+                <motion.div variants={fadeInUp} className="h-full flex flex-col items-start text-left p-5 sm:p-7 liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] hover:border-white/50 dark:hover:bg-white/[0.04] hover:-translate-y-1 transition-all duration-300">
                   <div className={`p-3 rounded-2xl bg-white/5 mb-4 sm:mb-5 ${c.color} group-hover:scale-110 transition-transform duration-300`}>
                     <Icon size={26} weight="duotone" />
                   </div>
@@ -142,26 +142,19 @@ export default function Index() {
           transition={{ duration: 1, ease: "easeOut" }}
           className="relative flex items-center justify-center w-full"
         >
-          <motion.div style={{ y: mockupY }} className="w-full relative flex items-center justify-center">
-            <div className="relative w-full rounded-xl sm:rounded-[2rem] border border-white/20 bg-[#2b2a2f] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col z-10 ring-1 ring-white/5">
-              <div className="h-8 sm:h-12 flex items-center px-4 gap-2 bg-[#2b2a2f] shrink-0 border-b border-white/10">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#5955e8] border border-black/20" />
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#3533b1] border border-black/20" />
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#7872fb] border border-black/20" />
-              </div>
-              <div className="relative w-full bg-[#2b2a2f] flex">
-                <video 
-                  ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                  src="/demo-desktop.mp4"
-                  preload="auto"
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline 
-                  className="w-full h-auto object-contain bg-black"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2b2a2f] via-transparent to-transparent pointer-events-none" />
-              </div>
+          <motion.div style={{ y: mockupY }} className="w-full max-w-[780px] relative mx-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+            <img
+              src="/mockup-laptop.png"
+              alt="Aperçu Globly sur ordinateur"
+              className="relative z-10 w-full h-auto block select-none pointer-events-none"
+            />
+            <div className="absolute z-0 overflow-hidden rounded-[3px]" style={{ top: '2.2%', left: '10.8%', right: '11%', bottom: '0.8%' }}>
+              <video
+                ref={(el) => { if (el) el.playbackRate = 1.2; }}
+                src="/demo-desktop.mp4"
+                preload="auto" autoPlay loop muted playsInline
+                className="w-full h-full object-cover"
+              />
             </div>
           </motion.div>
         </motion.div>
@@ -177,7 +170,7 @@ export default function Index() {
             className="text-4xl md:text-5xl font-light text-white mb-6 tracking-tight leading-tight"
           >
             Découvrez le globe, <br />
-            <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">lancez-vous sur le globe</span>
+            <span className="font-medium text-blue-600 dark:text-primary">lancez-vous sur le globe</span>
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0, x: -30 }} 
@@ -278,28 +271,35 @@ export default function Index() {
           </div>
           
           <div className="order-1 md:order-2 flex justify-center">
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0, x: 50 }}
                whileInView={{ opacity: 1, x: 0 }}
                viewport={{ once: true }}
                transition={{ duration: 0.8, ease: "easeOut" }}
-               className="relative w-[280px] sm:w-[320px] rounded-[3rem] border-[10px] sm:border-[12px] border-slate-900 bg-black shadow-[0_30px_60px_rgba(0,0,0,0.9)] overflow-hidden ring-1 ring-white/10 flex"
+               className="drop-shadow-[0_40px_70px_rgba(0,0,0,0.55)] scale-[0.66] min-[420px]:scale-[0.82] md:scale-90 lg:scale-100 origin-center"
+               style={{ position: 'relative', width: '420px', height: '700px' }}
              >
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[35%] h-6 sm:h-7 bg-black rounded-full z-40 flex items-center justify-end px-2">
-                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white/10 mr-1.5"></div>
-                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#2b2a2f]"></div>
-                </div>
-                
-                <video 
-                  ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                  src="/demo-mobile.mp4"
-                  preload="auto"
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline 
-                  className="w-full h-auto bg-black"
-                />
+               <div
+                 className="absolute z-0 rounded-[50%] bg-black/55 blur-[38px] pointer-events-none"
+                 style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
+               />
+               <video
+                 ref={(el) => { if (el) el.playbackRate = 1.2; }}
+                 src="/demo-mobile.mp4"
+                 preload="auto" autoPlay loop muted playsInline
+                 className="absolute z-0 object-cover"
+                 style={{
+                   top: 0, left: 0, width: '257px', height: '600px',
+                   borderRadius: '30px',
+                   transformOrigin: '0 0',
+                   transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
+                 }}
+               />
+               <img
+                 src="/mockup-phone3d.png"
+                 alt="Aperçu Globly sur mobile"
+                 className="absolute inset-0 z-10 w-full h-full pointer-events-none select-none"
+               />
              </motion.div>
           </div>
         </div>

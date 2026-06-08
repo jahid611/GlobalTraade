@@ -210,16 +210,30 @@ export default function Login() {
                 </motion.div>
               ) : (
                 <motion.div key="mockup" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full flex flex-col items-center justify-center py-4">
-                  <div className="relative w-[240px] sm:w-[280px] mx-auto rounded-[2.5rem] sm:rounded-[3rem] border-[8px] sm:border-[10px] border-slate-900 bg-black shadow-2xl overflow-hidden ring-1 ring-white/10 flex">
-                    <video 
+                  <div
+                    className="mx-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] max-w-full"
+                    style={{ position: 'relative', width: '300px', height: '500px' }}
+                  >
+                    <div
+                      className="absolute z-0 rounded-[50%] bg-black/50 blur-[28px] pointer-events-none"
+                      style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
+                    />
+                    <video
                       ref={(el) => { if (el) el.playbackRate = 1.2; }}
                       src="/demo-mobile.mp4"
-                      preload="auto"
-                      autoPlay 
-                      loop 
-                      muted 
-                      playsInline 
-                      className="w-full h-auto bg-black"
+                      preload="auto" autoPlay loop muted playsInline
+                      className="absolute z-0 object-cover"
+                      style={{
+                        top: 0, left: 0, width: '183px', height: '428px',
+                        borderRadius: '22px',
+                        transformOrigin: '0 0',
+                        transform: 'matrix3d(0.8308191,0.02715642,0,-0.0005000255,-0.1752786,0.8737384,0,-0.0001427559,0,0,1,0,94.09488,26.13724,0,1)',
+                      }}
+                    />
+                    <img
+                      src="/mockup-phone3d.png"
+                      alt="Aperçu Globly sur mobile"
+                      className="absolute inset-0 z-10 w-full h-full pointer-events-none select-none"
                     />
                   </div>
                   <h3 className="mt-8 text-center text-[clamp(1.25rem,1.5vw,1.5rem)] font-light text-slate-900 dark:text-white">{t('index.mobile.title')}</h3>

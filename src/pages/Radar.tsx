@@ -193,17 +193,17 @@ export default function Radar() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-24 md:pt-[20vh] pb-20 px-5 md:px-[6vw] max-w-7xl mx-auto">
+      <main className="relative z-10 pt-24 md:pt-[20vh] pb-20 px-[6vw] max-w-[1400px] mx-auto w-full">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 md:gap-6 mb-8 md:mb-10">
           <div className="min-w-0">
             <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-3 md:mb-4 transition-colors">
               <ArrowLeft size={14} /> {t('radar.back_dashboard', 'Tableau de bord')}
             </Link>
-            <h1 className="text-3xl md:text-4xl font-light mb-2 tracking-tight flex items-center gap-3 text-white">
-              <RadarIcon className="text-primary shrink-0" /> {t('radar.title', 'Prospection')}
+            <h1 className="text-3xl md:text-4xl font-light mb-2 tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
+              {t('radar.title', 'Prospection')}
             </h1>
-            <p className="text-white/50 font-light italic text-sm md:text-base">{t('radar.subtitle', 'Trouve les entreprises de ton secteur (code APE) et contacte-les directement.')}</p>
+            <p className="text-white/50 font-light text-sm md:text-base">{t('radar.subtitle', 'Trouve les entreprises de ton secteur (code APE) et contacte-les directement.')}</p>
           </div>
           <div className="flex gap-2 p-1.5 rounded-full bg-black/20 border border-white/5 w-full md:w-auto">
             <TabBtn id="search" label={t('radar.tab_search', 'Recherche')} icon={Search} />

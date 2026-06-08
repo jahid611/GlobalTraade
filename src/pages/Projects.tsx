@@ -1,11 +1,12 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, FunnelSimple, X, Money, Users, Package, Brain, Globe, MapPin, Calendar, Eye, Heart, ArrowRight, Sparkle, Fire, Warning, Lightbulb, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut, Wrench, PencilSimple, Trash } from "phosphor-react";
+import { Plus, FunnelSimple, X, Money, Users, Package, Brain, Globe, MapPin, Calendar, Eye, Heart, ArrowRight, Fire, Warning, Lightbulb, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut, Wrench, PencilSimple, Trash } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
 import { ProjectForm } from "@/components/ProjectForm";
+import { HelpBanner } from "@/components/HelpBanner";
 import { useAuth } from "@/components/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,7 +41,9 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
   
   return (
     <motion.div
-      variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0 } }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
       whileHover={{ y: -4 }}
       onClick={onClick}
       className="liquid-glass border border-white/10 rounded-[2rem] p-6 flex flex-col gap-4 cursor-pointer group hover:border-white/25 transition-all duration-300 relative overflow-hidden"
@@ -74,7 +77,7 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
       </div>
 
       {userId === project.owner_id && (
-        <div className="absolute top-5 right-[56px] flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+        <div className="absolute top-5 right-[72px] flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20">
           <button onClick={(e)=>{e.stopPropagation(); onEdit();}} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white backdrop-blur-md border border-white/10 transition-all"><PencilSimple weight="fill" className="w-4 h-4"/></button>
           <button onClick={(e)=>{e.stopPropagation(); onDelete();}} className="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 flex items-center justify-center text-red-400 hover:text-red-300 backdrop-blur-md border border-red-500/20 transition-all"><Trash weight="fill" className="w-4 h-4"/></button>
         </div>
@@ -323,6 +326,7 @@ export default function Projects() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeHelp, setActiveHelp] = useState<HelpType | null>(null);
   const [urgentOnly, setUrgentOnly] = useState(false);
+  const [mineOnly, setMineOnly] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<any>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -346,10 +350,21 @@ export default function Projects() {
     { id: "Finance", key: "cat.fin" },
     { id: "Industrie", key: "cat.indus" },
     { id: "Commerce", key: "cat.comm" },
-    { id: "Environnement", key: "cat.env" },
+    { id: "Restauration", key: "cat.food" },
+    { id: "Artisanat", key: "cat.craft" },
+    { id: "Mode & Textile", key: "cat.fashion" },
+    { id: "Beauté & Bien-être", key: "cat.beauty" },
+    { id: "Sport & Loisirs", key: "cat.sport" },
+    { id: "Tourisme & Hôtellerie", key: "cat.tourism" },
+    { id: "Culture & Art", key: "cat.culture" },
+    { id: "Médias & Communication", key: "cat.media" },
+    { id: "BTP & Construction", key: "cat.btp" },
     { id: "Immobilier", key: "cat.immo" },
     { id: "Transport", key: "cat.transp" },
     { id: "Énergie", key: "cat.energy" },
+    { id: "Environnement", key: "cat.env" },
+    { id: "Services", key: "cat.services" },
+    { id: "Automobile", key: "cat.auto" },
     { id: "Autre", key: "cat.other" },
   ];
 
@@ -361,6 +376,11 @@ export default function Projects() {
       is_urgent: urgentOnly || undefined,
     }),
   });
+
+  const displayedProjects = useMemo(
+    () => (mineOnly && user ? projects.filter((p: any) => p.owner_id === user.id) : projects),
+    [projects, mineOnly, user]
+  );
 
   useEffect(() => {
     if (selectedProject && user?.id) {
@@ -376,28 +396,28 @@ export default function Projects() {
       <main className="relative z-10 pt-[18vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
 
         {/* Hero */}
-        <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="mb-[8vh]">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/40 to-blue-500/40 flex items-center justify-center border border-primary/30">
-              <Sparkle className="w-5 h-5 text-white"/>
-            </div>
-            <span className="text-xs uppercase tracking-[0.3em] text-primary font-medium">{t('hub.title')}</span>
-          </div>
-          <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-light leading-[1.05] tracking-tighter text-white mb-4">
-            {t('hub.hero_title')}<br/><span className="text-primary font-medium">{t('hub.hero_title_highlight')}</span>
+        <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="mb-[5vh]">
+          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] mb-3">
+            {t('hub.hero_title')} <span className="text-primary font-medium">{t('hub.hero_title_highlight')}</span>
           </h1>
-          <p className="text-white/60 font-light text-[clamp(1rem,1.1vw,1.125rem)] max-w-xl leading-relaxed">
+          <p className="text-white/50 font-light text-sm md:text-base max-w-xl leading-relaxed">
             {t('hub.hero_desc')}
           </p>
         </motion.div>
 
+        <HelpBanner
+          title={t('help.hub_title', 'Comment fonctionne le hub de projets ?')}
+          desc={t('help.hub_desc', '')}
+          className="mb-[4vh]"
+        />
+
         {/* Filters */}
-        <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="mb-[6vh] space-y-4">
+        <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="mb-[4vh] space-y-2.5">
           {/* Categories */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             {CATEGORIES.map(c => (
               <button key={c.id} onClick={()=>setActiveCategory(c.id)}
-                className={`text-xs px-4 py-2 rounded-full border transition-all font-medium ${activeCategory===c.id?"bg-primary border-primary text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]":"bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"}`}>
+                className={`text-[11px] px-3 py-1.5 rounded-full border transition-all ${activeCategory===c.id?"bg-primary border-primary text-white font-medium":"bg-white/[0.03] border-white/10 text-white/40 hover:bg-white/10 hover:text-white"}`}>
                 {t(c.key)}
               </button>
             ))}
@@ -419,8 +439,14 @@ export default function Projects() {
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${urgentOnly?"bg-red-500/20 border-red-500/40 text-red-400":"bg-white/5 border-white/10 text-white/40 hover:text-white/70"}`}>
               <Fire className="w-3 h-3"/>{t('hub.urgent')}
             </button>
-            {(activeHelp || urgentOnly || activeCategory !== "all") && (
-              <button onClick={()=>{setActiveHelp(null);setUrgentOnly(false);setActiveCategory("all");}} className="text-xs text-white/30 hover:text-white flex items-center gap-1 ml-2 transition-colors"><X className="w-3 h-3"/>{t('hub.reset')}</button>
+            {user && (
+              <button onClick={()=>setMineOnly(!mineOnly)}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${mineOnly?"bg-primary/20 border-primary/40 text-primary":"bg-white/5 border-white/10 text-white/40 hover:text-white/70"}`}>
+                <Users className="w-3 h-3"/>{t('hub.my_projects', 'Mes projets')}
+              </button>
+            )}
+            {(activeHelp || urgentOnly || mineOnly || activeCategory !== "all") && (
+              <button onClick={()=>{setActiveHelp(null);setUrgentOnly(false);setMineOnly(false);setActiveCategory("all");}} className="text-xs text-white/30 hover:text-white flex items-center gap-1 ml-2 transition-colors"><X className="w-3 h-3"/>{t('hub.reset')}</button>
             )}
           </div>
         </motion.div>
@@ -432,7 +458,7 @@ export default function Projects() {
               <div key={i} className="liquid-glass border border-white/5 rounded-[2rem] h-[340px] animate-pulse"/>
             ))}
           </div>
-        ) : projects.length === 0 ? (
+        ) : displayedProjects.length === 0 ? (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} className="py-[20vh] text-center flex flex-col items-center border border-dashed border-white/15 rounded-[2.5rem]">
             <Warning className="w-12 h-12 text-white/20 mb-4"/>
             <h3 className="text-xl font-light text-white mb-2">{t('hub.no_projects')}</h3>
@@ -442,22 +468,21 @@ export default function Projects() {
             </Button>
           </motion.div>
         ) : (
-          <motion.div initial="hidden" animate="show" variants={{hidden:{opacity:0},show:{opacity:1,transition:{staggerChildren:0.07}}}}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map(p => (
-              <ProjectCard 
-                key={p.id} 
-                project={p} 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayedProjects.map(p => (
+              <ProjectCard
+                key={p.id}
+                project={p}
                 userId={user?.id}
                 onClick={()=>setSelectedProject(p)}
                 onEdit={() => { setProjectToEdit(p); setIsFormOpen(true); }}
                 onDelete={() => setProjectToDelete(p)}
               />
             ))}
-          </motion.div>
+          </div>
         )}
 
-        <p className="text-white/30 text-sm mt-8 text-center">{t('hub.count', { count: projects.length })}</p>
+        <p className="text-white/30 text-sm mt-8 text-center">{t('hub.count', { count: displayedProjects.length })}</p>
       </main>
 
       {/* FAB */}
