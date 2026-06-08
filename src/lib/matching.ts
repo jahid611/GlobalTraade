@@ -2,13 +2,7 @@
 // Note chaque annonce sur 0–100 selon les critères de recherche (SmartMatch)
 // + les critères d'investissement du profil (target_sectors / target_geo).
 import type { MatchCriteria } from "@/components/SmartMatchForm";
-
-// Correspondance d'adresse réelle par région (valeurs internes du SmartMatch).
-const REGION_KEYWORDS: Record<string, string[]> = {
-  "France - Paris Area": ["paris", "île-de-france", "ile-de-france", "boulogne", "neuilly", "versailles", "nanterre", "créteil", "75", "77", "78", "91", "92", "93", "94", "95"],
-  "France - South": ["marseille", "lyon", "nice", "toulouse", "montpellier", "aix", "cannes", "provence", "occitanie", "rhône", "rhone", "var", "gard", "hérault", "herault", "bouches-du-rhône"],
-  "France - West": ["nantes", "rennes", "bordeaux", "brest", "angers", "tours", "bretagne", "loire", "vendée", "vendee", "gironde", "morbihan", "finistère", "finistere"],
-};
+import { matchRegion } from "@/lib/geoRegions";
 
 export interface ProfileCriteria {
   target_sectors?: string | null;
@@ -18,7 +12,7 @@ export interface ProfileCriteria {
 
 export interface MatchResult {
   score: number;      // 0–100
-  reasons: string[];  // clés des facteurs ayant contribué (pour debug/affichage)
+  reasons: string[];
 }
 
 const num = (v: any) => {
@@ -31,47 +25,45 @@ export function scoreListing(listing: any, c: MatchCriteria, profile?: ProfileCr
   let max = 0;
   const reasons: string[] = [];
 
-  // 1) Secteur — poids 40
+  // 1) Secteur — poids 40 (multi-sélection ; vide = pas de préférence)
   max += 40;
-  if (!c.industry) {
-    pts += 28; // pas de préférence -> neutre-positif
-  } else if (listing.industry === c.industry) {
+  if (!c.industries || c.industries.length === 0) {
+    pts += 28;
+  } else if (c.industries.includes(listing.industry)) {
     pts += 40;
     reasons.push("sector");
   } else {
-    pts += 6; // secteur différent
+    pts += 6;
   }
 
-  // 2) Budget — poids 30 (budget = capacité max de l'acheteur ; 0 = illimité)
+  // 2) Budget — poids 30 (le prix doit tomber dans la fourchette)
   max += 30;
-  const budget = num(c.budget);
   const price = num(listing.price);
-  if (!budget) {
-    pts += 22;
-  } else if (price > 0 && price <= budget) {
-    const ratio = price / budget; // 0..1 : plus on exploite le budget, mieux c'est
-    pts += 22 + Math.round(ratio * 8); // 22..30
+  const bMin = num(c.budgetMin);
+  const bMax = num(c.budgetMax);
+  if (!price) {
+    pts += 18;
+  } else if (price >= bMin && (bMax === 0 || price <= bMax)) {
+    const span = Math.max(1, (bMax || price) - bMin);
+    const ratio = Math.min(1, Math.max(0, (price - bMin) / span));
+    pts += 24 + Math.round(ratio * 6); // 24..30
     reasons.push("budget");
-  } else if (price > budget) {
-    const over = price / budget; // >1
-    pts += Math.max(0, Math.round(15 - (over - 1) * 20)); // au-dessus -> chute rapide
+  } else if (bMax && price > bMax) {
+    const over = price / Math.max(1, bMax);
+    pts += Math.max(0, Math.round(15 - (over - 1) * 20));
   } else {
-    pts += 18; // prix inconnu
+    pts += 12; // prix sous la fourchette
   }
 
-  // 3) Région — poids 20 (vraie correspondance d'adresse)
+  // 3) Région — poids 20 (multi-sélection ; vide = pas de contrainte géo)
   max += 20;
-  const kws = c.region ? REGION_KEYWORDS[c.region] : null;
-  if (!c.region || c.region === "All Countries" || c.region === "International" || !kws) {
-    pts += 14; // pas de contrainte géo -> neutre
+  if (!c.regions || c.regions.length === 0) {
+    pts += 14;
+  } else if (matchRegion(listing.address, c.regions)) {
+    pts += 20;
+    reasons.push("region");
   } else {
-    const addr = (listing.address || "").toLowerCase();
-    if (kws.some((k) => addr.includes(k))) {
-      pts += 20;
-      reasons.push("region");
-    } else {
-      pts += 4;
-    }
+    pts += 4;
   }
 
   // 4) Qualité du dossier — poids 10 (rentabilité EBITDA/prix)
@@ -88,8 +80,7 @@ export function scoreListing(listing: any, c: MatchCriteria, profile?: ProfileCr
   let bonus = 0;
   const ind = (listing.industry || "").toLowerCase();
   if (profile?.target_sectors && ind) {
-    const want = profile.target_sectors.toLowerCase();
-    const tokens = want.split(/[,;/]+/).map((s) => s.trim()).filter((s) => s.length > 2);
+    const tokens = profile.target_sectors.toLowerCase().split(/[,;/]+/).map((s) => s.trim()).filter((s) => s.length > 2);
     if (tokens.some((tk) => ind.includes(tk) || tk.includes(ind.split(" ")[0]))) {
       bonus += 6;
       reasons.push("profile_sector");

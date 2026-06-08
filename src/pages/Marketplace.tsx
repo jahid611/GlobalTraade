@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria } from '@/components/SmartMatchForm';
 import { scoreListing, ProfileCriteria } from '@/lib/matching';
+import { matchRegion } from '@/lib/geoRegions';
 import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
@@ -18,8 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
 
 const DEFAULT_FILTERS: FilterState = {
-  industry: "",
-  region: "",
+  industries: [],
+  regions: [],
   priceMin: "",
   priceMax: "",
   revenueMin: "",
@@ -79,18 +80,22 @@ export default function Marketplace() {
   const displayedListings = useMemo(() => {
     let result = [...listings];
 
-    // Filtres manuels (panneau « Ajuster les filtres »)
-    if (filters.region && filters.region !== "All Countries") {
-      result = result.filter(l => l.address && l.address.toLowerCase().includes(filters.region.split(' ')[0].toLowerCase()));
-    }
-    if (filters.industry) result = result.filter(l => l.industry === filters.industry);
-    if (filters.priceMin) result = result.filter(l => l.price >= Number(filters.priceMin));
-    if (filters.priceMax) result = result.filter(l => l.price <= Number(filters.priceMax));
-    if (filters.revenueMin) result = result.filter(l => l.revenue_n1 >= Number(filters.revenueMin));
-    if (filters.ebitdaMin) result = result.filter(l => l.ebitda >= Number(filters.ebitdaMin));
+    // Filtres manuels (panneau « Ajuster les filtres ») — multi-sélection combinable
+    if (filters.industries.length) result = result.filter(l => filters.industries.includes(l.industry));
+    if (filters.regions.length) result = result.filter(l => matchRegion(l.address, filters.regions));
+    if (filters.priceMin) result = result.filter(l => Number(l.price) >= Number(filters.priceMin));
+    if (filters.priceMax) result = result.filter(l => Number(l.price) <= Number(filters.priceMax));
+    if (filters.revenueMin) result = result.filter(l => Number(l.revenue_n1) >= Number(filters.revenueMin));
+    if (filters.ebitdaMin) result = result.filter(l => Number(l.ebitda) >= Number(filters.ebitdaMin));
 
-    // Recherche intelligente -> score de pertinence réel + tri décroissant
+    // Recherche intelligente -> filtre dur (secteurs/régions/budget) puis tri par pertinence
     if (matchCriteria) {
+      if (matchCriteria.industries.length) result = result.filter(l => matchCriteria.industries.includes(l.industry));
+      if (matchCriteria.regions.length) result = result.filter(l => matchRegion(l.address, matchCriteria.regions));
+      result = result.filter(l => {
+        const p = Number(l.price) || 0;
+        return p === 0 || (p >= matchCriteria.budgetMin && p <= matchCriteria.budgetMax);
+      });
       return result
         .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
         .sort((a, b) => (b._matchScore || 0) - (a._matchScore || 0));
@@ -120,8 +125,8 @@ export default function Marketplace() {
 
   const getActiveFilterCount = () => {
     let count = 0;
-    if (filters.industry) count++;
-    if (filters.region && filters.region !== "All Countries") count++;
+    if (filters.industries.length) count++;
+    if (filters.regions.length) count++;
     if (filters.priceMin || filters.priceMax) count++;
     if (filters.revenueMin) count++;
     if (filters.ebitdaMin) count++;
@@ -137,23 +142,22 @@ export default function Marketplace() {
         <motion.div
           animate={{ y: [0, -18, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[26%] right-[-9%] md:top-[24%] md:right-[-4%] w-[130px] md:w-[230px] z-0 pointer-events-none opacity-80 hidden lg:block"
+          className="absolute top-[10%] right-[-9%] md:top-[8%] md:right-[-5%] w-[180px] md:w-[320px] z-0 pointer-events-none opacity-80 hidden lg:block"
         >
           <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
         
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-[8vw] lg:gap-[4vw] items-center mb-[12vh]">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-[4vh]">
-            <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-light leading-[1.1] tracking-tighter text-white">
-              {t('market.title1')} <br /> 
-              <span className="text-primary font-medium">{t('market.title2')}</span>
+        <div className="relative z-10 max-w-xl mx-auto mb-[10vh]">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-5">
+            <h1 className="text-xl sm:text-2xl font-light text-white/90">
+              {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
             </h1>
-            <p className="text-[clamp(1rem,1.1vw,1.125rem)] text-white/90 font-light max-w-lg leading-relaxed mt-[2vh]">
-              {t('market.desc')}
+            <p className="text-white/50 text-sm font-light mt-2">
+              {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
             </p>
           </motion.div>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-            <SmartMatchForm onResults={handleSmartMatch} availableIndustries={availableIndustries} />
+          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+            <SmartMatchForm onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
           </motion.div>
         </div>
 
@@ -210,17 +214,14 @@ export default function Marketplace() {
               </Button>
             </motion.div>
           ) : (
-            <motion.div 
-              initial="hidden"
-              animate="show"
-              variants={{
-                hidden: { opacity: 0 },
-                show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-              }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]"
-            >
-              {displayedListings.map((l) => (
-                <motion.div key={l.id} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }}}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
+              {displayedListings.map((l, i) => (
+                <motion.div
+                  key={l.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.5) }}
+                >
                   <BusinessCard
                     listing={l}
                     matchScore={(l as any)._matchScore}
@@ -228,7 +229,7 @@ export default function Marketplace() {
                   />
                 </motion.div>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       </main>
