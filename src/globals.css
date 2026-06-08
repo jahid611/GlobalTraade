@@ -4,29 +4,35 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 0 0% 10%;
+    /* ===================== MODE CLAIR ===================== */
+    --background: 210 40% 98%;     /* fond de page clair */
+    --foreground: 222 14% 14%;     /* texte principal foncé */
+    --ink: 222 14% 16%;            /* alias utilisé par text-white -> encre foncée en clair */
     /* Bleu Océan profond / Tech */
-    --primary: 221 83% 53%; 
+    --primary: 221 83% 53%;
     --radius: 1.5rem;
-    
-    /* MODE CLAIR : Verre plus sombre et plus opaque pour contraster avec le fond lumineux */
-    --glass-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.45) 100%);
-    --glass-border-top: rgba(255, 255, 255, 0.4);
-    --glass-border-left: rgba(255, 255, 255, 0.2);
-    --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+
+    /* MODE CLAIR : verre CLAIR translucide, bordure sombre subtile, ombre douce */
+    --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.58) 100%);
+    --glass-border-top: rgba(0, 0, 0, 0.10);
+    --glass-border-left: rgba(0, 0, 0, 0.06);
+    --glass-edge: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
   }
 
   .dark {
-    --background: 240 10% 4%; 
-    --foreground: 0 0% 100%;
+    /* ===================== MODE SOMBRE (inchangé) ===================== */
+    --background: 252 6% 17%;      /* #2b2a2f preserve */
+    --foreground: 0 0% 100%;       /* texte blanc */
+    --ink: 220 13% 84%;            /* #d2d1dd preserve (ancienne valeur de "white") */
     /* Bleu vibrant et lumineux pour le mode sombre */
     --primary: 217 91% 60%;
-    
-    /* MODE SOMBRE : Verre très léger et transparent car le fond est déjà noir */
+
+    /* MODE SOMBRE : verre très léger et transparent car le fond est déjà noir */
     --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.01) 100%);
     --glass-border-top: rgba(255, 255, 255, 0.25);
     --glass-border-left: rgba(255, 255, 255, 0.15);
+    --glass-edge: rgba(255, 255, 255, 0.15);
     --glass-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
   }
 
@@ -36,8 +42,8 @@
   }
 }
 
-/* 
- * NATIVE FEEL - Désactivation globale de la sélection de texte et du surlignage tactile 
+/*
+ * NATIVE FEEL - Désactivation globale de la sélection de texte et du surlignage tactile
  */
 * {
   -webkit-touch-callout: none !important;
@@ -49,7 +55,7 @@
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* 
+/*
  * On réactive la sélection UNIQUEMENT pour les inputs, textareas, et éléments de chat
  */
 input, textarea, select, [contenteditable="true"], .allow-select, [class*="chat"], [class*="message"], [class*="Message"] {
@@ -71,7 +77,7 @@ input, textarea, select {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-edge);
   border-top: 1px solid var(--glass-border-top);
   border-left: 1px solid var(--glass-border-left);
   box-shadow: var(--glass-shadow);
@@ -83,7 +89,7 @@ input, textarea, select {
   background: var(--glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--glass-edge);
   border-top: 1px solid var(--glass-border-top);
   border-left: 1px solid var(--glass-border-left);
   box-shadow: var(--glass-shadow);
@@ -105,3 +111,45 @@ input, textarea, select {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.6); border-radius: 10px; }
 .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* =====================================================================
+ * MODE CLAIR — correctifs ciblés (placés APRÈS @tailwind utilities pour
+ * gagner sur les utilitaires à spécificité égale).
+ * Objectif : light mode cohérent et lisible sans réécrire chaque composant.
+ * ===================================================================== */
+
+/* 1) Fonds sombres codés en dur (#2b2a2f) -> passent clairs en mode clair */
+:root:not(.dark) .bg-\[\#2b2a2f\] { background-color: hsl(var(--background)) !important; }
+:root:not(.dark) .bg-\[\#2b2a2f\]\/80 { background-color: hsl(var(--background) / 0.85) !important; }
+:root:not(.dark) .bg-\[\#2b2a2f\]\/40 { background-color: hsl(var(--background) / 0.45) !important; }
+
+/* 2) Surfaces blanches PLEINES (cartes/boutons clairs) : redeviennent vraiment
+ *    blanches en mode clair (le token "white" est devenu encre foncée). */
+:root:not(.dark) .bg-white { background-color: #ffffff !important; }
+
+/* 3) Boutons / badges CTA à fond saturé PLEIN : le label doit rester blanc,
+ *    sinon on aurait du texte foncé sur fond coloré (illisible). */
+:root:not(.dark) :is(
+  .bg-primary, .bg-secondary,
+  .bg-blue-500, .bg-blue-600, .bg-blue-700,
+  .bg-indigo-500, .bg-indigo-600,
+  .bg-emerald-500, .bg-emerald-600,
+  .bg-green-500, .bg-green-600,
+  .bg-red-500, .bg-red-600,
+  .bg-rose-500, .bg-rose-600,
+  .bg-amber-500, .bg-amber-600,
+  .bg-orange-500, .bg-orange-600
+),
+:root:not(.dark) :is(
+  .bg-primary, .bg-secondary,
+  .bg-blue-500, .bg-blue-600, .bg-blue-700,
+  .bg-indigo-500, .bg-indigo-600,
+  .bg-emerald-500, .bg-emerald-600,
+  .bg-green-500, .bg-green-600,
+  .bg-red-500, .bg-red-600,
+  .bg-rose-500, .bg-rose-600,
+  .bg-amber-500, .bg-amber-600,
+  .bg-orange-500, .bg-orange-600
+) * {
+  color: #ffffff !important;
+}
