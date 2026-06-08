@@ -36,7 +36,7 @@
 
   html, body {
     @apply font-sans bg-background text-foreground transition-colors duration-700 ease-in-out;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Instrument Sans", "Segoe UI", Roboto, sans-serif;
   }
 }
 
