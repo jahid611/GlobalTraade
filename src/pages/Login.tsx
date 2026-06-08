@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
+import { OnboardingModal } from '@/components/OnboardingModal';
 
 const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
   <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:bg-[#2b2a2f] transition-colors duration-700">
@@ -65,6 +66,7 @@ export default function Login() {
   const [error, setError] = useState("");
   
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -100,7 +102,7 @@ export default function Login() {
           // On force la connexion puisque le Trigger SQL a validé le compte
           const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (!signInError) {
-            navigate('/');
+            setShowOnboarding(true);
           } else {
             setError(signUpError.message);
           }
@@ -108,7 +110,7 @@ export default function Login() {
           setError(signUpError.message);
         }
       } else {
-        navigate('/');
+        setShowOnboarding(true);
       }
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
@@ -139,6 +141,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <DynamicBackground carouselIndex={carouselIndex} />
+
+      <AnimatePresence>
+        {showOnboarding && <OnboardingModal onDone={() => navigate('/')} />}
+      </AnimatePresence>
 
       <div className="absolute top-6 left-6 z-[100] flex items-center gap-4">
         <Link to="/">
