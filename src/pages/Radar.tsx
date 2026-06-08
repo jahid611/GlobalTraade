@@ -89,7 +89,7 @@ export default function Radar() {
   const statusOptions = STATUS_ORDER.map((s) => ({ value: s, label: statusLabel(s) }));
 
   const exportCampaign = () => {
-    const list = prospects.filter((p) => selected.has(p.id) && p.email);
+    const list = visibleProspects.filter((p) => selected.has(p.id) && p.email);
     if (list.length === 0) { showError("Aucun sélectionné avec un email renseigné"); return; }
     const csv = "﻿" + buildCampaignCsv(list, senderName, siteLang);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -345,7 +345,7 @@ export default function Radar() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setCrmFilter(null)}
+                  onClick={() => { setCrmFilter(null); setSelected(new Set()); }}
                   className={`px-4 py-2 rounded-xl text-sm transition-all border ${crmFilter === null ? 'bg-white/15 text-white border-white/30' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10 hover:text-white'}`}
                 >
                   {t('crm.all', 'Tous')} <strong className="ml-1">{prospects.length}</strong>
@@ -355,7 +355,7 @@ export default function Radar() {
                   return (
                     <button
                       key={s}
-                      onClick={() => setCrmFilter(active ? null : s)}
+                      onClick={() => { setCrmFilter(active ? null : s); setSelected(new Set()); }}
                       className={`px-4 py-2 rounded-xl text-sm transition-all border ${STATUS_META[s].color} ${active ? 'ring-2 ring-white/40 border-white/20' : 'border-transparent opacity-80 hover:opacity-100'}`}
                     >
                       {statusLabel(s)} <strong className="ml-1">{counts[s] || 0}</strong>

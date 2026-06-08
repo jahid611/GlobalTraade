@@ -116,6 +116,7 @@ export function Dropdown({
               {options.map((o) => (
                 <button
                   key={o.value}
+                  type="button"
                   onClick={() => { onChange(o.value); setOpen(false); }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
                     o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"

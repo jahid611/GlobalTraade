@@ -219,7 +219,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     let fields: (keyof ListingData)[] = [];
     if (step === 1) fields = ['name', 'siret', 'industry'];
     else if (step === 2) fields = ['address', 'lat', 'lng'];
-    else if (step === 3) fields = ['price', 'revenue_n1', 'ebitda'];
+    else if (step === 3) fields = ['price', 'revenue_n1', 'ebitda', 'revenue_n2', 'revenue_n3'];
     else if (step === 4) fields = ['rent', 'surface', 'employees', 'description', 'lease_details'];
     
     const isValid = await trigger(fields);

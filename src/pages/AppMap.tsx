@@ -97,6 +97,9 @@ export default function AppMap() {
         .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
     if (created) {
+      // On retire le filtre secteur actif : sinon la nouvelle cession peut être
+      // exclue de displayListings et le globe ne saurait pas voler dessus.
+      setSelectedIndustries([]);
       // …on fait voler le globe dessus, puis on ouvre sa fiche une fois arrivé.
       setSelectedListing(null);
       setFocusListingId(undefined);
