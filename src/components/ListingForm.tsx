@@ -16,6 +16,7 @@ import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { uploadListingImage, saveListing } from '@/services/listingService';
+import { Dropdown } from '@/components/PickerKit';
 
 const getListingSchema = (t: any) => {
   const currentYear = new Date().getFullYear();
@@ -38,7 +39,7 @@ const getListingSchema = (t: any) => {
     description: z.string().min(10, t('val.desc_min')),
     reason_for_selling: z.string().optional().nullable().or(z.literal("")),
     established_year: z.coerce.number()
-      .min(1800, t('val.year_invalid', { current: currentYear }))
+      .min(1700, t('val.year_invalid', { current: currentYear }))
       .max(currentYear, t('val.year_invalid', { current: currentYear }))
       .optional().nullable().or(z.literal("")),
     revenue_n2: z.union([z.number().min(0, t('val.rev_min')), z.literal("")]).optional().nullable(),
@@ -212,7 +213,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     if (step === 1) fields = ['name', 'siret', 'industry'];
     else if (step === 2) fields = ['address', 'lat', 'lng'];
     else if (step === 3) fields = ['price', 'revenue_n1', 'ebitda'];
-    else if (step === 4) fields = ['description', 'lease_details'];
+    else if (step === 4) fields = ['rent', 'surface', 'employees', 'description', 'lease_details'];
     
     const isValid = await trigger(fields);
     if (isValid) { setDirection(1); setStep(s => Math.min(5, s + 1)); }
@@ -290,9 +291,43 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     `w-full bg-transparent border-b pb-2 pt-4 text-lg font-light focus:outline-none transition-colors rounded-none resize-none ` + 
     (hasError ? 'border-[#ef4444] text-[#fca5a5] focus:border-[#f87171] placeholder:text-[#ef4444]/40' : 'border-white/20 text-white focus:border-primary placeholder:text-white/20');
   
-  const getSelectClass = () => `w-full bg-[#1c1c1e] border-b border-white/20 pb-2 pt-2 text-lg font-light focus:outline-none transition-colors rounded-none px-0 text-white focus:border-primary`;
-
   const labelClass = "text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/70 block";
+
+  // Années : de l'année en cours jusqu'à 1700 (décroissant) -> plus de "3012".
+  const currentYear = new Date().getFullYear();
+  const yearOptions = useMemo(
+    () => Array.from({ length: currentYear - 1700 + 1 }, (_, i) => {
+      const y = String(currentYear - i);
+      return { value: y, label: y };
+    }),
+    [currentYear]
+  );
+
+  // Options des critères "Capital Immatériel" (étape 5)
+  const mgmtOptions = [
+    { value: 'autonomous', label: t('elite.mgmt_auto', 'Équipe autonome (Le dirigeant est remplaçable)') },
+    { value: 'dependent', label: t('elite.mgmt_dep', 'Forte dépendance au dirigeant (Savoir-faire clé)') },
+    { value: 'family', label: t('elite.mgmt_fam', 'Entreprise familiale (Plusieurs membres impliqués)') },
+  ];
+  const clientOptions = [
+    { value: 'diversified', label: t('elite.cli_div', 'Clientèle très diversifiée (B2C ou multi-comptes)') },
+    { value: 'medium', label: t('elite.cli_med', 'Dépendance modérée (Top 5 clients = 30% du CA)') },
+    { value: 'high', label: t('elite.cli_high', 'Forte dépendance (Top 3 clients = 50%+ du CA)') },
+  ];
+  const digitalOptions = [
+    { value: 'high', label: t('elite.dig_high', 'Élevée (CRM, e-commerce, process automatisés)') },
+    { value: 'medium', label: t('elite.dig_med', 'Standard (Site web vitrine, compta digitalisée)') },
+    { value: 'low', label: t('elite.dig_low', 'Faible (Processus principalement manuels)') },
+  ];
+  const marketOptions = [
+    { value: 'growing', label: t('elite.mkt_grow', 'En forte croissance / Niche très porteuse') },
+    { value: 'stable', label: t('elite.mkt_stable', 'Marché mature et stable') },
+    { value: 'declining', label: t('elite.mkt_decl', 'Marché en contraction / À réinventer') },
+  ];
+
+  // Bouton dropdown façon "champ souligné" (année) et façon "carte" (étape elite)
+  const yearBtnClass = "w-full flex items-center justify-between gap-2 bg-transparent border-b border-white/20 pb-2 pt-2 text-xl sm:text-2xl font-light text-white hover:border-white/40 transition-colors rounded-none px-0";
+  const eliteBtnClass = "w-full flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 h-14 text-white text-sm sm:text-base font-light text-left hover:border-white/30 transition-colors";
 
   const Hint = ({ text }: { text: string }) => (
     <span className="text-[11px] text-white/50 font-light mt-2 leading-relaxed flex items-start gap-1.5">
@@ -568,7 +603,17 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     </div>
                     <div className="col-span-1 sm:col-span-1">
                       <label className={labelClass}>{t('form.established')}</label>
-                      <input {...register('established_year')} placeholder="Ex: 2015" className={getInputClass(!!errors.established_year)} />
+                      <div className="mt-2">
+                        <Controller name="established_year" control={control} render={({ field }) => (
+                          <Dropdown
+                            value={field.value ? String(field.value) : ''}
+                            onChange={(v) => field.onChange(v)}
+                            options={yearOptions}
+                            placeholder={t('form.select_year', 'Choisir une année…')}
+                            buttonClassName={yearBtnClass}
+                          />
+                        )} />
+                      </div>
                       <Hint text={t('form.hint_established')} />
                       {errors.established_year && <span className="text-[#f87171] text-xs mt-2 block">{errors.established_year.message}</span>}
                     </div>
@@ -614,45 +659,41 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div>
                       <label className={labelClass}>{t('elite.management', 'Modèle de Management')}</label>
-                      <select {...register('management_type')} className={getSelectClass()}>
-                        <option value="">Sélectionnez...</option>
-                        <option value="autonomous">{t('elite.mgmt_auto', 'Équipe autonome (Le dirigeant est remplaçable)')}</option>
-                        <option value="dependent">{t('elite.mgmt_dep', 'Forte dépendance au dirigeant (Savoir-faire clé)')}</option>
-                        <option value="family">{t('elite.mgmt_fam', 'Entreprise familiale (Plusieurs membres impliqués)')}</option>
-                      </select>
+                      <div className="mt-2">
+                        <Controller name="management_type" control={control} render={({ field }) => (
+                          <Dropdown value={field.value || ''} onChange={field.onChange} options={mgmtOptions} placeholder={t('elite.select', 'Sélectionnez…')} buttonClassName={eliteBtnClass} />
+                        )} />
+                      </div>
                       <Hint text={t('elite.mgmt_hint', 'Une équipe autonome augmente significativement la valorisation.')} />
                     </div>
 
                     <div>
                       <label className={labelClass}>{t('elite.clients', 'Concentration de la Clientèle')}</label>
-                      <select {...register('client_concentration')} className={getSelectClass()}>
-                        <option value="">Sélectionnez...</option>
-                        <option value="diversified">{t('elite.cli_div', 'Clientèle très diversifiée (B2C ou multi-comptes)')}</option>
-                        <option value="medium">{t('elite.cli_med', 'Dépendance modérée (Top 5 clients = 30% du CA)')}</option>
-                        <option value="high">{t('elite.cli_high', 'Forte dépendance (Top 3 clients = 50%+ du CA)')}</option>
-                      </select>
+                      <div className="mt-2">
+                        <Controller name="client_concentration" control={control} render={({ field }) => (
+                          <Dropdown value={field.value || ''} onChange={field.onChange} options={clientOptions} placeholder={t('elite.select', 'Sélectionnez…')} buttonClassName={eliteBtnClass} />
+                        )} />
+                      </div>
                       <Hint text={t('elite.cli_hint', 'Une forte dépendance client représente un risque lors d\'une reprise.')} />
                     </div>
 
                     <div>
                       <label className={labelClass}>{t('elite.digital', 'Maturité Digitale')}</label>
-                      <select {...register('digital_maturity')} className={getSelectClass()}>
-                        <option value="">Sélectionnez...</option>
-                        <option value="high">{t('elite.dig_high', 'Élevée (CRM, e-commerce, process automatisés)')}</option>
-                        <option value="medium">{t('elite.dig_med', 'Standard (Site web vitrine, compta digitalisée)')}</option>
-                        <option value="low">{t('elite.dig_low', 'Faible (Processus principalement manuels)')}</option>
-                      </select>
+                      <div className="mt-2">
+                        <Controller name="digital_maturity" control={control} render={({ field }) => (
+                          <Dropdown value={field.value || ''} onChange={field.onChange} options={digitalOptions} placeholder={t('elite.select', 'Sélectionnez…')} buttonClassName={eliteBtnClass} />
+                        )} />
+                      </div>
                       <Hint text={t('elite.dig_hint', 'Les entreprises digitalisées sont particulièrement prisées.')} />
                     </div>
 
                     <div>
                       <label className={labelClass}>{t('elite.market', 'Dynamique de Marché')}</label>
-                      <select {...register('market_trend')} className={getSelectClass()}>
-                        <option value="">Sélectionnez...</option>
-                        <option value="growing">{t('elite.mkt_grow', 'En forte croissance / Niche très porteuse')}</option>
-                        <option value="stable">{t('elite.mkt_stable', 'Marché mature et stable')}</option>
-                        <option value="declining">{t('elite.mkt_decl', 'Marché en contraction / À réinventer')}</option>
-                      </select>
+                      <div className="mt-2">
+                        <Controller name="market_trend" control={control} render={({ field }) => (
+                          <Dropdown value={field.value || ''} onChange={field.onChange} options={marketOptions} placeholder={t('elite.select', 'Sélectionnez…')} buttonClassName={eliteBtnClass} />
+                        )} />
+                      </div>
                       <Hint text={t('elite.mkt_hint', 'Soyez honnête, un marché en contraction peut attirer des spécialistes du retournement.')} />
                     </div>
                   </div>

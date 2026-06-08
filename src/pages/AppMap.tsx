@@ -30,7 +30,7 @@ export default function AppMap() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const focusId = location.state?.focusId;
+  const navFocusId = location.state?.focusId;
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
@@ -41,6 +41,8 @@ export default function AppMap() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [listingToEdit, setListingToEdit] = useState<any>(null);
   const [selectedListing, setSelectedListing] = useState<any>(null);
+  // Cible vers laquelle le globe vole (navigation OU nouvelle cession créée).
+  const [focusListingId, setFocusListingId] = useState<string | undefined>(navFocusId);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatListing, setChatListing] = useState<any>(null);
   const [selectedNeed, setSelectedNeed] = useState<any>(null);
@@ -52,14 +54,15 @@ export default function AppMap() {
   const isOverlayOpen = !!selectedListing || isFormOpen || isChatOpen || isSidebarMessagingOpen;
 
   useEffect(() => {
-    if (focusId && listings.length > 0) {
+    if (navFocusId && listings.length > 0) {
+      setFocusListingId(navFocusId);
       const timer = setTimeout(() => {
-        handleSelectListing(focusId);
+        handleSelectListing(navFocusId);
       }, 800);
       window.history.replaceState({}, document.title);
       return () => clearTimeout(timer);
     }
-  }, [focusId, listings]);
+  }, [navFocusId, listings]);
 
   const handleSelectListing = async (id: string) => {
     const listing = listings.find(l => l.id === id);
@@ -75,10 +78,30 @@ export default function AppMap() {
   };
 
   const handleFormSuccess = async () => {
+    const prevIds = new Set(listings.map((l: any) => l.id));
     const { data } = await refetch();
-    if (listingToEdit && data) {
-      const updatedListing = (data as any[]).find((l: any) => l.id === listingToEdit.id);
+    const list = (data as any[]) || [];
+
+    // Édition : on rouvre simplement la fiche mise à jour.
+    if (listingToEdit) {
+      const updatedListing = list.find((l: any) => l.id === listingToEdit.id);
       if (updatedListing) setSelectedListing(updatedListing);
+      return;
+    }
+
+    // Nouvelle cession : on identifie celle qui vient d'apparaître…
+    const created =
+      list.find((l: any) => !prevIds.has(l.id) && l.owner_id === user?.id) ||
+      [...list]
+        .filter((l: any) => l.owner_id === user?.id)
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+    if (created) {
+      // …on fait voler le globe dessus, puis on ouvre sa fiche une fois arrivé.
+      setSelectedListing(null);
+      setFocusListingId(undefined);
+      setTimeout(() => setFocusListingId(created.id), 50);
+      setTimeout(() => setSelectedListing(created), 1600);
     }
   };
 
@@ -230,7 +253,7 @@ export default function AppMap() {
         <WorldGlobe 
           listings={displayListings as any} 
           onSelectListing={handleSelectListing} 
-          focusListingId={focusId} 
+          focusListingId={focusListingId}
           currentUserId={user?.id}
         />
       </div>
