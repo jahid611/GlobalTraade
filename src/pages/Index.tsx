@@ -284,9 +284,9 @@ export default function Index() {
                  style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
                />
                <div
-                 className="absolute z-0 overflow-hidden"
+                 className="absolute z-0 overflow-hidden left-0 max-md:-left-[6px]"
                  style={{
-                   top: 0, left: 0, width: '257px', height: '600px',
+                   top: 0, width: '257px', height: '600px',
                    borderRadius: '30px',
                    transformOrigin: '0 0',
                    transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
