@@ -7,10 +7,12 @@ import { SolarSystem } from "@/components/SolarSystem";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Radar as RadarIcon, Search, Loader2, Plus, Check, ExternalLink, Trash2,
   Users2, Flame, Sparkles, ArrowLeft, Mail, StickyNote, X, ChevronLeft, ChevronRight, Crosshair,
-  Send, Copy, RefreshCw, User, Download, CheckSquare, Square, Zap,
+  Send, Copy, RefreshCw, User, Download, CheckSquare, Square, Info, HelpCircle,
 } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -24,7 +26,6 @@ import {
 } from "@/services/prospectService";
 
 const APE_OPTIONS = APE_CODES.map((c) => ({ value: c.code, label: c.label, group: c.group }));
-const STATUS_OPTIONS = STATUS_ORDER.map((s) => ({ value: s, label: STATUS_META[s].label }));
 
 const ScoreBadge = ({ score }: { score: number }) => {
   const hot = score >= 5, warm = score >= 3;
@@ -43,9 +44,11 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export default function Radar() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const senderName = user?.user_metadata?.full_name || user?.email || "[Votre nom]";
   const [tab, setTab] = useState<"search" | "crm">("search");
+  const statusLabel = (s: ProspectStatus) => t(`crm.status.${s}`, STATUS_META[s].label);
 
   // --- Recherche ---
   const [ape, setApe] = useState("25.62B");
@@ -68,14 +71,21 @@ export default function Radar() {
   const [toDelete, setToDelete] = useState<Prospect | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showPricing, setShowPricing] = useState(false);
+  // Filtre actif sur le pipeline : clic sur une pastille de statut.
+  const [crmFilter, setCrmFilter] = useState<ProspectStatus | null>(null);
+  const visibleProspects = useMemo(
+    () => (crmFilter ? prospects.filter((p) => p.status === crmFilter) : prospects),
+    [prospects, crmFilter]
+  );
 
   const toggleSel = (id: string) => setSelected((s) => {
     const n = new Set(s);
     n.has(id) ? n.delete(id) : n.add(id);
     return n;
   });
-  const allSelected = prospects.length > 0 && selected.size === prospects.length;
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(prospects.map((p) => p.id)));
+  const allSelected = visibleProspects.length > 0 && visibleProspects.every((p) => selected.has(p.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(visibleProspects.map((p) => p.id)));
+  const statusOptions = STATUS_ORDER.map((s) => ({ value: s, label: statusLabel(s) }));
 
   const exportCampaign = () => {
     const list = prospects.filter((p) => selected.has(p.id) && p.email);
@@ -163,6 +173,20 @@ export default function Radar() {
     </button>
   );
 
+  // Bulle d'info réutilisable (tooltip) — explications contextuelles.
+  const InfoTip = ({ text, className = "" }: { text: string; className?: string }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className={`inline-flex items-center justify-center text-white/40 hover:text-white transition-colors align-middle ${className}`}>
+          <Info size={14} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] text-xs font-light leading-relaxed bg-[#211f25] text-white border-white/10">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
       <SolarSystem />
@@ -173,16 +197,34 @@ export default function Radar() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 md:gap-6 mb-8 md:mb-10">
           <div className="min-w-0">
             <Link to="/dashboard" className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-3 md:mb-4 transition-colors">
-              <ArrowLeft size={14} /> Tableau de bord
+              <ArrowLeft size={14} /> {t('radar.back_dashboard', 'Tableau de bord')}
             </Link>
-            <h1 className="text-3xl md:text-4xl font-light mb-2 tracking-tight flex items-center gap-3">
-              <RadarIcon className="text-primary shrink-0" /> Prospection
+            <h1 className="text-3xl md:text-4xl font-light mb-2 tracking-tight flex items-center gap-3 text-white">
+              <RadarIcon className="text-primary shrink-0" /> {t('radar.title', 'Prospection')}
             </h1>
-            <p className="text-white/40 font-light italic text-sm md:text-base">Trouve les entreprises de ton secteur (code APE) et contacte-les directement.</p>
+            <p className="text-white/50 font-light italic text-sm md:text-base">{t('radar.subtitle', 'Trouve les entreprises de ton secteur (code APE) et contacte-les directement.')}</p>
           </div>
           <div className="flex gap-2 p-1.5 rounded-full bg-black/20 border border-white/5 w-full md:w-auto">
-            <TabBtn id="search" label="Recherche" icon={Search} />
-            <TabBtn id="crm" label="CRM" icon={Users2} badge={prospects.length} />
+            <TabBtn id="search" label={t('radar.tab_search', 'Recherche')} icon={Search} />
+            <TabBtn id="crm" label={t('radar.tab_crm', 'CRM')} icon={Users2} badge={prospects.length} />
+          </div>
+        </div>
+
+        {/* Bannière d'aide — explique le fonctionnement de la page */}
+        <div className="liquid-glass rounded-2xl p-5 md:p-6 border border-white/5 mb-8 md:mb-10 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+            <HelpCircle className="w-5 h-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-white font-medium mb-1.5">{t('radar.help_title', 'Comment fonctionne la prospection ?')}</h2>
+            <p className="text-white/60 text-sm font-light leading-relaxed">
+              {t('radar.help_desc', "Recherche des entreprises actives par code d'activité (APE) et par zone. Chaque résultat reçoit un score de cession (plus il est élevé, plus une transmission est probable : entreprise mature, dirigeant proche de la retraite, forme juridique sérieuse). Ajoute les meilleures à ton CRM, trouve l'email du dirigeant et envoie ton message — une par une ou en campagne groupée.")}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-xs text-white/50">
+              <span className="inline-flex items-center gap-1.5"><Flame size={13} className="text-red-400" /> {t('radar.legend_hot', 'Signal fort (score ≥ 5)')}</span>
+              <span className="inline-flex items-center gap-1.5"><Sparkles size={13} className="text-amber-300" /> {t('radar.legend_warm', 'Signal moyen (score ≥ 3)')}</span>
+              <span className="inline-flex items-center gap-1.5"><Crosshair size={13} className="text-white/40" /> {t('radar.legend_cold', 'À creuser')}</span>
+            </div>
           </div>
         </div>
 
@@ -192,15 +234,21 @@ export default function Radar() {
             <div className="liquid-glass rounded-[2rem] p-6 md:p-8 border border-white/5">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div className="md:col-span-6">
-                  <label className="text-xs uppercase tracking-widest text-white/40 mb-2 block">Secteur (code APE)</label>
+                  <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2">
+                    {t('radar.sector_label', 'Secteur (code APE)')}
+                    <InfoTip text={t('radar.sector_tip', "Le code APE identifie l'activité principale d'une entreprise (ex: 47.21Z = vente de fruits et légumes). Tape le nom du secteur, on trouve le code pour toi.")} />
+                  </label>
                   <SearchableSelect value={ape} onChange={setApe} options={APE_OPTIONS} />
                 </div>
                 <div className="md:col-span-3">
-                  <label className="text-xs uppercase tracking-widest text-white/40 mb-2 block">Département</label>
+                  <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2">
+                    {t('radar.dept_label', 'Département')}
+                    <InfoTip text={t('radar.dept_tip', "Numéro du département français (ex: 69 = Rhône, 75 = Paris). Laisse vide pour chercher partout en France.")} />
+                  </label>
                   <input
                     value={dept}
                     onChange={(e) => setDept(e.target.value)}
-                    placeholder="ex: 69"
+                    placeholder={t('radar.dept_ph', 'ex: 69')}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-white outline-none focus:border-primary/50"
                   />
                 </div>
@@ -210,19 +258,23 @@ export default function Radar() {
                     disabled={searching}
                     className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium"
                   >
-                    {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search size={16} className="mr-2" /> Lancer le radar</>}
+                    {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search size={16} className="mr-2" /> {t('radar.launch', 'Lancer le radar')}</>}
                   </Button>
                 </div>
               </div>
-              <label className="flex items-center gap-2 mt-4 text-sm text-white/50 cursor-pointer w-fit">
+              <label className="flex items-center gap-2 mt-4 text-sm text-white/60 cursor-pointer w-fit">
                 <input type="checkbox" checked={strictDept} onChange={(e) => setStrictDept(e.target.checked)} className="accent-primary" />
-                Siège strictement dans le département
+                {t('radar.strict_dept', 'Siège strictement dans le département')}
               </label>
             </div>
 
             {total != null && (
-              <p className="text-white/40 text-sm">
-                <strong className="text-white">{total.toLocaleString("fr-FR")}</strong> entreprise(s) trouvée(s) — {results.length} affichée(s) sur cette page, triées par score de cession.
+              <p className="text-white/50 text-sm flex items-center gap-2 flex-wrap">
+                <span>
+                  <strong className="text-white">{total.toLocaleString("fr-FR")}</strong>{' '}
+                  {t('radar.results_found', { shown: results.length, defaultValue: 'entreprise(s) trouvée(s) — {{shown}} affichée(s) sur cette page, triées par score de cession.' })}
+                </span>
+                <InfoTip text={t('radar.score_tip', "Score de cession : plus il est élevé, plus l'entreprise est susceptible d'être à reprendre (ancienneté, âge du dirigeant proche de la retraite, forme juridique sérieuse).")} />
               </p>
             )}
 
@@ -243,10 +295,10 @@ export default function Radar() {
                     <div className="flex items-center justify-between gap-4 md:contents">
                       <div className="text-sm text-white/60 md:w-44 flex items-center gap-1.5 min-w-0">
                         {c.dirigeant_nom ? (
-                          <><User size={13} className="text-white/30 shrink-0" /><span className="truncate">{c.dirigeant_nom}{c.dirigeant_age ? <span className="text-amber-300 font-medium"> · {c.dirigeant_age} ans</span> : null}</span></>
-                        ) : <span className="text-white/30">dirigeant n/c</span>}
+                          <><User size={13} className="text-white/30 shrink-0" /><span className="truncate">{c.dirigeant_nom}{c.dirigeant_age ? <span className="text-[#67e8f9] font-medium"> · {t('radar.years', { n: c.dirigeant_age, defaultValue: '{{n}} ans' })}</span> : null}</span></>
+                        ) : <span className="text-white/30">{t('radar.director_na', 'dirigeant n/c')}</span>}
                       </div>
-                      <div className="text-sm text-white/50 md:w-24 shrink-0">{c.anciennete != null ? `${c.anciennete} ans` : "—"}</div>
+                      <div className="text-sm text-white/50 md:w-24 shrink-0">{c.anciennete != null ? t('radar.years', { n: c.anciennete, defaultValue: '{{n}} ans' }) : "—"}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <a href={annuaire(c.siren)} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white shrink-0" title="Fiche annuaire-entreprises">
@@ -257,7 +309,7 @@ export default function Radar() {
                         disabled={inCrm || adding === c.siren}
                         className={`flex-1 md:flex-none h-9 rounded-lg text-sm ${inCrm ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20" : "bg-white/10 hover:bg-white/20 text-white"}`}
                       >
-                        {adding === c.siren ? <Loader2 size={14} className="animate-spin" /> : inCrm ? <><Check size={14} className="mr-1" /> Dans le CRM</> : <><Plus size={14} className="mr-1" /> Ajouter</>}
+                        {adding === c.siren ? <Loader2 size={14} className="animate-spin" /> : inCrm ? <><Check size={14} className="mr-1" /> {t('radar.in_crm', 'Dans le CRM')}</> : <><Plus size={14} className="mr-1" /> {t('radar.add', 'Ajouter')}</>}
                       </Button>
                     </div>
                   </div>
@@ -274,9 +326,9 @@ export default function Radar() {
             )}
 
             {!searching && total === null && (
-              <div className="text-center py-20 text-white/30">
+              <div className="text-center py-20 text-white/40">
                 <RadarIcon className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                Choisis un secteur + un département, puis lance le radar.
+                {t('radar.empty_search', 'Choisis un secteur + un département, puis lance le radar.')}
               </div>
             )}
           </div>
@@ -285,29 +337,61 @@ export default function Radar() {
         {/* ===================== CRM ===================== */}
         {tab === "crm" && (
           <div className="space-y-6">
-            {/* Pipeline stats */}
-            <div className="flex flex-wrap gap-2">
-              {STATUS_ORDER.map((s) => (
-                <div key={s} className={`px-4 py-2 rounded-xl text-sm ${STATUS_META[s].color}`}>
-                  {STATUS_META[s].label} <strong className="ml-1">{counts[s] || 0}</strong>
-                </div>
-              ))}
+            {/* Pipeline — pastilles cliquables qui filtrent les prospects par statut */}
+            <div>
+              <div className="flex items-center gap-2 mb-3 text-xs text-white/50">
+                <span>{t('crm.filter_hint', 'Clique sur un statut pour filtrer tes prospects.')}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setCrmFilter(null)}
+                  className={`px-4 py-2 rounded-xl text-sm transition-all border ${crmFilter === null ? 'bg-white/15 text-white border-white/30' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10 hover:text-white'}`}
+                >
+                  {t('crm.all', 'Tous')} <strong className="ml-1">{prospects.length}</strong>
+                </button>
+                {STATUS_ORDER.map((s) => {
+                  const active = crmFilter === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setCrmFilter(active ? null : s)}
+                      className={`px-4 py-2 rounded-xl text-sm transition-all border ${STATUS_META[s].color} ${active ? 'ring-2 ring-white/40 border-white/20' : 'border-transparent opacity-80 hover:opacity-100'}`}
+                    >
+                      {statusLabel(s)} <strong className="ml-1">{counts[s] || 0}</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Barre campagne / envoi groupé */}
             {prospects.length > 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 liquid-glass rounded-2xl px-4 py-3 border border-white/5">
-                <button onClick={toggleAll} className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors w-fit">
+                <button onClick={toggleAll} className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors w-fit">
                   {allSelected ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} />}
-                  {selected.size > 0 ? `${selected.size} sélectionné(s)` : "Tout sélectionner"}
+                  {selected.size > 0 ? t('crm.selected', { n: selected.size, defaultValue: '{{n}} sélectionné(s)' }) : t('crm.select_all', 'Tout sélectionner')}
                 </button>
                 <div className="flex items-center gap-2">
-                  <Button onClick={exportCampaign} disabled={selected.size === 0} className="flex-1 sm:flex-none h-9 rounded-lg bg-white/10 hover:bg-white/20 text-sm disabled:opacity-40">
-                    <Download size={15} className="mr-1.5" /> Exporter CSV
-                  </Button>
-                  <Button onClick={() => setShowPricing(true)} className="flex-1 sm:flex-none h-9 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-sm border border-primary/30">
-                    <Zap size={15} className="mr-1.5" /> Envoi auto
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={exportCampaign} disabled={selected.size === 0} className="flex-1 sm:flex-none h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm disabled:opacity-40">
+                        <Download size={15} className="mr-1.5" /> {t('crm.export_csv', 'Exporter en CSV')}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs font-light leading-relaxed bg-[#211f25] text-white border-white/10">
+                      {t('crm.export_tip', "Télécharge un fichier CSV (1 ligne par prospect, avec un email de contact pré-rédigé) à importer dans ton outil d'emailing (Brevo, Mailchimp…).")}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setShowPricing(true)} className="flex-1 sm:flex-none h-9 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-sm border border-primary/30">
+                        <Send size={15} className="mr-1.5" /> {t('crm.campaign', 'Campagne email')}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs font-light leading-relaxed bg-[#211f25] text-white border-white/10">
+                      {t('crm.campaign_tip', "Envoie automatiquement ton email de prise de contact à tous les prospects sélectionnés, sans passer par un outil externe (fonctionnalité premium).")}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             )}
@@ -315,13 +399,19 @@ export default function Radar() {
             {crmLoading ? (
               <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
             ) : prospects.length === 0 ? (
-              <div className="text-center py-20 text-white/30">
+              <div className="text-center py-20 text-white/40">
                 <Users2 className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                Aucun prospect. Va dans l'onglet Recherche pour en ajouter.
+                {t('crm.empty', "Aucun prospect. Va dans l'onglet Recherche pour en ajouter.")}
+              </div>
+            ) : visibleProspects.length === 0 ? (
+              <div className="text-center py-16 text-white/40">
+                <Users2 className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                {t('crm.no_match', 'Aucun prospect avec ce statut.')}
+                <button onClick={() => setCrmFilter(null)} className="block mx-auto mt-3 text-primary text-sm hover:underline">{t('crm.show_all', 'Voir tous les prospects')}</button>
               </div>
             ) : (
               <div className="space-y-3">
-                {prospects.map((p) => (
+                {visibleProspects.map((p) => (
                   <div key={p.id} className="liquid-glass rounded-2xl p-4 border border-white/5 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
                     <div className="flex items-start gap-3 md:contents">
                       <input
@@ -344,7 +434,7 @@ export default function Radar() {
                       <Dropdown
                         value={p.status}
                         onChange={(v) => handleStatus(p, v as ProspectStatus)}
-                        options={STATUS_OPTIONS}
+                        options={statusOptions}
                         className="flex-1 md:flex-none md:w-44 md:shrink-0"
                         buttonClassName={`w-full flex items-center justify-between gap-2 h-9 rounded-lg px-3 text-sm ${STATUS_META[p.status].color}`}
                       />

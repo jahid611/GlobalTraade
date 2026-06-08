@@ -30,15 +30,18 @@ export interface Prospect {
   updated_at: string;
 }
 
+// Couleurs alignées sur la DA (indigo/cyan/emerald). Valeurs hex explicites pour
+// rester prévisibles malgré le remapping de couleurs de tailwind.config.
+// `label` = libellé FR par défaut ; il est traduit via la clé i18n crm.status.<key>.
 export const STATUS_META: Record<ProspectStatus, { label: string; color: string }> = {
-  a_qualifier: { label: "À qualifier", color: "bg-white/10 text-white/60" },
-  email_trouve: { label: "Email trouvé", color: "bg-sky-500/20 text-sky-300" },
-  contacte: { label: "Contacté", color: "bg-blue-500/20 text-blue-300" },
-  relance_1: { label: "Relance 1", color: "bg-indigo-500/20 text-indigo-300" },
-  relance_2: { label: "Relance 2", color: "bg-violet-500/20 text-violet-300" },
-  reponse: { label: "Réponse", color: "bg-amber-500/20 text-amber-300" },
-  interesse: { label: "Intéressé", color: "bg-emerald-500/20 text-emerald-300" },
-  refus: { label: "Refus", color: "bg-red-500/20 text-red-300" },
+  a_qualifier: { label: "À qualifier", color: "bg-white/10 text-white/70" },
+  email_trouve: { label: "Email trouvé", color: "bg-[#5b8def]/15 text-[#93c5fd]" },
+  contacte: { label: "Contacté", color: "bg-[#5955e8]/18 text-[#a5b4fc]" },
+  relance_1: { label: "Relance 1", color: "bg-[#7872fb]/18 text-[#c4b5fd]" },
+  relance_2: { label: "Relance 2", color: "bg-[#8b5cf6]/18 text-[#d8b4fe]" },
+  reponse: { label: "Réponse", color: "bg-[#06b6d4]/15 text-[#67e8f9]" },
+  interesse: { label: "Intéressé", color: "bg-[#10b981]/15 text-[#6ee7b7]" },
+  refus: { label: "Refus", color: "bg-[#f43f5e]/15 text-[#fda4af]" },
 };
 
 export const STATUS_ORDER: ProspectStatus[] = [
