@@ -2,7 +2,10 @@
 // Gratuite, sans clé, CORS ouvert. Doc : https://recherche-entreprises.api.gouv.fr/docs
 // On récupère les entreprises par code APE / département, on calcule un score de cession.
 
-const API = "https://recherche-entreprises.api.gouv.fr/search";
+// Proxy serverless (api/recherche-entreprises.js) plutôt que l'appel direct :
+// évite les ERR_SSL_PROTOCOL_ERROR derrière les proxys d'entreprise qui cassent
+// le TLS vers *.gouv.fr, et supprime tout souci CORS. Vercel relaie côté serveur.
+const API = "/api/recherche-entreprises";
 
 export interface CompanyResult {
   siren: string;
