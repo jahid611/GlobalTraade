@@ -11,7 +11,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
-import { ShieldCheck, Lightning, Globe, TrendUp } from 'phosphor-react';
+import { ShieldCheck, Lightning, Globe, TrendUp, Storefront, MapTrifold, Tag, RocketLaunch, ChatCircle, Percent } from 'phosphor-react';
 
 const MARQUEE_INDUSTRIES = INDUSTRIES.slice(0, 15);
 
@@ -101,30 +101,26 @@ export default function Index() {
           {t('index.hero.desc')}
         </motion.p>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 flex flex-col md:flex-row items-stretch justify-center gap-6 w-full max-w-5xl px-[4vw] sm:px-0">
-          <Link to="/marketplace" className="flex-1 group">
-            <motion.div variants={fadeInUp} className="h-full flex flex-col justify-start p-8 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.04] transition-all duration-500 text-left relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl text-white font-medium mb-3">{t('index.cards.market.title')}</h3>
-              <p className="text-sm text-white/50 font-light leading-relaxed">{t('index.cards.market.desc')}</p>
-            </motion.div>
-          </Link>
-
-          <Link to="/app" className="flex-1 group">
-            <motion.div variants={fadeInUp} className="h-full flex flex-col justify-start p-8 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.04] transition-all duration-500 text-left relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl text-white font-medium mb-3">{t('index.cards.map.title')}</h3>
-              <p className="text-sm text-white/50 font-light leading-relaxed">{t('index.cards.map.desc')}</p>
-            </motion.div>
-          </Link>
-
-          <Link to="/dashboard" className="flex-1 group">
-            <motion.div variants={fadeInUp} className="h-full flex flex-col justify-start p-8 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.04] transition-all duration-500 text-left relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl text-white font-medium mb-3">{t('index.cards.sell.title')}</h3>
-              <p className="text-sm text-white/50 font-light leading-relaxed">{t('index.cards.sell.desc')}</p>
-            </motion.div>
-          </Link>
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
+          {[
+            { to: "/marketplace", icon: Storefront, color: "text-primary", title: t('index.cards.market.title'), desc: t('index.cards.market.desc') },
+            { to: "/app", icon: MapTrifold, color: "text-blue-400", title: t('index.cards.map.title'), desc: t('index.cards.map.desc') },
+            { to: "/dashboard", icon: Tag, color: "text-emerald-400", title: t('index.cards.sell.title'), desc: t('index.cards.sell.desc') },
+            { to: "/projects", icon: RocketLaunch, color: "text-amber-400", title: t('index.cards.projects.title'), desc: t('index.cards.projects.desc') },
+          ].map((c, i) => {
+            const Icon = c.icon;
+            return (
+              <Link key={i} to={c.to} className="group">
+                <motion.div variants={fadeInUp} className="h-full flex flex-col items-start text-left p-5 sm:p-7 bg-white/[0.03] border border-white/10 rounded-3xl hover:bg-white/[0.06] hover:border-white/20 hover:-translate-y-1 transition-all duration-300">
+                  <div className={`p-3 rounded-2xl bg-white/5 mb-4 sm:mb-5 ${c.color} group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon size={26} weight="duotone" />
+                  </div>
+                  <h3 className="text-base sm:text-xl text-white font-semibold mb-1 leading-tight">{c.title}</h3>
+                  <p className="text-xs sm:text-sm text-white/50 font-light leading-snug">{c.desc}</p>
+                </motion.div>
+              </Link>
+            );
+          })}
         </motion.div>
       </main>
 
@@ -317,31 +313,21 @@ export default function Index() {
              {t('index.features.subtitle')}
            </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           <div className="bg-white/[0.02] border border-white/5 p-8 md:p-10 rounded-[2rem] flex flex-col text-left transition-transform hover:-translate-y-2 duration-500 group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl font-medium text-white mb-4">{t('index.features.f1.title')}</h3>
-              <p className="text-white/50 font-light leading-relaxed mb-6 text-sm">{t('index.features.f1.desc')}</p>
-              <div className="mt-auto pt-6 border-t border-white/5">
-                 <p className="text-white/40 font-light text-xs leading-relaxed">{t('index.features.f1.extradesc')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: Percent, color: "text-primary", title: t('index.features.f1.title'), desc: t('index.features.f1.desc') },
+            { icon: ShieldCheck, color: "text-emerald-400", title: t('index.features.f2.title'), desc: t('index.features.f2.desc') },
+            { icon: ChatCircle, color: "text-blue-400", title: t('index.features.f3.title'), desc: t('index.features.f3.desc') },
+          ].map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <div key={i} className="bg-white/[0.02] border border-white/10 p-8 rounded-[2rem] flex flex-col items-start text-left hover:-translate-y-1 hover:border-white/20 transition-all duration-300">
+                <div className={`p-3 rounded-2xl bg-white/5 mb-5 ${f.color}`}><Icon size={26} weight="duotone" /></div>
+                <h3 className="text-xl font-semibold text-white mb-2">{f.title}</h3>
+                <p className="text-white/50 font-light text-sm leading-relaxed">{f.desc}</p>
               </div>
-           </div>
-           <div className="bg-white/[0.02] border border-white/5 p-8 md:p-10 rounded-[2rem] flex flex-col text-left transition-transform hover:-translate-y-2 duration-500 group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl font-medium text-white mb-4">{t('index.features.f2.title')}</h3>
-              <p className="text-white/50 font-light leading-relaxed mb-6 text-sm">{t('index.features.f2.desc')}</p>
-              <div className="mt-auto pt-6 border-t border-white/5">
-                 <p className="text-white/40 font-light text-xs leading-relaxed">{t('index.features.f2.extradesc')}</p>
-              </div>
-           </div>
-           <div className="bg-white/[0.02] border border-white/5 p-8 md:p-10 rounded-[2rem] flex flex-col text-left transition-transform hover:-translate-y-2 duration-500 group relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h3 className="text-xl font-medium text-white mb-4">{t('index.features.f3.title')}</h3>
-              <p className="text-white/50 font-light leading-relaxed mb-6 text-sm">{t('index.features.f3.desc')}</p>
-              <div className="mt-auto pt-6 border-t border-white/5">
-                 <p className="text-white/40 font-light text-xs leading-relaxed">{t('index.features.f3.extradesc')}</p>
-              </div>
-           </div>
+            );
+          })}
         </div>
       </section>
 

@@ -199,25 +199,35 @@ export function Navbar() {
                 />
               </Link>
 
-              <Link
-                to="/app"
-                className={`flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all ${location.pathname === "/app" ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"}`}
-                title={t("nav.map")}
-              >
-                <Globe className="w-[18px] h-[18px]" />
-              </Link>
+              <div className="relative group flex">
+                <Link
+                  to="/app"
+                  aria-label={t("nav.map")}
+                  className={`flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all ${location.pathname === "/app" ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"}`}
+                >
+                  <Globe className="w-[18px] h-[18px]" />
+                </Link>
+                <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                  {t("nav.map")}
+                </span>
+              </div>
 
               {NAV_LINKS.map((link) => {
                 const Icon = link.icon;
+                const active = location.pathname === link.path;
                 return (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    className={`flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all ${location.pathname === link.path ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"}`}
-                    title={link.name}
-                  >
-                    <Icon className="w-[18px] h-[18px]" />
-                  </Link>
+                  <div key={link.name} className="relative group flex">
+                    <Link
+                      to={link.path}
+                      aria-label={link.name}
+                      className={`flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full transition-all ${active ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"}`}
+                    >
+                      <Icon className="w-[18px] h-[18px]" />
+                    </Link>
+                    <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                      {link.name}
+                    </span>
+                  </div>
                 );
               })}
 
