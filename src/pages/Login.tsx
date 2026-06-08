@@ -8,18 +8,18 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 
 const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
-  <div className="fixed inset-0 z-0 overflow-hidden bg-slate-100 dark:bg-[#2b2a2f] transition-colors duration-700">
+  <div className="fixed inset-0 z-0 overflow-hidden bg-gradient-to-br from-slate-300 via-slate-200 to-blue-200/70 dark:from-[#2b2a2f] dark:via-[#2b2a2f] dark:to-[#2b2a2f] transition-colors duration-700">
     {/* Orbes floues optimisées */}
     <motion.div 
       animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }} 
       transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
-      className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-300/40 dark:bg-primary/20 blur-[100px] sm:blur-[120px]" 
+      className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-400/45 dark:bg-primary/20 blur-[100px] sm:blur-[120px]"
       style={{ willChange: 'transform, opacity' }}
     />
     <motion.div 
       animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }} 
       transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} 
-      className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-300/40 dark:bg-blue-500/20 blur-[80px] sm:blur-[100px]" 
+      className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-400/45 dark:bg-blue-500/20 blur-[80px] sm:blur-[100px]"
       style={{ willChange: 'transform, opacity' }}
     />
     
@@ -186,23 +186,23 @@ export default function Login() {
 
                   {mode === 'signup' ? (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_1px_1px_rgba(255,255,255,0.7),0_3px_6px_rgba(0,0,0,0.32)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.hero.title1')} <br/>
-                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">{t('auth.hero.title2')}</span>
+                        <span className="font-medium text-primary [text-shadow:0_2px_6px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">{t('auth.hero.title2')}</span>
                       </h2>
-                      <p className="text-slate-800 dark:text-white/90 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">{t('auth.hero.desc')}</p>
-                      <ul className="space-y-5 text-slate-800 dark:text-white/90 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
+                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_1px_2px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.hero.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.signup_f${i}`)}</li>)}
                       </ul>
                     </div>
                   ) : (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-slate-900 dark:text-white tracking-tight drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_1px_1px_rgba(255,255,255,0.7),0_3px_6px_rgba(0,0,0,0.32)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.welcome.title1')}{' '}
-                        <span className="font-medium text-primary drop-shadow-md dark:drop-shadow-[0_2px_15px_rgba(0,0,0,1)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
+                        <span className="font-medium text-primary [text-shadow:0_2px_6px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
                       </h2>
-                      <p className="text-slate-800 dark:text-white/90 text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">{t('auth.welcome.desc')}</p>
-                      <ul className="space-y-5 text-slate-800 dark:text-white/90 text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed drop-shadow-sm dark:drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
+                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_1px_2px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.welcome.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.login_f${i}`)}</li>)}
                       </ul>
                     </div>
