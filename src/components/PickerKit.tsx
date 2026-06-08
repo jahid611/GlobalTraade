@@ -148,7 +148,19 @@ export function SearchableSelect({
 }) {
   const { open, setOpen, triggerRef, panelRef, coords } = usePopover();
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const current = options.find((o) => o.value === value);
+
+  // Focus de la barre de recherche À L'OUVERTURE — uniquement sur desktop (pointeur précis).
+  // Sur mobile/tactile on NE focus PAS : le clavier ne s'ouvre que si l'utilisateur tape
+  // lui-même sur la barre, ce qui évite que le clavier surgisse et casse l'affichage.
+  useEffect(() => {
+    if (!open) return;
+    const finePointer = typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches;
+    if (!finePointer) return;
+    const id = window.setTimeout(() => searchRef.current?.focus(), 60);
+    return () => window.clearTimeout(id);
+  }, [open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -197,8 +209,17 @@ export function SearchableSelect({
                 <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 h-10">
                   <Search size={15} className="text-white/30 shrink-0" />
                   <input
-                    autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
+                    ref={searchRef}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
                     placeholder="Filtrer par nom ou code APE…"
+                    type="text"
+                    inputMode="search"
+                    enterKeyHint="search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
                   />
                 </div>
@@ -213,6 +234,8 @@ export function SearchableSelect({
                     {g.items.map((o) => (
                       <button
                         key={o.value}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { onChange(o.value); setOpen(false); }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-colors ${
                           o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"
