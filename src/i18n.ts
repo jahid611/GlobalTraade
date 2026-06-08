@@ -1006,6 +1006,8 @@ const resources = {
       "profile.error_generic": "An error occurred.",
 
       "settings.saved": "Changes saved",
+      "settings.image_too_large": "Image too large (max 2 MB). Please choose a lighter image.",
+      "settings.save_error": "Could not save. Please try again.",
       "settings.logout_msg": "Logged out",
       "settings.title": "Settings",
       "settings.desc": "Manage your information and privacy.",
@@ -2176,6 +2178,8 @@ const resources = {
       "profile.error_generic": "Une erreur est survenue.",
 
       "settings.saved": "Modifications enregistrées",
+      "settings.image_too_large": "Image trop volumineuse (max 2 Mo). Choisissez une image plus légère.",
+      "settings.save_error": "Impossible d'enregistrer. Veuillez réessayer.",
       "settings.logout_msg": "Déconnexion",
       "settings.title": "Paramètres",
       "settings.desc": "Gérez vos informations et votre confidentialité.",

@@ -161,9 +161,15 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));
-    } catch (err: any) { 
-      showError(err.message); 
-    } finally { 
+    } catch (err: any) {
+      const msg = String(err?.message || '').toLowerCase();
+      const isTooLarge = msg.includes('too large') || msg.includes('payload') || msg.includes('413') || msg.includes('value too long');
+      showError(
+        isTooLarge
+          ? t('settings.image_too_large', 'Image trop volumineuse (max 2 Mo). Choisissez une image plus légère.')
+          : t('settings.save_error', 'Impossible d\'enregistrer. Veuillez réessayer.')
+      );
+    } finally {
       setSaving(false); 
     }
   };
@@ -174,9 +180,16 @@ export default function Settings() {
     navigate('/');
   };
 
+  const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2 Mo
+
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_AVATAR_BYTES) {
+      showError(t('settings.image_too_large', 'Image trop volumineuse (max 2 Mo). Choisissez une image plus légère.'));
+      e.target.value = ''; // permet de re-sélectionner le même fichier après correction
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => setAvatarBase64(event.target?.result as string);
     reader.readAsDataURL(file);

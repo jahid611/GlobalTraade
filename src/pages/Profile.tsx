@@ -197,7 +197,7 @@ export default function Profile() {
 
   if (isLoading || !data?.targetUser) {
     return (
-      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30 overflow-x-hidden">
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
         </div>
@@ -230,7 +230,7 @@ export default function Profile() {
   const listingViewsCount = listings.reduce((acc, l) => acc + (l.view_count || 0), 0);
 
   return (
-    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500 selection:bg-primary/30">
+    <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500 selection:bg-primary/30 overflow-x-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
