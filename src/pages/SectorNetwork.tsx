@@ -130,7 +130,7 @@ export default function SectorNetwork() {
             ) : peers.length === 0 ? (
               <div className="text-center py-20 text-white/30">
                 <UsersThree className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                Aucun autre commerçant de ton secteur sur GlobalTrade pour l'instant.
+                Aucun autre commerçant de ton secteur sur Globly pour l'instant.
                 <br />Reviens bientôt — ton réseau grandit chaque jour.
               </div>
             ) : (

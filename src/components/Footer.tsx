@@ -12,7 +12,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10 md:gap-12 mb-16">
           
           <div className="md:col-span-5 flex flex-col items-start">
-            <img src="/logo.png" alt="GlobeTrade" className="h-10 mb-6 opacity-90 object-contain" />
+            <img src="/logo.png" alt="Globly" className="h-10 mb-6 opacity-90 object-contain" />
             <p className="text-white/50 text-sm font-light leading-relaxed max-w-sm">
               {t('footer.desc')}
             </p>
@@ -48,7 +48,7 @@ export function Footer() {
 
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/40 text-xs font-light">
-            &copy; {currentYear} GlobeTrade. {t('footer.rights')}
+            &copy; {currentYear} Globly. {t('footer.rights')}
           </p>
         </div>
       </div>

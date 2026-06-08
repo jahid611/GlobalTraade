@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GlobalTrade Excellence: RLS Fix for Messages
+-- Globly Excellence: RLS Fix for Messages
 -- Garantit que les utilisateurs peuvent lire et envoyer leurs messages
 -- ==============================================================================
 

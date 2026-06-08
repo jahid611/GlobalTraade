@@ -103,7 +103,7 @@ export default function Payment() {
     setSelectedPlan(planId);
     
     if (planId === 'business') {
-      window.location.href = "mailto:contact@globaltrade.com?subject=Demande%20Plan%20Business";
+      window.location.href = "mailto:contact@Globly.com?subject=Demande%20Plan%20Business";
     }
   };
 

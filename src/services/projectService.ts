@@ -140,7 +140,7 @@ export async function expressInterest(
     title: "MANIFESTATION D'INTÉRÊT OFFICIELLE",
     project: "PROJET",
     type: "TYPE D'ACCOMPAGNEMENT",
-    intro: "Un membre de la communauté GlobalTrade souhaite collaborer à votre projet. Voici sa proposition :",
+    intro: "Un membre de la communauté Globly souhaite collaborer à votre projet. Voici sa proposition :",
     defaultMsg: "Souhaite entrer en contact pour discuter des modalités de collaboration.",
     helpValue: helpType === 'financial' ? "Investissement financier" : 
                helpType === 'human' ? "Soutien opérationnel / RH" :

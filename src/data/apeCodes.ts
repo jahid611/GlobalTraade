@@ -1,5 +1,5 @@
 // Liste étendue de codes APE/NAF (rév. 2) couvrant les secteurs de commerces & PME
-// utilisés sur GlobalTrade. Format pointé attendu par l'API gouv (ex: "56.10A").
+// utilisés sur Globly. Format pointé attendu par l'API gouv (ex: "56.10A").
 export interface ApeCode {
   code: string;
   label: string;

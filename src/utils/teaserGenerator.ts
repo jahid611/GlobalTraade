@@ -106,8 +106,8 @@ export const generateBlindTeaser = (listing: any, t: any, lang: string) => {
   // Footer Disclaimer
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
-  const disclaimerEn = "DISCLAIMER: This document is a non-exhaustive summary generated automatically for strictly informational purposes. It does not constitute a formal investment offer or guarantee. Detailed and certified information will only be provided after signing a valid Non-Disclosure Agreement (NDA) on the GlobalTrade platform.";
-  const disclaimerFr = "AVERTISSEMENT : Ce document est un résumé non exhaustif produit de manière automatisée dans un but strictement informatif. Il ne constitue en aucun cas une offre d'investissement formelle ou une garantie. Les informations détaillées et certifiées ne seront communiquées qu'après la signature d'un Accord de Confidentialité (NDA) valide sur la plateforme GlobalTrade.";
+  const disclaimerEn = "DISCLAIMER: This document is a non-exhaustive summary generated automatically for strictly informational purposes. It does not constitute a formal investment offer or guarantee. Detailed and certified information will only be provided after signing a valid Non-Disclosure Agreement (NDA) on the Globly platform.";
+  const disclaimerFr = "AVERTISSEMENT : Ce document est un résumé non exhaustif produit de manière automatisée dans un but strictement informatif. Il ne constitue en aucun cas une offre d'investissement formelle ou une garantie. Les informations détaillées et certifiées ne seront communiquées qu'après la signature d'un Accord de Confidentialité (NDA) valide sur la plateforme Globly.";
   
   const splitDisclaimer = doc.splitTextToSize(lang === 'en' ? disclaimerEn : disclaimerFr, 180);
   doc.text(splitDisclaimer, 15, 270);

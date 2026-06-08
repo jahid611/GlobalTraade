@@ -26,6 +26,7 @@ export interface Prospect {
   status: ProspectStatus;
   email: string | null;
   notes: string | null;
+  mail_lang?: "fr" | "en" | null;
   created_at: string;
   updated_at: string;
 }
@@ -84,7 +85,7 @@ export async function addProspect(c: CompanyResult): Promise<void> {
   if (error) throw error;
 }
 
-export async function updateProspect(id: string, fields: Partial<Pick<Prospect, "status" | "email" | "notes">>): Promise<void> {
+export async function updateProspect(id: string, fields: Partial<Pick<Prospect, "status" | "email" | "notes" | "mail_lang">>): Promise<void> {
   const { error } = await supabase
     .from("prospects")
     .update({ ...fields, updated_at: new Date().toISOString() })

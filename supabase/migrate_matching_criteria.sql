@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GlobalTrade Excellence: Matching Criteria Migration
+-- Globly Excellence: Matching Criteria Migration
 -- Migre les données de user_metadata vers les colonnes dédiées de public.profiles
 -- ==============================================================================
 

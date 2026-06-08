@@ -349,7 +349,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
       <div className="absolute inset-0 bg-gradient-to-b from-[#2b2a2f] via-transparent to-[#2b2a2f]" />
 
       <div className="fixed top-6 left-6 z-[220] pointer-events-none">
-        <img src="/logo.png" alt="GlobeTrade" className="h-8 object-contain opacity-80" />
+        <img src="/logo.png" alt="Globly" className="h-8 object-contain opacity-80" />
       </div>
 
       <button onClick={onClose} className="fixed top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all z-[220] backdrop-blur-md">

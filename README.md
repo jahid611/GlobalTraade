@@ -1,4 +1,4 @@
-# 🌐 GlobalTrade — B2B International Trade Platform
+# 🌐 Globly — B2B International Trade Platform
 
 A full-stack B2B marketplace platform built for international trade, featuring real-time messaging, KYC verification, Smart Deal-Rooms, and multi-currency support.
 
@@ -45,7 +45,7 @@ A full-stack B2B marketplace platform built for international trade, featuring r
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd GlobalTrade3-1
+cd Globly3-1
 
 # Install dependencies
 pnpm install
@@ -75,10 +75,10 @@ VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 
 ```bash
 # Build Docker image
-docker build -t globaltrade .
+docker build -t Globly .
 
 # Run container
-docker run -p 8080:8080 globaltrade
+docker run -p 8080:8080 Globly
 ```
 
 Cloud Run deployment is handled via `cloudbuild.yaml`.
@@ -104,4 +104,4 @@ setup_vdr.sql         # Virtual Data Room schema
 
 ## 📄 License
 
-Private — All rights reserved © 2026 GlobalTrade
+Private — All rights reserved © 2026 Globly

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GlobalTrade Excellence: Due Diligence Tracker Schema
+-- Globly Excellence: Due Diligence Tracker Schema
 -- Run this in your Supabase SQL Editor
 -- ==============================================================================
 

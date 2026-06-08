@@ -92,7 +92,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'GlobeTrade <onboarding@resend.dev>', 
+        from: 'Globly <onboarding@resend.dev>', 
         to: receiverEmail,
         subject: `Nouveau message pour ${listingName}`,
         html: `

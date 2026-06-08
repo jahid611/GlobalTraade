@@ -146,7 +146,7 @@ export default function Login() {
             <ChevronLeft className="w-6 h-6 text-slate-900 dark:text-white" />
           </Button>
         </Link>
-        <img src="/logo.png" alt="GlobalTrade" className="h-10 object-contain drop-shadow-lg hidden sm:block" />
+        <img src="/logo.png" alt="Globly" className="h-10 object-contain drop-shadow-lg hidden sm:block" />
       </div>
 
       <div className="absolute top-6 right-6 z-[100] flex gap-3">
@@ -238,7 +238,7 @@ export default function Login() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/10 rounded-full blur-[100px] pointer-events-none hidden dark:block" />
           <div className="w-full max-w-[380px] flex flex-col relative z-20">
             <div className="flex flex-col items-center text-center mb-10 mt-16 lg:mt-0">
-              <img src="/logo.png" alt="GlobalTrade" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
+              <img src="/logo.png" alt="Globly" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
               <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signin' ? t('auth.signin') : t('auth.signup')}</h2>
             </div>
             <form onSubmit={handleAuth} className="flex flex-col gap-6">

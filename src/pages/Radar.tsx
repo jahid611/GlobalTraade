@@ -482,12 +482,11 @@ export default function Radar() {
 
 function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prospect; senderName: string; onClose: () => void; onSaved: () => void }) {
   const { t, i18n } = useTranslation();
-  // Langue mémorisée par prospect (localStorage) ; sinon on suit la langue du site.
-  const langKey = `gt:mailLang:${prospect.id}`;
-  const readStoredLang = (): "fr" | "en" | null => {
-    try { const v = localStorage.getItem(langKey); return v === "en" || v === "fr" ? v : null; } catch { return null; }
-  };
-  const initialLang: "fr" | "en" = readStoredLang() || (i18n.language?.startsWith("en") ? "en" : "fr");
+  // Langue de l'email mémorisée EN BASE (prospect.mail_lang) ; sinon langue du site.
+  const initialLang: "fr" | "en" =
+    prospect.mail_lang === "en" || prospect.mail_lang === "fr"
+      ? prospect.mail_lang
+      : (i18n.language?.startsWith("en") ? "en" : "fr");
   const [mailLang, setMailLang] = useState<"fr" | "en">(initialLang);
   const [email, setEmail] = useState(prospect.email || "");
   const [notes, setNotes] = useState(prospect.notes || "");
@@ -500,7 +499,6 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
   const applyMailLang = (lang: "fr" | "en") => {
     if (lang === mailLang) return;
     setMailLang(lang);
-    try { localStorage.setItem(langKey, lang); } catch {}
     const m = buildOutreachEmail(prospect, senderName, lang);
     setSubject(m.subject);
     setBody(m.body);
@@ -516,10 +514,19 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
   const save = async () => {
     setSaving(true);
     try {
-      await updateProspect(prospect.id, { email: email.trim() || null, notes: notes.trim() || null });
+      await updateProspect(prospect.id, { email: email.trim() || null, notes: notes.trim() || null, mail_lang: mailLang });
       showSuccess(t('crm.mail.saved', 'Enregistré'));
       onSaved();
-    } catch {
+    } catch (e: any) {
+      // Repli si la colonne mail_lang n'existe pas encore : on sauvegarde au moins email + notes.
+      if (/mail_lang|column|schema cache|could not find/i.test(String(e?.message || ''))) {
+        try {
+          await updateProspect(prospect.id, { email: email.trim() || null, notes: notes.trim() || null });
+          showSuccess(t('crm.mail.saved', 'Enregistré'));
+          onSaved();
+          return;
+        } catch {}
+      }
       showError(t('crm.mail.save_err', "Erreur d'enregistrement"));
     } finally {
       setSaving(false);

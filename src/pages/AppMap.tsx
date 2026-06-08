@@ -202,7 +202,7 @@ export default function AppMap() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none flex items-center justify-center">
-                      <img src="/logo.png" alt="GlobeTrade" className="h-16 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
+                      <img src="/logo.png" alt="Globly" className="h-16 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 p-1.5 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white z-[150] overflow-hidden" align="start" sideOffset={8}>
@@ -236,7 +236,7 @@ export default function AppMap() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none flex items-center justify-center">
-                      <img src="/logo.png" alt="GlobeTrade" className="h-10 sm:h-14 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
+                      <img src="/logo.png" alt="Globly" className="h-10 sm:h-14 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform hover:scale-105" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 p-1.5 liquid-glass-heavy bg-black/60 backdrop-blur-xl border border-white/20 rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white z-[150] overflow-hidden" align="end" sideOffset={8}>

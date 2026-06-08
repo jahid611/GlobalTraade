@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GlobalTrade Excellence: RLS Fix ROBUST Version
+-- Globly Excellence: RLS Fix ROBUST Version
 -- Utilise des comparaisons de texte pour éviter les erreurs de Cast UUID (400)
 -- ==============================================================================
 

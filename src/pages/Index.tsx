@@ -190,7 +190,7 @@ export default function Index() {
             transition={{ delay: 0.1 }}
             className="text-white/60 font-light text-lg leading-relaxed max-w-lg mx-auto md:mx-0"
           >
-            Propulsez vos affaires vers de nouveaux sommets. La plateforme GlobalTrade accélère vos transactions de bout en bout grâce à un environnement ultra-sécurisé.
+            Propulsez vos affaires vers de nouveaux sommets. La plateforme Globly accélère vos transactions de bout en bout grâce à un environnement ultra-sécurisé.
           </motion.p>
         </div>
         
@@ -205,7 +205,7 @@ export default function Index() {
             <Link to="/app" className="block group cursor-pointer" title="Accéder au globe interactif">
               <img 
                 src="/rocket.png" 
-                alt="Fusée de lancement GlobalTrade" 
+                alt="Fusée de lancement Globly" 
                 className="relative z-10 w-full h-auto transition-transform duration-500 group-hover:-translate-y-4" 
               />
             </Link>

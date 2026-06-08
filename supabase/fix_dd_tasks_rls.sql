@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GlobalTrade Excellence: RLS Fix for Due Diligence Tasks
+-- Globly Excellence: RLS Fix for Due Diligence Tasks
 -- Autorise l'accès aux tâches uniquement pour les parties prenantes du deal
 -- ==============================================================================
 
