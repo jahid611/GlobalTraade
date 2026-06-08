@@ -109,3 +109,19 @@ input, textarea, select {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(89, 85, 232, 0.6); border-radius: 10px; }
 .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* =====================================================================
+ * MODE JOUR — sous-titres / descriptions plus blancs.
+ * Les textes secondaires (text-white/40, /50, /60...) rendaient grisés sur le
+ * ciel bleu. On remonte leur opacité UNIQUEMENT en mode jour (dark inchangé),
+ * en conservant la hiérarchie visuelle. Placé après @tailwind utilities.
+ * ===================================================================== */
+:root:not(.dark) .text-white\/10 { color: hsl(var(--ink) / 0.30) !important; }
+:root:not(.dark) .text-white\/20 { color: hsl(var(--ink) / 0.42) !important; }
+:root:not(.dark) .text-white\/30 { color: hsl(var(--ink) / 0.52) !important; }
+:root:not(.dark) .text-white\/40 { color: hsl(var(--ink) / 0.62) !important; }
+:root:not(.dark) .text-white\/50 { color: hsl(var(--ink) / 0.72) !important; }
+:root:not(.dark) .text-white\/60 { color: hsl(var(--ink) / 0.80) !important; }
+:root:not(.dark) .text-white\/70 { color: hsl(var(--ink) / 0.88) !important; }
+:root:not(.dark) .text-white\/80 { color: hsl(var(--ink) / 0.94) !important; }
+:root:not(.dark) .text-white\/90 { color: hsl(var(--ink) / 0.97) !important; }
