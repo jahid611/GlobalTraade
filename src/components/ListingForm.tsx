@@ -131,7 +131,21 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     if (isOpen) {
       setStep(1);
       if (listingToEdit) {
-        reset({ ...listingToEdit, hide_siret: Boolean(listingToEdit.hide_siret), established_year: listingToEdit.established_year ? String(listingToEdit.established_year) : "" });
+        // Coercition des null/undefined -> "" pour garder des inputs contrôlés
+        // (sinon Zod renvoie "expected string, received null" à la validation).
+        reset({
+          ...listingToEdit,
+          hide_siret: Boolean(listingToEdit.hide_siret),
+          website_url: listingToEdit.website_url ?? "",
+          reason_for_selling: listingToEdit.reason_for_selling ?? "",
+          management_type: listingToEdit.management_type ?? "",
+          client_concentration: listingToEdit.client_concentration ?? "",
+          digital_maturity: listingToEdit.digital_maturity ?? "",
+          market_trend: listingToEdit.market_trend ?? "",
+          revenue_n2: listingToEdit.revenue_n2 ?? ("" as any),
+          revenue_n3: listingToEdit.revenue_n3 ?? ("" as any),
+          established_year: listingToEdit.established_year ? String(listingToEdit.established_year) : "",
+        });
         setAddressQuery(listingToEdit.address || ""); setAddressSelected(true); 
         setLogoBase64(listingToEdit.logo_url || null);
         setGalleryImages(listingToEdit.image_urls || []);
@@ -223,22 +237,46 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
       }
       const finalGalleryUrls = await Promise.all(galleryImages.map(img => uploadListingImage(img, session.user.id)));
       
-      const payload = { 
-        ...data, 
-        owner_id: session.user.id, 
-        logo_url: finalLogoUrl, 
+      // Normalisation : "" -> null pour les champs optionnels, nombres propres.
+      const nullableText = ['website_url', 'reason_for_selling', 'management_type', 'client_concentration', 'digital_maturity', 'market_trend'] as const;
+      const nullableNum = ['revenue_n2', 'revenue_n3'] as const;
+
+      const payload: any = {
+        ...data,
+        owner_id: session.user.id,
+        logo_url: finalLogoUrl,
         image_urls: finalGalleryUrls,
         established_year: data.established_year ? Number(data.established_year) : null,
       };
-      
+      for (const k of nullableText) {
+        const v = payload[k];
+        payload[k] = (v === '' || v === undefined) ? null : (typeof v === 'string' ? v.trim() : v);
+      }
+      for (const k of nullableNum) {
+        const v = payload[k];
+        payload[k] = (v === '' || v === null || v === undefined) ? null : Number(v);
+      }
+
       await saveListing(payload, listingToEdit?.id, session.user.id);
-        
+
       await queryClient.invalidateQueries({ queryKey: ['listings'] });
       dismissToast(toastId);
-      showSuccess("Succès !");
+      showSuccess(t('form.success', 'Annonce enregistrée avec succès !'));
       onSuccess(); onClose();
-    } catch (e: any) { 
-      dismissToast(toastId); showError(e.message || "Erreur."); 
+    } catch (e: any) {
+      dismissToast(toastId);
+      const raw = String(e?.message || '');
+      console.error('saveListing error:', e);
+      // On n'expose jamais l'erreur technique brute (colonne SQL, schema cache…) à l'utilisateur.
+      let friendly = raw;
+      if (/column|schema cache|could not find/i.test(raw)) {
+        friendly = t('form.err_schema', "Un champ n'a pas pu être enregistré (base de données à mettre à jour). Réessayez ou contactez le support.");
+      } else if (/row-level security|permission|not authorized|policy/i.test(raw)) {
+        friendly = t('form.err_perm', "Action non autorisée. Reconnectez-vous puis réessayez.");
+      } else if (!raw || /fetch|network/i.test(raw)) {
+        friendly = t('form.err_network', "Problème de connexion. Vérifiez votre réseau et réessayez.");
+      }
+      showError(friendly);
     } finally { setIsSubmitting(false); }
   };
 
@@ -246,11 +284,11 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
 
   const getInputClass = (hasError?: boolean) => 
     `w-full bg-transparent border-b pb-2 pt-2 text-xl sm:text-3xl font-light focus:outline-none transition-colors rounded-none px-0 ` + 
-    (hasError ? 'border-red-500 text-red-200 focus:border-red-400 placeholder:text-red-500/30' : 'border-white/20 text-white focus:border-primary placeholder:text-white/10');
+    (hasError ? 'border-[#ef4444] text-[#fca5a5] focus:border-[#f87171] placeholder:text-[#ef4444]/40' : 'border-white/20 text-white focus:border-primary placeholder:text-white/10');
     
   const getTextareaClass = (hasError?: boolean) => 
     `w-full bg-transparent border-b pb-2 pt-4 text-lg font-light focus:outline-none transition-colors rounded-none resize-none ` + 
-    (hasError ? 'border-red-500 text-red-200 focus:border-red-400 placeholder:text-red-500/30' : 'border-white/20 text-white focus:border-primary placeholder:text-white/20');
+    (hasError ? 'border-[#ef4444] text-[#fca5a5] focus:border-[#f87171] placeholder:text-[#ef4444]/40' : 'border-white/20 text-white focus:border-primary placeholder:text-white/20');
   
   const getSelectClass = () => `w-full bg-[#1c1c1e] border-b border-white/20 pb-2 pt-2 text-lg font-light focus:outline-none transition-colors rounded-none px-0 text-white focus:border-primary`;
 
@@ -339,7 +377,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     <label className={labelClass}>{t('form.trading_name')}</label>
                     <input {...register('name')} className={getInputClass(!!errors.name)} spellCheck={false} placeholder="Ex: Le Petit Bistro" />
                     <Hint text={t('form.hint_name')} />
-                    {errors.name && <span className="text-red-400 text-xs mt-2 block">{errors.name.message}</span>}
+                    {errors.name && <span className="text-[#f87171] text-xs mt-2 block">{errors.name.message}</span>}
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
@@ -347,7 +385,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                       <label className={labelClass}>{t('form.siret')}</label>
                       <input {...register('siret')} maxLength={14} className={getInputClass(!!errors.siret)} spellCheck={false} />
                       <Hint text={t('form.hint_siret')} />
-                      {errors.siret && <span className="text-red-400 text-xs mt-2 block">{errors.siret.message}</span>}
+                      {errors.siret && <span className="text-[#f87171] text-xs mt-2 block">{errors.siret.message}</span>}
                       <div className="flex items-center gap-3 mt-4">
                         <div 
                           onClick={() => setValue('hide_siret', !hideSiret)}
@@ -363,10 +401,10 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                       <Popover open={isIndustryOpen} onOpenChange={setIsIndustryOpen}>
                         <PopoverTrigger asChild>
                           <div className={`${getInputClass(!!errors.industry)} flex justify-between items-center cursor-pointer`}>
-                            <span className={selectedIndustry ? 'text-white' : (errors.industry ? 'text-red-300' : 'text-white/20')}>
+                            <span className={selectedIndustry ? 'text-white' : (errors.industry ? 'text-[#fca5a5]' : 'text-white/20')}>
                               {selectedIndustry ? t(`industry.${selectedIndustry}`, { defaultValue: selectedIndustry }) : "..."}
                             </span>
-                            <ChevronDown className={`w-6 h-6 opacity-30 ${errors.industry ? 'text-red-400' : ''}`} />
+                            <ChevronDown className={`w-6 h-6 opacity-30 ${errors.industry ? 'text-[#f87171]' : ''}`} />
                           </div>
                         </PopoverTrigger>
                         <PopoverContent className="liquid-glass w-[85vw] sm:w-[380px] p-0 border border-white/10 rounded-[1.5rem] overflow-hidden shadow-2xl z-[300]">
@@ -392,7 +430,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         </PopoverContent>
                       </Popover>
                       <Hint text={t('form.hint_industry')} />
-                      {errors.industry && <span className="text-red-400 text-xs mt-2 block">{errors.industry.message}</span>}
+                      {errors.industry && <span className="text-[#f87171] text-xs mt-2 block">{errors.industry.message}</span>}
                     </div>
                   </div>
 
@@ -400,7 +438,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     <label className={labelClass}>{t('form.website')}</label>
                     <input {...register('website_url')} placeholder="https://" className={getInputClass(!!errors.website_url)} spellCheck={false} />
                     <Hint text={t('form.hint_website')} />
-                    {errors.website_url && <span className="text-red-400 text-xs mt-2 block">{errors.website_url.message}</span>}
+                    {errors.website_url && <span className="text-[#f87171] text-xs mt-2 block">{errors.website_url.message}</span>}
                   </div>
                 </div>
               )}
@@ -424,8 +462,8 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     <div className="relative w-full mt-2">
                       <input value={addressQuery} onChange={(e) => { setAddressQuery(e.target.value); setAddressSelected(false); }} className={getInputClass(!!errors.address || !!errors.lat)} spellCheck={false} />
                       <Hint text={t('form.hint_address')} />
-                      {errors.address && <span className="text-red-400 text-xs mt-2 block">{errors.address.message}</span>}
-                      {errors.lat && !errors.address && <span className="text-red-400 text-xs mt-2 block">{errors.lat.message}</span>}
+                      {errors.address && <span className="text-[#f87171] text-xs mt-2 block">{errors.address.message}</span>}
+                      {errors.lat && !errors.address && <span className="text-[#f87171] text-xs mt-2 block">{errors.lat.message}</span>}
                       <AnimatePresence>
                         {suggestions.length > 0 && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 w-full mt-4 liquid-glass border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
@@ -453,7 +491,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                       <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={`${getInputClass(!!errors.price)} text-primary`} />
                     )} />
                     <Hint text={t('form.hint_price')} />
-                    {errors.price && <span className="text-red-400 text-xs mt-2 block">{errors.price.message}</span>}
+                    {errors.price && <span className="text-[#f87171] text-xs mt-2 block">{errors.price.message}</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
                     <div>
@@ -462,7 +500,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.revenue_n1)} />
                       )} />
                       <Hint text={t('form.hint_revenue')} />
-                      {errors.revenue_n1 && <span className="text-red-400 text-xs mt-2 block">{errors.revenue_n1.message}</span>}
+                      {errors.revenue_n1 && <span className="text-[#f87171] text-xs mt-2 block">{errors.revenue_n1.message}</span>}
                     </div>
                     <div>
                       <label className={labelClass}>{t('form.ebitda')}</label>
@@ -470,7 +508,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.ebitda)} />
                       )} />
                       <Hint text={t('form.hint_ebitda')} />
-                      {errors.ebitda && <span className="text-red-400 text-xs mt-2 block">{errors.ebitda.message}</span>}
+                      {errors.ebitda && <span className="text-[#f87171] text-xs mt-2 block">{errors.ebitda.message}</span>}
                     </div>
                   </div>
 
@@ -483,14 +521,14 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <Controller name="revenue_n2" control={control} render={({ field }) => (
                           <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.revenue_n2)} />
                         )} />
-                        {errors.revenue_n2 && <span className="text-red-400 text-xs mt-2 block">{errors.revenue_n2.message}</span>}
+                        {errors.revenue_n2 && <span className="text-[#f87171] text-xs mt-2 block">{errors.revenue_n2.message}</span>}
                       </div>
                       <div>
                         <label className={labelClass}>{t('modal.year_n3')}</label>
                         <Controller name="revenue_n3" control={control} render={({ field }) => (
                           <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.revenue_n3)} />
                         )} />
-                        {errors.revenue_n3 && <span className="text-red-400 text-xs mt-2 block">{errors.revenue_n3.message}</span>}
+                        {errors.revenue_n3 && <span className="text-[#f87171] text-xs mt-2 block">{errors.revenue_n3.message}</span>}
                       </div>
                     </div>
                   </div>
@@ -510,7 +548,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.rent)} />
                       )} />
                       <Hint text={t('form.hint_rent')} />
-                      {errors.rent && <span className="text-red-400 text-xs mt-2 block">{errors.rent.message}</span>}
+                      {errors.rent && <span className="text-[#f87171] text-xs mt-2 block">{errors.rent.message}</span>}
                     </div>
                     <div className="col-span-1">
                       <label className={labelClass}>{t('form.surface')}</label>
@@ -518,7 +556,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.surface)} />
                       )} />
                       <Hint text={t('form.hint_surface')} />
-                      {errors.surface && <span className="text-red-400 text-xs mt-2 block">{errors.surface.message}</span>}
+                      {errors.surface && <span className="text-[#f87171] text-xs mt-2 block">{errors.surface.message}</span>}
                     </div>
                     <div className="col-span-1">
                       <label className={labelClass}>{t('form.employees')}</label>
@@ -526,13 +564,13 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         <input type="text" value={formatNumber(field.value)} onChange={(e) => field.onChange(parseNumber(e.target.value))} className={getInputClass(!!errors.employees)} />
                       )} />
                       <Hint text={t('form.hint_employees')} />
-                      {errors.employees && <span className="text-red-400 text-xs mt-2 block">{errors.employees.message}</span>}
+                      {errors.employees && <span className="text-[#f87171] text-xs mt-2 block">{errors.employees.message}</span>}
                     </div>
                     <div className="col-span-1 sm:col-span-1">
                       <label className={labelClass}>{t('form.established')}</label>
                       <input {...register('established_year')} placeholder="Ex: 2015" className={getInputClass(!!errors.established_year)} />
                       <Hint text={t('form.hint_established')} />
-                      {errors.established_year && <span className="text-red-400 text-xs mt-2 block">{errors.established_year.message}</span>}
+                      {errors.established_year && <span className="text-[#f87171] text-xs mt-2 block">{errors.established_year.message}</span>}
                     </div>
                   </div>
 
@@ -540,7 +578,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     <label className={labelClass}>{t('form.description')}</label>
                     <textarea {...register('description')} rows={5} className={getTextareaClass(!!errors.description)} />
                     <Hint text={t('form.hint_desc')} />
-                    {errors.description && <span className="text-red-400 text-xs mt-2 block">{errors.description.message}</span>}
+                    {errors.description && <span className="text-[#f87171] text-xs mt-2 block">{errors.description.message}</span>}
                   </div>
 
                   <div>
@@ -553,7 +591,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                     <label className={labelClass}>{t('form.lease')}</label>
                     <textarea {...register('lease_details')} rows={3} className={getTextareaClass(!!errors.lease_details)} />
                     <Hint text={t('form.hint_lease')} />
-                    {errors.lease_details && <span className="text-red-400 text-xs mt-2 block">{errors.lease_details.message}</span>}
+                    {errors.lease_details && <span className="text-[#f87171] text-xs mt-2 block">{errors.lease_details.message}</span>}
                   </div>
                 </div>
               )}

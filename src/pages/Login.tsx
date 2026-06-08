@@ -213,7 +213,8 @@ export default function Login() {
                   <div className="relative w-[240px] sm:w-[280px] mx-auto rounded-[2.5rem] sm:rounded-[3rem] border-[8px] sm:border-[10px] border-slate-900 bg-black shadow-2xl overflow-hidden ring-1 ring-white/10 flex">
                     <video 
                       ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                      src="https://kiwjjwcfuzhrurvlaiuk.supabase.co/storage/v1/object/public/listings/mobilemp4.mp4"
+                      src="/demo-mobile.mp4"
+                      preload="auto"
                       autoPlay 
                       loop 
                       muted 

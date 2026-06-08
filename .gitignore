@@ -26,10 +26,14 @@ dist-ssr
 .dyad/
 
 # Large media files (GitHub limits to 100MB)
-# On autorise spécifiquement les démos pour la prod
+*.mp4
+*.webm
+*.avi
+*.mov
+
+# On autorise spécifiquement les démos web (légères) pour la prod
+# (les exceptions DOIVENT venir après les règles d'ignore ci-dessus)
 !public/demo-mobile.mp4
 !public/demo-desktop.mp4
 
-*.mp4
-*.webm
-*.avisupabase-selfhosted/
+supabase-selfhosted/

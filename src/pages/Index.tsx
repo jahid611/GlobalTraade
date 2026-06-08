@@ -156,7 +156,8 @@ export default function Index() {
               <div className="relative w-full bg-[#2b2a2f] flex">
                 <video 
                   ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                  src="https://kiwjjwcfuzhrurvlaiuk.supabase.co/storage/v1/object/public/listings/desktop.mp4"
+                  src="/demo-desktop.mp4"
+                  preload="auto"
                   autoPlay 
                   loop 
                   muted 
@@ -295,7 +296,8 @@ export default function Index() {
                 
                 <video 
                   ref={(el) => { if (el) el.playbackRate = 1.2; }}
-                  src="https://kiwjjwcfuzhrurvlaiuk.supabase.co/storage/v1/object/public/listings/mobilemp4.mp4"
+                  src="/demo-mobile.mp4"
+                  preload="auto"
                   autoPlay 
                   loop 
                   muted 
