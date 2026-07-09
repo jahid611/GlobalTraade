@@ -32,7 +32,8 @@ export default function AdminDashboard() {
         { count: viewsCount },
         { count: favoritesCount },
         { data: reports },
-        { data: pendingRatings }
+        { data: pendingRatings },
+        { data: buyerBadges }
       ] = await Promise.all([
         supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('listings').select('*, listing_views(count), favorites(count)').order('created_at', { ascending: false }),
@@ -40,13 +41,16 @@ export default function AdminDashboard() {
         supabase.from('listing_views').select('id', { count: 'exact' }),
         supabase.from('favorites').select('id', { count: 'exact' }),
         supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false }),
-        supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false })
+        supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false }),
+        supabase.from('buyer_badges').select('id, buyer_type, buyer_level')
       ]);
 
-      const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      
+      const badgesMap = new Map((buyerBadges || []).map((b: any) => [b.id, b]));
+      const enrichedProfiles = (profiles || []).map((p: any) => ({ ...p, ...badgesMap.get(p.id) }));
+      const profilesMap = new Map(enrichedProfiles.map(p => [p.id, p]));
+
       return {
-        profiles: profiles || [],
+        profiles: enrichedProfiles,
         listings: listings?.map(l => ({ 
           ...l, 
           owner: profilesMap.get(l.owner_id),
@@ -281,6 +285,20 @@ export default function AdminDashboard() {
                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${u.kyc_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' : u.kyc_status === 'pending' ? 'bg-amber-500/20 text-amber-400' : u.kyc_status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/40'}`}>KYC: {u.kyc_status || 'none'}</span>
                                 {u.plan && <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold uppercase tracking-widest">Plan: {u.plan}</span>}
                                 {u.is_admin && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Admin</span>}
+                                <select
+                                  value={u.buyer_level || 'profil_cree'}
+                                  onChange={async (e) => {
+                                    const { error } = await supabase.from('profiles').update({ buyer_level: e.target.value }).eq('id', u.id);
+                                    if (error) showError('Erreur mise à jour niveau');
+                                    else { showSuccess('Niveau repreneur mis à jour'); queryClient.invalidateQueries({ queryKey: ['admin-data'] }); }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-1 text-[10px] bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white/70 outline-none cursor-pointer"
+                                >
+                                  <option value="profil_cree" className="bg-[#2b2a2f]">Repreneur : profil créé</option>
+                                  <option value="qualifie" className="bg-[#2b2a2f]">Repreneur : qualifié</option>
+                                  <option value="finance_verifie" className="bg-[#2b2a2f]">Repreneur : financement vérifié</option>
+                                </select>
                               </div>
                             </td>
                             <td className="px-6 py-4 text-right">

@@ -19,6 +19,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { RatingBadge, RateUserModal } from '@/components/RatingStars';
+import { BuyerBadges } from '@/components/BuyerBadges';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
 initNativeFeel();
@@ -262,8 +263,9 @@ export default function Profile() {
                   {fullName}
                   <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
                 </h1>
-                <div className="flex items-center justify-center md:justify-start mt-2">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
                   <RatingBadge userId={targetId} />
+                  <BuyerBadges userId={targetId} />
                 </div>
               </div>
               

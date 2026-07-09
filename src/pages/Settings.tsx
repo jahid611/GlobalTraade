@@ -66,6 +66,13 @@ export default function Settings() {
   const [targetBudget, setTargetBudget] = useState("");
   const [targetGeo, setTargetGeo] = useState("");
 
+  // Profil repreneur (type + critères de reprise)
+  const [buyerType, setBuyerType] = useState("");
+  const [apport, setApport] = useState("");
+  const [targetRevenue, setTargetRevenue] = useState("");
+  const [experience, setExperience] = useState("");
+  const [ambitions, setAmbitions] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -86,7 +93,12 @@ export default function Settings() {
         avatar_url: profile?.avatar_url || metadata.avatar_url || metadata.picture || null,
         target_sectors: profile?.target_sectors || metadata.target_sectors || "",
         target_budget: profile?.target_budget || metadata.target_budget || "",
-        target_geo: profile?.target_geo || metadata.target_geo || ""
+        target_geo: profile?.target_geo || metadata.target_geo || "",
+        buyer_type: profile?.buyer_type || "",
+        apport: profile?.apport || "",
+        target_revenue: profile?.target_revenue || "",
+        experience: profile?.experience || "",
+        ambitions: profile?.ambitions || ""
       };
       
       setFullName(data.full_name); 
@@ -99,6 +111,11 @@ export default function Settings() {
       setTargetSectors(data.target_sectors);
       setTargetBudget(data.target_budget);
       setTargetGeo(data.target_geo);
+      setBuyerType(data.buyer_type);
+      setApport(data.apport);
+      setTargetRevenue(data.target_revenue);
+      setExperience(data.experience);
+      setAmbitions(data.ambitions);
       setInitialData(data);
       setLoading(false);
     };
@@ -117,7 +134,12 @@ export default function Settings() {
       avatarBase64 !== initialData.avatar_url ||
       targetSectors !== initialData.target_sectors ||
       targetBudget !== initialData.target_budget ||
-      targetGeo !== initialData.target_geo
+      targetGeo !== initialData.target_geo ||
+      buyerType !== initialData.buyer_type ||
+      apport !== initialData.apport ||
+      targetRevenue !== initialData.target_revenue ||
+      experience !== initialData.experience ||
+      ambitions !== initialData.ambitions
     );
   };
   
@@ -151,6 +173,11 @@ export default function Settings() {
         target_sectors: targetSectors,
         target_budget: targetBudget,
         target_geo: targetGeo,
+        buyer_type: buyerType || null,
+        apport: apport || null,
+        target_revenue: targetRevenue || null,
+        experience: experience || null,
+        ambitions: ambitions || null,
         updated_at: new Date().toISOString()
       });
       if (dbError) throw dbError;
@@ -159,7 +186,7 @@ export default function Settings() {
       // pour que la Navbar (qui relit profiles au changement de user) ait déjà la nouvelle photo.
       await refreshUser();
 
-      setInitialData(authPayload);
+      setInitialData({ ...authPayload, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));
@@ -321,6 +348,47 @@ export default function Settings() {
                     <label className={labelClass}>{t('settings.target_geo')}</label>
                     <input value={targetGeo} placeholder="ex: Europe, USA, Asie" spellCheck={false} onChange={(e) => setTargetGeo(e.target.value)} className={inputClass} />
                   </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>{t('settings.buyer_type', 'Vous reprenez en tant que')}</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {['individuel', 'entreprise', 'investisseur'].map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setBuyerType(buyerType === type ? '' : type)}
+                        className={`px-5 h-11 rounded-full text-sm font-light transition-all outline-none border ${
+                          buyerType === type
+                            ? 'bg-primary text-white border-primary'
+                            : 'liquid-glass text-white/60 border-white/15 hover:text-white'
+                        }`}
+                      >
+                        {t(`buyer.type_${type}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
+                  <div>
+                    <label className={labelClass}>{t('settings.apport', 'Apport disponible')}</label>
+                    <input value={apport} placeholder="ex: 150k€" spellCheck={false} onChange={(e) => setApport(e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t('settings.target_revenue', 'CA recherché')}</label>
+                    <input value={targetRevenue} placeholder="ex: 200k€ - 500k€" spellCheck={false} onChange={(e) => setTargetRevenue(e.target.value)} className={inputClass} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>{t('settings.experience', 'Votre expérience')}</label>
+                  <input value={experience} placeholder={t('settings.experience_ph', 'ex: 10 ans de direction dans l\'industrie') as string} spellCheck={false} onChange={(e) => setExperience(e.target.value)} className={inputClass} />
+                </div>
+
+                <div>
+                  <label className={labelClass}>{t('settings.ambitions', 'Vos ambitions')}</label>
+                  <textarea value={ambitions} rows={3} placeholder={t('settings.ambitions_ph', 'Ce que vous cherchez à acquérir et pourquoi — nous vous contacterons si une entreprise correspond.') as string} spellCheck={false} onChange={(e) => setAmbitions(e.target.value)} className={`${inputClass} resize-none`} />
                 </div>
               </div>
             </section>
