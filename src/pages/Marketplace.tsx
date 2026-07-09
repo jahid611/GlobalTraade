@@ -15,7 +15,9 @@ import { Store, Filter, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useListings } from '@/hooks/use-listings';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { TRUSTED_MIN_AVG, TRUSTED_MIN_COUNT } from '@/components/RatingStars';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -78,8 +80,22 @@ export default function Marketplace() {
     return Array.from(new Set(listings.map(l => l.industry))).sort();
   }, [listings]);
 
+  // Vendeurs les mieux notés : leurs annonces sont mises en avant gratuitement
+  const { data: trustedOwners } = useQuery({
+    queryKey: ['trusted-owners'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_ratings_summary')
+        .select('user_id, avg_score, rating_count')
+        .gte('avg_score', TRUSTED_MIN_AVG)
+        .gte('rating_count', TRUSTED_MIN_COUNT);
+      return new Set((data || []).map((r: any) => r.user_id));
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const displayedListings = useMemo(() => {
-    let result = [...listings];
+    let result = listings.map(l => ({ ...l, _trusted: trustedOwners?.has(l.owner_id) || false }));
 
     // Filtres manuels (panneau « Ajuster les filtres ») — multi-sélection combinable
     if (filters.industries.length) result = result.filter(l => filters.industries.includes(l.industry));
@@ -99,7 +115,10 @@ export default function Marketplace() {
       });
       return result
         .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
-        .sort((a, b) => (Number(b.is_premium) - Number(a.is_premium)) || (b._matchScore || 0) - (a._matchScore || 0));
+        .sort((a, b) =>
+          (Number(b.is_premium || false) - Number(a.is_premium || false))
+          || (Number(b._trusted) - Number(a._trusted))
+          || (b._matchScore || 0) - (a._matchScore || 0));
     }
 
     // Sinon, tri classique
@@ -113,11 +132,13 @@ export default function Marketplace() {
       return roiB - roiA;
     });
 
-    // Les annonces premium restent en tête quel que soit le tri
-    result.sort((a, b) => Number(b.is_premium || false) - Number(a.is_premium || false));
+    // Premium puis mieux notés en tête, quel que soit le tri
+    result.sort((a, b) =>
+      (Number(b.is_premium || false) - Number(a.is_premium || false))
+      || (Number(b._trusted) - Number(a._trusted)));
 
     return result;
-  }, [listings, filters, matchCriteria, profileCriteria]);
+  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners]);
 
   const handleSmartMatch = (criteria: MatchCriteria) => {
     setMatchCriteria(criteria);

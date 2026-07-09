@@ -101,12 +101,17 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
       onClick={onClick}
       className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
     >
-      {listing.is_premium && (
+      {listing.is_premium ? (
         <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
           style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
           <Crown className="w-3 h-3" weight="fill" /> {t('card.premium', 'Premium')}
         </div>
-      )}
+      ) : listing._trusted ? (
+        <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
+          style={{ background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.4)' }}>
+          <CheckCircle className="w-3 h-3" weight="fill" /> {t('card.trusted', 'Vendeur fiable')}
+        </div>
+      ) : null}
       {typeof matchScore === 'number' && (
         <div
           className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md"

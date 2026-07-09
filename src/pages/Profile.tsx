@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store } from 'lucide-react';
+import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { RatingBadge, RateUserModal } from '@/components/RatingStars';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
 initNativeFeel();
@@ -49,6 +50,7 @@ export default function Profile() {
   const [listingToDelete, setListingToDelete] = useState<Record<string, any> | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [kycUploading, setKycUploading] = useState(false);
+  const [isRatingOpen, setIsRatingOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser && targetId && targetId !== currentUser.id) {
@@ -255,10 +257,15 @@ export default function Profile() {
           
           <div className="flex-1 text-center md:text-left w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 justify-between mb-4">
-              <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center justify-center md:justify-start gap-3">
-                {fullName}
-                <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
-              </h1>
+              <div className="min-w-0">
+                <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center justify-center md:justify-start gap-3">
+                  {fullName}
+                  <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
+                </h1>
+                <div className="flex items-center justify-center md:justify-start mt-2">
+                  <RatingBadge userId={targetId} />
+                </div>
+              </div>
               
               <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
                 {isOwnProfile && (
@@ -309,6 +316,9 @@ export default function Profile() {
                     )}
                     
                     <Button onClick={handleContact} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-8 bg-white text-black hover:bg-white/90 border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,255,0.2)]">{t('profile.contact')}</Button>
+                    <Button onClick={() => setIsRatingOpen(true)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-white/20 transition-all outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
+                      <StarIcon className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('rating.rate', 'Noter')}</span>
+                    </Button>
                   </>
                 )}
               </div>
@@ -561,6 +571,9 @@ export default function Profile() {
       </main>
 
       <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} listing={chatListing} user={currentUser} />
+      {!isOwnProfile && targetId && (
+        <RateUserModal ratedId={targetId} ratedName={fullName} isOpen={isRatingOpen} onClose={() => setIsRatingOpen(false)} />
+      )}
       <ListingForm isOpen={isEditFormOpen} onClose={() => setIsEditFormOpen(false)} onSuccess={() => refetch()} listingToEdit={listingToEdit} />
 
       <AnimatePresence>

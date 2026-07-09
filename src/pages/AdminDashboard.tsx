@@ -5,7 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar } from 'lucide-react';
+import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -14,7 +14,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
-type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports';
+type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports' | 'ratings';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -31,14 +31,16 @@ export default function AdminDashboard() {
         { count: messagesCount },
         { count: viewsCount },
         { count: favoritesCount },
-        { data: reports }
+        { data: reports },
+        { data: pendingRatings }
       ] = await Promise.all([
         supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('listings').select('*, listing_views(count), favorites(count)').order('created_at', { ascending: false }),
         supabase.from('messages').select('id', { count: 'exact' }),
         supabase.from('listing_views').select('id', { count: 'exact' }),
         supabase.from('favorites').select('id', { count: 'exact' }),
-        supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false })
+        supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false }),
+        supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false })
       ]);
 
       const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
@@ -54,6 +56,11 @@ export default function AdminDashboard() {
         reports: reports?.map(r => ({
           ...r,
           reporter: profilesMap.get(r.reporter_id)
+        })) || [],
+        pendingRatings: pendingRatings?.map(r => ({
+          ...r,
+          rater: profilesMap.get(r.rater_id),
+          rated: profilesMap.get(r.rated_id)
         })) || [],
         stats: {
           usersCount: profiles?.length || 0,
@@ -130,6 +137,7 @@ export default function AdminDashboard() {
             <TabButton id="users" label={t('admin.tab_users') || 'Membres'} icon={Users} />
             <TabButton id="kyc" label="KYC" icon={BadgeCheck} />
             <TabButton id="reports" label="Signalements" icon={AlertOctagon} />
+            <TabButton id="ratings" label="Notes" icon={Star} />
           </div>
         </div>
 
@@ -474,6 +482,67 @@ export default function AdminDashboard() {
                           className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
                         >
                           Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'ratings' && (
+            <motion.div key="ratings-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+              <h2 className="text-lg font-light flex items-center gap-2 text-amber-400"><Star size={20}/> Notes à vérifier ({adminData?.pendingRatings.length || 0})</h2>
+
+              {adminData?.pendingRatings.length === 0 ? (
+                <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
+                  <Star className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                  <p className="text-white/30 font-light italic">Aucune note en attente de vérification</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {adminData?.pendingRatings.map(r => (
+                    <div key={r.id} className="liquid-glass rounded-[1.5rem] p-6 border border-amber-500/10 flex flex-col gap-4">
+                      <div className="flex justify-between items-start">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{r.rater?.full_name || 'Membre'} → {r.rated?.full_name || 'Membre'}</p>
+                          <p className="text-[9px] text-white/40">{format(new Date(r.created_at), 'dd/MM/yy HH:mm')}</p>
+                        </div>
+                        <span className="text-lg font-bold text-amber-400 shrink-0">{r.score}/5</span>
+                      </div>
+
+                      {r.comment && (
+                        <div className="bg-white/5 rounded-xl p-3">
+                          <p className="text-xs text-white/70 whitespace-pre-wrap">{r.comment}</p>
+                        </div>
+                      )}
+
+                      <div className="bg-amber-500/5 rounded-xl p-4 flex-1">
+                        <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Justification</p>
+                        <p className="text-sm text-white/80 whitespace-pre-wrap">{r.justification}</p>
+                      </div>
+
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={async () => {
+                            await supabase.from('ratings').update({ status: 'published' }).eq('id', r.id);
+                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                            showSuccess('Note publiée');
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
+                        >
+                          Publier
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await supabase.from('ratings').update({ status: 'rejected' }).eq('id', r.id);
+                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                            showSuccess('Note rejetée');
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
+                        >
+                          Rejeter
                         </button>
                       </div>
                     </div>
