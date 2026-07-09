@@ -19,11 +19,14 @@ export function useListings() {
     queryFn: async () => {
       const { data } = await supabase.from('listings').select('*, listing_views(count)');
       if (!data) return [];
-      
-      const mapped = data.map((l: any) => ({
-        ...l,
-        view_count: l.listing_views?.[0]?.count || 0
-      }));
+
+      const mapped = data
+        // Les annonces en pause ne sont plus visibles publiquement
+        .filter((l: any) => l.status !== 'inactive')
+        .map((l: any) => ({
+          ...l,
+          view_count: l.listing_views?.[0]?.count || 0
+        }));
 
       // Déclenche le préchargement intelligemment sans bloquer l'interface
       if (typeof window !== 'undefined') {

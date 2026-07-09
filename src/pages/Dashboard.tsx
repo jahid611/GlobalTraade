@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -74,6 +74,21 @@ export default function Dashboard() {
     },
     enabled: !!user?.id,
   });
+
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleConfirmActive = async (listing: any) => {
+    setConfirmingId(listing.id);
+    const { error } = await supabase.rpc('confirm_listing_active', { p_listing_id: listing.id });
+    if (error) {
+      showError(t('lifecycle.confirm_error', 'Impossible de confirmer. Réessayez.'));
+    } else {
+      showSuccess(t('lifecycle.confirmed_toast', 'Annonce confirmée. Elle reste en ligne.'));
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ['listings'] });
+    }
+    setConfirmingId(null);
+  };
 
   const handleDelete = async () => {
     if (!listingToDelete) return;
@@ -169,6 +184,15 @@ export default function Dashboard() {
 
   const suggestedDeals = allSuggested.map(deal => ({ ...deal, matchScore: calculateMatchScore(deal) })).sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
 
+  const listingsToConfirm = myListings.filter((l: any) => l.status === 'pending_renewal');
+  const pausedListings = myListings.filter((l: any) => l.status === 'inactive');
+  const deletionDate = (l: any) => {
+    if (!l.inactive_since) return '';
+    const d = new Date(l.inactive_since);
+    d.setDate(d.getDate() + 30);
+    return d.toLocaleDateString();
+  };
+
   return (
     <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -207,6 +231,57 @@ export default function Dashboard() {
           desc={t('help.dash_desc', '') as string}
           className="mb-[6vh] relative z-10"
         />
+
+        {(listingsToConfirm.length > 0 || pausedListings.length > 0) && (
+          <div className="space-y-4 mb-[6vh] relative z-20">
+            {listingsToConfirm.map((listing: any) => (
+              <div key={listing.id} className="liquid-glass border border-primary/50 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/40">
+                  <ClockCounterClockwise className="w-7 h-7 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-lg font-light text-white mb-1">
+                    {t('lifecycle.confirm_title', { name: listing.name, defaultValue: '« {{name}} » est-elle toujours en vente ?' })}
+                  </p>
+                  <p className="text-sm text-white/50 font-light">
+                    {t('lifecycle.confirm_desc', 'Un clic suffit. C\'est gratuit.')}
+                  </p>
+                </div>
+                <div className="flex gap-3 shrink-0">
+                  <Button onClick={() => handleConfirmActive(listing)} disabled={confirmingId === listing.id} className="rounded-full h-12 px-6 bg-primary hover:bg-primary/90 text-white font-medium outline-none [text-shadow:none]">
+                    <CheckCircle className="w-4 h-4 mr-2" /> {t('lifecycle.confirm_yes', 'Oui, toujours en vente')}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setListingToDelete(listing)} className="rounded-full h-12 px-5 text-white/60 hover:text-red-400 hover:bg-red-500/10 outline-none [text-shadow:none]">
+                    {t('lifecycle.delete', 'Supprimer')}
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {pausedListings.map((listing: any) => (
+              <div key={listing.id} className="liquid-glass border border-white/20 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+                  <Pause className="w-7 h-7 text-white/70" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-lg font-light text-white mb-1">
+                    {t('lifecycle.paused_title', { name: listing.name, defaultValue: '« {{name}} » est en pause' })}
+                  </p>
+                  <p className="text-sm text-white/50 font-light">
+                    {t('lifecycle.paused_desc', { date: deletionDate(listing), defaultValue: 'Réactivez-la gratuitement. Sans action, elle sera supprimée le {{date}}.' })}
+                  </p>
+                </div>
+                <div className="flex gap-3 shrink-0">
+                  <Button onClick={() => handleConfirmActive(listing)} disabled={confirmingId === listing.id} className="rounded-full h-12 px-6 bg-white text-black hover:bg-white/90 font-medium outline-none [text-shadow:none]">
+                    {t('lifecycle.reactivate', 'Réactiver')}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setListingToDelete(listing)} className="rounded-full h-12 px-5 text-white/60 hover:text-red-400 hover:bg-red-500/10 outline-none [text-shadow:none]">
+                    {t('lifecycle.delete', 'Supprimer')}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[4vh] sm:gap-6 mb-[8vh]">
           {/* Vues Annonces */}
@@ -402,7 +477,15 @@ export default function Dashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
                 {myListings.map(listing => (
-                  <BusinessCard key={listing.id} listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
+                  <div key={listing.id} className="relative">
+                    {listing.status && listing.status !== 'active' && (
+                      <div className={`absolute -top-3 left-6 z-20 liquid-glass px-4 py-1.5 rounded-full flex items-center gap-2 border ${listing.status === 'pending_renewal' ? 'border-primary/50 text-primary' : 'border-white/30 text-white/70'}`}>
+                        {listing.status === 'pending_renewal'
+                          ? <><ClockCounterClockwise className="w-3.5 h-3.5" /><span className="text-xs font-medium">{t('lifecycle.status_pending', 'À confirmer')}</span></>
+                          : <><Pause className="w-3.5 h-3.5" /><span className="text-xs font-medium">{t('lifecycle.status_paused', 'En pause')}</span></>}
+                      </div>
+                    )}
+                  <BusinessCard listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
                         <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>
@@ -410,6 +493,7 @@ export default function Dashboard() {
                       </div>
                     }
                   />
+                  </div>
                 ))}
               </div>
             )}
