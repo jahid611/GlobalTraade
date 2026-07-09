@@ -18,6 +18,7 @@ import { useListings } from '@/hooks/use-listings';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TRUSTED_MIN_AVG, TRUSTED_MIN_COUNT } from '@/components/RatingStars';
+import { SearchAdsBoard } from '@/components/SearchAdsBoard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -61,6 +62,7 @@ export default function Marketplace() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
+  const [mode, setMode] = useState<'listings' | 'search_ads'>('listings');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
@@ -187,6 +189,34 @@ export default function Marketplace() {
           className="max-w-3xl mx-auto mb-8 relative z-10"
         />
 
+        {/* Deux sens : entreprises à vendre / repreneurs en recherche */}
+        <div className="relative z-10 flex justify-center mb-8">
+          <div className="flex gap-1.5 p-1.5 rounded-full bg-black/20 border border-white/10">
+            <button
+              onClick={() => setMode('listings')}
+              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all outline-none ${
+                mode === 'listings' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white'
+              }`}
+            >
+              {t('market.mode_listings', 'Entreprises à vendre')}
+            </button>
+            <button
+              onClick={() => setMode('search_ads')}
+              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all outline-none ${
+                mode === 'search_ads' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white'
+              }`}
+            >
+              {t('market.mode_search_ads', 'Repreneurs en recherche')}
+            </button>
+          </div>
+        </div>
+
+        {mode === 'search_ads' ? (
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <SearchAdsBoard />
+          </div>
+        ) : (
+        <>
         <div className="relative z-10 max-w-xl mx-auto mb-[10vh]">
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
             <SmartMatchForm onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
@@ -264,17 +294,21 @@ export default function Marketplace() {
             </div>
           )}
         </div>
+        </>
+        )}
       </main>
 
-      <div className="fixed bottom-[4vh] sm:bottom-8 right-[4vw] sm:right-8 z-[110]">
-        <button 
-          onClick={() => user ? setIsFormOpen(true) : navigate('/login')} 
-          className="w-[14vw] sm:w-16 max-w-[64px] h-[14vw] sm:h-16 max-h-[64px] flex items-center justify-center text-white liquid-glass border border-white/30 rounded-full hover:bg-white/20 transition-all group shadow-[inset_0_4px_20px_rgba(255,255,255,0.3),_0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl hover:scale-105 active:scale-95"
-        >
-          <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Plus className="w-[6vw] sm:w-8 max-w-[32px] h-[6vw] sm:h-8 max-h-[32px] relative z-10" strokeWidth={1.5} />
-        </button>
-      </div>
+      {mode === 'listings' && (
+        <div className="fixed bottom-[4vh] sm:bottom-8 right-[4vw] sm:right-8 z-[110]">
+          <button
+            onClick={() => user ? setIsFormOpen(true) : navigate('/login')}
+            className="w-[14vw] sm:w-16 max-w-[64px] h-[14vw] sm:h-16 max-h-[64px] flex items-center justify-center text-white liquid-glass border border-white/30 rounded-full hover:bg-white/20 transition-all group shadow-[inset_0_4px_20px_rgba(255,255,255,0.3),_0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl hover:scale-105 active:scale-95"
+          >
+            <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Plus className="w-[6vw] sm:w-8 max-w-[32px] h-[6vw] sm:h-8 max-h-[32px] relative z-10" strokeWidth={1.5} />
+          </button>
+        </div>
+      )}
 
       <AdvancedFilters 
         isOpen={isFilterPanelOpen} 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -163,8 +163,40 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
   };
 
+  // Freemium : les comptes gratuits voient l'essentiel ; l'historique
+  // financier détaillé et l'analyse IA sont réservés au premium.
+  const { data: viewerProfile } = useQuery({
+    queryKey: ['viewer-plan', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('plan_type').eq('id', user!.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+  });
+
   if (!listing) return null;
   const isOwner = user && listing.owner_id === user.id;
+  const isPremiumViewer = isOwner || viewerProfile?.plan_type === 'premium';
+
+  const PremiumGate = ({ children }: { children: React.ReactNode }) => (
+    isPremiumViewer ? <>{children}</> : (
+      <div className="relative">
+        <div className="blur-md select-none pointer-events-none">{children}</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <p className="text-sm text-white font-light text-center px-8">
+            {t('quota.detail_locked', 'Détails complets réservés aux membres premium.')}
+          </p>
+          <button
+            onClick={() => navigate('/payment')}
+            className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
+          >
+            {t('sellability.unlock', 'Passer premium')}
+          </button>
+        </div>
+      </div>
+    )
+  );
   const hasGallery = listing.image_urls && listing.image_urls.length > 0;
   const isSafeUrl = (url: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
 
@@ -341,6 +373,7 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
 
               {(listing.revenue_n2 || listing.revenue_n3) && user && (
                 <div className="mb-12 sm:mb-16">
+                  <PremiumGate>
                   <span className="text-[10px] uppercase tracking-widest text-white/40 mb-6 block font-medium">{t('modal.history')}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
                     <div className="flex flex-col">
@@ -356,6 +389,7 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                       <span className="text-xl sm:text-2xl font-light text-white truncate">{formatEuro(listing.revenue_n1)}</span>
                     </div>
                   </div>
+                  </PremiumGate>
                 </div>
               )}
 
@@ -380,7 +414,9 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
               {user && listing.ebitda && listing.revenue_n1 && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                  <AIInsightsPanel listing={listing} />
+                  <PremiumGate>
+                    <AIInsightsPanel listing={listing} />
+                  </PremiumGate>
                 </div>
               )}
 

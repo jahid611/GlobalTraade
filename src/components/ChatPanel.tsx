@@ -14,6 +14,8 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { checkContactQuota, registerContactInitiation } from '@/services/quotaService';
 import { DealTimeline } from '@/components/DealTimeline';
 
 interface ChatPanelProps {
@@ -28,6 +30,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
   useScrollLock(isOpen);
   const isMobile = useIsMobile();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Record<string, any>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
@@ -147,7 +150,19 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !listing) return;
-    const content = newMessage.trim(); 
+
+    // Freemium : nouveau contact = quota mensuel pour les comptes gratuits
+    const isFirstMessage = messages.filter(m => !String(m.id).startsWith('temp-')).length === 0;
+    if (isFirstMessage) {
+      const quota = await checkContactQuota(user.id, String(listing.owner_id));
+      if (!quota.allowed) {
+        showError(t('quota.contacts_reached', 'Limite de nouveaux contacts atteinte ce mois-ci. Passez premium pour contacter sans limite.'));
+        navigate('/payment');
+        return;
+      }
+    }
+
+    const content = newMessage.trim();
     setNewMessage("");
 
     const tempId = `temp-${Date.now()}`;
@@ -173,6 +188,9 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       setMessages(prev => prev.filter(m => m.id !== tempId));
     } else if (data) {
       setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+      if (isFirstMessage) {
+        registerContactInitiation(user.id, String(listing.owner_id), listing.id).catch(() => {});
+      }
     }
   };
 
