@@ -38,6 +38,7 @@ const Payment = React.lazy(() => import("./pages/Payment"));
 const Projects = React.lazy(() => import("./pages/Projects"));
 const SectorNetwork = React.lazy(() => import("./pages/SectorNetwork"));
 const Radar = React.lazy(() => import("./pages/Radar"));
+const PartnerSpace = React.lazy(() => import("./pages/PartnerSpace"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -99,6 +100,7 @@ const App = () => (
                     <Route path="/profile/:id" element={<Profile />} />
                     <Route path="/secteur" element={<ProtectedRoute><SectorNetwork /></ProtectedRoute>} />
                     <Route path="/radar" element={<ProtectedRoute><Radar /></ProtectedRoute>} />
+                    <Route path="/partenaire" element={<ProtectedRoute><PartnerSpace /></ProtectedRoute>} />
                     
                     {/* Routes Admin */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

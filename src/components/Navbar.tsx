@@ -19,6 +19,7 @@ import {
   Handshake,
   UsersThree,
   Crosshair,
+  Briefcase,
 } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,6 +59,7 @@ export function Navbar() {
     { name: t("nav.prospect"), path: "/radar", icon: Crosshair },
     { name: t("nav.projects"), path: "/projects", icon: Handshake },
     { name: t("nav.sector"), path: "/secteur", icon: UsersThree },
+    { name: t("nav.partners", "Partenaires"), path: "/partenaire", icon: Briefcase },
     { name: t("nav.map"), path: "/app", icon: Globe },
     { name: t("nav.dashboard"), path: "/dashboard", icon: SquaresFour },
   ];
