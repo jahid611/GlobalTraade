@@ -46,6 +46,13 @@ export interface Project {
   interest_count: number;
   is_published: boolean;
   is_urgent: boolean;
+  // Fiche de financement (place projets)
+  apport_personnel?: string;
+  funds_usage?: string;
+  revenue_current?: string;
+  revenue_forecast?: string;
+  financing_types?: string[];
+  verification_status?: 'non_soumis' | 'en_attente' | 'verifie' | 'rejete';
   deadline?: string;
   created_at: string;
   updated_at: string;

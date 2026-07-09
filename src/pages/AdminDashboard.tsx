@@ -5,7 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar, Star } from 'lucide-react';
+import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar, Star, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -14,7 +14,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
-type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports' | 'ratings';
+type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports' | 'ratings' | 'projets';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -33,7 +33,8 @@ export default function AdminDashboard() {
         { count: favoritesCount },
         { data: reports },
         { data: pendingRatings },
-        { data: buyerBadges }
+        { data: buyerBadges },
+        { data: pendingProjects }
       ] = await Promise.all([
         supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('listings').select('*, listing_views(count), favorites(count)').order('created_at', { ascending: false }),
@@ -42,7 +43,8 @@ export default function AdminDashboard() {
         supabase.from('favorites').select('id', { count: 'exact' }),
         supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false }),
         supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false }),
-        supabase.from('buyer_badges').select('id, buyer_type, buyer_level')
+        supabase.from('buyer_badges').select('id, buyer_type, buyer_level'),
+        supabase.from('projects').select('id, title, owner_id, verification_status, apport_personnel, revenue_current, revenue_forecast, funds_usage, financing_types, budget_min, budget_max').eq('verification_status', 'en_attente').order('updated_at', { ascending: false })
       ]);
 
       const badgesMap = new Map((buyerBadges || []).map((b: any) => [b.id, b]));
@@ -65,6 +67,10 @@ export default function AdminDashboard() {
           ...r,
           rater: profilesMap.get(r.rater_id),
           rated: profilesMap.get(r.rated_id)
+        })) || [],
+        pendingProjects: pendingProjects?.map(p => ({
+          ...p,
+          owner: profilesMap.get(p.owner_id)
         })) || [],
         stats: {
           usersCount: profiles?.length || 0,
@@ -142,6 +148,7 @@ export default function AdminDashboard() {
             <TabButton id="kyc" label="KYC" icon={BadgeCheck} />
             <TabButton id="reports" label="Signalements" icon={AlertOctagon} />
             <TabButton id="ratings" label="Notes" icon={Star} />
+            <TabButton id="projets" label="Projets" icon={Briefcase} />
           </div>
         </div>
 
@@ -500,6 +507,58 @@ export default function AdminDashboard() {
                           className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
                         >
                           Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'projets' && (
+            <motion.div key="projets-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+              <h2 className="text-lg font-light flex items-center gap-2 text-primary"><Briefcase size={20}/> Projets à vérifier ({adminData?.pendingProjects.length || 0})</h2>
+
+              {adminData?.pendingProjects.length === 0 ? (
+                <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
+                  <Briefcase className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                  <p className="text-white/30 font-light italic">Aucun projet en attente de vérification</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {adminData?.pendingProjects.map(p => (
+                    <div key={p.id} className="liquid-glass rounded-[1.5rem] p-6 border border-white/10 flex flex-col gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-white">{p.title}</p>
+                        <p className="text-[10px] text-white/40">{p.owner?.full_name || 'Porteur inconnu'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {p.budget_max && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Montant</p><p className="text-white/80">{p.budget_min?.toLocaleString()}–{p.budget_max?.toLocaleString()}€</p></div>}
+                        {p.apport_personnel && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Apport</p><p className="text-white/80">{p.apport_personnel}</p></div>}
+                        {p.revenue_current && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">CA actuel</p><p className="text-white/80">{p.revenue_current}</p></div>}
+                        {p.funds_usage && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Fonds</p><p className="text-white/80">{p.funds_usage}</p></div>}
+                      </div>
+                      <div className="flex gap-2 mt-auto">
+                        <button
+                          onClick={async () => {
+                            await supabase.from('projects').update({ verification_status: 'verifie' }).eq('id', p.id);
+                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                            showSuccess('Projet vérifié');
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
+                        >
+                          Vérifier
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await supabase.from('projects').update({ verification_status: 'rejete' }).eq('id', p.id);
+                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                            showSuccess('Projet rejeté');
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
+                        >
+                          Rejeter
                         </button>
                       </div>
                     </div>

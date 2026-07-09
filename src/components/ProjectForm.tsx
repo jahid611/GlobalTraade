@@ -196,6 +196,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
     title:"", tagline:"", description:"", category:"Tech & IA", stage:"idea",
     country:"", city:"", website_url:"", help_types:[],
     financial_needed:false, budget_min:undefined, budget_max:undefined, budget_currency:"EUR", investment_type:"equity", equity_offered:undefined,
+    apport_personnel:"", funds_usage:"", revenue_current:"", revenue_forecast:"", financing_types:[],
     human_needed:false, team_roles:[],
     material_needed:false, material_items:[],
     expertise_needed:false, expertise_domains:[],
@@ -406,6 +407,31 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                         {form.investment_type==="equity" && (
                           <div><label className={lbl}>{t('project.form.equity')}</label><input type="number" className={inp} min="0" max="100" placeholder={t('project.form.equity_ph')} value={form.equity_offered||""} onChange={e=>set("equity_offered",Number(e.target.value))}/></div>
                         )}
+                      </div>
+                      {/* Fiche de financement complète (place projets) */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className={lbl}>{t('project.form.apport', 'Apport personnel')}</label><input className={inp} placeholder="ex: 50k€" value={(form as any).apport_personnel||""} onChange={e=>set("apport_personnel" as any, e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.revenue_current', 'CA actuel')}</label><input className={inp} placeholder="ex: 120k€" value={(form as any).revenue_current||""} onChange={e=>set("revenue_current" as any, e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.revenue_forecast', 'CA prévisionnel')}</label><input className={inp} placeholder="ex: 300k€ à 2 ans" value={(form as any).revenue_forecast||""} onChange={e=>set("revenue_forecast" as any, e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.funds_usage', 'Utilisation des fonds')}</label><input className={inp} placeholder={t('project.form.funds_usage_ph', 'ex: machines, stock, embauches') as string} value={(form as any).funds_usage||""} onChange={e=>set("funds_usage" as any, e.target.value)}/></div>
+                      </div>
+                      <div>
+                        <label className={lbl}>{t('project.form.financing_types', 'Financement recherché')}</label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {['pret_bancaire','investisseur','associe','aides'].map(ft => {
+                            const active = ((form as any).financing_types || []).includes(ft);
+                            return (
+                              <button key={ft} type="button"
+                                onClick={() => {
+                                  const cur = (form as any).financing_types || [];
+                                  set("financing_types" as any, active ? cur.filter((x: string) => x !== ft) : [...cur, ft]);
+                                }}
+                                className={`px-4 h-9 rounded-full text-xs font-light transition-all outline-none border ${active ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40' : 'bg-white/5 text-white/60 border-white/15 hover:text-white'}`}>
+                                {t(`project.form.ft_${ft}`)}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}

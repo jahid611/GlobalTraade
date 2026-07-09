@@ -14,6 +14,7 @@ import { fetchProjects, deleteProject, expressInterest, incrementProjectViews, P
 import { showSuccess, showError } from "@/utils/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
+import { ProjectAccessSection, VerificationBadge } from "@/components/ProjectDossier";
 
 // ─── Constants ────────────────────────────────────────────────
 const HELP_META: Record<HelpType, { key: string; color: string; bg: string; Icon: any }> = {
@@ -173,6 +174,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h2 className="text-xl font-medium text-white">{project.title}</h2>
+                <VerificationBadge status={project.verification_status} />
                 {project.is_urgent && <span className="text-[10px] font-bold uppercase text-red-400 bg-red-500/15 border border-red-500/30 px-2 py-0.5 rounded-full flex items-center gap-1"><Fire className="w-2.5 h-2.5"/>{t('hub.urgent')}</span>}
               </div>
               <p className="text-white/40 text-sm">{project.profiles?.full_name} • {t(`industry.${project.category}`, project.category)}</p>
@@ -195,7 +197,20 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
                 <div><p className="text-white/40 text-xs mb-1">{t('project.detail.budget')}</p><p className="text-white font-medium">{project.budget_min?.toLocaleString()}€ – {project.budget_max?.toLocaleString()}€</p></div>
                 <div><p className="text-white/40 text-xs mb-1">{t('project.detail.type')}</p><p className="text-white font-medium capitalize">{t(`project.form.inv_${project.investment_type}`, project.investment_type)}</p></div>
                 {project.equity_offered && <div><p className="text-white/40 text-xs mb-1">{t('project.detail.equity')}</p><p className="text-emerald-400 font-bold text-lg">{project.equity_offered}%</p></div>}
+                {project.apport_personnel && <div><p className="text-white/40 text-xs mb-1">{t('pp.apport', 'Apport personnel')}</p><p className="text-white font-medium">{project.apport_personnel}</p></div>}
+                {project.revenue_current && <div><p className="text-white/40 text-xs mb-1">{t('pp.revenue_current', 'CA actuel')}</p><p className="text-white font-medium">{project.revenue_current}</p></div>}
+                {project.revenue_forecast && <div><p className="text-white/40 text-xs mb-1">{t('pp.revenue_forecast', 'CA prévisionnel')}</p><p className="text-white font-medium">{project.revenue_forecast}</p></div>}
+                {project.funds_usage && <div className="col-span-2"><p className="text-white/40 text-xs mb-1">{t('pp.funds_usage', 'Utilisation des fonds')}</p><p className="text-white font-medium">{project.funds_usage}</p></div>}
               </div>
+              {(project.financing_types || []).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {(project.financing_types || []).map((ft: string) => (
+                    <span key={ft} className="text-xs px-3 py-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-full">
+                      {t(`project.form.ft_${ft}`)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -239,6 +254,9 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
               <div className="flex flex-wrap gap-2">{project.expertise_domains.map((d: string) => <span key={d} className="text-xs px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-full">{d}</span>)}</div>
             </div>
           )}
+
+          {/* Dossier complet : vérification, accès, business plan */}
+          <ProjectAccessSection project={project} userId={userId} />
 
           {/* Manifester intérêt */}
           {userId !== project.owner_id && (
