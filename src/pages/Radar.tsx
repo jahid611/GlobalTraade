@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
@@ -17,6 +17,7 @@ import {
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
 import { searchCompanies, type CompanyResult } from "@/services/sireneService";
+import { supabase } from "@/integrations/supabase/client";
 import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
 import { PricingModal } from "@/components/PricingModal";
@@ -62,6 +63,35 @@ export default function Radar() {
   const [totalPages, setTotalPages] = useState(1);
   const [adding, setAdding] = useState<string | null>(null);
 
+  // --- Profil : la prospection est bridée au code APE du membre ---
+  // (obligation de renseigner son secteur ; seuls les admins prospectent librement)
+  const { data: myProfile } = useQuery({
+    queryKey: ["radar-profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('ape_code, is_admin').eq('id', user!.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+  const apeLocked = !!myProfile && !myProfile.is_admin;
+  const [savingApe, setSavingApe] = useState(false);
+
+  useEffect(() => {
+    if (apeLocked && myProfile?.ape_code) setApe(myProfile.ape_code);
+  }, [apeLocked, myProfile?.ape_code]);
+
+  const saveMyApe = async () => {
+    if (!user || !ape) return;
+    setSavingApe(true);
+    const { error } = await supabase.from('profiles').update({ ape_code: ape }).eq('id', user.id);
+    if (error) showError(t('radar.ape_save_error', "Impossible d'enregistrer votre secteur"));
+    else {
+      showSuccess(t('radar.ape_saved', 'Secteur enregistré. Votre prospection est limitée à ce code APE.'));
+      queryClient.invalidateQueries({ queryKey: ["radar-profile", user.id] });
+    }
+    setSavingApe(false);
+  };
+
   // --- CRM ---
   const { data: prospects = [], isLoading: crmLoading } = useQuery({
     queryKey: ["prospects"],
@@ -103,9 +133,14 @@ export default function Radar() {
   };
 
   const runSearch = async (goPage = 1) => {
+    if (apeLocked && !myProfile?.ape_code) {
+      showError(t('radar.ape_required', "Renseignez d'abord le code APE de votre entreprise."));
+      return;
+    }
+    const effectiveApe = apeLocked ? myProfile!.ape_code : ape;
     setSearching(true);
     try {
-      const r = await searchCompanies({ codeApe: ape, departement: dept || undefined, page: goPage, activeOnly: true });
+      const r = await searchCompanies({ codeApe: effectiveApe, departement: dept || undefined, page: goPage, activeOnly: true });
       let list = r.results;
       if (strictDept && dept) list = list.filter((c) => c.departement === dept.trim());
       setResults(list);
@@ -237,9 +272,32 @@ export default function Radar() {
                 <div className="md:col-span-6">
                   <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2">
                     {t('radar.sector_label', 'Secteur (code APE)')}
-                    <InfoTip text={t('radar.sector_tip', "Le code APE identifie l'activité principale d'une entreprise (ex: 47.21Z = vente de fruits et légumes). Tape le nom du secteur, on trouve le code pour toi.")} />
+                    <InfoTip text={apeLocked
+                      ? t('radar.sector_locked_tip', "Pour protéger les entreprises de tout démarchage hors sujet, la prospection est limitée à votre propre secteur d'activité (votre code APE).")
+                      : t('radar.sector_tip', "Le code APE identifie l'activité principale d'une entreprise (ex: 47.21Z = vente de fruits et légumes). Tape le nom du secteur, on trouve le code pour toi.")} />
                   </label>
-                  <SearchableSelect value={ape} onChange={setApe} options={APE_OPTIONS} />
+                  {apeLocked && myProfile?.ape_code ? (
+                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 flex items-center justify-between gap-3">
+                      <span className="text-white text-sm truncate">
+                        {APE_OPTIONS.find((o: any) => o.value === myProfile.ape_code)?.label || myProfile.ape_code}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-white/40 shrink-0">{t('radar.your_sector', 'Votre secteur')}</span>
+                    </div>
+                  ) : apeLocked ? (
+                    <div className="flex gap-2">
+                      <div className="flex-1"><SearchableSelect value={ape} onChange={setApe} options={APE_OPTIONS} /></div>
+                      <Button onClick={saveMyApe} disabled={savingApe || !ape} className="h-12 rounded-xl px-5 bg-primary hover:bg-primary/90 text-white shrink-0 outline-none [text-shadow:none]">
+                        {t('radar.ape_save', 'Valider')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <SearchableSelect value={ape} onChange={setApe} options={APE_OPTIONS} />
+                  )}
+                  {apeLocked && !myProfile?.ape_code && (
+                    <p className="text-[11px] text-white/40 font-light mt-2">
+                      {t('radar.ape_onboard', 'Renseignez le code APE de votre entreprise. La prospection sera limitée à ce secteur.')}
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-3">
                   <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2">

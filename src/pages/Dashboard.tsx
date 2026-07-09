@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -20,6 +20,9 @@ import { MarketPulse } from '@/components/MarketPulse';
 import { HelpBanner } from '@/components/HelpBanner';
 import { LiveActivityFeed } from '@/components/LiveActivityFeed';
 import { OfferComparator } from '@/components/OfferComparator';
+import { SellabilityScore } from '@/components/SellabilityScore';
+import { ViewersPanel } from '@/components/ViewersPanel';
+import { generatePremiumPresentation } from '@/utils/premiumPresentation';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
 initNativeFeel();
@@ -28,7 +31,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [listingToDelete, setListingToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -391,6 +394,14 @@ export default function Dashboard() {
           <LiveActivityFeed />
         </div>
 
+        {/* Score de cession + Qui s'intéresse à vous (premium vendeur) */}
+        {myListings.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-[8vh] relative z-20">
+            <SellabilityScore listing={myListings[0]} isPremium={profile?.plan_type === 'premium'} />
+            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: any) => l.id)} isPremium={profile?.plan_type === 'premium'} />
+          </div>
+        )}
+
         {/* Offer Comparators for seller's listings */}
         {myListings.length > 0 && (
           <div className="space-y-[4vh] mb-[8vh] relative z-20">
@@ -488,6 +499,9 @@ export default function Dashboard() {
                   <BusinessCard listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
+                        {profile?.plan_type === 'premium' && (
+                          <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={async (e) => { e.stopPropagation(); await generatePremiumPresentation(listing, t, i18n.language?.startsWith('en') ? 'en' : 'fr'); }} title={t('premium.download_pdf', 'Télécharger la présentation PDF')}><DownloadSimple className="w-5 h-5" /></button>
+                        )}
                         <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>
                         <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-5 h-5" /></button>
                       </div>

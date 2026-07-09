@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye } from 'phosphor-react';
+import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -101,6 +101,12 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
       onClick={onClick}
       className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
     >
+      {listing.is_premium && (
+        <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
+          style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
+          <Crown className="w-3 h-3" weight="fill" /> {t('card.premium', 'Premium')}
+        </div>
+      )}
       {typeof matchScore === 'number' && (
         <div
           className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md"

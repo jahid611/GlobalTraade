@@ -99,7 +99,7 @@ export default function Marketplace() {
       });
       return result
         .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
-        .sort((a, b) => (b._matchScore || 0) - (a._matchScore || 0));
+        .sort((a, b) => (Number(b.is_premium) - Number(a.is_premium)) || (b._matchScore || 0) - (a._matchScore || 0));
     }
 
     // Sinon, tri classique
@@ -112,6 +112,9 @@ export default function Marketplace() {
       const roiB = b.price > 0 ? (b.ebitda / b.price) : 0;
       return roiB - roiA;
     });
+
+    // Les annonces premium restent en tête quel que soit le tri
+    result.sort((a, b) => Number(b.is_premium || false) - Number(a.is_premium || false));
 
     return result;
   }, [listings, filters, matchCriteria, profileCriteria]);
