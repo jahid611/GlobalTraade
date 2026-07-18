@@ -140,6 +140,63 @@ Vous recevez ce message car votre entreprise exerce dans un secteur concerné pa
   return { subject, body };
 }
 
+// ------------------------------------------------------------------
+// Quota de prospection APE (formule Business) : 20 entreprises
+// contactées par mois, puis 2 € par contact supplémentaire.
+// Un « contact » = première génération d'email / passage en statut
+// contacté pour une entreprise donnée dans le mois.
+// ------------------------------------------------------------------
+
+export const PROSPECTION_MONTHLY_INCLUDED = 20;
+
+export type ProspectionQuota = {
+  used: number;
+  included: number;
+  extra: boolean; // le prochain contact sera facturé 2 €
+};
+
+export async function getProspectionQuota(userId: string): Promise<ProspectionQuota> {
+  const yearMonth = new Date().toISOString().slice(0, 7);
+  const { count } = await supabase
+    .from('prospection_contacts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('year_month', yearMonth);
+  const used = count || 0;
+  return {
+    used,
+    included: PROSPECTION_MONTHLY_INCLUDED,
+    extra: used >= PROSPECTION_MONTHLY_INCLUDED,
+  };
+}
+
+// Enregistre un contact de prospection (idempotent par entreprise/mois).
+// `billed` = contact au-delà du forfait (2 €).
+export async function registerProspectionContact(userId: string, siren: string, companyName: string, billed: boolean) {
+  const yearMonth = new Date().toISOString().slice(0, 7);
+  await supabase.from('prospection_contacts').upsert({
+    user_id: userId,
+    siren,
+    company_name: companyName,
+    year_month: yearMonth,
+    billed,
+    amount_cents: billed ? 200 : 0,
+  }, { onConflict: 'user_id,siren,year_month', ignoreDuplicates: true });
+}
+
+// Une entreprise déjà contactée ce mois-ci ne recompte pas.
+export async function isProspectAlreadyCounted(userId: string, siren: string): Promise<boolean> {
+  const yearMonth = new Date().toISOString().slice(0, 7);
+  const { data } = await supabase
+    .from('prospection_contacts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('siren', siren)
+    .eq('year_month', yearMonth)
+    .maybeSingle();
+  return !!data;
+}
+
 function csvCell(s: string): string {
   return `"${(s || "").replace(/"/g, '""')}"`;
 }

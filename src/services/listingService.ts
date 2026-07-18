@@ -26,10 +26,17 @@ export const saveListing = async (payload: any, listingId?: string, userId?: str
       
     if (error) throw new Error(error.message);
   } else {
-    const { error } = await supabase
+    let { error } = await supabase
       .from('listings')
       .insert([payload]);
-      
+
+    // Tolérance : tant que le patch SQL monétisation V3 n'est pas passé,
+    // la colonne share_financials n'existe pas — on réessaie sans elle.
+    if (error && /share_financials/i.test(error.message)) {
+      const { share_financials, ...rest } = payload;
+      ({ error } = await supabase.from('listings').insert([rest]));
+    }
+
     if (error) throw new Error(error.message);
   }
 };
