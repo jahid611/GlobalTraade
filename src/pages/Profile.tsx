@@ -347,7 +347,9 @@ export default function Profile() {
 
             {metadata.bio && <p className="text-[clamp(0.875rem,1vw,1rem)] font-light text-white dark:text-white/80 leading-relaxed max-w-2xl mb-6 mx-auto md:mx-0">{metadata.bio}</p>}
 
-            {(metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone) ? (
+            {/* Coordonnées publiques : uniquement si le membre est en formule payante */}
+            {['pro', 'business', 'premium'].includes(metadata.plan_type) &&
+             ((metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone)) ? (
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                 {metadata.show_email && metadata.contact_email && (
                   <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-5 py-2.5 rounded-full liquid-glass border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 text-xs font-light text-white transition-all w-fit group">

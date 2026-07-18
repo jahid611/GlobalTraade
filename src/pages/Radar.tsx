@@ -21,6 +21,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
 import { PricingModal } from "@/components/PricingModal";
+import { useNavigate } from "react-router-dom";
+import { usePlan, PLAN_PRICES, EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
+import {
+  getProspectionQuota, registerProspectionContact, isProspectAlreadyCounted, PROSPECTION_MONTHLY_INCLUDED,
+} from "@/services/prospectService";
 import {
   listProspects, addProspect, updateProspect, deleteProspect, buildOutreachEmail, buildCampaignCsv,
   STATUS_META, STATUS_ORDER, type Prospect, type ProspectStatus,
@@ -48,8 +53,12 @@ export default function Radar() {
   const { t, i18n } = useTranslation();
   const siteLang: "fr" | "en" = i18n.language?.startsWith("en") ? "en" : "fr";
   const { user } = useAuth();
+  const navigate = useNavigate();
   const senderName = user?.user_metadata?.full_name || user?.email || "[Votre nom]";
   const [tab, setTab] = useState<"search" | "crm">("search");
+  // Formules : page inaccessible en gratuit ; Pro = recherche + CRM
+  // (envoi réservé Business) ; Business = 20 contacts/mois puis 2 €.
+  const { plan, isLoading: planLoading } = usePlan(user?.id);
   const statusLabel = (s: ProspectStatus) => t(`crm.status.${s}`, STATUS_META[s].label);
 
   // --- Recherche ---
@@ -118,9 +127,34 @@ export default function Radar() {
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(visibleProspects.map((p) => p.id)));
   const statusOptions = STATUS_ORDER.map((s) => ({ value: s, label: statusLabel(s) }));
 
-  const exportCampaign = () => {
+  const exportCampaign = async () => {
+    if (plan !== 'business') {
+      showError(t('quota.prospection_business', 'La prospection ciblée (envoi de campagnes) est réservée à la formule Business.'));
+      navigate('/payment');
+      return;
+    }
     const list = visibleProspects.filter((p) => selected.has(p.id) && p.email);
     if (list.length === 0) { showError("Aucun sélectionné avec un email renseigné"); return; }
+
+    // Quota Business : 20 entreprises contactées / mois, puis 2 € chacune
+    if (user) {
+      const alreadyCounted = await Promise.all(list.map((p) => isProspectAlreadyCounted(user.id, p.siren)));
+      const newOnes = list.filter((_, i) => !alreadyCounted[i]);
+      if (newOnes.length > 0) {
+        const quota = await getProspectionQuota(user.id);
+        const extras = Math.max(0, quota.used + newOnes.length - quota.included);
+        if (extras > 0) {
+          const ok = window.confirm(
+            t('quota.prospection_extra_confirm',
+              `Votre forfait inclut ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées par mois. Cette campagne dépasse le forfait de ${extras} contact(s), facturé(s) ${EXTRA_PROSPECT_PRICE} € chacun (${extras * EXTRA_PROSPECT_PRICE} €). Continuer ?`) as string
+          );
+          if (!ok) return;
+        }
+        const startExtra = quota.included - quota.used;
+        await Promise.all(newOnes.map((p, i) => registerProspectionContact(user.id, p.siren, p.nom, i >= startExtra)));
+      }
+    }
+
     const csv = "﻿" + buildCampaignCsv(list, senderName, siteLang);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -222,6 +256,30 @@ export default function Radar() {
       </TooltipContent>
     </Tooltip>
   );
+
+  // Gratuit : CRM et prospection non atteignables — écran d'accès
+  if (user && !planLoading && plan === 'free') {
+    return (
+      <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
+        <SolarSystem />
+        <Navbar />
+        <main className="relative z-10 pt-[25vh] pb-20 px-6 max-w-xl mx-auto w-full text-center">
+          <div className="liquid-glass rounded-[2.5rem] border border-white/10 p-10 sm:p-14">
+            <div className="w-16 h-16 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center mx-auto mb-6">
+              <Users2 className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-light mb-3">{t('radar.locked_title', 'CRM et prospection')}</h1>
+            <p className="text-white/50 font-light text-sm leading-relaxed mb-8">
+              {t('radar.locked_desc', `Le CRM individuel est inclus dans la formule Pro (${PLAN_PRICES.pro} €/mois). La prospection ciblée par code APE est réservée à la formule Business (${PLAN_PRICES.business} €/mois), avec ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées par mois incluses.`)}
+            </p>
+            <Button onClick={() => navigate('/payment')} className="rounded-full h-12 px-8 bg-primary hover:bg-primary/90 text-white font-medium outline-none [text-shadow:none]">
+              {t('quota.see_plans', 'Voir les formules')}
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
@@ -517,6 +575,8 @@ export default function Radar() {
           <EditModal
             prospect={editing}
             senderName={senderName}
+            plan={plan}
+            userId={user?.id}
             onClose={() => setEditing(null)}
             onSaved={() => { setEditing(null); queryClient.invalidateQueries({ queryKey: ["prospects"] }); }}
           />
@@ -538,7 +598,7 @@ export default function Radar() {
   );
 }
 
-function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prospect; senderName: string; onClose: () => void; onSaved: () => void }) {
+function EditModal({ prospect, senderName, plan, userId, onClose, onSaved }: { prospect: Prospect; senderName: string; plan: PlanType; userId?: string; onClose: () => void; onSaved: () => void }) {
   const { t, i18n } = useTranslation();
   // Langue de l'email mémorisée EN BASE (prospect.mail_lang) ; sinon langue du site.
   const initialLang: "fr" | "en" =
@@ -602,7 +662,25 @@ function EditModal({ prospect, senderName, onClose, onSaved }: { prospect: Prosp
 
   // Ouvre la messagerie de l'utilisateur (Gmail/Outlook/Mail) pré-remplie, puis marque "Contacté"
   const sendViaMailbox = async () => {
+    if (plan !== 'business') {
+      showError(t('quota.prospection_business', 'La prospection ciblée (envoi de campagnes) est réservée à la formule Business.'));
+      return;
+    }
     if (!email.trim()) { showError(t('crm.mail.email_required', "Renseigne d'abord l'email du dirigeant")); return; }
+
+    // Quota Business : 20 entreprises contactées / mois, puis 2 € chacune
+    if (userId && !(await isProspectAlreadyCounted(userId, prospect.siren))) {
+      const quota = await getProspectionQuota(userId);
+      if (quota.extra) {
+        const ok = window.confirm(
+          t('quota.prospection_extra_one',
+            `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire sera facturé ${EXTRA_PROSPECT_PRICE} €. Continuer ?`) as string
+        );
+        if (!ok) return;
+      }
+      await registerProspectionContact(userId, prospect.siren, prospect.nom, quota.extra);
+    }
+
     const mailto = `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
     try {

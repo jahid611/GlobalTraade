@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -23,6 +23,8 @@ import { OfferComparator } from '@/components/OfferComparator';
 import { SellabilityScore } from '@/components/SellabilityScore';
 import { ViewersPanel } from '@/components/ViewersPanel';
 import { generatePremiumPresentation } from '@/utils/premiumPresentation';
+import { normalizePlan, BOOST_PRICE } from '@/services/planService';
+import { isBoosted } from '@/services/boostService';
 import { initNativeFeel } from '@/utils/nativeFeel';
 
 initNativeFeel();
@@ -373,12 +375,12 @@ export default function Dashboard() {
                 </p>
               </div>
               <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
-                {profile?.plan_type === 'premium' 
-                  ? t('dash.premium_active_desc') 
+                {normalizePlan(profile?.plan_type) !== 'free'
+                  ? t('dash.premium_active_desc')
                   : t('dash.premium_inactive_desc')}
               </p>
             </div>
-            {profile?.plan_type !== 'premium' && (
+            {normalizePlan(profile?.plan_type) === 'free' && (
               <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
                 {t('dash.unlock_premium')}
               </Button>
@@ -397,8 +399,8 @@ export default function Dashboard() {
         {/* Score de cession + Qui s'intéresse à vous (premium vendeur) */}
         {myListings.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-[8vh] relative z-20">
-            <SellabilityScore listing={myListings[0]} isPremium={profile?.plan_type === 'premium'} />
-            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: any) => l.id)} isPremium={profile?.plan_type === 'premium'} />
+            <SellabilityScore listing={myListings[0]} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
+            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: any) => l.id)} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
           </div>
         )}
 
@@ -499,7 +501,10 @@ export default function Dashboard() {
                   <BusinessCard listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     actions={
                       <div className="flex gap-1">
-                        {profile?.plan_type === 'premium' && (
+                        {!isBoosted(listing) && (
+                          <button className="p-2 rounded-full text-white/60 hover:text-amber-300 hover:bg-amber-500/20 dark:hover:bg-amber-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); navigate(`/payment?boost=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`); }} title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`)}><RocketLaunch className="w-5 h-5" /></button>
+                        )}
+                        {normalizePlan(profile?.plan_type) !== 'free' && (
                           <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={async (e) => { e.stopPropagation(); await generatePremiumPresentation(listing, t, i18n.language?.startsWith('en') ? 'en' : 'fr'); }} title={t('premium.download_pdf', 'Télécharger la présentation PDF')}><DownloadSimple className="w-5 h-5" /></button>
                         )}
                         <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>

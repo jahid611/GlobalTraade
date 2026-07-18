@@ -15,6 +15,7 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePlan } from '@/services/planService';
 
 const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => void }) => (
   <button
@@ -35,6 +36,8 @@ const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => v
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
+  // Coordonnées publiques : réservé aux formules Pro et Business
+  const { plan } = usePlan(user?.id);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -410,17 +413,33 @@ export default function Settings() {
                 <div className="space-y-[2vh] pt-[2vh]">
                   <div className="flex items-center justify-between py-[1vh]">
                     <div>
-                      <p className="text-[clamp(0.875rem,1vw,1rem)] font-light">{t('settings.show_email')}</p>
-                      <p className="text-[clamp(0.65rem,0.8vw,0.75rem)] text-white/40 font-light">{t('settings.visible_profile')}</p>
+                      <p className="text-[clamp(0.875rem,1vw,1rem)] font-light flex items-center gap-2">
+                        {t('settings.show_email')}
+                        {plan === 'free' && <span className="text-[9px] uppercase tracking-widest text-primary border border-primary/40 bg-primary/10 rounded-full px-2 py-0.5">Pro</span>}
+                      </p>
+                      <p className="text-[clamp(0.65rem,0.8vw,0.75rem)] text-white/40 font-light">
+                        {plan === 'free' ? t('settings.contact_paid_only', 'Réservé aux formules Pro et Business') : t('settings.visible_profile')}
+                      </p>
                     </div>
-                    <CustomToggle active={showEmail} onToggle={() => setShowEmail(!showEmail)} />
+                    <CustomToggle active={showEmail && plan !== 'free'} onToggle={() => {
+                      if (plan === 'free') { showError(t('settings.contact_paid_only', 'Réservé aux formules Pro et Business')); navigate('/payment'); return; }
+                      setShowEmail(!showEmail);
+                    }} />
                   </div>
                   <div className="flex items-center justify-between py-[1vh]">
                     <div>
-                      <p className="text-[clamp(0.875rem,1vw,1rem)] font-light">{t('settings.show_phone')}</p>
-                      <p className="text-[clamp(0.65rem,0.8vw,0.75rem)] text-white/40 font-light">{t('settings.visible_profile')}</p>
+                      <p className="text-[clamp(0.875rem,1vw,1rem)] font-light flex items-center gap-2">
+                        {t('settings.show_phone')}
+                        {plan === 'free' && <span className="text-[9px] uppercase tracking-widest text-primary border border-primary/40 bg-primary/10 rounded-full px-2 py-0.5">Pro</span>}
+                      </p>
+                      <p className="text-[clamp(0.65rem,0.8vw,0.75rem)] text-white/40 font-light">
+                        {plan === 'free' ? t('settings.contact_paid_only', 'Réservé aux formules Pro et Business') : t('settings.visible_profile')}
+                      </p>
                     </div>
-                    <CustomToggle active={showPhone} onToggle={() => setShowPhone(!showPhone)} />
+                    <CustomToggle active={showPhone && plan !== 'free'} onToggle={() => {
+                      if (plan === 'free') { showError(t('settings.contact_paid_only', 'Réservé aux formules Pro et Business')); navigate('/payment'); return; }
+                      setShowPhone(!showPhone);
+                    }} />
                   </div>
                 </div>
               </div>
