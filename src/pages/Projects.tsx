@@ -15,6 +15,11 @@ import { showSuccess, showError } from "@/utils/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
 import { ProjectAccessSection, VerificationBadge } from "@/components/ProjectDossier";
+import { usePlan, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from "@/services/planService";
+import { useIsUnlocked } from "@/services/unlockService";
+import { isBoosted } from "@/services/boostService";
+import { checkContactQuota, registerContactInitiation } from "@/services/quotaService";
+import { LockSimple, Crown } from "phosphor-react";
 
 // ─── Constants ────────────────────────────────────────────────
 const HELP_META: Record<HelpType, { key: string; color: string; bg: string; Icon: any }> = {
@@ -38,8 +43,9 @@ const ALL_HELP: HelpType[] = ["financial","human","material","expertise","networ
 // ─── ProjectCard ──────────────────────────────────────────────
 function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: Project; onClick: () => void; userId?: string; onEdit: () => void; onDelete: () => void }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const stage = STAGE_META[project.stage] || { key: project.stage, color: "text-white/60", Icon: Nut };
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -65,6 +71,12 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
                 <Fire className="w-2.5 h-2.5" />{t('hub.urgent')}
               </span>
             )}
+            {isBoosted(project as any) && (
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border"
+                style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
+                <Crown className="w-2.5 h-2.5" weight="fill" />{t('card.boosted', 'En avant')}
+              </span>
+            )}
           </div>
           <h3 className="text-base font-medium text-white leading-snug line-clamp-2 group-hover:text-primary transition-colors">{project.title}</h3>
           {project.tagline && <p className="text-white/40 text-xs mt-1 line-clamp-1">{project.tagline}</p>}
@@ -79,6 +91,11 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
 
       {userId === project.owner_id && (
         <div className="absolute top-5 right-[72px] flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20">
+          {!isBoosted(project as any) && (
+            <button onClick={(e)=>{e.stopPropagation(); navigate(`/payment?boost=project:${project.id}&name=${encodeURIComponent(project.title || '')}`);}}
+              title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`) as string}
+              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-amber-500/20 flex items-center justify-center text-white/70 hover:text-amber-300 backdrop-blur-md border border-white/10 transition-all"><RocketLaunch weight="fill" className="w-4 h-4"/></button>
+          )}
           <button onClick={(e)=>{e.stopPropagation(); onEdit();}} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white backdrop-blur-md border border-white/10 transition-all"><PencilSimple weight="fill" className="w-4 h-4"/></button>
           <button onClick={(e)=>{e.stopPropagation(); onDelete();}} className="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 flex items-center justify-center text-red-400 hover:text-red-300 backdrop-blur-md border border-red-500/20 transition-all"><Trash weight="fill" className="w-4 h-4"/></button>
         </div>
@@ -120,15 +137,50 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
 // ─── ProjectDetail Modal ──────────────────────────────────────
 function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project: Project; onClose: () => void; userId?: string; onEdit: () => void; onDelete: () => void }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [sending, setSending] = useState(false);
   const [selectedHelp, setSelectedHelp] = useState<HelpType | null>(null);
   const [message, setMessage] = useState("");
   const stage = STAGE_META[project.stage] || { key: project.stage, color: "text-white/60", Icon: Nut };
 
+  // Bridage : accès complet = projet débloqué (5 €), formule Pro/Business ou porteur
+  const { plan } = usePlan(userId);
+  const { unlocked } = useIsUnlocked(userId, 'project', project.id);
+  const hasFullAccess = userId === project.owner_id || plan !== 'free' || unlocked;
+
+  const goUnlock = () => {
+    if (!userId) { window.location.href = "/login"; return; }
+    navigate(`/payment?unlock=project:${project.id}&name=${encodeURIComponent(project.title || '')}`);
+  };
+
+  const LockedGate = ({ children }: { children: React.ReactNode }) => (
+    hasFullAccess ? <>{children}</> : (
+      <div className="relative">
+        <div className="blur-md select-none pointer-events-none">{children}</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <p className="text-sm text-white font-light text-center px-8">
+            {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
+          </p>
+          <Button onClick={goUnlock} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
+            <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+          </Button>
+        </div>
+      </div>
+    )
+  );
+
   const handleInterest = async () => {
     if (!userId || !selectedHelp) return;
     setSending(true);
     try {
+      // Mise en relation = prise de contact (quota Pro 20/mois, Business illimité)
+      const quota = await checkContactQuota(userId, project.owner_id, { targetType: 'project', targetId: project.id });
+      if (!quota.allowed) {
+        showError(t('quota.contacts_reached', 'Limite de nouvelles prises de contact atteinte ce mois-ci. Passez Business pour contacter sans limite.'));
+        navigate('/payment');
+        setSending(false);
+        return;
+      }
       await expressInterest(project, userId, selectedHelp, message, {
         title: t('hub.msg_title'),
         project: t('hub.msg_project'),
@@ -137,6 +189,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
         defaultMsg: t('hub.msg_default'),
         helpValue: t(HELP_META[selectedHelp].key + "_full") // use the _full version for the message
       });
+      registerContactInitiation(userId, project.owner_id).catch(() => {});
       showSuccess(t('hub.interest_sent'));
       onClose();
     } catch { showError(t('hub.interest_error')); }
@@ -182,7 +235,9 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
             </div>
           </div>
 
+          <LockedGate>
           <p className="text-white/70 leading-relaxed text-sm whitespace-pre-wrap">{project.description}</p>
+          </LockedGate>
 
           <div className="flex flex-wrap gap-2">
             {project.city && <span className="flex items-center gap-1.5 text-xs text-white/50 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><MapPin className="w-3 h-3"/>{project.city}{project.country && `, ${project.country}`}</span>}
@@ -190,7 +245,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           </div>
 
           {/* Aide financière */}
-          {project.financial_needed && (
+          {project.financial_needed && hasFullAccess && (
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5">
               <h4 className="text-emerald-400 font-medium mb-3 flex items-center gap-2"><Money className="w-4 h-4"/>{t('project.detail.financial')}</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -215,7 +270,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           )}
 
           {/* Aide humaine */}
-          {project.human_needed && project.team_roles?.length > 0 && (
+          {project.human_needed && hasFullAccess && project.team_roles?.length > 0 && (
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
               <h4 className="text-blue-400 font-medium mb-3 flex items-center gap-2"><Users className="w-4 h-4"/>{t('project.detail.human')}</h4>
               <div className="space-y-2">
@@ -233,7 +288,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           )}
 
           {/* Aide matérielle */}
-          {project.material_needed && project.material_items?.length > 0 && (
+          {project.material_needed && hasFullAccess && project.material_items?.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
               <h4 className="text-amber-400 font-medium mb-3 flex items-center gap-2"><Package className="w-4 h-4"/>{t('project.detail.material')}</h4>
               <div className="space-y-2">
@@ -248,7 +303,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           )}
 
           {/* Expertise */}
-          {project.expertise_needed && project.expertise_domains?.length > 0 && (
+          {project.expertise_needed && hasFullAccess && project.expertise_domains?.length > 0 && (
             <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-5">
               <h4 className="text-purple-400 font-medium mb-3 flex items-center gap-2"><Brain className="w-4 h-4"/>{t('project.detail.expertise')}</h4>
               <div className="flex flex-wrap gap-2">{project.expertise_domains.map((d: string) => <span key={d} className="text-xs px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-full">{d}</span>)}</div>
@@ -256,13 +311,22 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           )}
 
           {/* Dossier complet : vérification, accès, business plan */}
-          <ProjectAccessSection project={project} userId={userId} />
+          {hasFullAccess && <ProjectAccessSection project={project} userId={userId} />}
 
           {/* Manifester intérêt */}
           {userId !== project.owner_id && (
             <div className="border-t border-white/10 pt-6 space-y-3">
               <h4 className="text-white font-medium">{t('hub.manifest_interest')}</h4>
-              {userId ? (
+              {userId && !hasFullAccess ? (
+                <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 text-center">
+                  <p className="text-white/60 text-sm mb-4">
+                    {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
+                  </p>
+                  <Button onClick={goUnlock} className="rounded-full bg-primary hover:bg-primary/90 text-white h-10 px-8 text-xs font-medium transition-all shadow-lg">
+                    <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                  </Button>
+                </div>
+              ) : userId ? (
                 <>
                   <div className="flex flex-wrap gap-2">
                     {project.help_types.map(h => {
@@ -395,10 +459,23 @@ export default function Projects() {
     }),
   });
 
-  const displayedProjects = useMemo(
-    () => (mineOnly && user ? projects.filter((p: any) => p.owner_id === user.id) : projects),
-    [projects, mineOnly, user]
-  );
+  const displayedProjects = useMemo(() => {
+    const base = mineOnly && user ? projects.filter((p: any) => p.owner_id === user.id) : projects;
+    // Projets mis en avant (10 €) en tête
+    return [...base].sort((a: any, b: any) => Number(isBoosted(b)) - Number(isBoosted(a)));
+  }, [projects, mineOnly, user]);
+
+  // Quota d'annonces actives (gratuit 1, Pro 5, Business illimité)
+  const openCreateProject = async () => {
+    if (!user) { navigate("/login"); return; }
+    const quota = await checkPublicationQuota(user.id);
+    if (!quota.allowed) {
+      showError(t('quota.publications_reached_short', `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure.`));
+      navigate('/payment');
+      return;
+    }
+    setIsFormOpen(true);
+  };
 
   useEffect(() => {
     if (selectedProject && user?.id) {
@@ -481,7 +558,7 @@ export default function Projects() {
             <Warning className="w-12 h-12 text-white/20 mb-4"/>
             <h3 className="text-xl font-light text-white mb-2">{t('hub.no_projects')}</h3>
             <p className="text-white/40 text-sm mb-6">{t('hub.be_first')}</p>
-            <Button onClick={()=>user?setIsFormOpen(true):navigate("/login")} className="rounded-full bg-primary hover:bg-primary/90 text-white h-11 px-8">
+            <Button onClick={openCreateProject} className="rounded-full bg-primary hover:bg-primary/90 text-white h-11 px-8">
               {t('hub.create_btn')}
             </Button>
           </motion.div>
@@ -504,7 +581,7 @@ export default function Projects() {
       </main>
 
       {/* FAB */}
-      <button onClick={()=>user?setIsFormOpen(true):navigate("/login")}
+      <button onClick={openCreateProject}
         className="fixed bottom-8 right-8 z-[110] w-16 h-16 flex items-center justify-center bg-primary border border-white/20 rounded-full hover:bg-primary/90 transition-all group shadow-[0_10px_40px_rgba(168,85,247,0.4),0_0_20_rgba(168,85,247,0.2)] hover:scale-110 active:scale-95 animate-pulse-slow">
         <div className="absolute inset-0 bg-primary rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity"/>
         <Plus className="w-8 h-8 text-white relative z-10" weight="bold"/>

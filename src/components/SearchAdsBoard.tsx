@@ -5,12 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { MagnifyingGlass, MapPin, CurrencyEur, Briefcase, Bank, PencilSimple, Trash, ChatTeardrop, Plus } from 'phosphor-react';
+import { MagnifyingGlass, MapPin, CurrencyEur, Briefcase, Bank, PencilSimple, Trash, ChatTeardrop, Plus, LockSimple, RocketLaunch, Crown } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { BuyerBadges } from '@/components/BuyerBadges';
 import { showError, showSuccess } from '@/utils/toast';
+import { usePlan, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from '@/services/planService';
+import { listUnlockedIds } from '@/services/unlockService';
+import { isBoosted } from '@/services/boostService';
 
 // Annonces inversées : les repreneurs publient leur recherche
 // (« Entrepreneur expérimenté recherche PME industrielle en AURA,
@@ -26,7 +29,8 @@ export function useSearchAds() {
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
-      return data || [];
+      // Recherches mises en avant (10 €) en tête
+      return (data || []).sort((a: any, b: any) => Number(isBoosted(b)) - Number(isBoosted(a)));
     },
     staleTime: 1000 * 60 * 2,
   });
@@ -56,8 +60,32 @@ export function SearchAdsBoard() {
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  // Bridage : en gratuit, description et mise en relation réservées aux
+  // recherches débloquées à 5 € (accès complet en Pro/Business).
+  const { plan } = usePlan(user?.id);
+  const { data: unlockedIds } = useQuery({
+    queryKey: ['unlock', user?.id, 'search_ad', 'all'],
+    queryFn: () => listUnlockedIds(user!.id, 'search_ad'),
+    enabled: !!user?.id && plan === 'free',
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const hasFullAccess = (ad: any) =>
+    plan !== 'free' || user?.id === ad.owner_id || !!unlockedIds?.has(ad.id);
+
+  const goUnlock = (ad: any) => {
+    if (!user) return navigate('/login');
+    navigate(`/payment?unlock=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`);
+  };
+
   const openCreate = async () => {
     if (!user) { navigate('/login'); return; }
+    const quota = await checkPublicationQuota(user.id);
+    if (!quota.allowed) {
+      showError(t('quota.publications_reached_short', `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure.`));
+      navigate('/payment');
+      return;
+    }
     // Pré-remplit depuis le profil repreneur (Réglages)
     const { data: profile } = await supabase
       .from('profiles')
@@ -152,7 +180,15 @@ export function SearchAdsBoard() {
               className="liquid-glass rounded-[1.5rem] border border-white/10 p-5 sm:p-6 hover:border-white/25 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-light text-base sm:text-lg mb-2">{ad.title}</p>
+                  <p className="text-white font-light text-base sm:text-lg mb-2 flex items-center gap-2 flex-wrap">
+                    {ad.title}
+                    {isBoosted(ad) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                        style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
+                        <Crown size={11} weight="fill" /> {t('card.boosted', 'En avant')}
+                      </span>
+                    )}
+                  </p>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
                     {ad.sectors && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10"><Briefcase size={12} /> {ad.sectors}</span>}
                     {ad.regions && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10"><MapPin size={12} /> {ad.regions}</span>}
@@ -172,17 +208,32 @@ export function SearchAdsBoard() {
                 <div className="flex items-center gap-2 shrink-0">
                   {user?.id === ad.owner_id ? (
                     <>
+                      {!isBoosted(ad) && (
+                        <button onClick={() => navigate(`/payment?boost=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`)}
+                          title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`) as string}
+                          className="p-2.5 rounded-full text-white/50 hover:text-amber-300 hover:bg-amber-500/10 transition-colors outline-none"><RocketLaunch className="w-5 h-5" /></button>
+                      )}
                       <button onClick={() => openEdit(ad)} className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors outline-none"><PencilSimple className="w-5 h-5" /></button>
                       <button onClick={() => remove(ad)} className="p-2.5 rounded-full text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors outline-none"><Trash className="w-5 h-5" /></button>
                     </>
-                  ) : (
+                  ) : hasFullAccess(ad) ? (
                     <Button onClick={() => navigate(`/profile/${ad.owner_id}`)} className="rounded-full h-11 px-5 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
                       <ChatTeardrop className="w-4 h-4 mr-2" /> {t('searchads.contact', 'Voir le profil')}
+                    </Button>
+                  ) : (
+                    <Button onClick={() => goUnlock(ad)} className="rounded-full h-11 px-5 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
+                      <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
                     </Button>
                   )}
                 </div>
               </div>
-              {ad.description && <p className="text-sm text-white/40 font-light mt-4 leading-relaxed">{ad.description}</p>}
+              {ad.description && (
+                hasFullAccess(ad) ? (
+                  <p className="text-sm text-white/40 font-light mt-4 leading-relaxed">{ad.description}</p>
+                ) : (
+                  <p className="text-sm text-white/25 font-light mt-4 leading-relaxed blur-sm select-none">{ad.description}</p>
+                )
+              )}
             </motion.div>
           ))}
         </div>

@@ -151,13 +151,23 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     e.preventDefault();
     if (!newMessage.trim() || !user || !listing) return;
 
-    // Freemium : nouveau contact = quota mensuel pour les comptes gratuits
+    // Messagerie par formule : gratuit = annonce débloquée (5 €) uniquement ;
+    // Pro = 20 nouvelles conversations/mois ; Business = illimité.
     const isFirstMessage = messages.filter(m => !String(m.id).startsWith('temp-')).length === 0;
     if (isFirstMessage) {
-      const quota = await checkContactQuota(user.id, String(listing.owner_id));
+      const quota = await checkContactQuota(user.id, String(listing.owner_id),
+        listing.id ? { targetType: 'listing', targetId: String(listing.id) } : null);
       if (!quota.allowed) {
-        showError(t('quota.contacts_reached', 'Limite de nouveaux contacts atteinte ce mois-ci. Passez premium pour contacter sans limite.'));
-        navigate('/payment');
+        if (quota.reason === 'locked' && listing.id) {
+          showError(t('quota.msg_locked', 'La messagerie est réservée aux annonces débloquées (5 €) et aux formules Pro et Business.'));
+          navigate(`/payment?unlock=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`);
+        } else if (quota.reason === 'locked') {
+          showError(t('quota.msg_locked_generic', 'La messagerie est réservée aux formules Pro et Business.'));
+          navigate('/payment');
+        } else {
+          showError(t('quota.contacts_reached', 'Limite de nouvelles prises de contact atteinte ce mois-ci. Passez Business pour contacter sans limite.'));
+          navigate('/payment');
+        }
         return;
       }
     }
