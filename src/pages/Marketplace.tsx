@@ -21,6 +21,7 @@ import { TRUSTED_MIN_AVG, TRUSTED_MIN_COUNT } from '@/components/RatingStars';
 import { SearchAdsBoard } from '@/components/SearchAdsBoard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
+import { isBoosted } from '@/services/boostService';
 
 const DEFAULT_FILTERS: FilterState = {
   industries: [],
@@ -118,7 +119,7 @@ export default function Marketplace() {
       return result
         .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
         .sort((a, b) =>
-          (Number(b.is_premium || false) - Number(a.is_premium || false))
+          (Number(isBoosted(b)) - Number(isBoosted(a)))
           || (Number(b._trusted) - Number(a._trusted))
           || (b._matchScore || 0) - (a._matchScore || 0));
     }
@@ -134,9 +135,9 @@ export default function Marketplace() {
       return roiB - roiA;
     });
 
-    // Premium puis mieux notés en tête, quel que soit le tri
+    // Annonces mises en avant (10 €) puis mieux notés en tête, quel que soit le tri
     result.sort((a, b) =>
-      (Number(b.is_premium || false) - Number(a.is_premium || false))
+      (Number(isBoosted(b)) - Number(isBoosted(a)))
       || (Number(b._trusted) - Number(a._trusted)));
 
     return result;

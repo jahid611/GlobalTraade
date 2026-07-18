@@ -16,6 +16,7 @@ import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { uploadListingImage, saveListing } from '@/services/listingService';
+import { checkPublicationQuota } from '@/services/planService';
 import { Dropdown } from '@/components/PickerKit';
 
 const getListingSchema = (t: any) => {
@@ -31,6 +32,7 @@ const getListingSchema = (t: any) => {
     name: z.string().min(2, t('val.name_req')),
     siret: z.string().regex(/^[0-9]{14}$/, t('val.siret_req')),
     hide_siret: z.boolean().default(false),
+    share_financials: z.boolean().default(true),
     industry: z.string().min(2, t('val.industry_req')),
     website_url: z.string().url(t('val.invalid_url', 'URL invalide')).optional().nullable().or(z.literal("")),
     address: z.string().min(5, t('val.address_req')),
@@ -134,6 +136,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
   
   const selectedIndustry = watch('industry');
   const hideSiret = watch('hide_siret');
+  const shareFinancials = watch('share_financials');
 
   useEffect(() => {
     if (isOpen) {
@@ -144,6 +147,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
         reset({
           ...listingToEdit,
           hide_siret: Boolean(listingToEdit.hide_siret),
+          share_financials: listingToEdit.share_financials !== false,
           website_url: listingToEdit.website_url ?? "",
           reason_for_selling: listingToEdit.reason_for_selling ?? "",
           management_type: listingToEdit.management_type ?? "",
@@ -158,7 +162,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
         setLogoBase64(listingToEdit.logo_url || null);
         setGalleryImages(listingToEdit.image_urls || []);
       } else {
-        reset({ name: "", siret: "", hide_siret: false, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "" });
+        reset({ name: "", siret: "", hide_siret: false, share_financials: true, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "" });
         setAddressQuery(""); setAddressSelected(false); setLogoBase64(null); setGalleryImages([]);
       }
     }
@@ -234,9 +238,18 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Erreur session. Veuillez vous reconnecter.");
-      
+
       if (listingToEdit && listingToEdit.owner_id !== session.user.id) {
         throw new Error("Action non autorisée. Vous n'êtes pas le propriétaire de cette annonce.");
+      }
+
+      // Quota d'annonces actives (gratuit 1, Pro 5, Business illimité)
+      if (!listingToEdit) {
+        const quota = await checkPublicationQuota(session.user.id);
+        if (!quota.allowed) {
+          throw new Error(t('quota.publications_reached',
+            `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure pour publier davantage.`));
+        }
       }
       
       let finalLogoUrl = logoBase64;
@@ -435,6 +448,15 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                           <motion.div animate={{ x: hideSiret ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full" />
                         </div>
                         <span className="text-sm font-light text-white/70">{t('form.hide_siret')}</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-4">
+                        <div
+                          onClick={() => setValue('share_financials', !shareFinancials)}
+                          className={`w-10 h-5 rounded-full transition-colors flex items-center px-1 cursor-pointer ${shareFinancials ? 'bg-primary' : 'bg-white/20'}`}
+                        >
+                          <motion.div animate={{ x: shareFinancials ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full" />
+                        </div>
+                        <span className="text-sm font-light text-white/70">{t('form.share_financials', 'Partager le CA et l\'EBITDA avec les membres ayant l\'accès complet')}</span>
                       </div>
                     </div>
                     <div>

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
+import { usePlan } from '@/services/planService';
 
 interface BusinessCardProps {
   listing: any;
@@ -22,6 +23,9 @@ interface BusinessCardProps {
 export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matchScore }: BusinessCardProps) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+  // Gratuit : prix demandé + photos seulement — CA/EBITDA masqués sur la carte
+  const { plan } = usePlan(user?.id);
+  const financialsMasked = !user || (plan === 'free' && listing.owner_id !== user.id);
   const [isFavorite, setIsFavorite] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [currentImage, setCurrentImage] = useState(0);
@@ -101,10 +105,10 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
       onClick={onClick}
       className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
     >
-      {listing.is_premium ? (
+      {listing.boosted_until && new Date(listing.boosted_until).getTime() > Date.now() ? (
         <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
           style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
-          <Crown className="w-3 h-3" weight="fill" /> {t('card.premium', 'Premium')}
+          <Crown className="w-3 h-3" weight="fill" /> {t('card.boosted', 'En avant')}
         </div>
       ) : listing._trusted ? (
         <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
@@ -207,7 +211,11 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
           <div className="text-left min-w-fit">
             <p className="text-[8px] uppercase tracking-[0.2em] text-white/30 font-medium mb-1">{t('card.revenue')} &bull; {t('card.ebitda')}</p>
             <p className="text-xs font-medium text-white/80 leading-none whitespace-nowrap">
-              {formatEuro(listing.revenue_n1)} <span className="text-white/20 mx-1">/</span> <span className="text-emerald-400/80">{formatEuro(listing.ebitda)}</span>
+              {financialsMasked ? (
+                <span className="text-white/30 tracking-widest">••• <span className="text-white/20 mx-1">/</span> •••</span>
+              ) : (
+                <>{formatEuro(listing.revenue_n1)} <span className="text-white/20 mx-1">/</span> <span className="text-emerald-400/80">{formatEuro(listing.ebitda)}</span></>
+              )}
             </p>
           </div>
         </div>

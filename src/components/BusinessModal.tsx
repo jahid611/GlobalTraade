@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { X, CheckCircle2, Heart, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle2, Heart, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,9 @@ import { DataRoomPanel } from './DataRoomPanel';
 import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
+import { SellabilityScore } from './SellabilityScore';
+import { usePlan, UNLOCK_PRICE } from '@/services/planService';
+import { useIsUnlocked } from '@/services/unlockService';
 
 
 const businessCache: Record<string, any> = {};
@@ -163,36 +166,44 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
   };
 
-  // Freemium : les comptes gratuits voient l'essentiel ; l'historique
-  // financier détaillé et l'analyse IA sont réservés au premium.
-  const { data: viewerProfile } = useQuery({
-    queryKey: ['viewer-plan', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('plan_type').eq('id', user!.id).single();
-      return data;
-    },
-    enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5,
-  });
+  // Formules : en gratuit on ne voit que le prix demandé et les photos.
+  // Accès complet = annonce débloquée à 5 €, formule Pro/Business, ou propriétaire.
+  const { plan } = usePlan(user?.id);
+  const { unlocked } = useIsUnlocked(user?.id, 'listing', listing?.id);
 
   if (!listing) return null;
   const isOwner = user && listing.owner_id === user.id;
-  const isPremiumViewer = isOwner || viewerProfile?.plan_type === 'premium';
+  const hasFullAccess = isOwner || plan !== 'free' || unlocked;
+  // CA / EBITDA : soumis à l'autorisation du vendeur, même avec l'accès complet
+  const financialsShared = isOwner || listing.share_financials !== false;
 
-  const PremiumGate = ({ children }: { children: React.ReactNode }) => (
-    isPremiumViewer ? <>{children}</> : (
+  const goUnlock = () => {
+    if (!user) return navigate('/login');
+    navigate(`/payment?unlock=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`);
+  };
+
+  const LockedGate = ({ children }: { children: React.ReactNode }) => (
+    hasFullAccess ? <>{children}</> : (
       <div className="relative">
         <div className="blur-md select-none pointer-events-none">{children}</div>
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-white font-light text-center px-8">
-            {t('quota.detail_locked', 'Détails complets réservés aux membres premium.')}
+            {t('quota.unlock_hint', `Débloquez cette annonce pour ${UNLOCK_PRICE} € : contenu complet, messagerie et analyses.`)}
           </p>
-          <button
-            onClick={() => navigate('/payment')}
-            className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
-          >
-            {t('sellability.unlock', 'Passer premium')}
-          </button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={goUnlock}
+              className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
+            >
+              {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+            </button>
+            <button
+              onClick={() => navigate('/payment')}
+              className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
+            >
+              {t('quota.see_plans', 'Voir les formules')}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -320,35 +331,56 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                   </div>
                   <div className="flex flex-col sm:border-l border-white/10 sm:pl-6">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 mb-2 font-medium">{t('modal.revenue_n1')}</span>
-                    <span className="text-3xl sm:text-4xl font-light text-white drop-shadow-sm truncate">{user ? formatEuro(listing.revenue_n1) : t('modal.confidential')}</span>
+                    {!user || !hasFullAccess ? (
+                      <button onClick={user ? goUnlock : () => navigate('/login')} className="flex items-center gap-2 text-left text-lg font-light text-white/40 hover:text-white transition-colors">
+                        <Lock className="w-4 h-4 shrink-0" /> {t('modal.confidential')}
+                      </button>
+                    ) : !financialsShared ? (
+                      <span className="text-sm font-light text-white/40 italic mt-2">{t('modal.seller_authorization', 'Sur autorisation du vendeur')}</span>
+                    ) : (
+                      <span className="text-3xl sm:text-4xl font-light text-white drop-shadow-sm truncate">{formatEuro(listing.revenue_n1)}</span>
+                    )}
                   </div>
                   <div className="flex flex-col sm:border-l border-white/10 sm:pl-6">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 mb-2 font-medium">{t('modal.ebitda')}</span>
-                    <span className="text-3xl sm:text-4xl font-light text-white drop-shadow-sm truncate">{user ? formatEuro(listing.ebitda) : t('modal.confidential')}</span>
+                    {!user || !hasFullAccess ? (
+                      <button onClick={user ? goUnlock : () => navigate('/login')} className="flex items-center gap-2 text-left text-lg font-light text-white/40 hover:text-white transition-colors">
+                        <Lock className="w-4 h-4 shrink-0" /> {t('modal.confidential')}
+                      </button>
+                    ) : !financialsShared ? (
+                      <span className="text-sm font-light text-white/40 italic mt-2">{t('modal.seller_authorization', 'Sur autorisation du vendeur')}</span>
+                    ) : (
+                      <span className="text-3xl sm:text-4xl font-light text-white drop-shadow-sm truncate">{formatEuro(listing.ebitda)}</span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-12 sm:mb-16">
+              <div className="mb-12 sm:mb-16">
+              <LockedGate>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
                 <div>
                   <h3 className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-medium flex items-center gap-2"><FileText className="w-3.5 h-3.5"/> {t('modal.about')}</h3>
                   <p className="text-white/70 font-light leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-                    {listing.description || t('modal.no_desc')}
+                    {hasFullAccess ? (listing.description || t('modal.no_desc')) : t('modal.no_desc')}
                   </p>
                 </div>
-                
+
                 {listing.reason_for_selling && (
                   <div>
                     <h3 className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-medium flex items-center gap-2"><Info className="w-3.5 h-3.5"/> {t('modal.reason')}</h3>
                     <p className="text-white/70 font-light leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-                      {listing.reason_for_selling}
+                      {hasFullAccess ? listing.reason_for_selling : ''}
                     </p>
                   </div>
                 )}
               </div>
+              </LockedGate>
+              </div>
 
               <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
 
+              {hasFullAccess && (
               <div className="mb-12 sm:mb-16">
                 <span className="text-[10px] uppercase tracking-widest text-white/40 mb-6 block font-medium">{t('modal.ops_details')}</span>
                 <div className="flex flex-wrap gap-x-8 sm:gap-x-16 gap-y-6">
@@ -370,10 +402,10 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                   </div>
                 </div>
               </div>
+              )}
 
-              {(listing.revenue_n2 || listing.revenue_n3) && user && (
+              {(listing.revenue_n2 || listing.revenue_n3) && user && hasFullAccess && financialsShared && (
                 <div className="mb-12 sm:mb-16">
-                  <PremiumGate>
                   <span className="text-[10px] uppercase tracking-widest text-white/40 mb-6 block font-medium">{t('modal.history')}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
                     <div className="flex flex-col">
@@ -389,11 +421,10 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                       <span className="text-xl sm:text-2xl font-light text-white truncate">{formatEuro(listing.revenue_n1)}</span>
                     </div>
                   </div>
-                  </PremiumGate>
                 </div>
               )}
 
-              {listing.lease_details && (
+              {listing.lease_details && hasFullAccess && (
                 <div className="mb-12 sm:mb-16">
                   <span className="text-[10px] uppercase tracking-widest text-white/40 mb-4 block font-medium">{t('modal.lease')}</span>
                   <p className="text-sm sm:text-base text-white/70 font-light leading-relaxed whitespace-pre-wrap max-w-4xl">
@@ -402,11 +433,19 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* Deal Calculator Pro */}
-              {user && listing.price > 0 && listing.ebitda && (
+              {/* Simulateur de financement — inclus dans le déblocage 5 € */}
+              {user && hasFullAccess && listing.price > 0 && listing.ebitda && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
                   <DealCalculator listing={listing} />
+                </div>
+              )}
+
+              {/* Notation /100 : points forts et axes d'amélioration */}
+              {user && hasFullAccess && !isOwner && (
+                <div className="mb-12 sm:mb-16">
+                  <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
+                  <SellabilityScore listing={listing} isPremium={true} />
                 </div>
               )}
 
@@ -414,9 +453,9 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
               {user && listing.ebitda && listing.revenue_n1 && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                  <PremiumGate>
+                  <LockedGate>
                     <AIInsightsPanel listing={listing} />
-                  </PremiumGate>
+                  </LockedGate>
                 </div>
               )}
 
@@ -499,6 +538,12 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                       </button>
                       <button onClick={() => onEdit && onEdit(listing)} className="w-fit whitespace-nowrap rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 h-12 px-8 text-sm font-light transition-all backdrop-blur-md">
                         {t('modal.edit_info')}
+                      </button>
+                    </div>
+                  ) : !hasFullAccess ? (
+                    <div className="flex gap-3 flex-wrap justify-center">
+                      <button onClick={goUnlock} className="w-fit whitespace-nowrap h-12 px-8 text-sm font-medium rounded-full bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                        <Lock size={16} /> {t('quota.unlock_contact', `Débloquer et contacter — ${UNLOCK_PRICE} €`)}
                       </button>
                     </div>
                   ) : (
