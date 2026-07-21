@@ -100,7 +100,7 @@ const App = () => (
                     <Route path="/profile/:id" element={<Profile />} />
                     <Route path="/secteur" element={<ProtectedRoute><SectorNetwork /></ProtectedRoute>} />
                     <Route path="/radar" element={<ProtectedRoute><Radar /></ProtectedRoute>} />
-                    <Route path="/partenaire" element={<ProtectedRoute><PartnerSpace /></ProtectedRoute>} />
+                    <Route path="/partenaire" element={<PartnerSpace />} />
                     
                     {/* Routes Admin */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
