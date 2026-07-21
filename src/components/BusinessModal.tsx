@@ -13,7 +13,7 @@ import { DataRoomPanel } from './DataRoomPanel';
 import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
-import { SellabilityScore } from './SellabilityScore';
+import { CompanyScore } from './CompanyScore';
 import { usePlan, UNLOCK_PRICE } from '@/services/planService';
 import { useIsUnlocked } from '@/services/unlockService';
 
@@ -441,11 +441,11 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
                 </div>
               )}
 
-              {/* Notation /100 : points forts et axes d'amélioration */}
+              {/* Note /100 en 10 critères : points forts et axes d'amélioration */}
               {user && hasFullAccess && !isOwner && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                  <SellabilityScore listing={listing} isPremium={true} />
+                  <CompanyScore listing={listing} />
                 </div>
               )}
 
