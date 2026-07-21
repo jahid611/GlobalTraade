@@ -6,23 +6,22 @@ import { useTranslation } from 'react-i18next';
 import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 
-// Vitrine des partenaires de Globly : banques, financeurs et réseaux
-// d'accompagnement, présentés dans un carousel flottant en défilement continu.
-// Chaque logo (dans public/partners/<slug>.png) redirige vers le site du
-// partenaire. Fallback typographique si un logo est absent.
+// Vitrine des partenaires de Globly. Les logos défilent en continu « dans le
+// vide » (aucun panneau), sur fond sombre. Un léger halo blanc (drop-shadow)
+// assure la lisibilité des logos foncés tout en gardant leurs couleurs.
 //
 // Pour ajouter/modifier : édite le tableau PARTNERS et dépose le logo dans
-// public/partners/<slug>.png.
+// public/partners/<slug>.png (PNG transparent).
 
 type Partner = { slug: string; name: string; url: string; accent: string };
 
 const PARTNERS: Partner[] = [
-  { slug: 'bpifrance',        name: 'Bpifrance',        url: 'https://www.bpifrance.fr',         accent: '#3a3238' },
-  { slug: 'caisse-epargne',   name: "Caisse d'Épargne", url: 'https://www.caisse-epargne.fr',    accent: '#e2001a' },
-  { slug: 'bnp-paribas',      name: 'BNP Paribas',      url: 'https://www.bnpparibas.fr',        accent: '#00915a' },
-  { slug: 'credit-agricole',  name: 'Crédit Agricole',  url: 'https://www.credit-agricole.fr',   accent: '#00975f' },
-  { slug: 'initiative-france',name: 'Initiative France',url: 'https://www.initiative-france.fr', accent: '#e5007d' },
-  { slug: 'cci-france',       name: 'CCI France',       url: 'https://www.cci.fr',               accent: '#1d3b8b' },
+  { slug: 'bpifrance',        name: 'Bpifrance',        url: 'https://www.bpifrance.fr',         accent: '#ffffff' },
+  { slug: 'caisse-epargne',   name: "Caisse d'Épargne", url: 'https://www.caisse-epargne.fr',    accent: '#ffffff' },
+  { slug: 'bnp-paribas',      name: 'BNP Paribas',      url: 'https://www.bnpparibas.fr',        accent: '#ffffff' },
+  { slug: 'credit-agricole',  name: 'Crédit Agricole',  url: 'https://www.credit-agricole.fr',   accent: '#ffffff' },
+  { slug: 'initiative-france',name: 'Initiative France',url: 'https://www.initiative-france.fr', accent: '#ffffff' },
+  { slug: 'cci-france',       name: 'CCI France',       url: 'https://www.cci.fr',               accent: '#ffffff' },
 ];
 
 function LogoItem({ partner }: { partner: Partner }) {
@@ -33,17 +32,17 @@ function LogoItem({ partner }: { partner: Partner }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={partner.name}
-      className="group/logo shrink-0 flex items-center justify-center h-20 w-44 sm:w-52 transition-transform duration-300 hover:scale-110"
+      className="shrink-0 flex items-center justify-center h-24 w-52 sm:w-64 transition-transform duration-300 hover:scale-110"
     >
       {imgOk ? (
         <img
           src={`/partners/${partner.slug}.png`}
           alt={partner.name}
           onError={() => setImgOk(false)}
-          className="max-h-12 sm:max-h-14 max-w-full object-contain grayscale opacity-70 group-hover/logo:grayscale-0 group-hover/logo:opacity-100 transition-all duration-300"
+          className="globly-logo max-h-16 sm:max-h-20 max-w-full object-contain"
         />
       ) : (
-        <span className="text-xl sm:text-2xl font-semibold tracking-tight text-center" style={{ color: partner.accent }}>
+        <span className="globly-logo text-2xl sm:text-3xl font-semibold tracking-tight text-center text-white">
           {partner.name}
         </span>
       )}
@@ -60,14 +59,20 @@ export default function PartnerSpace() {
       <SolarSystem />
       <Navbar />
 
-      {/* Keyframes du défilement (pause au survol) */}
       <style>{`
         @keyframes globly-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .globly-track { animation: globly-marquee 34s linear infinite; }
+        .globly-track { animation: globly-marquee 36s linear infinite; }
         .globly-marquee:hover .globly-track { animation-play-state: paused; }
+        .globly-logo {
+          filter: drop-shadow(0 0 3px rgba(255,255,255,0.55)) drop-shadow(0 0 9px rgba(255,255,255,0.30));
+        }
+        .globly-fade {
+          -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+          mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+        }
       `}</style>
 
-      <main className="relative z-10 pt-[16vh] pb-[14vh] px-[6vw] max-w-[1200px] mx-auto w-full">
+      <main className="relative z-10 pt-[16vh] pb-[14vh] px-[6vw] max-w-[1300px] mx-auto w-full">
         {/* En-tête */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 sm:mb-24">
           <p className="text-[10px] uppercase tracking-[0.3em] text-primary font-medium mb-4">
@@ -81,27 +86,22 @@ export default function PartnerSpace() {
           </p>
         </motion.div>
 
-        {/* Carousel flottant */}
+        {/* Carousel qui flotte dans le vide */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15 }}
           className="relative"
         >
-          {/* Halo lumineux derrière le panneau */}
-          <div className="absolute -inset-x-10 -inset-y-8 bg-gradient-to-r from-primary/20 via-blue-400/20 to-primary/20 blur-[80px] rounded-full pointer-events-none" />
+          {/* Halo d'ambiance très diffus (pas un panneau) */}
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-40 bg-gradient-to-r from-transparent via-primary/10 to-transparent blur-3xl pointer-events-none" />
 
-          {/* Panneau qui flotte */}
           <motion.div
-            animate={{ y: [0, -14, 0] }}
+            animate={{ y: [0, -12, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-            className="globly-marquee relative rounded-[2.5rem] bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] overflow-hidden py-10 sm:py-12"
+            className="globly-marquee globly-fade relative overflow-hidden py-6"
           >
-            {/* Dégradés de fondu sur les bords */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-white to-transparent z-10" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-white to-transparent z-10" />
-
-            <div className="globly-track flex items-center gap-8 sm:gap-16 w-max">
+            <div className="globly-track flex items-center gap-12 sm:gap-20 w-max">
               {loop.map((p, i) => (
                 <LogoItem key={`${p.slug}-${i}`} partner={p} />
               ))}
