@@ -44,6 +44,8 @@ ALTER TABLE public.listings ADD CONSTRAINT listings_status_check
 CREATE INDEX IF NOT EXISTS idx_listings_status ON public.listings(status);
 
 -- Backfill : les annonces existantes repartent d'un cycle complet
+-- (updated_at peut ne pas exister sur certaines bases -> on l'ajoute)
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 UPDATE public.listings
 SET last_confirmed_at = COALESCE(updated_at, created_at, now())
 WHERE last_confirmed_at IS NULL;

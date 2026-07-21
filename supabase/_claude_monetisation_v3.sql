@@ -22,9 +22,30 @@
 --     partage du CA / EBITDA aux membres ayant l'accès complet.
 -- ============================================================
 
+-- 0) PRÉREQUIS (idempotents) —
+--   a. Certaines bases nomment la colonne `plan` (et non `plan_type`) :
+--      on la renomme si besoin (Postgres met à jour vue + contrainte).
+--   b. Le patch V2 (freemium) suppose `conversation_initiations` existante.
+--   c. Le cycle de vie V2 lit `listings.updated_at`.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='plan')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='plan_type') THEN
+    ALTER TABLE public.profiles RENAME COLUMN plan TO plan_type;
+  END IF;
+END $$;
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_plan_check;
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+CREATE TABLE IF NOT EXISTS public.conversation_initiations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  initiator_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  other_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  listing_id uuid,
+  year_month text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- 1) Plans : free / pro / business (migration premium -> pro)
--- La colonne plan_type peut ne pas exister encore (jamais créée par un patch
--- précédent) -> on la crée d'abord, puis on migre les valeurs.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_type text;
 UPDATE public.profiles SET plan_type = 'pro' WHERE plan_type = 'premium';
 UPDATE public.profiles SET plan_type = 'free' WHERE plan_type IS NULL OR plan_type NOT IN ('free', 'pro', 'business');
