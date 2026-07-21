@@ -150,18 +150,28 @@ export default function Settings() {
     if (!user) return;
     setSaving(true);
     try {
-      const payload = { 
-        full_name: fullName, 
-        bio, 
-        phone, 
+      const payload = {
+        full_name: fullName,
+        bio,
+        phone,
         contact_email: contactEmail,
-        show_email: showEmail, 
-        show_phone: showPhone, 
+        show_email: showEmail,
+        show_phone: showPhone,
         avatar_url: avatarBase64
       };
-      
+
+      // IMPORTANT : l'avatar (image en base64) ne doit JAMAIS aller dans les
+      // user_metadata. Supabase embarque les métadonnées dans le JWT ; une image
+      // base64 (plusieurs centaines de Ko) rend le token trop volumineux et fait
+      // échouer TOUTES les requêtes authentifiées (« header too large »).
+      // L'avatar vit uniquement dans la table profiles.
       const authPayload = {
-        ...payload,
+        full_name: fullName,
+        bio,
+        phone,
+        contact_email: contactEmail,
+        show_email: showEmail,
+        show_phone: showPhone,
         target_sectors: targetSectors,
         target_budget: targetBudget,
         target_geo: targetGeo
@@ -189,7 +199,7 @@ export default function Settings() {
       // pour que la Navbar (qui relit profiles au changement de user) ait déjà la nouvelle photo.
       await refreshUser();
 
-      setInitialData({ ...authPayload, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
+      setInitialData({ ...authPayload, avatar_url: avatarBase64, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));
