@@ -60,8 +60,13 @@ export async function listProspects(): Promise<Prospect[]> {
 }
 
 export async function addProspect(c: CompanyResult): Promise<void> {
-  const { data: userData } = await supabase.auth.getUser();
-  const row = {
+  // On récupère l'id via la session locale (fiable, sans appel réseau).
+  // Si indisponible, on omet created_by : la colonne a un DEFAULT auth.uid()
+  // en base, qui le remplit à partir du JWT (évite tout conflit RLS).
+  const { data: { session } } = await supabase.auth.getSession();
+  const uid = session?.user?.id;
+
+  const row: Record<string, any> = {
     siren: c.siren,
     nom: c.nom,
     code_ape: c.code_ape || null,
@@ -78,8 +83,9 @@ export async function addProspect(c: CompanyResult): Promise<void> {
     dirigeant_age: c.dirigeant_age,
     score: c.score,
     raw: c.raw,
-    created_by: userData?.user?.id ?? null,
   };
+  if (uid) row.created_by = uid;
+
   // upsert par (utilisateur, siren) : ré-ajouter une entreprise déjà dans SON CRM ne crée pas de doublon
   const { error } = await supabase.from("prospects").upsert(row, { onConflict: "created_by,siren", ignoreDuplicates: true });
   if (error) throw error;
