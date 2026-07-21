@@ -39,10 +39,10 @@ function PartnerLogo({ partner }: { partner: Partner }) {
       src={`/partners/${partner.slug}.png`}
       alt={partner.name}
       onError={() => setImgOk(false)}
-      className="max-h-14 max-w-[70%] object-contain opacity-90 group-hover:opacity-100 transition-opacity"
+      className="max-h-16 max-w-[80%] object-contain"
     />
   ) : (
-    <span className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: partner.accent }}>
+    <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-center" style={{ color: partner.accent }}>
       {partner.name}
     </span>
   );
@@ -88,7 +88,8 @@ export default function PartnerSpace() {
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                 style={{ background: `radial-gradient(circle at 50% 0%, ${p.accent}22, transparent 70%)` }} />
 
-              <div className="flex-1 flex items-center justify-center w-full relative z-10">
+              {/* Tuile blanche : garantit la lisibilité de tous les logos */}
+              <div className="w-full h-28 bg-white rounded-2xl flex items-center justify-center px-6 relative z-10 shadow-sm">
                 <PartnerLogo partner={p} />
               </div>
 
