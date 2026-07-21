@@ -63,9 +63,6 @@ export default function PartnerSpace() {
         @keyframes globly-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .globly-track { animation: globly-marquee 36s linear infinite; }
         .globly-marquee:hover .globly-track { animation-play-state: paused; }
-        .globly-logo {
-          filter: drop-shadow(0 0 3px rgba(255,255,255,0.55)) drop-shadow(0 0 9px rgba(255,255,255,0.30));
-        }
         .globly-fade {
           -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
           mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
