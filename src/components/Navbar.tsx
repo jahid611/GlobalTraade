@@ -39,6 +39,14 @@ import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "react-i18next";
+import { usePlan, PlanType } from "@/services/planService";
+
+// Badge du plan actuel de l'utilisateur
+const PLAN_BADGE: Record<PlanType, { label: string; className: string }> = {
+  free:     { label: "Gratuit",  className: "bg-white/10 text-white/70 border-white/15" },
+  pro:      { label: "Pro",      className: "bg-primary/20 text-primary border-primary/40" },
+  business: { label: "Business", className: "bg-cyan-500/20 text-cyan-300 border-cyan-400/40" },
+};
 
 export function Navbar() {
   useListings();
@@ -51,6 +59,8 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const hasUnread = useUnreadMessages(user?.id);
+  const { plan } = usePlan(user?.id);
+  const planBadge = PLAN_BADGE[plan];
 
   useScrollLock(isMobileMenuOpen);
 
@@ -304,10 +314,24 @@ export function Navbar() {
                     sideOffset={16}
                   >
                     <DropdownMenuLabel className="px-4 py-3 mb-1">
-                      <p className="text-sm font-medium">{getUserName()}</p>
-                      <p className="text-[10px] text-white/50 truncate">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{getUserName()}</p>
+                        <Link
+                          to="/payment"
+                          className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-transform hover:scale-105 ${planBadge.className}`}
+                          title={t('plan.current', 'Votre formule actuelle')}
+                        >
+                          {planBadge.label}
+                        </Link>
+                      </div>
+                      <p className="text-[10px] text-white/50 truncate mt-0.5">
                         {user.email}
                       </p>
+                      {plan === 'free' && (
+                        <Link to="/payment" className="text-[10px] text-primary hover:text-primary/80 font-medium mt-1.5 inline-block">
+                          {t('plan.upgrade', 'Améliorer ma formule →')}
+                        </Link>
+                      )}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-white/10 mb-1" />
                     {renderLogoMenuContent()}
@@ -446,15 +470,25 @@ export function Navbar() {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    navigate("/profile");
-                  }}
-                  className="w-fit px-8 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white font-light text-base transition-all shadow-none"
-                >
-                  {t("nav.profile")}
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/profile");
+                    }}
+                    className="w-fit px-8 h-12 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-white font-light text-base transition-all shadow-none"
+                  >
+                    {t("nav.profile")}
+                  </Button>
+                  <Link
+                    to="/payment"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`shrink-0 text-xs font-bold uppercase tracking-wider px-3 py-2 rounded-full border ${planBadge.className}`}
+                    title={t('plan.current', 'Votre formule actuelle')}
+                  >
+                    {planBadge.label}
+                  </Link>
+                </div>
               )}
 
               <div className="flex items-center gap-2 mt-2">
