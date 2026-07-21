@@ -3,62 +3,73 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 
 // Vitrine des partenaires de Globly : banques, financeurs et réseaux
-// d'accompagnement. Chaque carte affiche le logo du partenaire (déposé
-// dans public/partners/) et redirige vers son site. Un fallback
-// typographique s'affiche tant que le logo n'est pas fourni.
+// d'accompagnement, présentés dans un carousel flottant en défilement continu.
+// Chaque logo (dans public/partners/<slug>.png) redirige vers le site du
+// partenaire. Fallback typographique si un logo est absent.
 //
-// Pour ajouter/modifier un partenaire : édite le tableau PARTNERS ci-dessous
-// et dépose son logo dans public/partners/<slug>.png (ou .svg).
+// Pour ajouter/modifier : édite le tableau PARTNERS et dépose le logo dans
+// public/partners/<slug>.png.
 
-type Partner = {
-  slug: string;
-  name: string;
-  category: string;
-  url: string;
-  accent: string; // couleur du fallback typographique
-};
+type Partner = { slug: string; name: string; url: string; accent: string };
 
 const PARTNERS: Partner[] = [
-  { slug: 'bpifrance',       name: 'Bpifrance',        category: 'Financement & garantie',   url: 'https://www.bpifrance.fr',        accent: '#f9b233' },
-  { slug: 'caisse-epargne',  name: "Caisse d'Épargne", category: 'Banque',                    url: 'https://www.caisse-epargne.fr',   accent: '#e2001a' },
-  { slug: 'bnp-paribas',     name: 'BNP Paribas',      category: 'Banque',                    url: 'https://www.bnpparibas.fr',       accent: '#00915a' },
-  { slug: 'credit-agricole', name: 'Crédit Agricole',  category: 'Banque',                    url: 'https://www.credit-agricole.fr',  accent: '#00975f' },
-  { slug: 'initiative-france',name: 'Initiative France',category: "Prêts d'honneur",           url: 'https://www.initiative-france.fr',accent: '#e5007d' },
-  { slug: 'cci-france',      name: 'CCI France',       category: 'Accompagnement',            url: 'https://www.cci.fr',              accent: '#1d3b8b' },
+  { slug: 'bpifrance',        name: 'Bpifrance',        url: 'https://www.bpifrance.fr',         accent: '#3a3238' },
+  { slug: 'caisse-epargne',   name: "Caisse d'Épargne", url: 'https://www.caisse-epargne.fr',    accent: '#e2001a' },
+  { slug: 'bnp-paribas',      name: 'BNP Paribas',      url: 'https://www.bnpparibas.fr',        accent: '#00915a' },
+  { slug: 'credit-agricole',  name: 'Crédit Agricole',  url: 'https://www.credit-agricole.fr',   accent: '#00975f' },
+  { slug: 'initiative-france',name: 'Initiative France',url: 'https://www.initiative-france.fr', accent: '#e5007d' },
+  { slug: 'cci-france',       name: 'CCI France',       url: 'https://www.cci.fr',               accent: '#1d3b8b' },
 ];
 
-function PartnerLogo({ partner }: { partner: Partner }) {
+function LogoItem({ partner }: { partner: Partner }) {
   const [imgOk, setImgOk] = useState(true);
-  return imgOk ? (
-    <img
-      src={`/partners/${partner.slug}.png`}
-      alt={partner.name}
-      onError={() => setImgOk(false)}
-      className="max-h-16 max-w-[80%] object-contain"
-    />
-  ) : (
-    <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-center" style={{ color: partner.accent }}>
-      {partner.name}
-    </span>
+  return (
+    <a
+      href={partner.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={partner.name}
+      className="group/logo shrink-0 flex items-center justify-center h-20 w-44 sm:w-52 transition-transform duration-300 hover:scale-110"
+    >
+      {imgOk ? (
+        <img
+          src={`/partners/${partner.slug}.png`}
+          alt={partner.name}
+          onError={() => setImgOk(false)}
+          className="max-h-12 sm:max-h-14 max-w-full object-contain grayscale opacity-70 group-hover/logo:grayscale-0 group-hover/logo:opacity-100 transition-all duration-300"
+        />
+      ) : (
+        <span className="text-xl sm:text-2xl font-semibold tracking-tight text-center" style={{ color: partner.accent }}>
+          {partner.name}
+        </span>
+      )}
+    </a>
   );
 }
 
 export default function PartnerSpace() {
   const { t } = useTranslation();
+  const loop = [...PARTNERS, ...PARTNERS]; // duplication pour un défilement sans couture
 
   return (
     <div className="min-h-screen bg-transparent text-white selection:bg-primary/30 relative flex flex-col">
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[16vh] pb-[12vh] px-[6vw] max-w-[1200px] mx-auto w-full">
+      {/* Keyframes du défilement (pause au survol) */}
+      <style>{`
+        @keyframes globly-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .globly-track { animation: globly-marquee 34s linear infinite; }
+        .globly-marquee:hover .globly-track { animation-play-state: paused; }
+      `}</style>
+
+      <main className="relative z-10 pt-[16vh] pb-[14vh] px-[6vw] max-w-[1200px] mx-auto w-full">
         {/* En-tête */}
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-14 sm:mb-20">
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 sm:mb-24">
           <p className="text-[10px] uppercase tracking-[0.3em] text-primary font-medium mb-4">
             {t('partners.eyebrow', 'Ils nous font confiance')}
           </p>
@@ -70,45 +81,38 @@ export default function PartnerSpace() {
           </p>
         </motion.div>
 
-        {/* Grille des partenaires — 3 × 2 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-          {PARTNERS.map((p, i) => (
-            <motion.a
-              key={p.slug}
-              href={p.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: Math.min(i * 0.07, 0.5) }}
-              whileHover={{ y: -6 }}
-              className="group relative liquid-glass border border-white/10 rounded-[2rem] p-8 flex flex-col items-center justify-between gap-6 hover:border-white/25 hover:bg-white/[0.04] transition-all duration-300 overflow-hidden min-h-[220px]"
-            >
-              {/* Halo au survol */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ background: `radial-gradient(circle at 50% 0%, ${p.accent}22, transparent 70%)` }} />
+        {/* Carousel flottant */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.15 }}
+          className="relative"
+        >
+          {/* Halo lumineux derrière le panneau */}
+          <div className="absolute -inset-x-10 -inset-y-8 bg-gradient-to-r from-primary/20 via-blue-400/20 to-primary/20 blur-[80px] rounded-full pointer-events-none" />
 
-              {/* Tuile blanche : garantit la lisibilité de tous les logos */}
-              <div className="w-full h-28 bg-white rounded-2xl flex items-center justify-center px-6 relative z-10 shadow-sm">
-                <PartnerLogo partner={p} />
-              </div>
+          {/* Panneau qui flotte */}
+          <motion.div
+            animate={{ y: [0, -14, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+            className="globly-marquee relative rounded-[2.5rem] bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] overflow-hidden py-10 sm:py-12"
+          >
+            {/* Dégradés de fondu sur les bords */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-white to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-white to-transparent z-10" />
 
-              <div className="relative z-10 text-center">
-                <p className="text-white font-medium text-base">{p.name}</p>
-                <p className="text-white/40 text-xs font-light mt-0.5">{p.category}</p>
-              </div>
-
-              <span className="relative z-10 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-medium text-white/40 group-hover:text-primary transition-colors">
-                {t('partners.visit', 'Visiter le site')} <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </span>
-            </motion.a>
-          ))}
-        </div>
+            <div className="globly-track flex items-center gap-8 sm:gap-16 w-max">
+              {loop.map((p, i) => (
+                <LogoItem key={`${p.slug}-${i}`} partner={p} />
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
 
         {/* Devenir partenaire */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="mt-16 sm:mt-20 text-center"
+          className="mt-16 sm:mt-24 text-center"
         >
           <p className="text-white/50 font-light text-sm">
             {t('partners.become', 'Vous souhaitez devenir partenaire de Globly ?')}{' '}
