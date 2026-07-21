@@ -23,6 +23,9 @@
 -- ============================================================
 
 -- 1) Plans : free / pro / business (migration premium -> pro)
+-- La colonne plan_type peut ne pas exister encore (jamais créée par un patch
+-- précédent) -> on la crée d'abord, puis on migre les valeurs.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_type text;
 UPDATE public.profiles SET plan_type = 'pro' WHERE plan_type = 'premium';
 UPDATE public.profiles SET plan_type = 'free' WHERE plan_type IS NULL OR plan_type NOT IN ('free', 'pro', 'business');
 ALTER TABLE public.profiles ALTER COLUMN plan_type SET DEFAULT 'free';
