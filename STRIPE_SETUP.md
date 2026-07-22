@@ -2,8 +2,8 @@
 
 Tout le code est en place. Il reste **3 étapes** (quand tu as tes clés Stripe).
 
-Les paiements couverts, tous en **Stripe Checkout hébergé** (aucune carte manipulée
-par le site) :
+Les paiements couverts, tous en **Stripe Embedded Checkout** — l'interface Stripe
+s'affiche dans un modal **sans quitter le site** (aucune carte manipulée par ton code) :
 | Paiement | Type | Montant |
 |---|---|---|
 | Abonnement **Pro** | subscription | 70 €/mois |

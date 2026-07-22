@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { normalizePlan, PLAN_PRICES, UNLOCK_PRICE, BOOST_PRICE, BOOST_DAYS } from '@/services/planService';
 import { UnlockTargetType } from '@/services/unlockService';
 import { startCheckout } from '@/services/stripe';
+import { StripeCheckoutModal } from '@/components/StripeCheckoutModal';
 import { showSuccess, showError } from '@/utils/toast';
 
 const plans = [
@@ -43,6 +44,7 @@ export default function Payment() {
 
   const [profile, setProfile] = useState<any>(null);
   const [loadingKind, setLoadingKind] = useState<string | null>(null); // bouton en cours
+  const [clientSecret, setClientSecret] = useState<string | null>(null); // session Stripe embarquée
 
   const unlockTarget = useMemo(() => parseTarget(searchParams.get('unlock')), [searchParams]);
   const boostTarget = useMemo(() => parseTarget(searchParams.get('boost')), [searchParams]);
@@ -78,12 +80,13 @@ export default function Payment() {
     setLoadingKind(loadingId);
     const r = await startCheckout(payload);
     setLoadingKind(null);
-    if (!r.ok) {
+    if (r.ok && r.clientSecret) {
+      setClientSecret(r.clientSecret); // ouvre l'interface Stripe dans le modal
+    } else {
       showError(r.notConfigured
         ? 'Le paiement en ligne sera bientôt disponible (Stripe en cours de configuration).'
         : (r.error || 'Impossible de démarrer le paiement.'));
     }
-    // si ok, redirection vers Stripe déjà effectuée
   };
 
   const oneShot = unlockTarget
@@ -213,6 +216,8 @@ export default function Payment() {
         )}
 
       </main>
+
+      {clientSecret && <StripeCheckoutModal clientSecret={clientSecret} onClose={() => setClientSecret(null)} />}
     </div>
   );
 }

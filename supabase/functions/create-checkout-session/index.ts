@@ -54,7 +54,8 @@ serve(async (req) => {
 
     const { kind, plan, target, returnPath } = await req.json();
     const origin = Deno.env.get("SITE_URL") || req.headers.get("origin") || "";
-    const back = (params: string) => `${origin}${returnPath || "/payment"}?${params}`;
+    // Embedded Checkout : Stripe redirige la page vers return_url à la fin
+    const returnUrl = `${origin}${returnPath || "/payment"}?success=1&session_id={CHECKOUT_SESSION_ID}`;
 
     // Réutilise le client Stripe rattaché à l'utilisateur s'il existe
     let customerId: string | undefined;
@@ -84,8 +85,8 @@ serve(async (req) => {
         }],
         subscription_data: { metadata: { ...baseMeta, plan } },
         metadata: { ...baseMeta, plan },
-        success_url: back("success=1"),
-        cancel_url: back("canceled=1"),
+        ui_mode: "embedded",
+        return_url: returnUrl,
         allow_promotion_codes: true,
       });
     } else if (kind === "unlock" || kind === "boost" || kind === "prospection") {
@@ -116,14 +117,14 @@ serve(async (req) => {
         }],
         payment_intent_data: { metadata: meta },
         metadata: meta,
-        success_url: back("success=1"),
-        cancel_url: back("canceled=1"),
+        ui_mode: "embedded",
+        return_url: returnUrl,
       });
     } else {
       return json({ error: "Type de paiement inconnu." }, 400);
     }
 
-    return json({ url: session.url });
+    return json({ clientSecret: session.client_secret });
   } catch (e: any) {
     return json({ error: e?.message || "Erreur Stripe." }, 400);
   }
