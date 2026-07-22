@@ -18,6 +18,7 @@ import { useUnreadMessages } from '@/hooks/use-unread-messages';
 import { NotificationsMenu } from '@/components/NotificationsMenu';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
+import { usePlan } from '@/services/planService';
 import { useTranslation } from 'react-i18next';
 import { showError } from '@/utils/toast';
 import { initNativeFeel } from '@/utils/nativeFeel';
@@ -33,6 +34,7 @@ export default function AppMap() {
   const navFocusId = location.state?.focusId;
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { plan } = usePlan(user?.id);
   const { t, i18n } = useTranslation();
 
   const { data: rawListings = [], refetch } = useListings();
@@ -216,13 +218,15 @@ export default function AppMap() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute right-2 sm:right-6 top-0 flex items-center gap-1.5 sm:gap-4 pointer-events-auto">
-              <button 
-                onClick={handlePremiumClick}
-                className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/80 dark:bg-primary/20 border-primary/40 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none hover:bg-primary/90 dark:hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
-              >
-                <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.premium', 'Premium')}</span>
-                {isMobile && <span className="xs:hidden">PREM</span>}
-              </button>
+              {plan === 'free' && (
+                <button
+                  onClick={handlePremiumClick}
+                  className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/80 dark:bg-primary/20 border-primary/40 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none hover:bg-primary/90 dark:hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
+                >
+                  <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.upgrade', 'Voir les formules')}</span>
+                  {isMobile && <span className="xs:hidden">{t('nav.upgrade_short', 'Formules')}</span>}
+                </button>
+              )}
               
               {user && (
                 <>
