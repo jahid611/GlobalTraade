@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { X, CheckCircle2, Heart, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock } from 'lucide-react';
+import { X, CheckCircle2, Heart, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock, LockOpen, Sparkles } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useTranslation } from 'react-i18next';
@@ -26,9 +26,10 @@ interface BusinessModalProps {
   onClose: () => void;
   onContact: (listing: any, need?: any) => void;
   onEdit?: (listing: any) => void;
+  celebrate?: boolean; // joue l'animation de déblocage à l'ouverture (retour de paiement)
 }
 
-export function BusinessModal({ listing, user, onClose, onContact, onEdit }: BusinessModalProps) {
+export function BusinessModal({ listing, user, onContact, onClose, onEdit, celebrate }: BusinessModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -46,6 +47,16 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
   const [isDataRoomOpen, setIsDataRoomOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportText, setReportText] = useState("");
+
+  // Animation de déblocage (retour de paiement) : cadenas qui s'ouvre puis révélation
+  const [celebrateStage, setCelebrateStage] = useState<'idle' | 'locked' | 'open'>('idle');
+  useEffect(() => {
+    if (!celebrate || !listing) return;
+    setCelebrateStage('locked');
+    const t1 = setTimeout(() => setCelebrateStage('open'), 650);      // le cadenas s'ouvre
+    const t2 = setTimeout(() => setCelebrateStage('idle'), 2400);     // révélation
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [celebrate, listing?.id]);
 
   useScrollLock(!!listing || lightboxIndex !== null || isReportModalOpen);
 
@@ -237,6 +248,59 @@ export function BusinessModal({ listing, user, onClose, onContact, onEdit }: Bus
           onDragEnd={(e, info) => { if (isMobile && (info.offset.y > 120 || info.velocity.y > 400)) onClose(); }}
           className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl"
         >
+          {/* Animation de déblocage (cadenas qui s'ouvre + révélation) */}
+          <AnimatePresence>
+            {celebrateStage !== 'idle' && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
+                className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#16151a]/95 backdrop-blur-md pointer-events-none"
+              >
+                {/* Halo qui explose à l'ouverture */}
+                <motion.div
+                  className="absolute w-48 h-48 rounded-full bg-emerald-400/30 blur-3xl"
+                  animate={celebrateStage === 'open' ? { scale: [0.6, 1.8, 1.2], opacity: [0.5, 0.9, 0] } : { scale: 0.6, opacity: 0.4 }}
+                  transition={{ duration: 1.4, ease: 'easeOut' }}
+                />
+                {/* Étincelles */}
+                {celebrateStage === 'open' && [...Array(10)].map((_, i) => (
+                  <motion.span key={i} className="absolute w-1.5 h-1.5 rounded-full bg-emerald-300"
+                    initial={{ x: 0, y: 0, opacity: 1 }}
+                    animate={{ x: Math.cos((i / 10) * 6.283) * 120, y: Math.sin((i / 10) * 6.283) * 120, opacity: 0 }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }} />
+                ))}
+                {/* Le cadenas */}
+                <motion.div
+                  className="relative w-24 h-24 rounded-[1.75rem] flex items-center justify-center border"
+                  style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' }}
+                  initial={{ scale: 0.4, rotate: -6 }}
+                  animate={celebrateStage === 'open'
+                    ? { scale: [1, 1.15, 1], rotate: 0 }
+                    : { scale: [0.9, 1], rotate: [-6, 6, -4, 4, 0] }}
+                  transition={{ duration: celebrateStage === 'open' ? 0.5 : 0.6, type: 'spring', damping: 10 }}
+                >
+                  <AnimatePresence mode="wait">
+                    {celebrateStage === 'open' ? (
+                      <motion.span key="open" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', damping: 9 }}>
+                        <LockOpen className="w-11 h-11 text-emerald-400" strokeWidth={1.5} />
+                      </motion.span>
+                    ) : (
+                      <motion.span key="locked" exit={{ scale: 0.5, opacity: 0 }}>
+                        <Lock className="w-11 h-11 text-white/80" strokeWidth={1.5} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+                <motion.p
+                  className="mt-6 text-lg font-light text-white flex items-center gap-2"
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                >
+                  {celebrateStage === 'open' && <Sparkles className="w-4 h-4 text-emerald-400" />}
+                  {celebrateStage === 'open' ? t('unlock.done', 'Annonce débloquée !') : t('unlock.opening', 'Déverrouillage…')}
+                </motion.p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Poignée native iOS */}
           <div className="w-full flex justify-center pt-3 pb-5 sm:hidden shrink-0 touch-none cursor-grab absolute top-0 z-20" onPointerDown={(e) => dragControls.start(e)}>
             <div className="w-10 h-1.5 bg-white/30 rounded-full" />

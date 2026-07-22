@@ -89,11 +89,18 @@ export default function Payment() {
     }
   };
 
+  // Après le paiement, on ramène l'utilisateur sur la fiche débloquée avec une
+  // animation de cadenas (celebrate), au lieu de rester sur la page Formules.
+  const unlockReturnPath = (t: { type: UnlockTargetType; id: string }) =>
+    t.type === 'listing' ? `/app?focus=${t.id}&celebrate=1`
+    : t.type === 'project' ? `/projects?focus=${t.id}&celebrate=1`
+    : `/marketplace`;
+
   const oneShot = unlockTarget
-    ? { kind: 'unlock' as const, target: { type: unlockTarget.type, id: unlockTarget.id, name: targetName }, title: 'Débloquer cette annonce', price: UNLOCK_PRICE,
+    ? { kind: 'unlock' as const, target: { type: unlockTarget.type, id: unlockTarget.id, name: targetName }, returnPath: unlockReturnPath(unlockTarget), title: 'Débloquer cette annonce', price: UNLOCK_PRICE,
         subtitle: targetName || 'Contenu complet, messagerie avec l\'auteur, simulateur de financement et notation sur 100.', icon: Unlock, accent: 'text-emerald-400' }
     : boostTarget
-    ? { kind: 'boost' as const, target: { type: boostTarget.type, id: boostTarget.id, name: targetName }, title: 'Mettre en avant', price: BOOST_PRICE,
+    ? { kind: 'boost' as const, target: { type: boostTarget.type, id: boostTarget.id, name: targetName }, returnPath: '/payment?success=1', title: 'Mettre en avant', price: BOOST_PRICE,
         subtitle: targetName || `Votre annonce apparaît en priorité pendant ${BOOST_DAYS} jours.`, icon: Rocket, accent: 'text-amber-400' }
     : null;
 
@@ -119,7 +126,7 @@ export default function Payment() {
                 <h2 className="text-2xl font-light mb-2">{oneShot.title}</h2>
                 <p className="text-sm text-white/50 font-light mb-6 leading-relaxed">{oneShot.subtitle}</p>
                 <div className="text-4xl font-light mb-8">{oneShot.price} €</div>
-                <Button onClick={() => pay({ kind: oneShot.kind, target: oneShot.target }, 'oneshot')} disabled={loadingKind === 'oneshot'}
+                <Button onClick={() => pay({ kind: oneShot.kind, target: oneShot.target, returnPath: oneShot.returnPath }, 'oneshot')} disabled={loadingKind === 'oneshot'}
                   className="w-full h-14 rounded-full bg-primary hover:bg-primary/90 text-white font-medium text-sm">
                   {loadingKind === 'oneshot' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Lock className="w-4 h-4 mr-2" /> Payer {oneShot.price} € avec Stripe</>}
                 </Button>
@@ -177,7 +184,7 @@ export default function Payment() {
                         {isCurrent ? 'Votre formule actuelle' : 'Formule gratuite'}
                       </Button>
                     ) : (
-                      <Button onClick={() => pay({ kind: 'subscription', plan: plan.id as 'pro' | 'business' }, plan.id)} disabled={loadingThis}
+                      <Button onClick={() => pay({ kind: 'subscription', plan: plan.id as 'pro' | 'business', returnPath: '/payment?success=1' }, plan.id)} disabled={loadingThis}
                         className={`w-full rounded-full h-12 text-sm font-medium ${plan.highlight ? 'bg-primary hover:bg-primary/90 text-white' : 'bg-white text-black hover:bg-white/90'}`}>
                         {loadingThis ? <Loader2 className="w-5 h-5 animate-spin" /> : plan.cta}
                       </Button>

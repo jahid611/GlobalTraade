@@ -9,7 +9,7 @@ import { SidebarMessaging } from '@/components/SidebarMessaging';
 import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useListings } from '@/hooks/use-listings';
@@ -51,6 +51,25 @@ export default function AppMap() {
   const [isSidebarMessagingOpen, setIsSidebarMessagingOpen] = useState(false);
 
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [celebrateUnlock, setCelebrateUnlock] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Retour de paiement Stripe : /app?focus=<id>&celebrate=1 → rouvre la fiche
+  // débloquée et déclenche l'animation de cadenas.
+  useEffect(() => {
+    const focus = searchParams.get('focus');
+    if (focus && listings.length > 0) {
+      const celeb = searchParams.get('celebrate') === '1';
+      setFocusListingId(focus);
+      const timer = setTimeout(() => {
+        handleSelectListing(focus);
+        if (celeb) setCelebrateUnlock(true);
+      }, 700);
+      ['focus', 'celebrate', 'session_id', 'success'].forEach((k) => searchParams.delete(k));
+      setSearchParams(searchParams, { replace: true });
+      return () => clearTimeout(timer);
+    }
+  }, [listings]);
 
   const hasUnread = useUnreadMessages(user?.id);
   const isOverlayOpen = !!selectedListing || isFormOpen || isChatOpen || isSidebarMessagingOpen;
@@ -326,10 +345,11 @@ export default function AppMap() {
         listingToEdit={listingToEdit} 
       />
       
-      <BusinessModal 
-        listing={selectedListing} 
-        user={user} 
-        onClose={() => setSelectedListing(null)} 
+      <BusinessModal
+        listing={selectedListing}
+        user={user}
+        celebrate={celebrateUnlock}
+        onClose={() => { setSelectedListing(null); setCelebrateUnlock(false); }}
         onContact={(l, need) => { 
           setChatListing(l); 
           setSelectedNeed(need || null);

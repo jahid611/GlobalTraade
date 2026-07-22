@@ -54,8 +54,11 @@ serve(async (req) => {
 
     const { kind, plan, target, returnPath } = await req.json();
     const origin = Deno.env.get("SITE_URL") || req.headers.get("origin") || "";
-    // Embedded Checkout : Stripe redirige la page vers return_url à la fin
-    const returnUrl = `${origin}${returnPath || "/payment"}?success=1&session_id={CHECKOUT_SESSION_ID}`;
+    // Embedded Checkout : Stripe redirige la page vers return_url à la fin.
+    // returnPath peut déjà contenir des query params -> on ajoute session_id proprement.
+    const rp = returnPath || "/payment?success=1";
+    const sep = rp.includes("?") ? "&" : "?";
+    const returnUrl = `${origin}${rp}${sep}session_id={CHECKOUT_SESSION_ID}`;
 
     // Réutilise le client Stripe rattaché à l'utilisateur s'il existe
     let customerId: string | undefined;
