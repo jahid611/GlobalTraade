@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { LogOut, Upload, Loader2, ExternalLink } from 'lucide-react';
@@ -16,6 +16,13 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePlan } from '@/services/planService';
+import { MultiSelect } from '@/components/MultiSelect';
+import { Dropdown } from '@/components/PickerKit';
+import { INDUSTRIES } from '@/lib/industries';
+import { FR_REGIONS } from '@/lib/geoRegions';
+
+const SETTINGS_RANGES = ['< 100 k€', '100 – 250 k€', '250 – 500 k€', '500 k€ – 1 M€', '1 – 3 M€', '3 – 5 M€', '5 – 10 M€', '> 10 M€'].map((v) => ({ value: v, label: v }));
+const listVal = (s: string) => (s ? s.split(',').map((x) => x.trim()).filter(Boolean) : []);
 
 const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => void }) => (
   <button
@@ -78,6 +85,16 @@ export default function Settings() {
   const [ambitions, setAmbitions] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Options encadrées (cohérentes avec le reste de Globly)
+  const sectorOptions = useMemo(() => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })), [t]);
+  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
+  const expOptions = useMemo(() => [
+    { value: 'debutant', label: t('buyer.exp_debutant', 'Premier rachat') as string },
+    { value: 'experimente', label: t('buyer.exp_experimente', 'Repreneur expérimenté') as string },
+    { value: 'dirigeant', label: t('buyer.exp_dirigeant', 'Dirigeant en poste') as string },
+    { value: 'serial', label: t('buyer.exp_serial', 'Serial entrepreneur') as string },
+  ], [t]);
 
   useEffect(() => {
     setMounted(true);
@@ -369,16 +386,16 @@ export default function Settings() {
               <div className="space-y-[4vh] max-w-xl">
                 <div>
                   <label className={labelClass}>{t('settings.target_sectors')}</label>
-                  <input value={targetSectors} placeholder="ex: Tech, SaaS, E-commerce, Immobilier" spellCheck={false} onChange={(e) => setTargetSectors(e.target.value)} className={inputClass} />
+                  <MultiSelect options={sectorOptions} selected={listVal(targetSectors)} onChange={(v) => setTargetSectors(v.join(','))} placeholder={t('searchads.sectors_ph', 'Choisir un ou plusieurs secteurs') as string} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
                   <div>
                     <label className={labelClass}>{t('settings.target_budget')}</label>
-                    <input value={targetBudget} placeholder="ex: 100k€ - 5M€" spellCheck={false} onChange={(e) => setTargetBudget(e.target.value)} className={inputClass} />
+                    <Dropdown value={targetBudget} onChange={setTargetBudget} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                   <div>
                     <label className={labelClass}>{t('settings.target_geo')}</label>
-                    <input value={targetGeo} placeholder="ex: Europe, USA, Asie" spellCheck={false} onChange={(e) => setTargetGeo(e.target.value)} className={inputClass} />
+                    <MultiSelect options={regionOptions} selected={listVal(targetGeo)} onChange={(v) => setTargetGeo(v.join(','))} placeholder={t('searchads.regions_ph', 'Choisir une ou plusieurs régions') as string} />
                   </div>
                 </div>
 
@@ -405,17 +422,17 @@ export default function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
                   <div>
                     <label className={labelClass}>{t('settings.apport', 'Apport disponible')}</label>
-                    <input value={apport} placeholder="ex: 150k€" spellCheck={false} onChange={(e) => setApport(e.target.value)} className={inputClass} />
+                    <Dropdown value={apport} onChange={setApport} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                   <div>
                     <label className={labelClass}>{t('settings.target_revenue', 'CA recherché')}</label>
-                    <input value={targetRevenue} placeholder="ex: 200k€ - 500k€" spellCheck={false} onChange={(e) => setTargetRevenue(e.target.value)} className={inputClass} />
+                    <Dropdown value={targetRevenue} onChange={setTargetRevenue} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                 </div>
 
                 <div>
                   <label className={labelClass}>{t('settings.experience', 'Votre expérience')}</label>
-                  <input value={experience} placeholder={t('settings.experience_ph', 'ex: 10 ans de direction dans l\'industrie') as string} spellCheck={false} onChange={(e) => setExperience(e.target.value)} className={inputClass} />
+                  <Dropdown value={experience} onChange={setExperience} options={expOptions} placeholder={t('settings.experience_ph2', 'Votre niveau d\'expérience') as string} />
                 </div>
 
                 <div>

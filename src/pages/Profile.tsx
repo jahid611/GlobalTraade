@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon } from 'lucide-react';
+import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet } from 'lucide-react';
+import { regionLabel, FR_REGIONS } from '@/lib/geoRegions';
+import { usePlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +31,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user: currentUser } = useAuth();
+  const { plan: myPlan } = usePlan(currentUser?.id);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -270,8 +273,8 @@ export default function Profile() {
               </div>
               
               <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
-                {isOwnProfile && (
-                  <button 
+                {isOwnProfile && myPlan === 'free' && (
+                  <button
                     onClick={handlePremiumClick}
                     className="px-6 h-[10vw] sm:h-12 max-h-[48px] rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[clamp(10px,1vw,12px)] font-medium tracking-wide uppercase outline-none"
                   >
@@ -366,6 +369,71 @@ export default function Profile() {
 
           </div>
         </div>
+
+        {/* Projet de reprise — critères du repreneur (utile aux vendeurs) */}
+        {(() => {
+          const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
+          const toChips = (s: any, isRegion = false) => (typeof s === 'string' ? s.split(',') : []).map((x: string) => x.trim()).filter(Boolean)
+            .map((v: string) => isRegion ? (REGION_KEYS.has(v) ? regionLabel(v) : v) : (t(`industry.${v}`, { defaultValue: v }) as string));
+          const sectors = toChips(metadata.target_sectors);
+          const regions = toChips(metadata.target_geo, true);
+          const expMap: Record<string, string> = {
+            debutant: t('buyer.exp_debutant', 'Premier rachat'),
+            experimente: t('buyer.exp_experimente', 'Repreneur expérimenté'),
+            dirigeant: t('buyer.exp_dirigeant', 'Dirigeant en poste'),
+            serial: t('buyer.exp_serial', 'Serial entrepreneur'),
+          };
+          const rows = [
+            metadata.buyer_type && { icon: Users, label: t('searchads.buyer_type_label', 'Profil'), value: t(`buyer.type_${metadata.buyer_type}`, metadata.buyer_type) },
+            sectors.length && { icon: Briefcase, label: t('searchads.sectors_label', 'Secteurs'), chips: sectors },
+            regions.length && { icon: MapPin, label: t('searchads.regions_label', 'Zones'), chips: regions },
+            metadata.target_budget && { icon: Coins, label: t('searchads.budget_label', "Budget d'acquisition"), value: metadata.target_budget },
+            metadata.target_revenue && { icon: Target, label: t('searchads.revenue_label', "CA visé"), value: metadata.target_revenue },
+            metadata.apport && { icon: Wallet, label: t('buyer.apport', 'Apport disponible'), value: metadata.apport },
+            metadata.experience && { icon: GraduationCap, label: t('buyer.experience', 'Expérience'), value: expMap[metadata.experience] || metadata.experience },
+          ].filter(Boolean) as any[];
+          if (!rows.length && !metadata.ambitions) return null;
+          return (
+            <div className="mb-[8vh] relative z-10">
+              <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-11 h-11 rounded-2xl bg-primary/15 flex items-center justify-center border border-primary/25 shrink-0">
+                    <Target className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-light text-white leading-tight">{t('profile.buyer_project', 'Projet de reprise')}</p>
+                    <p className="text-xs text-white/50 font-light">{t('profile.buyer_project_sub', 'Ce que ce repreneur recherche')}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                  {rows.map((r, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <r.icon className="w-4 h-4 text-white/40 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1">{r.label}</p>
+                        {r.chips ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {r.chips.map((c: string, j: number) => (
+                              <span key={j} className="text-xs text-white/80 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">{c}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white/85 font-light">{r.value}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {metadata.ambitions && (
+                  <div className="mt-5 pt-5 border-t border-white/10">
+                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-2 flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" /> {t('buyer.ambitions', 'Ambitions')}</p>
+                    <p className="text-sm text-white/75 font-light leading-relaxed">{metadata.ambitions}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* KYC Section — Own Profile Only */}
         {isOwnProfile && (
