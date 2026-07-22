@@ -29,7 +29,12 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   const [convToDelete, setConvToDelete] = useState<any>(null);
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
-  const [offerFinancing, setOfferFinancing] = useState<'loan' | 'cash'>('loan');
+  const [loanPct, setLoanPct] = useState(50); // part financée par emprunt (le reste = fonds propres)
+
+  // Bornes de cohérence d'une offre sur une entreprise : entre 60 % et 110 %
+  // du prix demandé (pas de lowball, pas de surenchère absurde).
+  const OFFER_MIN_PCT = 0.6;
+  const OFFER_MAX_PCT = 1.1;
   
   const [isMobileListOpen, setIsMobileListOpen] = useState(true);
   const [contactStatus, setContactStatus] = useState<'none' | 'pending' | 'connected'>('none');
@@ -140,6 +145,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             project_id: msg.project_id,
             listing_name: project?.title || listing?.title || listing?.name || 'Discussion',
             listing_owner_id: project?.owner_id || listing?.owner_id,
+            listing_price: listing?.price ?? null,
             other_user_id: otherUser.id,
             contact_name: otherUser.full_name || 'Utilisateur',
             contact_kyc: otherUser.kyc_status || 'not_started',
@@ -224,14 +230,36 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       return;
     }
 
+    // Pré-remplit au prix demandé (offre à 100 %) quand il est connu
+    const price = Number(activeConv?.listing_price) || 0;
+    setOfferAmount(price > 0 ? String(price) : "");
+    setLoanPct(50);
     setIsOfferModalOpen(true);
   };
 
   const handleSendOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerAmount || !activeConv || !user) return;
-    const amount = Number(offerAmount);
-    
+    let amount = Number(offerAmount);
+
+    // Cohérence : sur une entreprise au prix connu, l'offre est bornée
+    // entre 60 % et 110 % du prix demandé.
+    const price = Number(activeConv.listing_price) || 0;
+    if (!activeConv.project_id && price > 0) {
+      const min = Math.round(price * OFFER_MIN_PCT);
+      const max = Math.round(price * OFFER_MAX_PCT);
+      if (amount < min || amount > max) {
+        showError(t('msg.offer_out_of_range', `L'offre doit être comprise entre ${Math.round(OFFER_MIN_PCT*100)} % et ${Math.round(OFFER_MAX_PCT*100)} % du prix demandé.`));
+        amount = Math.min(max, Math.max(min, amount));
+        setOfferAmount(String(amount));
+        return;
+      }
+    }
+    if (amount <= 0) return;
+
+    const financing = activeConv.project_id ? null : { loan: loanPct, equity: 100 - loanPct };
+    const meta = { amount, financing, status: 'pending' };
+
     const tempMsg = {
       id: `temp-${Date.now()}`,
       listing_id: activeConv.listing_id,
@@ -240,10 +268,10 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       receiver_id: activeConv.other_user_id,
       content: `OFFRE: ${amount}€`,
       type: 'offer',
-      metadata: { amount, financing: offerFinancing, status: 'pending' },
+      metadata: meta,
       created_at: new Date().toISOString()
     };
-    
+
     setAllMessages(prev => [...prev, tempMsg]);
 
     const { error } = await supabase.from('messages').insert([{
@@ -253,7 +281,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       receiver_id: activeConv.other_user_id,
       content: `OFFRE: ${amount}€`,
       type: 'offer',
-      metadata: { amount, financing: offerFinancing, status: 'pending' }
+      metadata: meta
     }]);
     
     if (error) {
@@ -498,21 +526,67 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                     {activeConv.project_id ? "Proposer une collaboration" : t('msg.make_offer', 'Faire une offre')}
                   </h3>
                 </div>
-                <form onSubmit={handleSendOffer} className="space-y-6">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">
-                      {activeConv.project_id ? "Montant de l'investissement (€)" : t('msg.offer_amount', "Montant de l'offre (€)")}
-                    </label>
-                    <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full liquid-glass bg-white/[0.02] border-white/20 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all outline-none" placeholder="0 €" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">{t('msg.financing_type', 'Type de financement')}</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/20 text-white hover:bg-white/20'}`}>{t('msg.loan', 'Emprunt')}</button>
-                      <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium transition-all border outline-none [text-shadow:none] ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15_rgba(168,85,247,0.2)]' : 'liquid-glass border-white/20 text-white hover:bg-white/20'}`}>{t('msg.equity', 'Fonds propres')}</button>
+                <form onSubmit={handleSendOffer} className="space-y-7">
+                  {(() => {
+                    const price = Number(activeConv.listing_price) || 0;
+                    const bounded = !activeConv.project_id && price > 0;
+                    const min = Math.round(price * OFFER_MIN_PCT);
+                    const max = Math.round(price * OFFER_MAX_PCT);
+                    const amount = Number(offerAmount) || 0;
+                    const pct = price > 0 ? Math.round((amount / price) * 100) : 0;
+                    const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+                    return (
+                      <div>
+                        <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">
+                          <span>{activeConv.project_id ? "Montant de l'investissement (€)" : t('msg.offer_amount', "Montant de l'offre (€)")}</span>
+                          {bounded && <span className="text-primary tabular-nums">{pct}% du prix</span>}
+                        </label>
+
+                        {bounded ? (
+                          <>
+                            <div className="text-3xl font-light text-white tabular-nums mb-4 text-center">{fmt(amount)}</div>
+                            <input
+                              type="range" min={min} max={max} step={Math.max(500, Math.round(price / 200))}
+                              value={Math.min(max, Math.max(min, amount))}
+                              onChange={(e) => setOfferAmount(e.target.value)}
+                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-lg"
+                            />
+                            <div className="flex justify-between text-[10px] text-white/40 mt-2 font-light">
+                              <span>Min {fmt(min)} ({Math.round(OFFER_MIN_PCT * 100)}%)</span>
+                              <span>Prix demandé {fmt(price)}</span>
+                              <span>Max {fmt(max)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} required className="w-full liquid-glass bg-white/[0.02] border-white/20 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 transition-all outline-none" placeholder="0 €" />
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {!activeConv.project_id && (
+                    <div>
+                      <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">
+                        <span>{t('msg.financing_type', 'Répartition du financement')}</span>
+                      </label>
+                      {/* Barre équilibrée emprunt / fonds propres */}
+                      <div className="h-3 w-full rounded-full overflow-hidden flex border border-white/10 mb-3">
+                        <div className="h-full bg-primary transition-all" style={{ width: `${loanPct}%` }} />
+                        <div className="h-full bg-emerald-400 transition-all" style={{ width: `${100 - loanPct}%` }} />
+                      </div>
+                      <input
+                        type="range" min={0} max={100} step={5} value={loanPct}
+                        onChange={(e) => setLoanPct(Number(e.target.value))}
+                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                      />
+                      <div className="flex justify-between text-xs mt-2 font-light">
+                        <span className="text-primary">{t('msg.loan', 'Emprunt')} <span className="font-medium tabular-nums">{loanPct}%</span></span>
+                        <span className="text-emerald-400">{t('msg.equity', 'Fonds propres')} <span className="font-medium tabular-nums">{100 - loanPct}%</span></span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-3 pt-4">
+                  )}
+
+                  <div className="flex flex-col gap-3 pt-2">
                     <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">
                       {activeConv.project_id ? "Envoyer la proposition" : t('msg.send_offer', "Envoyer l'offre")}
                     </Button>

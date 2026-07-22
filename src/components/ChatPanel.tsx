@@ -41,7 +41,9 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
   const [offerAmount, setOfferAmount] = useState("");
   const [offerConditions, setOfferConditions] = useState("");
   const [offerMessage, setOfferMessage] = useState("");
-  const [offerFinancing, setOfferFinancing] = useState("loan");
+  const [loanPct, setLoanPct] = useState(50); // part emprunt, le reste = fonds propres
+  const OFFER_MIN_PCT = 0.6;
+  const OFFER_MAX_PCT = 1.1;
   const [offerToEdit, setOfferToEdit] = useState<Record<string, any> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -217,12 +219,20 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     e.preventDefault();
     if (!offerAmount.trim() || !listing || !user) return;
     
-    const amount = initialNeed?.type === 'financial' ? Number(offerAmount.replace(/\D/g, '')) : offerAmount;
+    // Montant numérique sauf pour un besoin non financier (ex. « 10h/semaine »)
+    const amount = (initialNeed && initialNeed.type !== 'financial')
+      ? offerAmount
+      : Number(String(offerAmount).replace(/\D/g, ''));
     if (initialNeed?.type === 'financial' && (isNaN(amount as number) || (amount as number) <= 0)) return;
 
-    if (!initialNeed && listing.price > 0 && typeof amount === 'number' && amount < (listing.price * 0.05)) {
-      showError(t('msg.offer_too_low'));
-      return;
+    // Cohérence d'une offre sur une entreprise : entre 60 % et 110 % du prix demandé
+    if (!initialNeed && listing.price > 0 && typeof amount === 'number') {
+      const min = Math.round(listing.price * OFFER_MIN_PCT);
+      const max = Math.round(listing.price * OFFER_MAX_PCT);
+      if (amount < min || amount > max) {
+        showError(t('msg.offer_out_of_range', `L'offre doit être comprise entre ${Math.round(OFFER_MIN_PCT*100)} % et ${Math.round(OFFER_MAX_PCT*100)} % du prix demandé.`));
+        return;
+      }
     }
 
     const content = initialNeed ? `PROPOSITION AIDE: ${amount}` : `OFFRE: ${amount}€`;
@@ -239,7 +249,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     } else {
       metadata = {
         ...metadata,
-        financing: offerFinancing
+        financing: { loan: loanPct, equity: 100 - loanPct }
       };
     }
 
@@ -366,7 +376,9 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
               <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-                {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
+                {financing && typeof financing === 'object'
+                  ? `${t('msg.loan', 'Emprunt')} ${financing.loan}% · ${t('msg.equity', 'Fonds propres')} ${financing.equity}%`
+                  : (financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt'))}
               </span>
             </div>
           )}
@@ -540,9 +552,9 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
 
             <div className="p-4 sm:p-6 shrink-0 bg-transparent">
               <div className="flex items-center gap-3">
-                <button 
+                <button
                   type="button"
-                  onClick={() => setIsOfferModalOpen(true)}
+                  onClick={() => { if (!initialNeed && listing?.price > 0 && !offerAmount) setOfferAmount(String(listing.price)); setLoanPct(50); setIsOfferModalOpen(true); }}
                   className="shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl liquid-glass bg-white/[0.02] border border-white/10 hover:bg-primary/10 hover:border-primary/50 text-primary transition-all shadow-md"
                   title={t('msg.make_offer')}
                 >
@@ -592,20 +604,51 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
             </div>
             
             <form onSubmit={handleSendOffer} className="space-y-6">
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{initialNeed ? t('needs.offer_amount', 'Votre Apport (Montant ou Description)') : t('msg.offer_amount')}</label>
-                <div className="relative">
-                  <input
-                    type={initialNeed && initialNeed.type !== 'financial' ? "text" : "text"}
-                    required
-                    placeholder={initialNeed && initialNeed.type !== 'financial' ? "Ex: 10h/semaine" : "0"}
-                    value={offerAmount}
-                    onChange={(e) => setOfferAmount(initialNeed && initialNeed.type !== 'financial' ? e.target.value : e.target.value.replace(/\D/g, ''))}
-                    className="w-full liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner"
-                  />
-                  {(!initialNeed || initialNeed.type === 'financial') && <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 text-xl font-light">€</span>}
+              {(!initialNeed && listing?.price > 0) ? (
+                (() => {
+                  const price = Number(listing.price);
+                  const min = Math.round(price * OFFER_MIN_PCT);
+                  const max = Math.round(price * OFFER_MAX_PCT);
+                  const amount = Number(String(offerAmount).replace(/\D/g, '')) || 0;
+                  const pct = Math.round((amount / price) * 100);
+                  const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+                  return (
+                    <div>
+                      <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">
+                        <span>{t('msg.offer_amount')}</span>
+                        <span className="text-primary tabular-nums">{pct}% du prix</span>
+                      </label>
+                      <div className="text-3xl font-light text-white tabular-nums mb-4 text-center">{fmt(amount)}</div>
+                      <input
+                        type="range" min={min} max={max} step={Math.max(500, Math.round(price / 200))}
+                        value={Math.min(max, Math.max(min, amount))}
+                        onChange={(e) => setOfferAmount(e.target.value)}
+                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                      />
+                      <div className="flex justify-between text-[10px] text-white/40 mt-2 font-light">
+                        <span>Min {fmt(min)}</span>
+                        <span>Prix {fmt(price)}</span>
+                        <span>Max {fmt(max)}</span>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{initialNeed ? t('needs.offer_amount', 'Votre Apport (Montant ou Description)') : t('msg.offer_amount')}</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder={initialNeed && initialNeed.type !== 'financial' ? "Ex: 10h/semaine" : "0"}
+                      value={offerAmount}
+                      onChange={(e) => setOfferAmount(initialNeed && initialNeed.type !== 'financial' ? e.target.value : e.target.value.replace(/\D/g, ''))}
+                      className="w-full liquid-glass bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-light focus:outline-none focus:border-primary/50 focus:bg-primary/[0.02] transition-all shadow-inner"
+                    />
+                    {(!initialNeed || initialNeed.type === 'financial') && <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 text-xl font-light">€</span>}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {initialNeed ? (
                 <>
@@ -634,14 +677,19 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                 </>
               ) : (
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.offer_financing')}</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => setOfferFinancing('loan')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'loan' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
-                      {t('msg.financing_loan')}
-                    </button>
-                    <button type="button" onClick={() => setOfferFinancing('cash')} className={`py-3.5 rounded-2xl text-sm font-medium border transition-all ${offerFinancing === 'cash' ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10'}`}>
-                      {t('msg.financing_cash')}
-                    </button>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.financing_type', 'Répartition du financement')}</label>
+                  <div className="h-3 w-full rounded-full overflow-hidden flex border border-white/10 mb-3">
+                    <div className="h-full bg-primary transition-all" style={{ width: `${loanPct}%` }} />
+                    <div className="h-full bg-emerald-400 transition-all" style={{ width: `${100 - loanPct}%` }} />
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={5} value={loanPct}
+                    onChange={(e) => setLoanPct(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  />
+                  <div className="flex justify-between text-xs mt-2 font-light">
+                    <span className="text-primary">{t('msg.loan', 'Emprunt')} <span className="font-medium tabular-nums">{loanPct}%</span></span>
+                    <span className="text-emerald-400">{t('msg.equity', 'Fonds propres')} <span className="font-medium tabular-nums">{100 - loanPct}%</span></span>
                   </div>
                 </div>
               )}

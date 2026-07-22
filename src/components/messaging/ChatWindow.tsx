@@ -130,7 +130,9 @@ export function ChatWindow({
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
               <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-                {financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')}
+                {financing && typeof financing === 'object'
+                  ? `${t('msg.loan', 'Emprunt')} ${financing.loan}% · ${t('msg.equity', 'Fonds propres')} ${financing.equity}%`
+                  : (financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt'))}
               </span>
             </div>
           )}
