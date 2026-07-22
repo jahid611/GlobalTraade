@@ -62,6 +62,7 @@ export default function Settings() {
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [initialData, setInitialData] = useState<any>(null);
 
   // AI Matchmaking Criteria
@@ -150,6 +151,19 @@ export default function Settings() {
     if (!user) return;
     setSaving(true);
     try {
+      // Avatar : si une nouvelle image a été choisie, on l'envoie dans le
+      // bucket Storage `avatars` et on ne stocke qu'une URL (jamais du base64,
+      // qui alourdit la base et la bande passante). Sinon on garde l'existant.
+      let avatarUrl = avatarBase64;
+      if (avatarFile) {
+        const ext = (avatarFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `${user.id}/avatar.${ext}`;
+        const { error: upErr } = await supabase.storage.from('avatars').upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+        avatarUrl = `${pub.publicUrl}?t=${Date.now()}`; // cache-bust
+      }
+
       const payload = {
         full_name: fullName,
         bio,
@@ -157,7 +171,7 @@ export default function Settings() {
         contact_email: contactEmail,
         show_email: showEmail,
         show_phone: showPhone,
-        avatar_url: avatarBase64
+        avatar_url: avatarUrl
       };
 
       // IMPORTANT : l'avatar (image en base64) ne doit JAMAIS aller dans les
@@ -199,7 +213,9 @@ export default function Settings() {
       // pour que la Navbar (qui relit profiles au changement de user) ait déjà la nouvelle photo.
       await refreshUser();
 
-      setInitialData({ ...authPayload, avatar_url: avatarBase64, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
+      // L'aperçu et l'état de référence pointent désormais sur l'URL Storage
+      if (avatarFile) { setAvatarBase64(avatarUrl); setAvatarFile(null); }
+      setInitialData({ ...authPayload, avatar_url: avatarUrl, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));
@@ -232,6 +248,9 @@ export default function Settings() {
       e.target.value = ''; // permet de re-sélectionner le même fichier après correction
       return;
     }
+    // On garde le fichier pour l'upload vers Storage à l'enregistrement,
+    // et un aperçu base64 uniquement pour l'affichage local (jamais stocké en base).
+    setAvatarFile(file);
     const reader = new FileReader();
     reader.onload = (event) => setAvatarBase64(event.target?.result as string);
     reader.readAsDataURL(file);
