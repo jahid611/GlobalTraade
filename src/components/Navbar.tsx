@@ -196,7 +196,7 @@ export function Navbar() {
         aria-hidden="true"
       />
 
-      <nav className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[100] w-[94%] max-w-6xl pointer-events-none">
+      <nav className="fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] sm:top-[calc(env(safe-area-inset-top,0px)+1.5rem)] left-1/2 -translate-x-1/2 z-[100] w-[94%] max-w-6xl pointer-events-none">
         <div className="bg-black/10 backdrop-blur-sm border border-white/10 shadow-lg px-4 sm:px-6 py-3 sm:py-3.5 rounded-full flex items-center justify-between relative overflow-visible pointer-events-auto min-h-[72px]">
           <div className="flex items-center gap-2 sm:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">

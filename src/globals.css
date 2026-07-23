@@ -13,14 +13,10 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* Uniquement dans l'app native (classe posée par le bootstrap Capacitor) :
-   pousse le contenu global sous l'encoche sans toucher l'expérience web. */
-body.capacitor-native {
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
-}
+/* Les fonds (globe 3D, hero) restent plein écran sous l'encoche (immersif) ;
+   ce sont les éléments d'UI fixes (Navbar, bouton retour, barres du bas) qui
+   gèrent eux-mêmes la marge sûre via env(safe-area-inset-*). Voir Navbar.tsx /
+   BackButton.tsx. Les variables --safe-* restent dispo pour d'autres éléments. */
 
 @layer base {
   :root {
