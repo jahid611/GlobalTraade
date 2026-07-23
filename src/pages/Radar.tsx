@@ -183,7 +183,7 @@ export default function Radar() {
       setTotal(r.total);
       setTotalPages(r.totalPages);
       setPage(r.page);
-    } catch (e: any) {
+    } catch (e) {
       showError("Erreur API gouv : " + (e?.message || "indisponible"));
     } finally {
       setSearching(false);
@@ -196,7 +196,7 @@ export default function Radar() {
       await addProspect(c);
       showSuccess(`${c.nom} ajouté au CRM`);
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-    } catch (e: any) {
+    } catch (e) {
       showError("Erreur ajout : " + (e?.message || ""));
     } finally {
       setAdding(null);
@@ -637,7 +637,7 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved }: { p
       await updateProspect(prospect.id, { email: email.trim() || null, notes: notes.trim() || null, mail_lang: mailLang });
       showSuccess(t('crm.mail.saved', 'Enregistré'));
       onSaved();
-    } catch (e: any) {
+    } catch (e) {
       // Repli si la colonne mail_lang n'existe pas encore : on sauvegarde au moins email + notes.
       if (/mail_lang|column|schema cache|could not find/i.test(String(e?.message || ''))) {
         try {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import type { Listing } from '@/types/domain';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet } from 'lucide-react';
@@ -90,11 +91,11 @@ export default function Profile() {
       } : null;
 
       const listings = (listingsData || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
-      const favIds = (favs || []).map((f: any) => f.listing_id).filter(Boolean);
+      const favIds = (favs || []).map((f: { listing_id: string }) => f.listing_id).filter(Boolean);
       const { data: favListings } = favIds.length
         ? await supabase.from('listings_secure').select('*').in('id', favIds)
         : { data: [] as any[] };
-      const myFavorites = (favListings || []).map((l: any) => ({ ...l, view_count: l.view_count || 0 }));
+      const myFavorites = (favListings || []).map((l: Listing) => ({ ...l, view_count: l.view_count || 0 }));
 
       let connectionsList: Record<string, any>[] = [];
       const { data: acceptedConns } = await supabase

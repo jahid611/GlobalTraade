@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import type { Listing } from '@/types/domain';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,11 +67,11 @@ export default function Dashboard() {
 
       const myListings = (listings || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
       // Les annonces favorites sont récupérées via la vue masquante à partir de leurs ids
-      const favIds = (favs || []).map((f: any) => f.listing_id).filter(Boolean);
+      const favIds = (favs || []).map((f: { listing_id: string }) => f.listing_id).filter(Boolean);
       const { data: favListings } = favIds.length
         ? await supabase.from('listings_secure').select('*').in('id', favIds)
         : { data: [] as any[] };
-      const myFavorites = (favListings || []).map((l: any) => ({ ...l, view_count: l.view_count || 0 }));
+      const myFavorites = (favListings || []).map((l: Listing) => ({ ...l, view_count: l.view_count || 0 }));
       const allSuggested = (suggested || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
 
       return { 
@@ -88,7 +89,7 @@ export default function Dashboard() {
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  const handleConfirmActive = async (listing: any) => {
+  const handleConfirmActive = async (listing: Listing) => {
     setConfirmingId(listing.id);
     const { error } = await supabase.rpc('confirm_listing_active', { p_listing_id: listing.id });
     if (error) {
@@ -143,7 +144,7 @@ export default function Dashboard() {
   
   const hasCriteria = targetSectors || targetGeo || targetBudgetStr;
 
-  const calculateMatchScore = (listing: any) => {
+  const calculateMatchScore = (listing: Listing) => {
     if (!hasCriteria) {
       const hash = listing.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
       return 30 + (hash % 20);
@@ -195,9 +196,9 @@ export default function Dashboard() {
 
   const suggestedDeals = allSuggested.map(deal => ({ ...deal, matchScore: calculateMatchScore(deal) })).sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
 
-  const listingsToConfirm = myListings.filter((l: any) => l.status === 'pending_renewal');
-  const pausedListings = myListings.filter((l: any) => l.status === 'inactive');
-  const deletionDate = (l: any) => {
+  const listingsToConfirm = myListings.filter((l: Listing) => l.status === 'pending_renewal');
+  const pausedListings = myListings.filter((l: Listing) => l.status === 'inactive');
+  const deletionDate = (l: Listing) => {
     if (!l.inactive_since) return '';
     const d = new Date(l.inactive_since);
     d.setDate(d.getDate() + 30);
@@ -245,7 +246,7 @@ export default function Dashboard() {
 
         {(listingsToConfirm.length > 0 || pausedListings.length > 0) && (
           <div className="space-y-4 mb-[6vh] relative z-20">
-            {listingsToConfirm.map((listing: any) => (
+            {listingsToConfirm.map((listing: Listing) => (
               <div key={listing.id} className="liquid-glass border border-primary/50 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
                 <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/40">
                   <ClockCounterClockwise className="w-7 h-7 text-primary" />
@@ -268,7 +269,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            {pausedListings.map((listing: any) => (
+            {pausedListings.map((listing: Listing) => (
               <div key={listing.id} className="liquid-glass border border-white/20 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
                 <div className="w-14 h-14 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
                   <Pause className="w-7 h-7 text-white/70" />
@@ -406,7 +407,7 @@ export default function Dashboard() {
         {myListings.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-[8vh] relative z-20">
             <SellabilityScore listing={myListings[0]} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
-            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: any) => l.id)} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
+            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: Listing) => l.id)} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
           </div>
         )}
 
@@ -555,7 +556,7 @@ export default function Dashboard() {
                       if (!isFav) {
                         queryClient.setQueryData(['dashboard', user?.id], (old: any) => {
                           if (!old) return old;
-                          return { ...old, myFavorites: old.myFavorites.filter((f: any) => f.id !== id) };
+                          return { ...old, myFavorites: old.myFavorites.filter((f: Listing) => f.id !== id) };
                         });
                       }
                     }}

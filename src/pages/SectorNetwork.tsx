@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import type { Listing } from '@/types/domain';
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
@@ -34,7 +35,7 @@ export default function SectorNetwork() {
   });
 
   const mySectors = useMemo(
-    () => Array.from(new Set(myListings.map((l: any) => l.industry).filter(Boolean))),
+    () => Array.from(new Set(myListings.map((l: Listing) => l.industry).filter(Boolean))),
     [myListings]
   );
   const sector = activeSector || mySectors[0] || null;
@@ -54,12 +55,12 @@ export default function SectorNetwork() {
     },
   });
 
-  const openChat = (listing: any) => {
+  const openChat = (listing: Listing) => {
     setChatListing(listing);
     setIsChatOpen(true);
   };
 
-  const cityOf = (l: any) => l.location || (l.address ? String(l.address).split(",").slice(-1)[0].trim() : "—");
+  const cityOf = (l: Listing) => l.location || (l.address ? String(l.address).split(",").slice(-1)[0].trim() : "—");
 
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
@@ -143,7 +144,7 @@ export default function SectorNetwork() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-                {peers.map((l: any) => (
+                {peers.map((l: Listing) => (
                   <BusinessCard key={l.id} listing={l} onClick={() => openChat(l)} />
                 ))}
               </div>

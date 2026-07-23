@@ -35,7 +35,7 @@ export function useSearchAds() {
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
-      return (data || []).sort((a: any, b: any) => Number(isBoosted(b)) - Number(isBoosted(a)));
+      return (data || []).sort((a: SearchAd, b: SearchAd) => Number(isBoosted(b)) - Number(isBoosted(a)));
     },
     staleTime: 1000 * 60 * 2,
   });
@@ -96,7 +96,7 @@ export function SearchAdsBoard() {
     unlocked: !!unlockedIds?.has(ad.id),
   });
 
-  const goUnlock = (ad: any) => {
+  const goUnlock = (ad: SearchAd) => {
     if (!user) return navigate('/login');
     navigate(`/payment?unlock=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`);
   };
@@ -128,7 +128,7 @@ export function SearchAdsBoard() {
     setIsFormOpen(true);
   };
 
-  const openEdit = (ad: any) => {
+  const openEdit = (ad: SearchAd) => {
     setForm({
       ...EMPTY_FORM,
       ...ad,
@@ -175,7 +175,7 @@ export function SearchAdsBoard() {
     setSaving(false);
   };
 
-  const remove = async (ad: any) => {
+  const remove = async (ad: SearchAd) => {
     const { error } = await supabase.from('search_ads').delete().eq('id', ad.id).eq('owner_id', user?.id);
     if (error) showError(t('searchads.delete_error', 'Suppression impossible.'));
     else {
@@ -221,7 +221,7 @@ export function SearchAdsBoard() {
         </div>
       ) : (
         <div className="space-y-4">
-          {ads.map((ad: any) => (
+          {ads.map((ad: SearchAd) => (
             <motion.div key={ad.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className="liquid-glass rounded-[1.5rem] border border-white/10 p-5 sm:p-6 hover:border-white/25 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">

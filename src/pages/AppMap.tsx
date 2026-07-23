@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import type { Listing } from '@/types/domain';
 import { WorldGlobe, ListingNode } from '@/components/Globe';
 import { BusinessModal } from '@/components/BusinessModal';
 import { ListingForm } from '@/components/ListingForm';
@@ -104,23 +105,23 @@ export default function AppMap() {
   };
 
   const handleFormSuccess = async () => {
-    const prevIds = new Set(listings.map((l: any) => l.id));
+    const prevIds = new Set(listings.map((l: Listing) => l.id));
     const { data } = await refetch();
     const list = (data as any[]) || [];
 
     // Édition : on rouvre simplement la fiche mise à jour.
     if (listingToEdit) {
-      const updatedListing = list.find((l: any) => l.id === listingToEdit.id);
+      const updatedListing = list.find((l: Listing) => l.id === listingToEdit.id);
       if (updatedListing) setSelectedListing(updatedListing);
       return;
     }
 
     // Nouvelle cession : on identifie celle qui vient d'apparaître…
     const created =
-      list.find((l: any) => !prevIds.has(l.id) && l.owner_id === user?.id) ||
+      list.find((l: Listing) => !prevIds.has(l.id) && l.owner_id === user?.id) ||
       [...list]
-        .filter((l: any) => l.owner_id === user?.id)
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        .filter((l: Listing) => l.owner_id === user?.id)
+        .sort((a: Listing, b: Listing) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
     if (created) {
       // On retire le filtre secteur actif : sinon la nouvelle cession peut être
