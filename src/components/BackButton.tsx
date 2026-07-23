@@ -25,7 +25,7 @@ export function BackButton() {
     <button
       onClick={goBack}
       aria-label="Retour"
-      className="fixed top-[calc(env(safe-area-inset-top,0px)+1.25rem)] left-4 sm:left-6 z-[95] w-10 h-10 sm:w-11 sm:h-11 rounded-full liquid-glass border border-white/15 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all backdrop-blur-xl shadow-lg group"
+      className="fixed top-[calc(env(safe-area-inset-top,0px)+5rem)] sm:top-[calc(env(safe-area-inset-top,0px)+1.25rem)] left-4 sm:left-6 z-[101] w-10 h-10 sm:w-11 sm:h-11 rounded-full liquid-glass border border-white/15 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all backdrop-blur-xl shadow-lg group"
     >
       <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
     </button>
