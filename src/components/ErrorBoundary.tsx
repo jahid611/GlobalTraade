@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { Button } from './ui/button';
 import { SolarSystem } from './SolarSystem';
+import { captureBoundaryError } from '@/monitoring';
 
 interface Props {
   children?: ReactNode;
@@ -24,8 +25,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Vous pouvez également enregistrer l'erreur dans un service d'analyse
     console.error('Erreur attrapée par le ErrorBoundary:', error, errorInfo);
+    // Remontée vers Sentry en production (no-op sans DSN configurée)
+    captureBoundaryError(error, errorInfo.componentStack);
   }
 
   public render() {

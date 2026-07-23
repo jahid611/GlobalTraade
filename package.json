@@ -46,6 +46,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.14",
+    "@sentry/react": "^10.67.0",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.3.1",
     "@supabase/auth-ui-react": "^0.4.7",
