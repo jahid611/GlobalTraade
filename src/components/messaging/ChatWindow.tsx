@@ -285,7 +285,7 @@ export function ChatWindow({
       </div>
 
       {/* Content Area */}
-      <div className={`flex-1 ${activeTab === 'workflow' ? 'overflow-visible' : 'overflow-hidden'} flex flex-col relative bg-transparent`}>
+      <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent min-h-0">
         <AnimatePresence mode="wait">
           {activeTab === 'messages' ? (
             <motion.div 

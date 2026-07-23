@@ -382,7 +382,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
           </div>
         )}
         
-        <div className={`flex-1 ${activeTab === 'workflow' ? 'overflow-visible' : 'overflow-hidden'} text-white`}>
+        <div className="flex-1 overflow-hidden text-white min-h-0">
           {loading ? (
             <div className="p-4 space-y-4 mt-4">
               <Skeleton className="h-20 w-full rounded-2xl bg-white/20" />

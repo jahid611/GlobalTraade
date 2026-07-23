@@ -163,8 +163,8 @@ function KanbanColumn({ col, count, children }: any) {
         <span className="text-xs font-bold uppercase tracking-widest">{col.label}</span>
         <span className="text-[10px] font-bold px-2 py-0.5 bg-black/40 rounded-full">{count}</span>
       </div>
-      <div className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-10 rounded-2xl transition-colors ${isOver ? 'bg-primary/5' : ''}`}>
-        <div className="space-y-4 min-h-[140px]">{children}</div>
+      <div className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pb-10 rounded-2xl transition-colors ${isOver ? 'bg-primary/5' : ''}`}>
+        <div className="space-y-4 min-h-[140px] pr-1">{children}</div>
       </div>
     </div>
   );
@@ -522,7 +522,7 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
       </div>
 
       {/* Main Container */}
-      <div className={`flex-1 min-h-0 relative z-10 w-full ${isAnyDragging ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div className="flex-1 min-h-0 relative z-10 w-full overflow-hidden">
         {tasks.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center p-8 text-center">
             <Wand2 className="w-16 h-16 text-primary/20 mb-6" />
