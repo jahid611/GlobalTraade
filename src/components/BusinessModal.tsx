@@ -50,6 +50,10 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportText, setReportText] = useState("");
 
+  // Déblocage 5 € : interface Stripe ouverte directement sur la fiche
+  const [unlockCS, setUnlockCS] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+
   // Animation de déblocage (retour de paiement) : cadenas qui s'ouvre puis révélation
   const [celebrateStage, setCelebrateStage] = useState<'idle' | 'locked' | 'open'>('idle');
   useEffect(() => {
@@ -192,8 +196,6 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
   // Déblocage 5 € : on ouvre l'interface Stripe DIRECTEMENT ici (sans quitter la
   // carte). Après paiement, Stripe renvoie sur cette même fiche avec l'animation.
-  const [unlockCS, setUnlockCS] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
   const goUnlock = async () => {
     if (!user) return navigate('/login');
     setUnlocking(true);
