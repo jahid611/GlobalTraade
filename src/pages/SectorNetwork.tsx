@@ -28,7 +28,7 @@ export default function SectorNetwork() {
     queryKey: ["my-listings", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("listings").select("*").eq("owner_id", user!.id);
+      const { data } = await supabase.from("listings_secure").select("*").eq("owner_id", user!.id);
       return data || [];
     },
   });

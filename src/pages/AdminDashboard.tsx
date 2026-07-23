@@ -37,7 +37,7 @@ export default function AdminDashboard() {
         { data: pendingProjects }
       ] = await Promise.all([
         supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
-        supabase.from('listings').select('*, listing_views(count), favorites(count)').order('created_at', { ascending: false }),
+        supabase.from('listings_secure').select('*').order('created_at', { ascending: false }),
         supabase.from('messages').select('id', { count: 'exact' }),
         supabase.from('listing_views').select('id', { count: 'exact' }),
         supabase.from('favorites').select('id', { count: 'exact' }),
@@ -56,8 +56,8 @@ export default function AdminDashboard() {
         listings: listings?.map(l => ({ 
           ...l, 
           owner: profilesMap.get(l.owner_id),
-          views: l.listing_views?.[0]?.count || 0,
-          favorites: l.favorites?.[0]?.count || 0
+          views: l.view_count || 0,
+          favorites: l.favorites_count || 0
         })) || [],
         reports: reports?.map(r => ({
           ...r,
