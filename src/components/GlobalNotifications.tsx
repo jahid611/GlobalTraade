@@ -78,7 +78,7 @@ export function GlobalNotifications() {
           async (payload) => {
             if (window.location.pathname === '/messages') return;
             const newMessage = payload.new as Record<string, unknown>;
-            const { data: senderData } = await supabase.from('profiles').select('full_name').eq('id', newMessage.sender_id as string).single();
+            const { data: senderData } = await supabase.from('safe_profiles').select('full_name').eq('id', newMessage.sender_id as string).single();
             const senderName = senderData?.full_name || t('notif.a_member');
 
             if (newMessage.type === 'offer') {

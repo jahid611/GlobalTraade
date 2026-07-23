@@ -113,7 +113,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       const projectIds = Array.from(new Set(messages.map(m => m.project_id).filter(Boolean)));
 
       const [profilesRes, listingsRes, projectsRes] = await Promise.all([
-        supabase.from('profiles').select('*').in('id', profileIds),
+        supabase.from('safe_profiles').select('*').in('id', profileIds),
         listingIds.length > 0
           ? supabase.from('listings_secure').select('*').in('id', listingIds)
           : Promise.resolve({ data: [] }),

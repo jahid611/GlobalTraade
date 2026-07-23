@@ -163,7 +163,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
 
       let profilesMap = new Map();
       if (userIds.size > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', Array.from(userIds));
+        const { data: profiles } = await supabase.from('safe_profiles').select('id, full_name, avatar_url').in('id', Array.from(userIds));
         profilesMap = new Map(profiles?.map(p => [p.id, p]));
       }
 

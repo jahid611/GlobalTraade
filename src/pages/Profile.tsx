@@ -73,13 +73,15 @@ export default function Profile() {
     queryFn: async () => {
       if (!targetId) throw new Error("No target ID");
 
-      const [ { data: profileData }, { data: listingsData }, { data: favs }, { count: profileViewsCount } ] = await Promise.all([
+      const [ { data: profileData }, { data: listingsData }, { data: favs } ] = await Promise.all([
         supabase.from('safe_profiles').select('*').eq('id', targetId).single(),
         // Vue masquante : les financiers d'autrui restent bridés côté serveur
         supabase.from('listings_secure').select('*').eq('owner_id', targetId).order('created_at', { ascending: false }),
-        isOwnProfile ? supabase.from('favorites').select('listing_id').eq('user_id', targetId) : Promise.resolve({ data: null }),
-        supabase.from('profile_views').select('id', { count: 'exact' }).eq('profile_id', targetId)
+        isOwnProfile ? supabase.from('favorites').select('listing_id').eq('user_id', targetId) : Promise.resolve({ data: null })
       ]);
+      // Compteur agrégé exposé par safe_profiles (les lignes profile_views ne
+      // sont plus lisibles publiquement — le nombre, jamais qui)
+      const profileViewsCount = profileData?.profile_views_count || 0;
 
       const targetUser = profileData ? {
         id: targetId,

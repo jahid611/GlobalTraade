@@ -140,7 +140,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
   useEffect(() => {
     if (!isOpen || !listing) return;
     const getProfile = async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('id', listing.owner_id).single();
+      const { data } = await supabase.from('safe_profiles').select('*').eq('id', listing.owner_id).single();
       if (data) { 
         setContactProfile(data); 
         setOtherUserOnline(new Date().getTime() - new Date(data.updated_at).getTime() < 300000); 

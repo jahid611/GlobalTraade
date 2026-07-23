@@ -119,7 +119,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
         setOwnerProfile(listing.profiles);
         businessCache[cacheKey].ownerProfile = listing.profiles;
       } else {
-        supabase.from('profiles').select('*').eq('id', listing.owner_id).single().then(({ data }) => { 
+        supabase.from('safe_profiles').select('*').eq('id', listing.owner_id).single().then(({ data }) => {
           if (data) {
             setOwnerProfile(data);
             businessCache[cacheKey].ownerProfile = data;

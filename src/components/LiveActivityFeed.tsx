@@ -51,7 +51,7 @@ export function LiveActivityFeed() {
     senderIds.delete(user.id);
     let pMap = new Map<string, string>();
     if (senderIds.size > 0) {
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', Array.from(senderIds));
+      const { data: profiles } = await supabase.from('safe_profiles').select('id, full_name').in('id', Array.from(senderIds));
       pMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
     }
 
