@@ -12,7 +12,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { BuyerBadges } from '@/components/BuyerBadges';
 import { showError, showSuccess } from '@/utils/toast';
-import { usePlan, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from '@/services/planService';
+import { usePlan, hasContentAccess, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from '@/services/planService';
 import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
 import { INDUSTRIES } from '@/lib/industries';
@@ -88,9 +88,12 @@ export function SearchAdsBoard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // On n'accorde l'accès payant que si le plan est CONFIRMÉ (pas en cours de
-  // rafraîchissement) : évite une fuite avec un cache de plan périmé (downgrade).
-  const hasFullAccess = (ad: any) => user?.id === ad.owner_id || (plan !== 'free' && !planFetching) || !!unlockedIds?.has(ad.id);
+  const hasFullAccess = (ad: any) => hasContentAccess({
+    isOwner: user?.id === ad.owner_id,
+    plan,
+    planFetching,
+    unlocked: !!unlockedIds?.has(ad.id),
+  });
 
   const goUnlock = (ad: any) => {
     if (!user) return navigate('/login');

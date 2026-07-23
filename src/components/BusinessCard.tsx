@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
-import { usePlan } from '@/services/planService';
+import { usePlan, hasContentAccess } from '@/services/planService';
 
 interface BusinessCardProps {
   listing: any;
@@ -27,7 +27,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
   // On masque aussi tant que le plan n'est pas confirmé (évite une fuite avec un
   // cache de plan périmé, ex. juste après un downgrade).
   const { plan, isFetching: planFetching } = usePlan(user?.id);
-  const financialsMasked = !user || (listing.owner_id !== user.id && (plan === 'free' || planFetching));
+  const financialsMasked = !user || !hasContentAccess({ isOwner: listing.owner_id === user.id, plan, planFetching });
   const [isFavorite, setIsFavorite] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [currentImage, setCurrentImage] = useState(0);

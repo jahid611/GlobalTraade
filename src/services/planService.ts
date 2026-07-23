@@ -82,6 +82,26 @@ export function isPaidPlan(plan: PlanType): boolean {
   return plan !== 'free';
 }
 
+// Décision d'accès au contenu payant — SOURCE UNIQUE de vérité, utilisée par
+// toutes les fiches (annonces, projets, recherches). Règle de sécurité : on
+// n'accorde l'accès que si l'information est CONFIRMÉE (pas en cours de
+// rafraîchissement). Ainsi un cache de plan/déblocage périmé (ex. juste après
+// un downgrade ou en changeant de fiche) ne peut jamais laisser fuiter du
+// contenu payant : au pire un bref état verrouillé, jamais l'inverse.
+export function hasContentAccess(params: {
+  isOwner?: boolean;
+  plan: PlanType;
+  planFetching?: boolean;
+  unlocked?: boolean;
+  unlockFetching?: boolean;
+}): boolean {
+  const { isOwner, plan, planFetching, unlocked, unlockFetching } = params;
+  if (isOwner) return true;
+  if (plan !== 'free' && !planFetching) return true;
+  if (unlocked && !unlockFetching) return true;
+  return false;
+}
+
 export function usePlan(userId: string | null | undefined) {
   // Le plan est SENSIBLE (déverrouille du contenu payant) : on le garde frais.
   // staleTime 0 + refetch au montage/focus → un changement de formule (upgrade

@@ -56,6 +56,23 @@ export default defineConfig(() => {
       host: "::",
       port: 8080,
     },
+    build: {
+      // Découpage des grosses dépendances en chunks séparés : chargement initial
+      // plus léger et meilleure mise en cache (une lib mise à jour n'invalide pas
+      // tout le bundle).
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (!id.includes("node_modules")) return;
+            if (id.includes("three") || id.includes("@react-three")) return "three";
+            if (id.includes("framer-motion")) return "framer";
+            if (id.includes("jspdf") || id.includes("html2canvas")) return "pdf";
+            if (id.includes("@tanstack")) return "query";
+            if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          },
+        },
+      },
+    },
     plugins: [...plugins, react()],
     resolve: {
       alias: {

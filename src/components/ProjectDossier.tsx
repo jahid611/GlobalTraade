@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle as SealCheck, LockSimpleOpen, FilePlus, Check, X, DownloadSimple } from 'phosphor-react';
-import { jsPDF } from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { showError, showSuccess } from '@/utils/toast';
@@ -174,7 +173,8 @@ function BusinessPlanModal({ projectId, projectTitle, isOpen, onClose, readOnly 
     setSaving(false);
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
+    const { jsPDF } = await import('jspdf'); // chargé à la demande
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');

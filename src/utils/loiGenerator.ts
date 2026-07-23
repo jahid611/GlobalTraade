@@ -1,6 +1,4 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-
+// jspdf chargé à la demande (voir teaserGenerator).
 interface LOIParams {
   buyerName: string;
   sellerName: string;
@@ -13,7 +11,7 @@ interface LOIParams {
   t: (key: string, opts?: any) => string;
 }
 
-export const generateLOI = ({
+export const generateLOI = async ({
   buyerName,
   sellerName,
   listingName,
@@ -24,6 +22,8 @@ export const generateLOI = ({
   lang,
   t,
 }: LOIParams) => {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   const isFr = lang === "fr";
 

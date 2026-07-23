@@ -1,6 +1,4 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-
+// jspdf chargé à la demande (voir teaserGenerator).
 // Dossier de présentation complet de l'entreprise (premium) :
 // identité, logo intégré, chiffres, structure, atouts immatériels.
 // Contrairement au blind teaser, ce document est nominatif —
@@ -22,6 +20,8 @@ const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
 };
 
 export const generatePremiumPresentation = async (listing: any, t: any, lang: string) => {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   const en = lang === 'en';
 

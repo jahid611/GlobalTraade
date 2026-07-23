@@ -1,7 +1,8 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-
-export const generateBlindTeaser = (listing: any, t: any, lang: string) => {
+// jspdf/jspdf-autotable sont chargés à la demande (au clic) pour ne pas alourdir
+// le bundle initial : ~600 Ko qui ne sont téléchargés qu'au moment de l'export.
+export const generateBlindTeaser = async (listing: any, t: any, lang: string) => {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   
   // Custom Project Name (Obfuscated)

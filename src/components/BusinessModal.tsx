@@ -14,7 +14,7 @@ import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
 import { CompanyScore } from './CompanyScore';
-import { usePlan, UNLOCK_PRICE } from '@/services/planService';
+import { usePlan, hasContentAccess, UNLOCK_PRICE } from '@/services/planService';
 import { useIsUnlocked } from '@/services/unlockService';
 import { startCheckout } from '@/services/stripe';
 import { StripeCheckoutModal } from './StripeCheckoutModal';
@@ -193,9 +193,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   // SÉCURITÉ : l'accès payant n'est accordé que sur un plan CONFIRMÉ (pas en
   // cours de rafraîchissement) — évite tout flash de contenu débloqué avec un
   // cache de plan périmé (ex. juste après un downgrade). Pareil pour le déblocage.
-  const paidAccess = plan !== 'free' && !planFetching;
-  const unlockedAccess = unlocked && !unlockFetching;
-  const hasFullAccess = !!isOwner || paidAccess || unlockedAccess;
+  const hasFullAccess = hasContentAccess({ isOwner: !!isOwner, plan, planFetching, unlocked, unlockFetching });
   // CA / EBITDA : soumis à l'autorisation du vendeur, même avec l'accès complet
   const financialsShared = isOwner || listing.share_financials !== false;
 

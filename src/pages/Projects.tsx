@@ -15,7 +15,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
 import { ProjectAccessSection, VerificationBadge } from "@/components/ProjectDossier";
-import { usePlan, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from "@/services/planService";
+import { usePlan, hasContentAccess, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from "@/services/planService";
 import { useIsUnlocked } from "@/services/unlockService";
 import { isBoosted } from "@/services/boostService";
 import { checkContactQuota, registerContactInitiation } from "@/services/quotaService";
@@ -148,7 +148,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
   // de fetch) → pas de fuite avec un cache périmé (downgrade / changement de fiche).
   const { plan, isFetching: planFetching } = usePlan(userId);
   const { unlocked, isFetching: unlockFetching } = useIsUnlocked(userId, 'project', project.id);
-  const hasFullAccess = userId === project.owner_id || (plan !== 'free' && !planFetching) || (unlocked && !unlockFetching);
+  const hasFullAccess = hasContentAccess({ isOwner: userId === project.owner_id, plan, planFetching, unlocked, unlockFetching });
 
   const goUnlock = () => {
     if (!userId) { window.location.href = "/login"; return; }

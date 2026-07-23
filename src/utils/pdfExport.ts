@@ -1,12 +1,13 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+// jspdf chargé à la demande (voir teaserGenerator).
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 
 const PRIMARY_COLOR: [number, number, number] = [10, 10, 10];
 const ACCENT_COLOR: [number, number, number] = [168, 85, 247]; // Primary purple
 
-export const exportDueDiligenceReport = (tasks: any[], listingName: string, t: any, lang: string) => {
+export const exportDueDiligenceReport = async (tasks: any[], listingName: string, t: any, lang: string) => {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   const dateLocale = lang === 'fr' ? fr : enUS;
   
@@ -74,7 +75,9 @@ export const exportDueDiligenceReport = (tasks: any[], listingName: string, t: a
   doc.save(`Due_Diligence_Report_${listingName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 };
 
-export const exportVDRAuditTrail = (logs: any[], listingName: string, t: any, lang: string) => {
+export const exportVDRAuditTrail = async (logs: any[], listingName: string, t: any, lang: string) => {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   const dateLocale = lang === 'fr' ? fr : enUS;
   
