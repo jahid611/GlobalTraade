@@ -22,10 +22,19 @@ body {
   overscroll-behavior: none;
 }
 
-/* Les fonds (globe 3D, hero) restent plein écran sous l'encoche (immersif) ;
-   ce sont les éléments d'UI fixes (Navbar, bouton retour, barres du bas) qui
-   gèrent eux-mêmes la marge sûre via env(safe-area-inset-*). Voir Navbar.tsx /
-   BackButton.tsx. Les variables --safe-* restent dispo pour d'autres éléments. */
+/* App native uniquement (classe posée par native.ts) : le contenu en flux
+   normal des pages est repoussé dans la zone sûre (sous l'encoche, au-dessus de
+   la barre d'accueil, hors coins arrondis). Les fonds sont en `fixed inset-0`
+   (relatifs au viewport) → ils IGNORENT ces marges et restent plein écran :
+   l'immersion est conservée, mais plus aucun contenu ne touche les bords.
+   Le web (hors app) n'est pas concerné. */
+body.capacitor-native {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
+}
 
 @layer base {
   :root {
