@@ -75,8 +75,9 @@ export default function Profile() {
 
       const [ { data: profileData }, { data: listingsData }, { data: favs }, { count: profileViewsCount } ] = await Promise.all([
         supabase.from('safe_profiles').select('*').eq('id', targetId).single(),
-        supabase.from('listings').select('*, listing_views(count)').eq('owner_id', targetId).order('created_at', { ascending: false }),
-        isOwnProfile ? supabase.from('favorites').select('*, listings(*, listing_views(count))').eq('user_id', targetId) : Promise.resolve({ data: null }),
+        // Vue masquante : les financiers d'autrui restent bridés côté serveur
+        supabase.from('listings_secure').select('*').eq('owner_id', targetId).order('created_at', { ascending: false }),
+        isOwnProfile ? supabase.from('favorites').select('listing_id').eq('user_id', targetId) : Promise.resolve({ data: null }),
         supabase.from('profile_views').select('id', { count: 'exact' }).eq('profile_id', targetId)
       ]);
 
@@ -86,8 +87,12 @@ export default function Profile() {
         user_metadata: { ...profileData }
       } : null;
 
-      const listings = (listingsData || []).map(l => ({ ...l, view_count: l.listing_views?.[0]?.count || 0 }));
-      const myFavorites = (favs || []).map(f => f.listings ? { ...f.listings, view_count: f.listings.listing_views?.[0]?.count || 0 } : null).filter(Boolean);
+      const listings = (listingsData || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
+      const favIds = (favs || []).map((f: any) => f.listing_id).filter(Boolean);
+      const { data: favListings } = favIds.length
+        ? await supabase.from('listings_secure').select('*').in('id', favIds)
+        : { data: [] as any[] };
+      const myFavorites = (favListings || []).map((l: any) => ({ ...l, view_count: l.view_count || 0 }));
 
       let connectionsList: Record<string, any>[] = [];
       const { data: acceptedConns } = await supabase

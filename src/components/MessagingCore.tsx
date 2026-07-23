@@ -114,8 +114,8 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
       const [profilesRes, listingsRes, projectsRes] = await Promise.all([
         supabase.from('profiles').select('*').in('id', profileIds),
-        listingIds.length > 0 
-          ? supabase.from('listings').select('*').in('id', listingIds)
+        listingIds.length > 0
+          ? supabase.from('listings_secure').select('*').in('id', listingIds)
           : Promise.resolve({ data: [] }),
         projectIds.length > 0
           ? supabase.from('projects').select('*').in('id', projectIds)

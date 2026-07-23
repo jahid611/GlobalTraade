@@ -45,7 +45,7 @@ export default function SectorNetwork() {
     enabled: !!user && !!sector,
     queryFn: async () => {
       const { data } = await supabase
-        .from("listings")
+        .from("listings_secure")
         .select("*")
         .eq("industry", sector)
         .neq("owner_id", user!.id)

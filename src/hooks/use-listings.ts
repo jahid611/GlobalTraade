@@ -17,7 +17,9 @@ export function useListings() {
   return useQuery({
     queryKey: ['listings'],
     queryFn: async () => {
-      const { data } = await supabase.from('listings').select('*, listing_views(count)');
+      // Lecture via la vue masquante : les colonnes sensibles (financiers,
+      // descriptif confidentiel) ne sont renvoyées que si l'utilisateur y a droit.
+      const { data } = await supabase.from('listings_secure').select('*');
       if (!data) return [];
 
       const mapped = data
@@ -25,7 +27,7 @@ export function useListings() {
         .filter((l: any) => l.status !== 'inactive')
         .map((l: any) => ({
           ...l,
-          view_count: l.listing_views?.[0]?.count || 0
+          view_count: l.view_count || 0
         }));
 
       // Déclenche le préchargement intelligemment sans bloquer l'interface

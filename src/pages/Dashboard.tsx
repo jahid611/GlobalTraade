@@ -54,18 +54,24 @@ export default function Dashboard() {
         { count: connectionsCount },
         { data: suggested }
       ] = await Promise.all([
-        supabase.from('listings').select('*, listing_views(count)').eq('owner_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('favorites').select('*, listings(*, listing_views(count))').eq('user_id', user.id),
+        // Lectures d'annonces via la vue masquante (colonnes sensibles bridées côté serveur)
+        supabase.from('listings_secure').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('favorites').select('listing_id').eq('user_id', user.id),
         supabase.from('profile_views').select('id', { count: 'exact' }).eq('profile_id', user.id),
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('messages').select('id', { count: 'exact' }).eq('receiver_id', user.id),
         supabase.from('connections').select('id', { count: 'exact' }).or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`).eq('status', 'accepted'),
-        supabase.from('listings').select('*, listing_views(count)').neq('owner_id', user.id).order('created_at', { ascending: false }).limit(10)
+        supabase.from('listings_secure').select('*').neq('owner_id', user.id).order('created_at', { ascending: false }).limit(10)
       ]);
 
-      const myListings = (listings || []).map(l => ({ ...l, view_count: l.listing_views?.[0]?.count || 0 }));
-      const myFavorites = (favs || []).map(f => f.listings ? { ...f.listings, view_count: f.listings.listing_views?.[0]?.count || 0 } : null).filter(Boolean);
-      const allSuggested = (suggested || []).map(l => ({ ...l, view_count: l.listing_views?.[0]?.count || 0 }));
+      const myListings = (listings || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
+      // Les annonces favorites sont récupérées via la vue masquante à partir de leurs ids
+      const favIds = (favs || []).map((f: any) => f.listing_id).filter(Boolean);
+      const { data: favListings } = favIds.length
+        ? await supabase.from('listings_secure').select('*').in('id', favIds)
+        : { data: [] as any[] };
+      const myFavorites = (favListings || []).map((l: any) => ({ ...l, view_count: l.view_count || 0 }));
+      const allSuggested = (suggested || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
 
       return { 
         myListings, 
