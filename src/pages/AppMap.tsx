@@ -18,7 +18,8 @@ import { useUnreadMessages } from '@/hooks/use-unread-messages';
 import { NotificationsMenu } from '@/components/NotificationsMenu';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
-import { usePlan } from '@/services/planService';
+import { usePlan, checkPublicationQuota } from '@/services/planService';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { useTranslation } from 'react-i18next';
 import { showError } from '@/utils/toast';
 import { initNativeFeel } from '@/utils/nativeFeel';
@@ -90,12 +91,16 @@ export default function AppMap() {
     if (listing) setSelectedListing(listing);
   };
 
-  const handleNewCessionClick = () => {
-    if (!user) navigate('/login');
-    else {
-      setListingToEdit(null);
-      setIsFormOpen(true);
+  const [upgrade, setUpgrade] = useState<{ open: boolean; msg?: string }>({ open: false });
+  const handleNewCessionClick = async () => {
+    if (!user) return navigate('/login');
+    const q = await checkPublicationQuota(user.id);
+    if (!q.allowed) {
+      setUpgrade({ open: true, msg: `Vous avez atteint votre limite de ${q.limit} annonce${q.limit > 1 ? 's' : ''} active${q.limit > 1 ? 's' : ''}. Passez en Business pour publier sans limite.` });
+      return;
     }
+    setListingToEdit(null);
+    setIsFormOpen(true);
   };
 
   const handleFormSuccess = async () => {
@@ -337,8 +342,11 @@ export default function AppMap() {
       </div>
 
       <SidebarMessaging isOpen={isSidebarMessagingOpen} onClose={() => setIsSidebarMessagingOpen(false)} user={user} />
-      
-      <ListingForm 
+
+      <UpgradeModal isOpen={upgrade.open} onClose={() => setUpgrade({ open: false })}
+        title="Limite d'annonces atteinte" message={upgrade.msg} />
+
+      <ListingForm
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)} 
         onSuccess={handleFormSuccess} 

@@ -22,6 +22,8 @@ import { SearchAdsBoard } from '@/components/SearchAdsBoard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
 import { isBoosted } from '@/services/boostService';
+import { checkPublicationQuota } from '@/services/planService';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 const DEFAULT_FILTERS: FilterState = {
   industries: [],
@@ -65,6 +67,19 @@ export default function Marketplace() {
 
   const [mode, setMode] = useState<'listings' | 'search_ads'>('listings');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [upgrade, setUpgrade] = useState<{ open: boolean; msg?: string }>({ open: false });
+
+  // Vérifie le quota d'annonces AVANT d'ouvrir le formulaire : si atteint, on
+  // n'ouvre pas — on propose de passer en Business (beau message).
+  const handleCreateListing = async () => {
+    if (!user) return navigate('/login');
+    const q = await checkPublicationQuota(user.id);
+    if (!q.allowed) {
+      setUpgrade({ open: true, msg: `Vous avez atteint votre limite de ${q.limit} annonce${q.limit > 1 ? 's' : ''} active${q.limit > 1 ? 's' : ''}. Passez en Business pour publier sans limite.` });
+      return;
+    }
+    setIsFormOpen(true);
+  };
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -302,7 +317,7 @@ export default function Marketplace() {
       {mode === 'listings' && (
         <div className="fixed bottom-[4vh] sm:bottom-8 right-[4vw] sm:right-8 z-[110]">
           <button
-            onClick={() => user ? setIsFormOpen(true) : navigate('/login')}
+            onClick={handleCreateListing}
             className="w-[14vw] sm:w-16 max-w-[64px] h-[14vw] sm:h-16 max-h-[64px] flex items-center justify-center text-white liquid-glass border border-white/30 rounded-full hover:bg-white/20 transition-all group shadow-[inset_0_4px_20px_rgba(255,255,255,0.3),_0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl hover:scale-105 active:scale-95"
           >
             <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -319,11 +334,14 @@ export default function Marketplace() {
         onReset={() => setFilters(DEFAULT_FILTERS)}
       />
 
-      <ListingForm 
-        isOpen={isFormOpen} 
-        onClose={() => setIsFormOpen(false)} 
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['listings'] })} 
+      <ListingForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['listings'] })}
       />
+
+      <UpgradeModal isOpen={upgrade.open} onClose={() => setUpgrade({ open: false })}
+        title="Limite d'annonces atteinte" message={upgrade.msg} />
     </div>
   );
 }
