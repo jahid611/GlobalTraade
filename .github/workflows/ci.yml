@@ -9,6 +9,11 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      # Les tests unitaires ne touchent jamais le réseau, mais le client
+      # Supabase exige ces variables à l'import : valeurs factices.
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-placeholder-key
     steps:
       - uses: actions/checkout@v4
 
