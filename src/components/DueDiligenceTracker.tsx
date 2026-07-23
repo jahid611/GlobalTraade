@@ -10,6 +10,7 @@ import {
   Shield, Zap, TrendingUp, Landmark, Globe, Smartphone, Truck, ShoppingCart, 
   Coffee, Book, HeartPulse, Camera, Music, Anchor, Box, ChevronLeft
 } from 'lucide-react';
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable, closestCorners } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/components/AuthProvider';
@@ -76,61 +77,37 @@ const FR_TO_KEY: Record<string, string> = {
   "Passif social": "dd.task_soc3"
 };
 
-function KanbanTaskCard({ 
-  task, col, catConfig, isEditing, editTaskTitle, setEditTaskTitle, 
-  handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask, 
-  handleDragEdgeScroll, updateTaskStatus, t, getTaskDisplayTitle, setDraggingCol, setIsAnyDragging
+// Aperçu de la carte pendant le drag (suit le doigt/curseur, non rogné)
+function KanbanCardPreview({ task, catConfig, getTaskDisplayTitle }: any) {
+  return (
+    <div className="bg-[#26242b] border border-white/25 rounded-2xl p-4 shadow-[0_30px_80px_rgba(0,0,0,0.7)] w-[300px] rotate-2 text-white cursor-grabbing">
+      <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${catConfig.color} bg-opacity-10 inline-flex items-center gap-1.5 text-white`}>
+        <catConfig.icon size={12} /> {catConfig.label}
+      </span>
+      <p className="text-[15px] font-light text-white/90 leading-relaxed mt-3">{getTaskDisplayTitle(task.title)}</p>
+    </div>
+  );
+}
+
+function KanbanTaskCard({
+  task, catConfig, isEditing, editTaskTitle, setEditTaskTitle,
+  handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask,
+  t, getTaskDisplayTitle
 }: any) {
-  const dragControls = useDragControls();
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: isEditing });
   const StatusIcon = STATUS_ICON[task.status as string] || Circle;
 
   return (
-    <motion.div 
-      layoutId={`task-${task.id}`}
-      layout
-      drag={!isEditing}
-      dragControls={dragControls}
-      dragListener={false}
-      dragSnapToOrigin
-      dragElastic={0}
-      dragMomentum={false}
-      dragTransition={{ bounceStiffness: 1000, bounceDamping: 60 }}
-      whileDrag={{ 
-        zIndex: 1000, 
-        scale: 1.1, 
-        rotate: 2,
-        boxShadow: "0 50px 100px rgba(0,0,0,0.8)",
-        filter: "brightness(1.1) contrast(1.1)",
-        cursor: "grabbing"
-      }}
-      onDragStart={() => { setDraggingCol(col.status); setIsAnyDragging(true); }}
-      onDrag={(e, info) => handleDragEdgeScroll(info.point.x)}
-      onDragEnd={(e, info) => {
-        setDraggingCol(null);
-        setIsAnyDragging(false);
-        const cols = document.querySelectorAll('.kanban-col');
-        cols.forEach(column => {
-          const rect = column.getBoundingClientRect();
-          if (
-            info.point.x >= (rect.left - 40) && 
-            info.point.x <= (rect.right + 40) && 
-            info.point.y >= (rect.top - 100) && 
-            info.point.y <= (rect.bottom + 100)
-          ) {
-            const targetStatus = column.getAttribute('data-status');
-            if (targetStatus && targetStatus !== task.status) {
-              updateTaskStatus(task.id, targetStatus);
-            }
-          }
-        });
-      }}
-      whileHover={{ scale: 1.02, y: -2, backgroundColor: "rgba(255, 255, 255, 0.08)" }}
-      className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 transition-all group relative shadow-lg text-white"
+    <div
+      ref={setNodeRef}
+      className={`bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 transition-all group relative shadow-lg text-white ${isDragging ? 'opacity-30' : 'hover:bg-white/[0.06]'}`}
     >
       <div className="flex gap-3 items-start">
-        <div 
-          className="mt-1.5 cursor-grab active:cursor-grabbing touch-none p-1.5 -ml-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/30 hover:text-white transition-colors shrink-0"
-          onPointerDown={(e) => { if (!isEditing) dragControls.start(e); }}
+        <div
+          {...listeners}
+          {...attributes}
+          className="mt-1.5 cursor-grab active:cursor-grabbing touch-none select-none p-2 -ml-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0"
+          aria-label="Déplacer"
         >
           <GripVertical size={18} />
         </div>
@@ -173,7 +150,23 @@ function KanbanTaskCard({
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
+  );
+}
+
+// Colonne = zone où l'on peut déposer une tâche (dnd-kit droppable)
+function KanbanColumn({ col, count, children }: any) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.status });
+  return (
+    <div ref={setNodeRef} className="snap-center relative w-[82vw] xs:w-[78vw] sm:w-[340px] shrink-0 h-full flex flex-col">
+      <div className={`p-4 mb-4 flex items-center justify-between rounded-2xl border transition-colors ${col.colorClass} ${isOver ? 'bg-primary/10 border-primary/40' : 'bg-white/5 border-white/5'}`}>
+        <span className="text-xs font-bold uppercase tracking-widest">{col.label}</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 bg-black/40 rounded-full">{count}</span>
+      </div>
+      <div className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-10 rounded-2xl transition-colors ${isOver ? 'bg-primary/5' : ''}`}>
+        <div className="space-y-4 min-h-[140px]">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -196,6 +189,14 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
   const [kanbanFilter, setKanbanFilter] = useState<string | null>(null);
   const [draggingCol, setDraggingCol] = useState<string | null>(null);
   const [isAnyDragging, setIsAnyDragging] = useState(false);
+
+  // Drag-and-drop tactile robuste (dnd-kit) : sur mobile, un appui bref fait
+  // défiler les colonnes ; un appui maintenu (140 ms) saisit la carte.
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 140, tolerance: 8 } }),
+  );
   
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -582,53 +583,57 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
             })}
           </div>
         ) : (
-          <div 
-            ref={kanbanContainerRef}
-            className={`h-full w-full flex flex-row gap-6 px-6 pb-10 custom-scrollbar items-stretch touch-pan-x overscroll-contain ${isAnyDragging ? 'overflow-visible' : 'overflow-x-auto overflow-y-hidden'}`}
-            style={{ WebkitOverflowScrolling: 'touch' }}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={({ active }) => setActiveTask(tasks.find(t => t.id === active.id) || null)}
+            onDragCancel={() => setActiveTask(null)}
+            onDragEnd={({ active, over }) => {
+              setActiveTask(null);
+              if (over) updateTaskStatus(String(active.id), String(over.id));
+            }}
           >
-            {KANBAN_COLUMNS.map((col) => {
-              const colTasks = tasks.filter(t => t.status === col.status);
-              return (
-                <div 
-                  key={col.status}
-                  className={`kanban-col relative w-[85vw] sm:w-[350px] shrink-0 h-full flex flex-col ${isAnyDragging ? 'z-50' : 'z-10'}`}
-                  data-status={col.status}
-                >
-                  <div className={`p-4 mb-4 flex items-center justify-between rounded-2xl bg-white/5 border border-white/5 ${col.colorClass}`}>
-                    <span className="text-xs font-bold uppercase tracking-widest">{col.label}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-black/40 rounded-full">{colTasks.length}</span>
-                  </div>
-                  
-                  <div className={`flex-1 space-y-4 custom-scrollbar pb-10 ${isAnyDragging ? 'overflow-visible' : 'overflow-y-auto overflow-x-hidden'}`}>
-                    <AnimatePresence mode="popLayout">
-                      {colTasks.map(task => (
-                        <KanbanTaskCard 
-                          key={task.id} 
-                          task={task} 
-                          col={col} 
-                          catConfig={getCategoryConfig(task.category)}
-                          isEditing={editingTaskId === task.id}
-                          editTaskTitle={editTaskTitle}
-                          setEditTaskTitle={setEditTaskTitle}
-                          handleUpdateTaskTitle={handleUpdateTaskTitle}
-                          cycleTaskStatus={cycleTaskStatus}
-                          setEditingTaskId={setEditingTaskId}
-                          handleDeleteTask={handleDeleteTask}
-                          handleDragEdgeScroll={handleDragEdgeScroll}
-                          updateTaskStatus={updateTaskStatus}
-                          t={t}
-                          getTaskDisplayTitle={getTaskDisplayTitle}
-                          setDraggingCol={setDraggingCol}
-                          setIsAnyDragging={setIsAnyDragging}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            <div
+              ref={kanbanContainerRef}
+              className="h-full w-full flex flex-row gap-4 sm:gap-6 px-4 sm:px-6 pb-10 custom-scrollbar items-stretch overflow-x-auto overflow-y-hidden snap-x snap-mandatory overscroll-contain"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {KANBAN_COLUMNS.map((col) => {
+                const colTasks = tasks.filter(t => t.status === col.status);
+                return (
+                  <KanbanColumn key={col.status} col={col} count={colTasks.length}>
+                    {colTasks.map(task => (
+                      <KanbanTaskCard
+                        key={task.id}
+                        task={task}
+                        catConfig={getCategoryConfig(task.category)}
+                        isEditing={editingTaskId === task.id}
+                        editTaskTitle={editTaskTitle}
+                        setEditTaskTitle={setEditTaskTitle}
+                        handleUpdateTaskTitle={handleUpdateTaskTitle}
+                        cycleTaskStatus={cycleTaskStatus}
+                        setEditingTaskId={setEditingTaskId}
+                        handleDeleteTask={handleDeleteTask}
+                        t={t}
+                        getTaskDisplayTitle={getTaskDisplayTitle}
+                      />
+                    ))}
+                    {colTasks.length === 0 && (
+                      <div className="text-center text-white/25 text-xs py-10 border border-dashed border-white/10 rounded-2xl">
+                        {t('dd.drop_here', 'Glissez une tâche ici')}
+                      </div>
+                    )}
+                  </KanbanColumn>
+                );
+              })}
+            </div>
+
+            <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.2,0,0,1)' }}>
+              {activeTask && (
+                <KanbanCardPreview task={activeTask} catConfig={getCategoryConfig(activeTask.category)} getTaskDisplayTitle={getTaskDisplayTitle} />
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
 
