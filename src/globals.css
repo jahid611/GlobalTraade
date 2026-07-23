@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── App mobile (Capacitor) : respect de l'encoche / de la barre d'accueil ──
+   Le webview s'étend sous l'encoche (viewport-fit=cover). On expose les marges
+   sûres en variables utilisables partout, et on protège la Navbar et le bouton
+   retour flottant qui sont en position fixe en haut. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Uniquement dans l'app native (classe posée par le bootstrap Capacitor) :
+   pousse le contenu global sous l'encoche sans toucher l'expérience web. */
+body.capacitor-native {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
 @layer base {
   :root {
     --background: 210 40% 98%;
