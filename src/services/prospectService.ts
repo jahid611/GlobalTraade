@@ -161,6 +161,16 @@ export type ProspectionQuota = {
   extra: boolean; // le prochain contact sera facturé 2 €
 };
 
+// Décision pure (testable sans base) : au-delà du forfait, chaque contact
+// supplémentaire est facturé 2 €.
+export function computeProspectionQuota(used: number): ProspectionQuota {
+  return {
+    used,
+    included: PROSPECTION_MONTHLY_INCLUDED,
+    extra: used >= PROSPECTION_MONTHLY_INCLUDED,
+  };
+}
+
 export async function getProspectionQuota(userId: string): Promise<ProspectionQuota> {
   const yearMonth = new Date().toISOString().slice(0, 7);
   const { count } = await supabase
@@ -168,12 +178,7 @@ export async function getProspectionQuota(userId: string): Promise<ProspectionQu
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('year_month', yearMonth);
-  const used = count || 0;
-  return {
-    used,
-    included: PROSPECTION_MONTHLY_INCLUDED,
-    extra: used >= PROSPECTION_MONTHLY_INCLUDED,
-  };
+  return computeProspectionQuota(count || 0);
 }
 
 // Enregistre un contact de prospection (idempotent par entreprise/mois).

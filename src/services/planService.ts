@@ -119,11 +119,22 @@ export function usePlan(userId: string | null | undefined) {
   return { plan: plan as PlanType, rules: PLAN_RULES[plan as PlanType], isFetching, isLoading, ...rest };
 }
 
+// Verrou du code APE en prospection : seul Business (ou admin) prospecte
+// librement. Prudence pendant le rafraîchissement du plan (cache périmé).
+export function isApeLocked(plan: PlanType, planFetching: boolean, isAdmin: boolean | null | undefined): boolean {
+  return (plan !== 'business' || planFetching) && !isAdmin;
+}
+
+// Décision pure du quota de publication (testable sans base).
+export function computePublicationQuota(plan: PlanType, used: number): { allowed: boolean; used: number; limit: number } {
+  const limit = PLAN_RULES[plan].activeListings;
+  return { allowed: used < limit, used, limit };
+}
+
 // Quota d'annonces actives à la publication (annonces + projets +
 // recherches confondus) : free 1, pro 5, business illimité.
 export async function checkPublicationQuota(userId: string): Promise<{ allowed: boolean; used: number; limit: number }> {
   const plan = await getPlan(userId);
-  const limit = PLAN_RULES[plan].activeListings;
 
   const [listings, projects, searchAds] = await Promise.all([
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('owner_id', userId).neq('status', 'inactive'),
@@ -132,5 +143,5 @@ export async function checkPublicationQuota(userId: string): Promise<{ allowed: 
   ]);
 
   const used = (listings.count || 0) + (projects.count || 0) + (searchAds.count || 0);
-  return { allowed: used < limit, used, limit };
+  return computePublicationQuota(plan, used);
 }

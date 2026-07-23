@@ -22,7 +22,7 @@ import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
 import { PricingModal } from "@/components/PricingModal";
 import { useNavigate } from "react-router-dom";
-import { usePlan, PLAN_PRICES, EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
+import { usePlan, isApeLocked, PLAN_PRICES, EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
 import {
   getProspectionQuota, registerProspectionContact, isProspectAlreadyCounted, PROSPECTION_MONTHLY_INCLUDED,
 } from "@/services/prospectService";
@@ -84,8 +84,7 @@ export default function Radar() {
   });
   // Le code APE n'est verrouillé (à son propre secteur) qu'en dessous de
   // Business. En Business (ou admin), on prospecte n'importe quel code APE.
-  // Prudence pendant le rafraîchissement du plan pour ne pas déverrouiller à tort.
-  const apeLocked = (plan !== 'business' || planFetching) && !myProfile?.is_admin;
+  const apeLocked = isApeLocked(plan, planFetching, myProfile?.is_admin);
   const [savingApe, setSavingApe] = useState(false);
 
   useEffect(() => {
