@@ -58,7 +58,7 @@ export default function Radar() {
   const [tab, setTab] = useState<"search" | "crm">("search");
   // Formules : page inaccessible en gratuit ; Pro = recherche + CRM
   // (envoi réservé Business) ; Business = 20 contacts/mois puis 2 €.
-  const { plan, isLoading: planLoading } = usePlan(user?.id);
+  const { plan, isLoading: planLoading, isFetching: planFetching } = usePlan(user?.id);
   const statusLabel = (s: ProspectStatus) => t(`crm.status.${s}`, STATUS_META[s].label);
 
   // --- Recherche ---
@@ -82,7 +82,10 @@ export default function Radar() {
     },
     enabled: !!user?.id,
   });
-  const apeLocked = !!myProfile && !myProfile.is_admin;
+  // Le code APE n'est verrouillé (à son propre secteur) qu'en dessous de
+  // Business. En Business (ou admin), on prospecte n'importe quel code APE.
+  // Prudence pendant le rafraîchissement du plan pour ne pas déverrouiller à tort.
+  const apeLocked = (plan !== 'business' || planFetching) && !myProfile?.is_admin;
   const [savingApe, setSavingApe] = useState(false);
 
   useEffect(() => {

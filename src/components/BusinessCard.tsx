@@ -23,9 +23,11 @@ interface BusinessCardProps {
 export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matchScore }: BusinessCardProps) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
-  // Gratuit : prix demandé + photos seulement — CA/EBITDA masqués sur la carte
-  const { plan } = usePlan(user?.id);
-  const financialsMasked = !user || (plan === 'free' && listing.owner_id !== user.id);
+  // Gratuit : prix demandé + photos seulement — CA/EBITDA masqués sur la carte.
+  // On masque aussi tant que le plan n'est pas confirmé (évite une fuite avec un
+  // cache de plan périmé, ex. juste après un downgrade).
+  const { plan, isFetching: planFetching } = usePlan(user?.id);
+  const financialsMasked = !user || (listing.owner_id !== user.id && (plan === 'free' || planFetching));
   const [isFavorite, setIsFavorite] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [currentImage, setCurrentImage] = useState(0);

@@ -80,7 +80,7 @@ export function SearchAdsBoard() {
   const sectorLabels = (s: string) => toList(s).map((v) => t(`industry.${v}`, { defaultValue: v }) as string);
   const regionLabels = (s: string) => toList(s).map((k) => (REGION_KEYS.has(k) ? regionLabel(k) : k));
 
-  const { plan } = usePlan(user?.id);
+  const { plan, isFetching: planFetching } = usePlan(user?.id);
   const { data: unlockedIds } = useQuery({
     queryKey: ['unlock', user?.id, 'search_ad', 'all'],
     queryFn: () => listUnlockedIds(user!.id, 'search_ad'),
@@ -88,7 +88,9 @@ export function SearchAdsBoard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const hasFullAccess = (ad: any) => plan !== 'free' || user?.id === ad.owner_id || !!unlockedIds?.has(ad.id);
+  // On n'accorde l'accès payant que si le plan est CONFIRMÉ (pas en cours de
+  // rafraîchissement) : évite une fuite avec un cache de plan périmé (downgrade).
+  const hasFullAccess = (ad: any) => user?.id === ad.owner_id || (plan !== 'free' && !planFetching) || !!unlockedIds?.has(ad.id);
 
   const goUnlock = (ad: any) => {
     if (!user) return navigate('/login');

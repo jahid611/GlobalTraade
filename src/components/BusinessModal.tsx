@@ -185,12 +185,17 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
   // Formules : en gratuit on ne voit que le prix demandé et les photos.
   // Accès complet = annonce débloquée à 5 €, formule Pro/Business, ou propriétaire.
-  const { plan } = usePlan(user?.id);
-  const { unlocked } = useIsUnlocked(user?.id, 'listing', listing?.id);
+  const { plan, isFetching: planFetching } = usePlan(user?.id);
+  const { unlocked, isFetching: unlockFetching } = useIsUnlocked(user?.id, 'listing', listing?.id);
 
   if (!listing) return null;
   const isOwner = user && listing.owner_id === user.id;
-  const hasFullAccess = isOwner || plan !== 'free' || unlocked;
+  // SÉCURITÉ : l'accès payant n'est accordé que sur un plan CONFIRMÉ (pas en
+  // cours de rafraîchissement) — évite tout flash de contenu débloqué avec un
+  // cache de plan périmé (ex. juste après un downgrade). Pareil pour le déblocage.
+  const paidAccess = plan !== 'free' && !planFetching;
+  const unlockedAccess = unlocked && !unlockFetching;
+  const hasFullAccess = !!isOwner || paidAccess || unlockedAccess;
   // CA / EBITDA : soumis à l'autorisation du vendeur, même avec l'accès complet
   const financialsShared = isOwner || listing.share_financials !== false;
 

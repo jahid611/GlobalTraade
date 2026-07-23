@@ -143,10 +143,12 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
   const [message, setMessage] = useState("");
   const stage = STAGE_META[project.stage] || { key: project.stage, color: "text-white/60", Icon: Nut };
 
-  // Bridage : accès complet = projet débloqué (5 €), formule Pro/Business ou porteur
-  const { plan } = usePlan(userId);
-  const { unlocked } = useIsUnlocked(userId, 'project', project.id);
-  const hasFullAccess = userId === project.owner_id || plan !== 'free' || unlocked;
+  // Bridage : accès complet = projet débloqué (5 €), formule Pro/Business ou porteur.
+  // Accès payant accordé seulement si le plan/déblocage est confirmé (pas en cours
+  // de fetch) → pas de fuite avec un cache périmé (downgrade / changement de fiche).
+  const { plan, isFetching: planFetching } = usePlan(userId);
+  const { unlocked, isFetching: unlockFetching } = useIsUnlocked(userId, 'project', project.id);
+  const hasFullAccess = userId === project.owner_id || (plan !== 'free' && !planFetching) || (unlocked && !unlockFetching);
 
   const goUnlock = () => {
     if (!userId) { window.location.href = "/login"; return; }

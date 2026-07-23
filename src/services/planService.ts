@@ -83,13 +83,20 @@ export function isPaidPlan(plan: PlanType): boolean {
 }
 
 export function usePlan(userId: string | null | undefined) {
-  const { data: plan = 'free', ...rest } = useQuery({
+  // Le plan est SENSIBLE (déverrouille du contenu payant) : on le garde frais.
+  // staleTime 0 + refetch au montage/focus → un changement de formule (upgrade
+  // OU downgrade) est pris en compte immédiatement, sans fenêtre de cache périmé.
+  const { data: plan = 'free', isFetching, isLoading, ...rest } = useQuery({
     queryKey: ['viewer-plan-v3', userId],
     queryFn: () => getPlan(userId),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    gcTime: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
-  return { plan: plan as PlanType, rules: PLAN_RULES[plan as PlanType], ...rest };
+  return { plan: plan as PlanType, rules: PLAN_RULES[plan as PlanType], isFetching, isLoading, ...rest };
 }
 
 // Quota d'annonces actives à la publication (annonces + projets +
