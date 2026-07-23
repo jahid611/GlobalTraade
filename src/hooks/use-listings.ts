@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Listing } from '@/types/domain';
 
 // Préchargement silencieux des images en arrière-plan
 // Limité aux 50 premières pour ne pas saturer la RAM ou la connexion
-function preloadImages(listings: any[]) {
+function preloadImages(listings: Listing[]) {
   const topListings = listings.filter(l => l.logo_url).slice(0, 50);
   topListings.forEach(l => {
     const img = new Image();
@@ -20,12 +21,12 @@ export function useListings() {
       // Lecture via la vue masquante : les colonnes sensibles (financiers,
       // descriptif confidentiel) ne sont renvoyées que si l'utilisateur y a droit.
       const { data } = await supabase.from('listings_secure').select('*');
-      if (!data) return [];
+      if (!data) return [] as Listing[];
 
-      const mapped = data
+      const mapped = (data as Listing[])
         // Les annonces en pause ne sont plus visibles publiquement
-        .filter((l: any) => l.status !== 'inactive')
-        .map((l: any) => ({
+        .filter((l) => l.status !== 'inactive')
+        .map((l) => ({
           ...l,
           view_count: l.view_count || 0
         }));

@@ -2,28 +2,10 @@ import { defineConfig } from "vite";
 import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import fs from "fs";
-import { execSync } from "child_process";
 
-// --- SCRIPT AUTOMATIQUE POUR PURGER LA MÉMOIRE GIT ---
-// Ce script va effacer l'historique Git qui contient la vidéo trop lourde,
-// tout en conservant vos fichiers actuels intacts.
-try {
-  if (fs.existsSync('.git') && !fs.existsSync('.git-cleaned')) {
-    console.log("Purge de l'historique Git en cours...");
-    execSync('git checkout --orphan temp_clean_branch');
-    execSync('git add .');
-    execSync('git config user.email "bot@dyad.sh" || true');
-    execSync('git config user.name "Dyad Bot" || true');
-    execSync('git commit -m "Clean history without large files" || true');
-    execSync('git branch -M main');
-    fs.writeFileSync('.git-cleaned', 'done');
-    console.log("Historique Git purgé avec succès !");
-  }
-} catch (e) {
-  console.error("Erreur lors de la purge Git :", e);
-}
-// -----------------------------------------------------
+// NOTE : l'ancien script de « purge de l'historique git » (execSync au chargement
+// de la config) a été retiré : sur un clone frais, sans le marqueur .git-cleaned,
+// il réécrivait tout l'historique au premier build. Plus jamais ça.
 
 export default defineConfig(() => {
   // Récupération du plugin tagger de Dyad

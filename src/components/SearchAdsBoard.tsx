@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { BuyerBadges } from '@/components/BuyerBadges';
 import { showError, showSuccess } from '@/utils/toast';
 import { usePlan, hasContentAccess, checkPublicationQuota, UNLOCK_PRICE, BOOST_PRICE } from '@/services/planService';
+import type { SearchAd } from '@/types/domain';
 import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
 import { INDUSTRIES } from '@/lib/industries';
@@ -88,7 +89,7 @@ export function SearchAdsBoard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const hasFullAccess = (ad: any) => hasContentAccess({
+  const hasFullAccess = (ad: SearchAd) => hasContentAccess({
     isOwner: user?.id === ad.owner_id,
     plan,
     planFetching,

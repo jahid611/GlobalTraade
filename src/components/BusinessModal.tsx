@@ -15,6 +15,7 @@ import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
 import { CompanyScore } from './CompanyScore';
 import { usePlan, hasContentAccess, UNLOCK_PRICE } from '@/services/planService';
+import type { Listing } from '@/types/domain';
 import { useIsUnlocked } from '@/services/unlockService';
 import { startCheckout } from '@/services/stripe';
 import { StripeCheckoutModal } from './StripeCheckoutModal';
@@ -23,11 +24,11 @@ import { StripeCheckoutModal } from './StripeCheckoutModal';
 const businessCache: Record<string, any> = {};
 
 interface BusinessModalProps {
-  listing: any;
+  listing: Listing | null;
   user: any;
   onClose: () => void;
-  onContact: (listing: any, need?: any) => void;
-  onEdit?: (listing: any) => void;
+  onContact: (listing: Listing, need?: string) => void;
+  onEdit?: (listing: Listing) => void;
   celebrate?: boolean; // joue l'animation de déblocage à l'ouverture (retour de paiement)
 }
 

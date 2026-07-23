@@ -10,9 +10,10 @@ import { showError } from '@/utils/toast';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { usePlan, hasContentAccess } from '@/services/planService';
+import type { Listing } from '@/types/domain';
 
 interface BusinessCardProps {
-  listing: any;
+  listing: Listing;
   onClick: () => void;
   variant?: 'default' | 'dashboard';
   actions?: React.ReactNode;
