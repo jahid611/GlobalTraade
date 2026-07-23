@@ -16,6 +16,8 @@ import { OfferComparator } from './OfferComparator';
 import { CompanyScore } from './CompanyScore';
 import { usePlan, UNLOCK_PRICE } from '@/services/planService';
 import { useIsUnlocked } from '@/services/unlockService';
+import { startCheckout } from '@/services/stripe';
+import { StripeCheckoutModal } from './StripeCheckoutModal';
 
 
 const businessCache: Record<string, any> = {};
@@ -188,9 +190,23 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   // CA / EBITDA : soumis à l'autorisation du vendeur, même avec l'accès complet
   const financialsShared = isOwner || listing.share_financials !== false;
 
-  const goUnlock = () => {
+  // Déblocage 5 € : on ouvre l'interface Stripe DIRECTEMENT ici (sans quitter la
+  // carte). Après paiement, Stripe renvoie sur cette même fiche avec l'animation.
+  const [unlockCS, setUnlockCS] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const goUnlock = async () => {
     if (!user) return navigate('/login');
-    navigate(`/payment?unlock=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`);
+    setUnlocking(true);
+    const r = await startCheckout({
+      kind: 'unlock',
+      target: { type: 'listing', id: listing.id, name: listing.name || '' },
+      returnPath: `/app?focus=${listing.id}&celebrate=1`,
+    });
+    setUnlocking(false);
+    if (r.ok && r.clientSecret) setUnlockCS(r.clientSecret);
+    else showError(r.notConfigured
+      ? t('quota.stripe_soon', 'Le paiement en ligne sera bientôt disponible.')
+      : (r.error || t('msg.error', 'Une erreur est survenue.')));
   };
 
   const LockedGate = ({ children }: { children: React.ReactNode }) => (
@@ -662,13 +678,16 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
         </div>
       )}
 
-      <DataRoomPanel 
+      <DataRoomPanel
         key="data-room"
-        isOpen={isDataRoomOpen} 
-        onClose={() => setIsDataRoomOpen(false)} 
-        listing={listing} 
-        user={user} 
+        isOpen={isDataRoomOpen}
+        onClose={() => setIsDataRoomOpen(false)}
+        listing={listing}
+        user={user}
       />
+
+      {/* Interface Stripe (déblocage 5 €) affichée directement sur la fiche */}
+      {unlockCS && <StripeCheckoutModal clientSecret={unlockCS} onClose={() => setUnlockCS(null)} />}
 
       {/* Report Modal */}
       <AnimatePresence>
