@@ -206,52 +206,58 @@ function BusinessPlanModal({ projectId, projectTitle, isOpen, onClose, readOnly 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center sm:p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 bg-[#2b2a2f]/85 backdrop-blur-md" onClick={onClose} />
-          <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative liquid-glass-heavy border border-white/20 rounded-[2rem] p-8 sm:p-10 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <h3 className="text-2xl font-light text-white mb-1">{t('pp.bp_title', 'Business plan')}</h3>
-                <p className="text-sm text-white/50 font-light">{projectTitle}</p>
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 1 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30 }}
+            className="relative liquid-glass-heavy border border-white/20 rounded-t-[2rem] sm:rounded-[2rem] w-full sm:max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[calc(100dvh-env(safe-area-inset-top,0px)-1rem)] sm:max-h-[90vh]">
+            {/* En-tête FIGÉ : titre + PDF + fermer (toujours accessibles) */}
+            <div className="flex items-center justify-between gap-3 px-6 sm:px-8 pt-6 pb-4 shrink-0 border-b border-white/10">
+              <div className="min-w-0">
+                <h3 className="text-xl sm:text-2xl font-light text-white mb-0.5 truncate">{t('pp.bp_title', 'Business plan')}</h3>
+                <p className="text-sm text-white/50 font-light truncate">{projectTitle}</p>
               </div>
-              <button onClick={exportPdf} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 border border-white/15 text-xs text-white hover:bg-white/20 transition-colors outline-none shrink-0">
-                <DownloadSimple className="w-4 h-4" /> PDF
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={exportPdf} className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full bg-white/10 border border-white/15 text-xs text-white hover:bg-white/20 transition-colors outline-none">
+                  <DownloadSimple className="w-4 h-4" /> PDF
+                </button>
+                <button onClick={onClose} aria-label={t('dash.cancel', 'Fermer')} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 border border-white/15 text-white/70 hover:text-white hover:bg-white/20 transition-colors outline-none">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-5">
-              {BP_SECTIONS.map(section => (
-                <div key={section}>
-                  <label className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block font-medium">
-                    {t(`pp.bp_${section}`)}
-                  </label>
-                  {readOnly ? (
-                    <p className="text-sm text-white/70 font-light whitespace-pre-wrap bg-white/5 rounded-2xl px-4 py-3 min-h-[48px]">
-                      {plan[section] || '—'}
-                    </p>
-                  ) : (
-                    <textarea
-                      value={plan[section] || ''}
-                      onChange={(e) => setDraft({ ...plan, [section]: e.target.value })}
-                      rows={section === 'resume' ? 3 : 4}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50 resize-none"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* Corps défilant */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+              <div className="space-y-5">
+                {BP_SECTIONS.map(section => (
+                  <div key={section}>
+                    <label className="text-[10px] uppercase tracking-widest text-white/50 mb-2 block font-medium">
+                      {t(`pp.bp_${section}`)}
+                    </label>
+                    {readOnly ? (
+                      <p className="text-sm text-white/70 font-light whitespace-pre-wrap bg-white/5 rounded-2xl px-4 py-3 min-h-[48px]">
+                        {plan[section] || '—'}
+                      </p>
+                    ) : (
+                      <textarea
+                        value={plan[section] || ''}
+                        onChange={(e) => setDraft({ ...plan, [section]: e.target.value })}
+                        rows={section === 'resume' ? 3 : 4}
+                        placeholder={t('pp.bp_placeholder', 'À compléter…')}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50 resize-none placeholder-white/25"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex flex-col gap-3 mt-8">
               {!readOnly && (
-                <Button onClick={save} disabled={saving} className="w-full rounded-full h-12 bg-primary hover:bg-primary/90 text-white font-medium outline-none [text-shadow:none]">
+                <Button onClick={save} disabled={saving} className="w-full rounded-full h-12 bg-primary hover:bg-primary/90 text-white font-medium outline-none [text-shadow:none] mt-8">
                   {t('pp.bp_save', 'Enregistrer')}
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="w-full rounded-full h-12 text-white hover:bg-white/10 outline-none [text-shadow:none]">
-                {t('dash.cancel', 'Fermer')}
-              </Button>
             </div>
           </motion.div>
         </div>
