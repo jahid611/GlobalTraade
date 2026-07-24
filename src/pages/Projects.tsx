@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, FunnelSimple, X, Money, Users, Package, Brain, Globe, MapPin, Calendar, Eye, Heart, ArrowRight, Fire, Warning, Lightbulb, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut, Wrench, PencilSimple, Trash } from "phosphor-react";
+import { Plus, FunnelSimple, X, Money, Users, Package, Brain, Globe, MapPin, Calendar, Eye, Heart, ArrowRight, Fire, Warning, Lightbulb, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut, Wrench, PencilSimple, Trash, ChatCircle } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
@@ -172,7 +172,10 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
   );
 
   const handleInterest = async () => {
-    if (!userId || !selectedHelp) return;
+    if (!userId) return;
+    // Le type d'aide est optionnel : par défaut, on prend le premier proposé par
+    // le projet (ou "expertise") pour que « Contacter le porteur » marche en 1 clic.
+    const help: HelpType = selectedHelp ?? (project.help_types?.[0] as HelpType) ?? 'expertise';
     setSending(true);
     try {
       // Mise en relation = prise de contact (quota Pro 20/mois, Business illimité)
@@ -183,13 +186,13 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
         setSending(false);
         return;
       }
-      await expressInterest(project, userId, selectedHelp, message, {
+      await expressInterest(project, userId, help, message, {
         title: t('hub.msg_title'),
         project: t('hub.msg_project'),
         type: t('hub.msg_help_type'),
         intro: t('hub.msg_intro'),
         defaultMsg: t('hub.msg_default'),
-        helpValue: t(HELP_META[selectedHelp].key + "_full") // use the _full version for the message
+        helpValue: t(HELP_META[help].key + "_full") // use the _full version for the message
       });
       registerContactInitiation(userId, project.owner_id).catch(() => {});
       showSuccess(t('hub.interest_sent'));
@@ -318,7 +321,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
           {/* Manifester intérêt */}
           {userId !== project.owner_id && (
             <div className="border-t border-white/10 pt-6 space-y-3">
-              <h4 className="text-white font-medium">{t('hub.manifest_interest')}</h4>
+              <h4 className="text-white font-medium">{t('hub.contact_owner', 'Contacter le porteur')}</h4>
               {userId && !hasFullAccess ? (
                 <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 text-center">
                   <p className="text-white/60 text-sm mb-4">
@@ -329,27 +332,31 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
                   </Button>
                 </div>
               ) : userId ? (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {project.help_types.map(h => {
-                      const m = HELP_META[h];
-                      if (!m) return null;
-                      return (
-                        <button key={h} onClick={()=>setSelectedHelp(selectedHelp===h?null:h)}
-                          className={`flex items-center gap-2 text-xs px-4 py-2 rounded-full border transition-all ${selectedHelp===h?`${m.bg} ${m.color} scale-105`:"bg-white/5 border-white/10 text-white/60 hover:bg-white/10"}`}>
-                          <m.Icon className="w-3.5 h-3.5"/>{t(m.key)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedHelp && (
-                    <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} className="space-y-3">
-                      <textarea className="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 text-sm resize-none min-h-[80px]"
-                        placeholder={t('hub.placeholder_interest')} value={message} onChange={e=>setMessage(e.target.value)}/>
-                      <Button onClick={handleInterest} disabled={sending} className="w-full rounded-full bg-primary hover:bg-primary/90 text-white h-12 font-medium">{sending?t('hub.sending'):t('hub.send_interest')}</Button>
-                    </motion.div>
+                <div className="space-y-3">
+                  {/* Type d'aide : optionnel, pour préciser sa proposition */}
+                  {project.help_types.length > 0 && (
+                    <>
+                      <p className="text-white/40 text-[11px] uppercase tracking-widest font-medium">{t('hub.help_type_optional', "Type d'aide (optionnel)")}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {project.help_types.map(h => {
+                          const m = HELP_META[h];
+                          if (!m) return null;
+                          return (
+                            <button key={h} onClick={()=>setSelectedHelp(selectedHelp===h?null:h)}
+                              className={`flex items-center gap-2 text-xs px-4 py-2 rounded-full border transition-all ${selectedHelp===h?`${m.bg} ${m.color} scale-105`:"bg-white/5 border-white/10 text-white/60 hover:bg-white/10"}`}>
+                              <m.Icon className="w-3.5 h-3.5"/>{t(m.key)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
-                </>
+                  <textarea className="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 text-sm resize-none min-h-[80px]"
+                    placeholder={t('hub.placeholder_interest')} value={message} onChange={e=>setMessage(e.target.value)}/>
+                  <Button onClick={handleInterest} disabled={sending} className="w-full rounded-full bg-primary hover:bg-primary/90 text-white h-12 font-medium">
+                    <ChatCircle className="w-4 h-4 mr-2" weight="fill" />{sending?t('hub.sending'):t('hub.contact_owner', 'Contacter le porteur')}
+                  </Button>
+                </div>
               ) : (
                 <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 text-center">
                   <p className="text-white/60 text-sm mb-4">{t('hub.login_required')}</p>
