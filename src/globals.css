@@ -36,6 +36,24 @@ body.capacitor-native {
   box-sizing: border-box;
 }
 
+/* Pages plein écran (messagerie, carte /app) : elles gèrent elles-mêmes leurs
+   marges. On annule la marge du body pour qu'elles reprennent tout l'écran
+   (fond immersif), puis elles insèrent leur contenu dans la zone sûre en interne
+   (padding safe-area + hauteur de navbar). Évite le débordement du bas d'un
+   h-100dvh causé par la marge du body. */
+body.capacitor-native .full-screen-page {
+  margin-top: calc(-1 * env(safe-area-inset-top));
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom));
+  margin-left: calc(-1 * env(safe-area-inset-left));
+  margin-right: calc(-1 * env(safe-area-inset-right));
+}
+
+/* Réserve d'espace pour la navbar flottante, utilisable par les pages
+   plein écran pour que leur contenu commence SOUS la navbar. */
+:root {
+  --nav-clearance: calc(env(safe-area-inset-top, 0px) + 5.5rem);
+}
+
 @layer base {
   :root {
     --background: 210 40% 98%;

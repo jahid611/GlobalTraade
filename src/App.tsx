@@ -10,7 +10,6 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
-import { BackButton } from "@/components/BackButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingGate } from "@/components/OnboardingModal";
 
@@ -76,7 +75,7 @@ const App = () => (
             <Elements stripe={stripePromise}>
               <BrowserRouter>
                 <GlobalNotifications />
-                <BackButton />
+                {/* La flèche de retour est désormais intégrée à la Navbar (à droite du logo) */}
                 <OnboardingGate />
                 <HotToaster position="top-right" />
                 <SonnerToaster position="bottom-right" />

@@ -213,7 +213,7 @@ export default function AppMap() {
   );
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-500 text-white">
+    <div className="full-screen-page relative w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-500 text-white">
       <AnimatePresence>
         {!isOverlayOpen && (
           <div className="fixed top-6 left-0 w-full z-[100] pointer-events-none h-16">

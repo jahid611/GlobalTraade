@@ -20,6 +20,7 @@ import {
   UsersThree,
   Crosshair,
   Briefcase,
+  ArrowLeft,
 } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -212,6 +213,18 @@ export function Navbar() {
                   {t("nav.home")}
                 </span>
               </div>
+
+              {/* Flèche de retour intégrée à la navbar (à droite du logo),
+                  masquée là où elle n'a pas de sens (accueil, login, carte). */}
+              {!["/", "/login", "/app"].includes(location.pathname) && (
+                <button
+                  onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))}
+                  aria-label={t("nav.back", "Retour")}
+                  className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <ArrowLeft className="w-[18px] h-[18px]" weight="bold" />
+                </button>
+              )}
 
               <div className="hidden md:flex items-center gap-1 lg:gap-2">
 
