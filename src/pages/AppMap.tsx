@@ -216,7 +216,7 @@ export default function AppMap() {
     <div className="full-screen-page relative w-full h-screen overflow-hidden bg-background text-foreground transition-colors duration-500 text-white">
       <AnimatePresence>
         {!isOverlayOpen && (
-          <div className="fixed top-6 left-0 w-full z-[100] pointer-events-none h-16">
+          <div className="fixed top-[calc(env(safe-area-inset-top,0px)+1.5rem)] left-0 w-full z-[100] pointer-events-none h-16">
             
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute left-2 sm:left-6 top-0 flex items-center gap-1.5 sm:gap-3 pointer-events-auto">
               <Link to="/marketplace">
@@ -290,7 +290,7 @@ export default function AppMap() {
         />
       </div>
 
-      <div className="absolute top-24 left-6 z-50 flex flex-col gap-4 pointer-events-none">
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+6rem)] left-6 z-50 flex flex-col gap-4 pointer-events-none">
         <div className="pointer-events-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -332,7 +332,7 @@ export default function AppMap() {
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-4 sm:left-8 z-10 pointer-events-auto">
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-4 sm:left-8 z-10 pointer-events-auto">
         <button 
           onClick={handleNewCessionClick} 
           className="w-14 h-14 flex items-center justify-center text-white transition-all duration-300 group relative liquid-glass bg-black/40 dark:bg-black/30 rounded-full border border-white/40 dark:border-white/20 hover:border-white/60 hover:scale-105 shadow-xl"

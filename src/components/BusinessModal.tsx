@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +45,12 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   const [isFavorite, setIsFavorite] = useState(businessCache[cacheKey]?.isFavorite || false);
   const [hasReported, setHasReported] = useState(false);
   const dragControls = useDragControls();
+  // Glisser-pour-fermer depuis n'importe où dans la fiche (façon sheet iOS) :
+  // le drag ne démarre que si le contenu est en HAUT du scroll et que le doigt
+  // descend — sinon le défilement normal reste possible.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const dismissing = useRef(false);
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isDataRoomOpen, setIsDataRoomOpen] = useState(false);
@@ -267,8 +273,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
           dragListener={false}
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0, bottom: 1 }} // Permet de tirer vers le bas de manière ultra fluide
-          onDragEnd={(e, info) => { if (isMobile && (info.offset.y > 120 || info.velocity.y > 400)) onClose(); }}
-          className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl"
+          onDragEnd={(e, info) => { dismissing.current = false; if (isMobile && (info.offset.y > 120 || info.velocity.y > 400)) onClose(); }}
+          className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.75rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl"
         >
           {/* Animation de déblocage (cadenas qui s'ouvre + révélation) */}
           <AnimatePresence>
@@ -339,7 +345,19 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
+          <div
+            ref={scrollRef}
+            onPointerDown={(e) => { touchStartY.current = e.clientY; dismissing.current = false; }}
+            onPointerMove={(e) => {
+              if (!isMobile || dismissing.current) return;
+              const el = scrollRef.current;
+              if (el && el.scrollTop <= 0 && e.clientY - touchStartY.current > 6) {
+                dismissing.current = true;
+                dragControls.start(e);
+              }
+            }}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
             <div className="p-6 sm:p-10 md:p-12 pt-12 sm:pt-12 relative z-10">
               
               <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-8 mb-10 sm:mb-14">
