@@ -65,12 +65,30 @@ export default function AppMap() {
       setFocusListingId(focus);
       const timer = setTimeout(() => {
         handleSelectListing(focus);
-        if (celeb) setCelebrateUnlock(true);
+        if (celeb) {
+          setCelebrateUnlock(true);
+          // Le déblocage vient d'être écrit côté serveur : on rafraîchit le feed
+          // pour récupérer les financiers désormais visibles (l'effet de
+          // synchronisation ci-dessous met alors la fiche ouverte à jour → le
+          // simulateur LBO se déverrouille sans refresh manuel).
+          refetch();
+        }
       }, 700);
       ['focus', 'celebrate', 'session_id', 'success'].forEach((k) => searchParams.delete(k));
       setSearchParams(searchParams, { replace: true });
       return () => clearTimeout(timer);
     }
+  }, [listings]);
+
+  // Garde la fiche ouverte synchronisée avec le feed : quand les données
+  // rafraîchissent (ex. financiers qui apparaissent après un déblocage), la
+  // fiche affichée reçoit l'objet à jour au lieu d'un snapshot périmé.
+  useEffect(() => {
+    setSelectedListing((cur: any) => {
+      if (!cur) return cur;
+      const fresh = listings.find(l => l.id === cur.id);
+      return fresh || cur;
+    });
   }, [listings]);
 
   const hasUnread = useUnreadMessages(user?.id);

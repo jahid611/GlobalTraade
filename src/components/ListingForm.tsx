@@ -449,14 +449,21 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
                         </div>
                         <span className="text-sm font-light text-white/70">{t('form.hide_siret')}</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-4">
-                        <div
-                          onClick={() => setValue('share_financials', !shareFinancials)}
-                          className={`w-10 h-5 rounded-full transition-colors flex items-center px-1 cursor-pointer ${shareFinancials ? 'bg-primary' : 'bg-white/20'}`}
-                        >
-                          <motion.div animate={{ x: shareFinancials ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full" />
+                      <div className="mt-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            onClick={() => setValue('share_financials', !shareFinancials)}
+                            className={`w-10 h-5 rounded-full transition-colors flex items-center px-1 cursor-pointer shrink-0 ${shareFinancials ? 'bg-primary' : 'bg-white/20'}`}
+                          >
+                            <motion.div animate={{ x: shareFinancials ? 20 : 0 }} className="w-3 h-3 bg-white rounded-full" />
+                          </div>
+                          <span className="text-sm font-light text-white/70">{t('form.share_financials', 'Afficher mon CA et mon EBITDA aux acheteurs ayant débloqué la fiche (5 €, Pro ou Business)')}</span>
                         </div>
-                        <span className="text-sm font-light text-white/70">{t('form.share_financials', 'Partager le CA et l\'EBITDA avec les membres ayant l\'accès complet')}</span>
+                        <p className="text-xs font-light text-white/40 mt-1.5 ml-[52px]">
+                          {shareFinancials
+                            ? t('form.share_financials_on', 'Vos chiffres restent invisibles pour les visiteurs gratuits ; seuls les acheteurs avec accès complet les voient.')
+                            : t('form.share_financials_off', 'Désactivé : personne ne voit vos chiffres sur la plateforme (ni le simulateur LBO) — vous les communiquez vous-même à qui vous voulez.')}
+                        </p>
                       </div>
                     </div>
                     <div>
