@@ -537,11 +537,46 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                 </div>
               )}
 
-              {/* Simulateur de financement — inclus dans le déblocage 5 € */}
-              {user && hasFullAccess && listing.price > 0 && listing.ebitda && (
+              {/* Simulateur de financement (LBO) — VISIBLE par tous quand le vendeur
+                  partage ses financiers, mais UTILISABLE seulement après déblocage
+                  5 € / plan Pro-Business / propriétaire. Si le vendeur ne partage pas
+                  ses financiers, personne ne le voit (sinon un gratuit paierait pour
+                  rien). Tout le monde voit donc la même fiche. */}
+              {listing.price > 0 && financialsShared && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                  <DealCalculator listing={listing} />
+                  {hasFullAccess && listing.ebitda ? (
+                    <DealCalculator listing={listing} />
+                  ) : (
+                    <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                      {/* Aperçu flouté (pas de vraies données) */}
+                      <div className="blur-md select-none pointer-events-none p-6 space-y-4 opacity-60">
+                        <div className="h-6 w-56 bg-white/15 rounded-full" />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="h-24 bg-white/10 rounded-2xl" />
+                          <div className="h-24 bg-white/10 rounded-2xl" />
+                        </div>
+                        <div className="h-3 w-full bg-white/10 rounded-full" />
+                        <div className="h-3 w-2/3 bg-white/10 rounded-full" />
+                      </div>
+                      {/* Overlay verrouillé */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-6 text-center">
+                        <div className="w-11 h-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-primary" />
+                        </div>
+                        <p className="text-sm text-white font-medium">{t('modal.lbo_title', 'Simulateur de financement (LBO)')}</p>
+                        <p className="text-xs text-white/60 max-w-xs font-light">{t('modal.lbo_locked', `Débloquez l'annonce pour ${UNLOCK_PRICE} € et simulez le montage (dette, apport, TRI).`)}</p>
+                        <div className="flex flex-wrap justify-center gap-3 mt-1">
+                          <button onClick={goUnlock} disabled={unlocking} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
+                            {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                          </button>
+                          <button onClick={() => navigate('/payment')} className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
+                            {t('quota.see_plans', 'Voir les formules')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
