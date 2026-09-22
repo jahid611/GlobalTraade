@@ -68,6 +68,8 @@ export default function Settings() {
   const [contactEmail, setContactEmail] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
+  // Résumé email quotidien des nouvelles annonces correspondant aux critères
+  const [emailAlerts, setEmailAlerts] = useState(true);
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [initialData, setInitialData] = useState<any>(null);
@@ -111,6 +113,7 @@ export default function Settings() {
         contact_email: profile?.contact_email || user.email || "",
         show_email: profile?.show_email || false, 
         show_phone: profile?.show_phone || false, 
+        email_alerts: profile?.email_alerts !== false,
         avatar_url: profile?.avatar_url || metadata.avatar_url || metadata.picture || null,
         target_sectors: profile?.target_sectors || metadata.target_sectors || "",
         target_budget: profile?.target_budget || metadata.target_budget || "",
@@ -128,6 +131,7 @@ export default function Settings() {
       setContactEmail(data.contact_email);
       setShowEmail(data.show_email); 
       setShowPhone(data.show_phone); 
+      setEmailAlerts(data.email_alerts);
       setAvatarBase64(data.avatar_url); 
       setTargetSectors(data.target_sectors);
       setTargetBudget(data.target_budget);
@@ -152,6 +156,7 @@ export default function Settings() {
       contactEmail !== initialData.contact_email || 
       showEmail !== initialData.show_email || 
       showPhone !== initialData.show_phone || 
+      emailAlerts !== initialData.email_alerts ||
       avatarBase64 !== initialData.avatar_url ||
       targetSectors !== initialData.target_sectors ||
       targetBudget !== initialData.target_budget ||
@@ -188,6 +193,7 @@ export default function Settings() {
         contact_email: contactEmail,
         show_email: showEmail,
         show_phone: showPhone,
+        email_alerts: emailAlerts,
         avatar_url: avatarUrl
       };
 
@@ -486,6 +492,17 @@ export default function Settings() {
                       if (plan === 'free') { showError(t('settings.contact_paid_only', 'Réservé aux formules Pro et Business')); navigate('/payment'); return; }
                       setShowPhone(!showPhone);
                     }} />
+                  </div>
+                  <div className="flex items-center justify-between py-[1vh]">
+                    <div>
+                      <p className="text-[clamp(0.875rem,1vw,1rem)] font-light">
+                        {t('settings.email_alerts', 'Me prévenir par email')}
+                      </p>
+                      <p className="text-[clamp(0.65rem,0.8vw,0.75rem)] text-white/40 font-light">
+                        {t('settings.email_alerts_hint', 'Un email quand une nouvelle entreprise correspond à vos critères.')}
+                      </p>
+                    </div>
+                    <CustomToggle active={emailAlerts} onToggle={() => setEmailAlerts(!emailAlerts)} />
                   </div>
                 </div>
               </div>

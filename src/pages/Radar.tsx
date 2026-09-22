@@ -29,7 +29,7 @@ import {
   getProspectionQuota, registerProspectionContact, isProspectAlreadyCounted, PROSPECTION_MONTHLY_INCLUDED,
 } from "@/services/prospectService";
 import {
-  listProspects, addProspect, updateProspect, deleteProspect, buildOutreachEmail, buildCampaignCsv,
+  listProspects, addProspect, updateProspect, deleteProspect, buildOutreachEmail, buildCampaignCsv, sendProspectEmail,
   STATUS_META, STATUS_ORDER, type Prospect, type ProspectStatus,
 } from "@/services/prospectService";
 
@@ -647,6 +647,7 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
   const [subject, setSubject] = useState(initial.subject);
   const [body, setBody] = useState(initial.body);
   const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Change la langue de CE mail uniquement — n'affecte pas la langue du site.
   const applyMailLang = (lang: "fr" | "en") => {
@@ -693,6 +694,38 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
     } catch {
       showError(t('crm.mail.copy_err', 'Copie impossible'));
     }
+  };
+
+  // Envoi direct depuis Globly (Business) : l'email part du serveur, le membre
+  // est en reply_to. Le quota et le paiement sont vérifiés côté serveur.
+  const sendDirect = async () => {
+    if (!email.trim()) { showError(t('crm.mail.email_required', "Renseigne d'abord l'email du dirigeant")); return; }
+    setSending(true);
+    // On enregistre l'email saisi avant d'envoyer : le serveur lit le prospect en base.
+    try { await updateProspect(prospect.id, { email: email.trim(), notes: notes.trim() || null }); } catch { /* noop */ }
+    const r = await sendProspectEmail(prospect.id, subject, body, mailLang);
+    setSending(false);
+
+    if (r.ok) {
+      showSuccess(t('crm.mail.sent', 'Email envoyé — prospect marqué « Contacté »'));
+      onSaved();
+      return;
+    }
+    if (r.paymentRequired) {
+      const c = await startCheckout({
+        kind: 'prospection',
+        target: { type: 'prospection', id: prospect.siren, name: prospect.nom },
+        returnPath: '/radar?success=1',
+      });
+      if (c.ok && c.clientSecret) {
+        onPayExtra(c.clientSecret, c.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
+        showError(r.error || '');
+        return;
+      }
+    }
+    showError(r.notConfigured
+      ? t('crm.mail.send_soon', "L'envoi automatique sera bientôt disponible.")
+      : (r.error || t('msg.error', 'Une erreur est survenue.')));
   };
 
   // Ouvre la messagerie de l'utilisateur (Gmail/Outlook/Mail) pré-remplie, puis marque "Contacté"
@@ -800,14 +833,20 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-11 text-white outline-none focus:border-primary/50 mb-2" />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50 resize-none mb-2 leading-relaxed" />
-        <div className="flex gap-2 mb-6">
-          <Button onClick={sendViaMailbox} disabled={!email.trim()} className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white disabled:opacity-40">
-            <Send size={15} className="mr-2" /> {t('crm.mail.open_mailbox', 'Ouvrir dans ma messagerie')}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button onClick={sendDirect} disabled={!email.trim() || sending || plan !== 'business'}
+            className="flex-1 min-w-[200px] rounded-xl bg-primary hover:bg-primary/90 text-white disabled:opacity-40">
+            {sending ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Send size={15} className="mr-2" />}
+            {t('crm.mail.send_now', 'Envoyer maintenant')}
           </Button>
           <Button onClick={copyMessage} className="rounded-xl bg-white/5 hover:bg-white/10 text-white" title={t('crm.mail.copy', 'Copier le message')}>
             <Copy size={15} />
           </Button>
         </div>
+        <button onClick={sendViaMailbox} disabled={!email.trim()}
+          className="text-xs text-white/40 hover:text-white/70 mb-6 disabled:opacity-40 transition-colors">
+          {t('crm.mail.open_mailbox', 'Ouvrir dans ma messagerie')}
+        </button>
 
         <label className="text-xs uppercase tracking-widest text-white/50 mb-2 flex items-center gap-2"><StickyNote size={12} /> {t('crm.mail.notes', 'Notes')}</label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('crm.mail.notes_ph', "Contexte, historique d'échange, prochaines étapes…")}

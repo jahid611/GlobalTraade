@@ -227,3 +227,45 @@ export function buildCampaignCsv(prospects: Prospect[], senderName: string, lang
   }
   return lines.join("\r\n");
 }
+
+// ------------------------------------------------------------------
+// Envoi automatisé (formule Business) — l'email part du serveur (Resend),
+// avec le membre en reply_to. Le quota et les garde-fous sont appliqués
+// côté serveur : voir supabase/functions/send-prospect-email.
+// ------------------------------------------------------------------
+
+export type SendProspectResult = {
+  ok: boolean;
+  error?: string;
+  /** le forfait est dépassé : il faut régler le contact (2 €) avant l'envoi */
+  paymentRequired?: boolean;
+  notConfigured?: boolean;
+};
+
+export async function sendProspectEmail(
+  prospectId: string,
+  subject: string,
+  body: string,
+  lang: 'fr' | 'en',
+): Promise<SendProspectResult> {
+  const { data, error } = await supabase.functions.invoke('send-prospect-email', {
+    body: { prospectId, subject, body, lang },
+  });
+
+  if (error) {
+    let msg = error.message;
+    let status = 0;
+    let paymentRequired = false;
+    try {
+      const resp = (error as { context?: Response }).context;
+      status = resp?.status || 0;
+      const payload = resp ? await resp.clone().json() : null;
+      if (payload?.error) msg = payload.error;
+      paymentRequired = !!payload?.paymentRequired;
+    } catch { /* noop */ }
+    return { ok: false, error: msg, paymentRequired, notConfigured: status === 503 || status === 404 };
+  }
+
+  if ((data as { sent?: boolean })?.sent) return { ok: true };
+  return { ok: false, error: (data as { error?: string })?.error || "Envoi impossible." };
+}
