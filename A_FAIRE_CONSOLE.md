@@ -67,7 +67,8 @@ Voir `supabase/EMAILS.md` (relance d'annonces, résumé de correspondances) et
 
 ## 7. Vercel
 
-`VITE_SENTRY_DSN` pour activer la remontée d'erreurs (aujourd'hui no-op).
+Rien à faire : `VITE_SENTRY_DSN` est **déjà posé** en production (vérifié via
+`vercel env pull`). La remontée d'erreurs Sentry est donc active.
 
 ---
 
