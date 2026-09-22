@@ -40,3 +40,31 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  # Règles de sécurité SQL : on rejoue dans la peau d'un membre les tentatives
+  # d'escalade de privilège contre un Postgres jetable. Le script échoue aussi
+  # si les tests passent SANS le correctif — un test qui ne mord sur rien ne
+  # protège de rien.
+  securite-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer le client PostgreSQL
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Tests des règles de sécurité
+        run: ./scripts/test-sql.sh

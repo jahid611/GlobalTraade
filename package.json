@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc -b --force",
+    "test:sql": "./scripts/test-sql.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -139,7 +139,11 @@ CREATE POLICY "Déblocages : lecture des siens"
 -- ---------------------------------------------------------------------
 -- 3) listings / projects / search_ads — mise en avant et badge premium
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.protect_boost_columns()
+-- Une fonction par table, volontairement : un trigger générique qui lirait
+-- NEW.verification_status sur `listings` échoue à l'exécution (la colonne
+-- n'existe pas). Pour du code de sécurité, explicite vaut mieux qu'astucieux.
+
+CREATE OR REPLACE FUNCTION public.protect_listing_privileges()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -149,24 +153,49 @@ BEGIN
   IF public.is_trusted_writer() THEN RETURN NEW; END IF;
 
   IF TG_OP = 'INSERT' THEN
-    NEW.boosted_until := NULL;
-    IF TG_TABLE_NAME = 'listings' THEN NEW.is_premium := false; END IF;
-    IF TG_TABLE_NAME = 'projects' THEN NEW.verification_status := 'non_soumis'; END IF;
+    NEW.boosted_until := NULL;   -- la mise en avant s'achète (10 €)
+    NEW.is_premium    := false;  -- le badge premium accompagne un paiement
   ELSE
     NEW.boosted_until := OLD.boosted_until;
-    IF TG_TABLE_NAME = 'listings' THEN NEW.is_premium := OLD.is_premium; END IF;
-    -- La vérification d'un projet est prononcée par un admin : le porteur
-    -- peut seulement la demander (non_soumis/rejete → en_attente).
-    IF TG_TABLE_NAME = 'projects'
-       AND NEW.verification_status IS DISTINCT FROM OLD.verification_status THEN
-      IF EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_admin) THEN
-        NULL;
-      ELSIF COALESCE(OLD.verification_status, 'non_soumis') IN ('non_soumis', 'rejete')
-        AND NEW.verification_status = 'en_attente' THEN
-        NULL;
-      ELSE
-        NEW.verification_status := OLD.verification_status;
-      END IF;
+    NEW.is_premium    := OLD.is_premium;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.protect_project_privileges()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  caller_is_admin boolean := false;
+BEGIN
+  IF public.is_trusted_writer() THEN RETURN NEW; END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    NEW.boosted_until       := NULL;
+    NEW.verification_status := 'non_soumis';
+    RETURN NEW;
+  END IF;
+
+  NEW.boosted_until := OLD.boosted_until;
+
+  -- La vérification d'un projet est prononcée par un admin ; le porteur peut
+  -- seulement la demander.
+  IF NEW.verification_status IS DISTINCT FROM OLD.verification_status THEN
+    SELECT COALESCE(p.is_admin, false) INTO caller_is_admin
+    FROM public.profiles p WHERE p.id = auth.uid();
+
+    IF caller_is_admin THEN
+      NULL;
+    ELSIF COALESCE(OLD.verification_status, 'non_soumis') IN ('non_soumis', 'rejete')
+      AND NEW.verification_status = 'en_attente' THEN
+      NULL;
+    ELSE
+      NEW.verification_status := OLD.verification_status;
     END IF;
   END IF;
 
@@ -174,17 +203,40 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.protect_search_ad_privileges()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.is_trusted_writer() THEN RETURN NEW; END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.boosted_until := NULL;
+  ELSE
+    NEW.boosted_until := OLD.boosted_until;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS trg_protect_boost_listings ON public.listings;
-CREATE TRIGGER trg_protect_boost_listings
+DROP TRIGGER IF EXISTS trg_protect_listing_privileges ON public.listings;
+CREATE TRIGGER trg_protect_listing_privileges
   BEFORE INSERT OR UPDATE ON public.listings
-  FOR EACH ROW EXECUTE FUNCTION public.protect_boost_columns();
+  FOR EACH ROW EXECUTE FUNCTION public.protect_listing_privileges();
 
 DROP TRIGGER IF EXISTS trg_protect_boost_projects ON public.projects;
-CREATE TRIGGER trg_protect_boost_projects
+DROP TRIGGER IF EXISTS trg_protect_project_privileges ON public.projects;
+CREATE TRIGGER trg_protect_project_privileges
   BEFORE INSERT OR UPDATE ON public.projects
-  FOR EACH ROW EXECUTE FUNCTION public.protect_boost_columns();
+  FOR EACH ROW EXECUTE FUNCTION public.protect_project_privileges();
 
 DROP TRIGGER IF EXISTS trg_protect_boost_search_ads ON public.search_ads;
-CREATE TRIGGER trg_protect_boost_search_ads
+DROP TRIGGER IF EXISTS trg_protect_search_ad_privileges ON public.search_ads;
+CREATE TRIGGER trg_protect_search_ad_privileges
   BEFORE INSERT OR UPDATE ON public.search_ads
-  FOR EACH ROW EXECUTE FUNCTION public.protect_boost_columns();
+  FOR EACH ROW EXECUTE FUNCTION public.protect_search_ad_privileges();
+
+-- L'ancienne fonction générique est remplacée par les trois ci-dessus.
+DROP FUNCTION IF EXISTS public.protect_boost_columns();
