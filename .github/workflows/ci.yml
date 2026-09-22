@@ -30,8 +30,10 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      # `tsc --noEmit` sur le tsconfig racine ne compile RIEN (files: [] + references)
+      # et sortait toujours en succès : il faut `-b` pour traverser les sous-projets.
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npx tsc -b --force
 
       - name: Tests unitaires
         run: npx vitest run

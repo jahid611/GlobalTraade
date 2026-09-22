@@ -122,17 +122,12 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
     }
     
     if (listing?.owner_id && cache.ownerProfile === undefined) {
-      if (listing.profiles) {
-        setOwnerProfile(listing.profiles);
-        businessCache[cacheKey].ownerProfile = listing.profiles;
-      } else {
-        supabase.from('safe_profiles').select('*').eq('id', listing.owner_id).single().then(({ data }) => {
-          if (data) {
-            setOwnerProfile(data);
-            businessCache[cacheKey].ownerProfile = data;
-          }
-        });
-      }
+      supabase.from('safe_profiles').select('*').eq('id', listing.owner_id).single().then(({ data }) => {
+        if (data) {
+          setOwnerProfile(data);
+          businessCache[cacheKey].ownerProfile = data;
+        }
+      });
     }
   }, [listing?.id, user?.id]);
 

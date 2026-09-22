@@ -44,19 +44,16 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
 
   useEffect(() => {
     if (listing?.owner_id) {
-      if (listing.profiles) {
-        setOwnerProfile(listing.profiles);
-      } else {
-        supabase.from('profiles')
-          .select('id, full_name, avatar_url')
-          .eq('id', listing.owner_id)
-          .single()
-          .then(({ data }) => {
-            if (data) setOwnerProfile(data);
-          });
-      }
+      // `profiles` est restreinte à soi-même par la RLS : on passe par la vue publique.
+      supabase.from('safe_profiles')
+        .select('id, full_name, avatar_url')
+        .eq('id', listing.owner_id)
+        .single()
+        .then(({ data }) => {
+          if (data) setOwnerProfile(data);
+        });
     }
-  }, [listing.owner_id, listing.profiles]);
+  }, [listing.owner_id]);
 
   const checkFavorite = async (userId: string) => {
     const { data } = await supabase.from('favorites').select('id').eq('user_id', userId).eq('listing_id', listing.id).maybeSingle();

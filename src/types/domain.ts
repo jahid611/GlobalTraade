@@ -17,6 +17,8 @@ export interface Listing {
   address: string | null;
   lat: number | null;
   lng: number | null;
+  /** colonne PostGIS `geography` — jamais écrite par l'app, sert de repli texte */
+  location: string | null;
   price: number | null;
   rent: number | null;
   employees: number | null;
@@ -38,6 +40,11 @@ export interface Listing {
   boosted_until: string | null;
   created_at: string;
   updated_at: string | null;
+  // ── Cycle de vie de l'annonce (relance 90 j → pause 10 j → suppression 30 j) ──
+  last_confirmed_at: string | null;
+  renewal_requested_at: string | null;
+  inactive_since: string | null;
+  renewal_reminder_sent_at: string | null;
   // ── Confidentiel : null si non autorisé (masqué côté serveur) ──
   revenue_n1: number | null;
   revenue_n2: number | null;
@@ -49,6 +56,9 @@ export interface Listing {
   // ── Compteurs agrégés exposés par la vue ──
   view_count: number;
   favorites_count: number;
+  // ── Augmentation posée côté client (Marketplace), absente de la base ──
+  /** le propriétaire a la pastille « membre fiable » (note ≥ 4) */
+  _trusted?: boolean;
 }
 
 // Annonce de recherche (repreneur en recherche) — table `search_ads`.

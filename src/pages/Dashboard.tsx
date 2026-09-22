@@ -150,7 +150,7 @@ export default function Dashboard() {
       return 30 + (hash % 20);
     }
     let score = 20;
-    const listingSector = (listing.industry || listing.sector || "").toLowerCase();
+    const listingSector = (listing.industry || "").toLowerCase();
     const listingLocation = (listing.location || listing.address || "").toLowerCase();
     const listingDesc = (listing.description || "").toLowerCase();
     const listingPrice = Number(listing.price) || 0;
@@ -189,7 +189,6 @@ export default function Dashboard() {
         if (Math.min(diffMin, diffMax) < 0.3) score += 20;
       }
     }
-    if (listing.profiles?.kyc_status === 'verified') score += 5;
     score += listing.id.charCodeAt(listing.id.length - 1) % 5;
     return Math.min(99, Math.round(score));
   };

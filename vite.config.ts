@@ -17,7 +17,7 @@ export default defineConfig(() => {
   plugins.forEach(plugin => {
     if (plugin && typeof plugin.transform === 'function') {
       const originalTransform = plugin.transform;
-      plugin.transform = function(code, id, options) {
+      plugin.transform = function(this: unknown, code: string, id: string, options: unknown) {
         // Exclusion des fichiers 3D sensibles
         // On ajoute les nouveaux composants 3D à la liste d'exclusion
         if (
