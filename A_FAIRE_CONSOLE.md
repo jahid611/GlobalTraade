@@ -1,98 +1,68 @@
-# À faire dans les consoles
+# État de la configuration Supabase / Vercel
 
-> **Tout est automatisé depuis le 22/09/2026.** Une fois un jeton Supabase
-> déposé dans `~/.supabase-token` (compte propriétaire de la base de
-> production), la section 1 se joue en une commande :
+> **Mise à jour du 22/09/2026 — presque tout est fait.** Les patchs SQL sont
+> appliqués, les 7 edge functions déployées, les crons programmés et les
+> réglages d'authentification corrigés, directement depuis ce dépôt.
 >
 > ```bash
-> node scripts/apply-sql.mjs        # applique les patchs en attente
-> node scripts/audit-privileges.mjs # vérifie que la faille est fermée
+> node scripts/apply-sql.mjs --check   # état de la base
+> node scripts/audit-privileges.mjs    # la faille est-elle bien fermée ?
 > ```
->
-> `apply-sql.mjs` déduit le projet de `.env.local` : impossible d'appliquer un
-> correctif à la mauvaise base par inadvertance. `--check` fait un état des
-> lieux sans rien modifier.
 
-## Rappel : ce qui reste manuel
+## ✅ Fait et vérifié
 
-Tout le code est poussé et vert (typecheck, 39 tests, build). Il reste ces
-actions manuelles, dans l'ordre. Tant qu'elles ne sont pas faites, l'app reste
-fonctionnelle : les nouveautés sont simplement inactives.
-
-## 1. Supabase — SQL Editor
-
-Coller, dans cet ordre (tous idempotents, rejouables sans risque) :
-
-| Fichier | Ce que ça fait |
+| Élément | État |
 |---|---|
-| **`supabase/_claude_sec_privileges.sql`** | 🚨 **EN PREMIER, C'EST URGENT** — empêche un membre de s'attribuer lui-même la formule Business, le rôle admin, le badge « vérifié », les déblocages à 5 € et les mises en avant à 10 €. Faille vérifiée en production. |
-| `supabase/_claude_prospection_paid.sql` | colonne `paid` + RLS : le client ne peut plus s'attribuer un contact de prospection facturé |
-| `supabase/_claude_email_alerts.sql` | `profiles.email_alerts` et `last_digest_sent_at` pour les alertes email |
-| `supabase/_claude_safe_profiles_identity.sql` | `safe_profiles` expose l'identité professionnelle affichée sur le profil |
+| `_claude_sec_privileges.sql` | appliqué — audit **10/10** contre la vraie base |
+| `_claude_prospection_paid.sql` | appliqué |
+| `_claude_email_alerts.sql` | appliqué — réglage visible dans l'app |
+| `_claude_safe_profiles_identity.sql` | appliqué |
+| `_claude_crons.sql` | appliqué — pg_net installé, clés au coffre-fort |
+| Secrets `SITE_URL`, `RECONCILE_KEY` | posés |
+| 7 edge functions | déployées (dont `renewal-reminder`, qui ne l'avait **jamais** été) |
+| Paiement web | testé : `cs_test_…` renvoyé |
+| Paiement mobile | testé : URL Stripe hébergée renvoyée |
+| Réconciliation Stripe | testée de bout en bout via pg_net → HTTP 200 |
+| Crons | `renewal-reminder` 08:00, `match-digest` 09:00, `reconcile-stripe` 03:30 |
+| MFA TOTP | déjà activé côté Supabase |
+| Deep link mobile | `com.globly.app://**` ajouté aux URLs de redirection |
+| `site_url` | **corrigé** : pointait sur `globaltrade-livid.vercel.app`, qui renvoie 404 — les liens de réinitialisation de mot de passe étaient donc cassés |
+| Keep-alive | workflow GitHub quotidien, vérifié |
 
-(Si les anciens patchs `_claude_*.sql` n'ont jamais été appliqués, les coller
-d'abord — voir `supabase/SCHEMA.md`.)
+## ⏳ Ce qui reste — il me faut des clés que je n'ai pas
 
-Puis vérifier que la faille est bien fermée :
-
-```bash
-node scripts/audit-privileges.mjs
-```
-
-Les huit contrôles doivent être au vert. Aujourd'hui, sur la base de
-production, **sept sont au rouge**.
-
-## 2. Supabase — Edge Functions → Secrets
-
-```
-SITE_URL=https://globaltrade-six.vercel.app   # désormais obligatoire côté web
-RECONCILE_KEY=<chaîne aléatoire>              # protège la réconciliation Stripe
-RESEND_API_KEY=re_xxx
-PROSPECT_FROM=Globly <contact@domaine-verifie-dans-resend.fr>
-```
-
-## 3. Supabase — déploiement des fonctions
+**1. Emails (Resend).** Trois fonctions sont déployées mais refusent poliment
+(`503 « Envoi d'emails non configuré »`) faute de clé :
+`renewal-reminder`, `match-digest`, `send-prospect-email`.
 
 ```bash
-supabase functions deploy create-checkout-session
-supabase functions deploy stripe-webhook   --no-verify-jwt
-supabase functions deploy reconcile-stripe --no-verify-jwt
-supabase functions deploy match-digest
-supabase functions deploy send-prospect-email
-supabase functions deploy renewal-reminder
+supabase secrets set --project-ref uspqseorjkaqxcmliamg \
+  RESEND_API_KEY="re_xxx" \
+  PROSPECT_FROM="Globly <contact@ton-domaine-verifie.fr>"
 ```
 
-## 4. Stripe — webhook
+`PROSPECT_FROM` doit utiliser un **domaine vérifié dans Resend**, sinon les
+emails de prospection partiront de `onboarding@resend.dev` et finiront en
+indésirables. Donne-moi la clé et je pose les deux.
 
-Ajouter l'événement **`customer.subscription.updated`** à l'endpoint existant
-(en plus de `checkout.session.completed` et `customer.subscription.deleted`) :
-sans lui, un changement de formule ou un impayé laisse le plan figé en base.
+**2. Stripe — un événement à ajouter.** Sur l'endpoint webhook existant,
+cocher **`customer.subscription.updated`** (en plus de
+`checkout.session.completed` et `customer.subscription.deleted`). Sans lui, un
+changement de formule ou un impayé laisse le plan figé en base. L'API Stripe ne
+me laisse pas modifier un endpoint sans la clé secrète ; donne-la-moi ou fais-le
+en deux clics dans le tableau de bord.
 
-## 5. Supabase — Authentication
+## 📌 Décision produit ouverte
 
-- **URL Configuration → Redirect URLs** : ajouter `com.globly.app://auth-callback`
-  (retour de connexion Google dans l'app mobile).
-- **Providers → MFA** : activer **TOTP** pour que la double authentification
-  fonctionne.
+**Paiement mobile : achat sur le web** (décidé le 22/09). Aucun paiement n'est
+encaissé dans l'app, donc pas de commission de 30 %. Reste à vérifier avec Apple
+au moment de la soumission : ce lien sortant relève des règles anti-steering
+(3.1.1), libre aux États-Unis depuis 2025, entitlement *External Purchase Link*
+ailleurs. Voir `MOBILE.md`.
 
-## 6. Cron (SQL Editor, extensions `pg_cron` + `pg_net`)
+## 🧹 Ménage éventuel
 
-Voir `supabase/EMAILS.md` (relance d'annonces, résumé de correspondances) et
-`STRIPE_SETUP.md` §4 (réconciliation des paiements orphelins).
-
-## 7. Vercel
-
-Rien à faire : `VITE_SENTRY_DSN` est **déjà posé** en production (vérifié via
-`vercel env pull`). La remontée d'erreurs Sentry est donc active.
-
----
-
-## Paiement mobile : achat sur le web (décidé)
-
-Aucun paiement n'est encaissé dans l'app : elle ouvre une page de paiement
-Stripe dans le navigateur du téléphone. Pas de commission de 30 %.
-
-Seul point à traiter **au moment de la soumission à l'App Store** : ce lien
-sortant relève des règles anti-steering d'Apple (3.1.1). Libre aux États-Unis
-depuis 2025 ; ailleurs, demander l'entitlement *External Purchase Link*. Le code
-est identique dans les deux cas. Voir `MOBILE.md`.
+- Projet Supabase **`kiwjjwcfuzhrurvlaiuk`** (« GlobalTradv2 », avril) : ancienne
+  version, 12 comptes, 3 annonces, aucune table V2/V3. À supprimer si plus utile.
+- Compte de démo **`demo.video@globly.fr`** créé pour les captures vidéo
+  (formule Business, badge vérifié). À supprimer une fois les vidéos validées.
