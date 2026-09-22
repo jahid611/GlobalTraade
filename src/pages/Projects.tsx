@@ -10,7 +10,7 @@ import { HelpBanner } from "@/components/HelpBanner";
 import { useAuth } from "@/components/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchProjects, deleteProject, expressInterest, incrementProjectViews, Project, HelpType } from "@/services/projectService";
+import { fetchProjects, deleteProject, expressInterest, incrementProjectViews, Project, HelpType, type TeamRole, type MaterialItem } from "@/services/projectService";
 import { showSuccess, showError } from "@/utils/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
@@ -22,7 +22,7 @@ import { checkContactQuota, registerContactInitiation } from "@/services/quotaSe
 import { LockSimple, Crown } from "phosphor-react";
 
 // ─── Constants ────────────────────────────────────────────────
-const HELP_META: Record<HelpType, { key: string; color: string; bg: string; Icon: any }> = {
+const HELP_META: Record<HelpType, { key: string; color: string; bg: string; Icon: React.ElementType }> = {
   financial: { key: "hub.help.financial", color: "text-emerald-400", bg: "bg-emerald-500/20 border-emerald-500/30", Icon: Money },
   human:     { key: "hub.help.human",    color: "text-blue-400",    bg: "bg-blue-500/20 border-blue-500/30",    Icon: Users },
   material:  { key: "hub.help.material",  color: "text-amber-400",   bg: "bg-amber-500/20 border-amber-500/30",  Icon: Package },
@@ -30,7 +30,7 @@ const HELP_META: Record<HelpType, { key: string; color: string; bg: string; Icon
   network:   { key: "hub.help.network",    color: "text-pink-400",    bg: "bg-pink-500/20 border-pink-500/30",    Icon: Globe },
 };
 
-const STAGE_META: Record<string, { key: string; color: string; Icon: any }> = {
+const STAGE_META: Record<string, { key: string; color: string; Icon: React.ElementType }> = {
   idea:      { key: "hub.stage.idea",       color: "text-yellow-400", Icon: Lightbulb },
   prototype: { key: "hub.stage.prototype",  color: "text-orange-400", Icon: Wrench },
   mvp:       { key: "hub.stage.mvp",        color: "text-blue-400",   Icon: RocketLaunch },
@@ -71,7 +71,7 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
                 <Fire className="w-2.5 h-2.5" />{t('hub.urgent')}
               </span>
             )}
-            {isBoosted(project as any) && (
+            {isBoosted(project) && (
               <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border"
                 style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
                 <Crown className="w-2.5 h-2.5" weight="fill" />{t('card.boosted', 'En avant')}
@@ -91,7 +91,7 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
 
       {userId === project.owner_id && (
         <div className="absolute top-5 right-[72px] flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20">
-          {!isBoosted(project as any) && (
+          {!isBoosted(project) && (
             <button onClick={(e)=>{e.stopPropagation(); navigate(`/payment?boost=project:${project.id}&name=${encodeURIComponent(project.title || '')}`);}}
               title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`) as string}
               className="w-8 h-8 rounded-lg bg-white/10 hover:bg-amber-500/20 flex items-center justify-center text-white/70 hover:text-amber-300 backdrop-blur-md border border-white/10 transition-all"><RocketLaunch weight="fill" className="w-4 h-4"/></button>
@@ -279,7 +279,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
               <h4 className="text-blue-400 font-medium mb-3 flex items-center gap-2"><Users className="w-4 h-4"/>{t('project.detail.human')}</h4>
               <div className="space-y-2">
-                {project.team_roles.map((r: any, i: number) => (
+                {project.team_roles.map((r: TeamRole, i: number) => (
                   <div key={i} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-2.5 text-sm">
                     <div><p className="text-white font-medium">{r.title}</p><p className="text-white/40 text-xs">{r.skills}</p></div>
                     <div className="text-right">
@@ -297,7 +297,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
               <h4 className="text-amber-400 font-medium mb-3 flex items-center gap-2"><Package className="w-4 h-4"/>{t('project.detail.material')}</h4>
               <div className="space-y-2">
-                {project.material_items.map((m: any, i: number) => (
+                {project.material_items.map((m: MaterialItem, i: number) => (
                   <div key={i} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-2.5 text-sm">
                     <div><p className="text-white font-medium">{m.name}</p><p className="text-white/40 text-xs">{t('project.form.mat_qty')} : {m.quantity}</p></div>
                     {m.estimated_value > 0 && <p className="text-amber-400 text-sm font-medium">{m.estimated_value.toLocaleString()}€</p>}
@@ -469,9 +469,9 @@ export default function Projects() {
   });
 
   const displayedProjects = useMemo(() => {
-    const base = mineOnly && user ? projects.filter((p: any) => p.owner_id === user.id) : projects;
+    const base = mineOnly && user ? projects.filter((p: Project) => p.owner_id === user.id) : projects;
     // Projets mis en avant (10 €) en tête
-    return [...base].sort((a: any, b: any) => Number(isBoosted(b)) - Number(isBoosted(a)));
+    return [...base].sort((a: Project, b: Project) => Number(isBoosted(b)) - Number(isBoosted(a)));
   }, [projects, mineOnly, user]);
 
   // Quota d'annonces actives (gratuit 1, Pro 5, Business illimité)

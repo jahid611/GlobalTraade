@@ -42,6 +42,7 @@ export interface Project {
   material_items: MaterialItem[];
   expertise_needed: boolean;
   expertise_domains: string[];
+  network_needed: boolean;
   view_count: number;
   interest_count: number;
   is_published: boolean;
@@ -53,6 +54,8 @@ export interface Project {
   revenue_forecast?: string;
   financing_types?: string[];
   verification_status?: 'non_soumis' | 'en_attente' | 'verifie' | 'rejete';
+  /** mise en avant payante (10 €, 30 j) */
+  boosted_until?: string | null;
   deadline?: string;
   created_at: string;
   updated_at: string;

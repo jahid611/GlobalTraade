@@ -33,7 +33,7 @@ export async function startCheckout(payload: CheckoutPayload): Promise<CheckoutR
     let msg = error.message;
     let status = 0;
     try {
-      const resp = (error as any).context as Response | undefined;
+      const resp = (error as { context?: Response }).context;
       status = resp?.status || 0;
       const body = resp ? await resp.clone().json() : null;
       if (body?.error) msg = body.error;
@@ -42,12 +42,13 @@ export async function startCheckout(payload: CheckoutPayload): Promise<CheckoutR
     return { ok: false, error: msg, notConfigured: status === 503 || status === 404 || status === 0 };
   }
 
-  if ((data as any)?.clientSecret) {
+  const result = data as { clientSecret?: string; redirectOnCompletion?: string; error?: string } | null;
+  if (result?.clientSecret) {
     return {
       ok: true,
-      clientSecret: (data as any).clientSecret,
-      redirectOnCompletion: (data as any).redirectOnCompletion === 'never' ? 'never' : 'always',
+      clientSecret: result.clientSecret,
+      redirectOnCompletion: result.redirectOnCompletion === 'never' ? 'never' : 'always',
     };
   }
-  return { ok: false, error: (data as any)?.error || 'Impossible de démarrer le paiement.' };
+  return { ok: false, error: result?.error || 'Impossible de démarrer le paiement.' };
 }

@@ -284,7 +284,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
       dismissToast(toastId);
       showSuccess(t('form.success', 'Annonce enregistrée avec succès !'));
       onSuccess(); onClose();
-    } catch (e: any) {
+    } catch (e) {
       dismissToast(toastId);
       const raw = String(e?.message || '');
       console.error('saveListing error:', e);

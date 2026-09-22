@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash, Users, Money, Package, Brain, Globe, CaretDown, Lightbulb, Wrench, RocketLaunch, ChartLineUp } from "phosphor-react";
 import { Button } from "@/components/ui/button";
-import { createProject, updateProject, ProjectInsert, HelpType, TeamRole, MaterialItem } from "@/services/projectService";
+import { createProject, updateProject, ProjectInsert, HelpType, TeamRole, MaterialItem, type Project, type ProjectStage } from "@/services/projectService";
 import { INDUSTRIES } from "@/lib/industries";
 import { useAuth } from "@/components/AuthProvider";
 import { showSuccess, showError } from "@/utils/toast";
@@ -13,14 +13,14 @@ import { useTranslation } from "react-i18next";
 const INVESTMENT_TYPES = ["grant","loan","equity","donation","revenue_share"];
 const HELP_COLORS: Record<HelpType, string> = { financial:"from-emerald-500/20 to-emerald-500/5 border-emerald-500/30", human:"from-blue-500/20 to-blue-500/5 border-blue-500/30", material:"from-amber-500/20 to-amber-500/5 border-amber-500/30", expertise:"from-purple-500/20 to-purple-500/5 border-purple-500/30", network:"from-pink-500/20 to-pink-500/5 border-pink-500/30" };
 
-interface Props { isOpen: boolean; onClose: () => void; onSuccess: () => void; projectToEdit?: any; }
+interface Props { isOpen: boolean; onClose: () => void; onSuccess: () => void; projectToEdit?: Partial<Project>; }
 
 const inp = "w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors text-sm";
 const lbl = "text-xs uppercase tracking-widest text-white/50 font-medium mb-2 block";
 
-interface Option { v: string; l: string; icon?: any; }
+interface Option { v: string; l: string; icon?: React.ElementType; }
 
-function CustomSelect({ value, options, onChange }: { value: string; options: Option[]; onChange: (v:string)=>void; parentScrollRef?: any }) {
+function CustomSelect({ value, options, onChange }: { value: string; options: Option[]; onChange: (v: string) => void; parentScrollRef?: React.RefObject<HTMLElement> }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -204,11 +204,14 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
     ...projectToEdit
   });
 
-  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  // Clé et valeur tirées de ProjectInsert : une faute de frappe sur un nom de
+  // champ ne compile plus.
+  type FormKey = keyof ProjectInsert;
+  const set = <K extends FormKey>(k: K, v: ProjectInsert[K]) => setForm(p => ({ ...p, [k]: v }));
 
   // --- Validation ---
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const setField = (k: string, v: any) => {
+  const setField = <K extends FormKey>(k: K, v: ProjectInsert[K]) => {
     set(k, v);
     setErrors(e => { if (!e[k]) return e; const n = { ...e }; delete n[k]; return n; });
   };
@@ -248,11 +251,11 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
 
   const addRole = () => set("team_roles", [...(form.team_roles||[]), { title:"", skills:"", type:"full", count:1 }]);
   const removeRole = (i: number) => set("team_roles", (form.team_roles||[]).filter((_:any,idx:number)=>idx!==i));
-  const updateRole = (i: number, k: string, v: any) => set("team_roles", (form.team_roles||[]).map((r:TeamRole,idx:number)=>idx===i?{...r,[k]:v}:r));
+  const updateRole = <K extends keyof TeamRole>(i: number, k: K, v: TeamRole[K]) => set("team_roles", (form.team_roles||[]).map((r:TeamRole,idx:number)=>idx===i?{...r,[k]:v}:r));
 
   const addMat = () => set("material_items", [...(form.material_items||[]), { name:"", quantity:"1", estimated_value:0, urgent:false }]);
   const removeMat = (i: number) => set("material_items", (form.material_items||[]).filter((_:any,idx:number)=>idx!==i));
-  const updateMat = (i: number, k: string, v: any) => set("material_items", (form.material_items||[]).map((m:MaterialItem,idx:number)=>idx===i?{...m,[k]:v}:m));
+  const updateMat = <K extends keyof MaterialItem>(i: number, k: K, v: MaterialItem[K]) => set("material_items", (form.material_items||[]).map((m:MaterialItem,idx:number)=>idx===i?{...m,[k]:v}:m));
 
   const handleSave = async () => {
     const e0 = validateStep(0);
@@ -284,7 +287,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
       showSuccess(t('project.form.success'));
       onSuccess(); 
       onClose();
-    } catch (err: any) { 
+    } catch (err) { 
       showError(t('project.form.error') + ": " + (err.message || "")); 
     }
     setSaving(false);
@@ -354,7 +357,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                       <CustomSelect 
                         value={form.stage||"idea"} 
                         options={STAGES} 
-                        onChange={v => set("stage", v)} 
+                        onChange={v => set("stage", v as ProjectStage)} 
                         parentScrollRef={scrollRef}
                       />
                     </div>
@@ -410,21 +413,21 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                       </div>
                       {/* Fiche de financement complète (place projets) */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className={lbl}>{t('project.form.apport', 'Apport personnel')}</label><input className={inp} placeholder="ex: 50k€" value={(form as any).apport_personnel||""} onChange={e=>set("apport_personnel" as any, e.target.value)}/></div>
-                        <div><label className={lbl}>{t('project.form.revenue_current', 'CA actuel')}</label><input className={inp} placeholder="ex: 120k€" value={(form as any).revenue_current||""} onChange={e=>set("revenue_current" as any, e.target.value)}/></div>
-                        <div><label className={lbl}>{t('project.form.revenue_forecast', 'CA prévisionnel')}</label><input className={inp} placeholder="ex: 300k€ à 2 ans" value={(form as any).revenue_forecast||""} onChange={e=>set("revenue_forecast" as any, e.target.value)}/></div>
-                        <div><label className={lbl}>{t('project.form.funds_usage', 'Utilisation des fonds')}</label><input className={inp} placeholder={t('project.form.funds_usage_ph', 'ex: machines, stock, embauches') as string} value={(form as any).funds_usage||""} onChange={e=>set("funds_usage" as any, e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.apport', 'Apport personnel')}</label><input className={inp} placeholder="ex: 50k€" value={form.apport_personnel||""} onChange={e=>set("apport_personnel", e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.revenue_current', 'CA actuel')}</label><input className={inp} placeholder="ex: 120k€" value={form.revenue_current||""} onChange={e=>set("revenue_current", e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.revenue_forecast', 'CA prévisionnel')}</label><input className={inp} placeholder="ex: 300k€ à 2 ans" value={form.revenue_forecast||""} onChange={e=>set("revenue_forecast", e.target.value)}/></div>
+                        <div><label className={lbl}>{t('project.form.funds_usage', 'Utilisation des fonds')}</label><input className={inp} placeholder={t('project.form.funds_usage_ph', 'ex: machines, stock, embauches') as string} value={form.funds_usage||""} onChange={e=>set("funds_usage", e.target.value)}/></div>
                       </div>
                       <div>
                         <label className={lbl}>{t('project.form.financing_types', 'Financement recherché')}</label>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {['pret_bancaire','investisseur','associe','aides'].map(ft => {
-                            const active = ((form as any).financing_types || []).includes(ft);
+                            const active = (form.financing_types || []).includes(ft);
                             return (
                               <button key={ft} type="button"
                                 onClick={() => {
-                                  const cur = (form as any).financing_types || [];
-                                  set("financing_types" as any, active ? cur.filter((x: string) => x !== ft) : [...cur, ft]);
+                                  const cur = form.financing_types || [];
+                                  set("financing_types", active ? cur.filter((x: string) => x !== ft) : [...cur, ft]);
                                 }}
                                 className={`px-4 h-9 rounded-full text-xs font-light transition-all outline-none border ${active ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40' : 'bg-white/5 text-white/60 border-white/15 hover:text-white'}`}>
                                 {t(`project.form.ft_${ft}`)}
@@ -470,7 +473,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                                   {v:"part", l: t('project.form.role_part')},
                                   {v:"volunteer", l: t('project.form.role_vol')}
                                 ]} 
-                                onChange={v => updateRole(i,"type",v)} 
+                                onChange={v => updateRole(i,"type",v as TeamRole["type"])} 
                                 parentScrollRef={scrollRef}
                               />
                               <input type="number" className={inp} min="1" placeholder={t('project.form.role_count_ph')} value={r.count} onChange={e=>updateRole(i,"count",Number(e.target.value))}/>

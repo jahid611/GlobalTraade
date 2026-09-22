@@ -89,9 +89,9 @@ export default function Marketplace() {
 
   // Critères d'investissement du profil (renseignés à l'onboarding / Réglages).
   const profileCriteria = useMemo<ProfileCriteria>(() => ({
-    target_sectors: (user?.user_metadata as any)?.target_sectors,
-    target_budget: (user?.user_metadata as any)?.target_budget,
-    target_geo: (user?.user_metadata as any)?.target_geo,
+    target_sectors: user?.user_metadata?.target_sectors,
+    target_budget: user?.user_metadata?.target_budget,
+    target_geo: user?.user_metadata?.target_geo,
   }), [user]);
 
   const availableIndustries = useMemo(() => {
@@ -107,7 +107,7 @@ export default function Marketplace() {
         .select('user_id, avg_score, rating_count')
         .gte('avg_score', TRUSTED_MIN_AVG)
         .gte('rating_count', TRUSTED_MIN_COUNT);
-      return new Set((data || []).map((r: any) => r.user_id));
+      return new Set((data || []).map((r: { user_id: string }) => r.user_id));
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -302,7 +302,7 @@ export default function Marketplace() {
                 >
                   <BusinessCard
                     listing={l}
-                    matchScore={(l as any)._matchScore}
+                    matchScore={l._matchScore}
                     onClick={() => navigate('/app', { state: { focusId: l.id } })}
                   />
                 </motion.div>

@@ -147,7 +147,7 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
       await refreshUser();
       showSuccess(t("onb.done", "Bienvenue sur Globly !"));
       onDone();
-    } catch (e: any) {
+    } catch (e) {
       console.error("onboarding save error:", e);
       // On ne piège jamais l'utilisateur : message clair puis accès à l'app.
       showError(t("onb.save_err", "Profil non enregistré (base à mettre à jour). Vous pourrez compléter dans Réglages."));

@@ -244,7 +244,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));
-    } catch (err: any) {
+    } catch (err) {
       const msg = String(err?.message || '').toLowerCase();
       const isTooLarge = msg.includes('too large') || msg.includes('payload') || msg.includes('413') || msg.includes('value too long');
       showError(

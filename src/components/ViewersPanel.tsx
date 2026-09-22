@@ -8,6 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Eye, Heart, User as UserIcon, LockSimple, ArrowRight } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 
+// Lignes brutes des trois sources (vues de profil, vues d'annonce, favoris)
+type ViewRow = { viewer_id?: string | null; user_id?: string | null; created_at: string; listing_id?: string };
+type ViewerProfile = { id: string; full_name: string | null; avatar_url: string | null; kyc_status: string | null };
+type Viewer = ViewerProfile & { at: string };
+
 // « Qui a vu votre profil, vos annonces, qui les a mises en favori »
 // Identités visibles pour les vendeurs premium, floutées sinon.
 
@@ -35,35 +40,35 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
               .not('viewer_id', 'is', null)
               .order('created_at', { ascending: false })
               .limit(30)
-          : Promise.resolve({ data: [] as any[] }),
+          : Promise.resolve({ data: [] as ViewRow[] }),
         listingIds.length
           ? supabase.from('favorites')
               .select('user_id, created_at, listing_id')
               .in('listing_id', listingIds)
               .order('created_at', { ascending: false })
               .limit(30)
-          : Promise.resolve({ data: [] as any[] }),
+          : Promise.resolve({ data: [] as ViewRow[] }),
       ]);
 
       const ids = new Set<string>();
-      (profileViews.data || []).forEach((v: any) => ids.add(v.viewer_id));
-      (listingViews.data || []).forEach((v: any) => ids.add(v.viewer_id));
-      (favs.data || []).forEach((v: any) => ids.add(v.user_id));
+      (profileViews.data || []).forEach((v: ViewRow) => v.viewer_id && ids.add(v.viewer_id));
+      (listingViews.data || []).forEach((v: ViewRow) => v.viewer_id && ids.add(v.viewer_id));
+      (favs.data || []).forEach((v: ViewRow) => v.user_id && ids.add(v.user_id));
       ids.delete(userId);
 
-      let profiles: Record<string, any> = {};
+      const profiles: Record<string, ViewerProfile> = {};
       if (ids.size) {
         const { data: profs } = await supabase
           .from('safe_profiles')
           .select('id, full_name, avatar_url, kyc_status')
           .in('id', Array.from(ids));
-        (profs || []).forEach((p: any) => { profiles[p.id] = p; });
+        (profs || []).forEach((p: ViewerProfile) => { profiles[p.id] = p; });
       }
 
-      const enrich = (rows: any[], idKey: string) =>
+      const enrich = (rows: ViewRow[], idKey: 'viewer_id' | 'user_id'): Viewer[] =>
         (rows || [])
-          .filter((r: any) => r[idKey] !== userId && profiles[r[idKey]])
-          .map((r: any) => ({ ...profiles[r[idKey]], at: r.created_at }));
+          .filter((r) => r[idKey] !== userId && !!profiles[r[idKey] as string])
+          .map((r) => ({ ...profiles[r[idKey] as string], at: r.created_at }));
 
       return {
         profile: enrich(profileViews.data || [], 'viewer_id'),
@@ -113,7 +118,7 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
           <p className="text-sm text-white/50 font-light">{t('viewers.empty', 'Personne pour le moment. Revenez bientôt.')}</p>
         ) : (
           <ul className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
-            {rows.map((person: any, personIdx: number) => (
+            {rows.map((person: Viewer, personIdx: number) => (
               <li key={`${person.id}-${personIdx}`}>
                 <button
                   onClick={() => navigate(`/profile/${person.id}`)}

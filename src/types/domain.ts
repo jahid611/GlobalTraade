@@ -59,6 +59,8 @@ export interface Listing {
   // ── Augmentation posée côté client (Marketplace), absente de la base ──
   /** le propriétaire a la pastille « membre fiable » (note ≥ 4) */
   _trusted?: boolean;
+  /** score de correspondance calculé à l'affichage (Marketplace) */
+  _matchScore?: number;
 }
 
 // Annonce de recherche (repreneur en recherche) — table `search_ads`.

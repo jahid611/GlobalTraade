@@ -12,20 +12,41 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { exportVDRAuditTrail } from '@/utils/pdfExport';
+import type { Listing } from '@/types/domain';
+import type { User } from '@supabase/supabase-js';
 
 interface DataRoomPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  listing: any;
-  user: any;
+  listing: Listing;
+  user: User | null;
 }
+
+// Data room, tel que stocké en base (tables vdr_documents / vdr_access_logs)
+type VdrDocument = {
+  id: string;
+  listing_id: string;
+  name: string;
+  file_path: string;
+  size_bytes: number;
+  created_at: string | null;
+};
+
+type VdrAccessLog = {
+  id: string;
+  document_id: string;
+  viewer_id: string;
+  viewed_at: string | null;
+  // enrichi côté client avec le profil du lecteur
+  viewer?: { full_name: string | null; avatar_url: string | null } | null;
+};
 
 const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelProps) {
   useScrollLock(isOpen);
   const [ndaStatus, setNdaStatus] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<VdrDocument[]>([]);
   const [buyersWithNda, setBuyersWithNda] = useState<any[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +111,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
         
         if (ndaError && ndaError.code !== 'PGRST116') console.error("Erreur NDA:", ndaError);
 
-        let logs: any[] = [];
+        let logs: VdrAccessLog[] = [];
         if (docs && docs.length > 0) {
           // Filtrer rigoureusement les UUIDs pour éviter l'erreur 400
           const docIds = docs.map(d => d.id).filter(id => id && VALID_UUID.test(id));
@@ -159,7 +180,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       showSuccess(t('vdr.toast_nda_signed'));
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       showError(err.message);
     }
   };
@@ -174,7 +195,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       showError(err.message);
     }
   };
@@ -202,7 +223,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (dbError) throw dbError;
       showSuccess(t('vdr.toast_doc_success'));
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       showError(`${t('vdr.toast_upload_error')}${err.message}`);
     } finally {
       setUploading(false);
@@ -219,7 +240,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
     }
   };
 
-  const downloadDocument = async (doc: any) => {
+  const downloadDocument = async (doc: VdrDocument) => {
     try {
       const { data, error } = await supabase.storage.from('vdr').createSignedUrl(doc.file_path, 60, {
         download: doc.name
@@ -234,19 +255,19 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (err: any) {
+    } catch (err) {
       showError(t('vdr.toast_access_error'));
     }
   };
 
-  const viewDocument = async (doc: any) => {
+  const viewDocument = async (doc: VdrDocument) => {
     try {
       const { data, error } = await supabase.storage.from('vdr').createSignedUrl(doc.file_path, 300);
       if (error) throw error;
       
       await logAccess(doc.id);
       setPreviewDoc({ url: data.signedUrl, name: doc.name });
-    } catch (err: any) {
+    } catch (err) {
       showError(t('vdr.toast_access_error'));
     }
   };

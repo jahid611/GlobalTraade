@@ -8,6 +8,18 @@ import { CheckCircle as SealCheck, LockSimpleOpen, FilePlus, Check, X, DownloadS
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { showError, showSuccess } from '@/utils/toast';
+import type { Project } from '@/services/projectService';
+
+// Demande d'accès au dossier complet d'un projet (table project_access_requests)
+type RequesterProfile = { id: string; full_name: string | null; avatar_url: string | null };
+type AccessRequest = {
+  id: string;
+  project_id: string;
+  requester_id: string;
+  status: 'pending' | 'approved' | 'rejected' | string;
+  created_at: string;
+  profile?: RequesterProfile;
+};
 
 // Place projets — dossier complet :
 //  - vérification par l'équipe (badge « Projet vérifié »)
@@ -28,7 +40,7 @@ export function VerificationBadge({ status }: { status?: string }) {
   );
 }
 
-export function ProjectAccessSection({ project, userId }: { project: any; userId?: string }) {
+export function ProjectAccessSection({ project, userId }: { project: Project; userId?: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isOwner = userId === project.owner_id;
@@ -43,13 +55,13 @@ export function ProjectAccessSection({ project, userId }: { project: any; userId
           .select('*')
           .eq('project_id', project.id)
           .order('created_at', { ascending: false });
-        const requesterIds = (requests || []).map((r: any) => r.requester_id);
+        const requesterIds = (requests || []).map((r: AccessRequest) => r.requester_id);
         let names: Record<string, any> = {};
         if (requesterIds.length) {
           const { data: profs } = await supabase.from('safe_profiles').select('id, full_name, avatar_url').in('id', requesterIds);
-          (profs || []).forEach((p: any) => { names[p.id] = p; });
+          (profs || []).forEach((p: RequesterProfile) => { names[p.id] = p; });
         }
-        return { requests: (requests || []).map((r: any) => ({ ...r, profile: names[r.requester_id] })), myRequest: null };
+        return { requests: (requests || []).map((r: AccessRequest) => ({ ...r, profile: names[r.requester_id] })), myRequest: null };
       }
       const { data: myRequest } = await supabase
         .from('project_access_requests')
@@ -121,10 +133,10 @@ export function ProjectAccessSection({ project, userId }: { project: any; userId
       </div>
 
       {/* Demandes reçues (porteur) */}
-      {isOwner && (data?.requests || []).filter((r: any) => r.status === 'pending').length > 0 && (
+      {isOwner && (data?.requests || []).filter((r: AccessRequest) => r.status === 'pending').length > 0 && (
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-widest text-white/40">{t('pp.requests_title', 'Demandes d\'accès')}</p>
-          {(data?.requests || []).filter((r: any) => r.status === 'pending').map((req: any) => (
+          {(data?.requests || []).filter((r: AccessRequest) => r.status === 'pending').map((req: AccessRequest) => (
             <div key={req.id} className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3">
               <p className="flex-1 text-sm text-white font-light truncate">{req.profile?.full_name || t('viewers.anonymous', 'Membre Globly')}</p>
               <button onClick={() => answerRequest(req.id, 'accepted')} className="p-2 rounded-full bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition-colors outline-none"><Check className="w-4 h-4" /></button>
