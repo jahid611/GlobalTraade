@@ -11,7 +11,17 @@ import { STRIPE_PUBLISHABLE_KEY } from '@/services/stripe';
 // L'interface Stripe (Embedded Checkout) affichée dans un modal, sans quitter le site.
 const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
-export function StripeCheckoutModal({ clientSecret, onClose }: { clientSecret: string; onClose: () => void }) {
+// `onComplete` n'est utilisé que dans l'app native : Stripe ne redirigeant pas,
+// c'est ce callback qui signale la fin du paiement et laisse l'app naviguer.
+export function StripeCheckoutModal({
+  clientSecret,
+  onClose,
+  onComplete,
+}: {
+  clientSecret: string;
+  onClose: () => void;
+  onComplete?: () => void;
+}) {
   return createPortal(
     <div className="fixed inset-0 z-[400] flex items-start sm:items-center justify-center p-3 sm:p-6">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -23,7 +33,7 @@ export function StripeCheckoutModal({ clientSecret, onClose }: { clientSecret: s
         </button>
         <div className="p-1">
           {stripePromise ? (
-            <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+            <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret, onComplete }}>
               <EmbeddedCheckout />
             </EmbeddedCheckoutProvider>
           ) : (

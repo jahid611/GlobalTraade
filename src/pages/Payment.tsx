@@ -45,6 +45,9 @@ export default function Payment() {
   const [profile, setProfile] = useState<any>(null);
   const [loadingKind, setLoadingKind] = useState<string | null>(null); // bouton en cours
   const [clientSecret, setClientSecret] = useState<string | null>(null); // session Stripe embarquée
+  // App native : Stripe ne redirige pas (return_url https impossible depuis
+  // `capacitor://localhost`) → on navigue nous-mêmes à la fin du paiement.
+  const [nativeReturn, setNativeReturn] = useState<string | null>(null);
 
   const unlockTarget = useMemo(() => parseTarget(searchParams.get('unlock')), [searchParams]);
   const boostTarget = useMemo(() => parseTarget(searchParams.get('boost')), [searchParams]);
@@ -82,6 +85,7 @@ export default function Payment() {
     setLoadingKind(null);
     if (r.ok && r.clientSecret) {
       setClientSecret(r.clientSecret); // ouvre l'interface Stripe dans le modal
+      setNativeReturn(r.redirectOnCompletion === 'never' ? (payload.returnPath || '/payment?success=1') : null);
     } else {
       showError(r.notConfigured
         ? 'Le paiement en ligne sera bientôt disponible (Stripe en cours de configuration).'
@@ -224,7 +228,18 @@ export default function Payment() {
 
       </main>
 
-      {clientSecret && <StripeCheckoutModal clientSecret={clientSecret} onClose={() => setClientSecret(null)} />}
+      {clientSecret && (
+        <StripeCheckoutModal
+          clientSecret={clientSecret}
+          onClose={() => { setClientSecret(null); setNativeReturn(null); }}
+          onComplete={nativeReturn ? () => {
+            setClientSecret(null);
+            const to = nativeReturn;
+            setNativeReturn(null);
+            navigate(to);
+          } : undefined}
+        />
+      )}
     </div>
   );
 }

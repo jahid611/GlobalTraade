@@ -59,6 +59,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
   // Déblocage 5 € : interface Stripe ouverte directement sur la fiche
   const [unlockCS, setUnlockCS] = useState<string | null>(null);
+  // App native : Stripe ne redirige pas, c'est nous qui ramenons sur la fiche.
+  const [unlockReturn, setUnlockReturn] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
 
   // Animation de déblocage (retour de paiement) : cadenas qui s'ouvre puis révélation
@@ -210,7 +212,10 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       returnPath: `/app?focus=${listing.id}&celebrate=1`,
     });
     setUnlocking(false);
-    if (r.ok && r.clientSecret) setUnlockCS(r.clientSecret);
+    if (r.ok && r.clientSecret) {
+      setUnlockCS(r.clientSecret);
+      setUnlockReturn(r.redirectOnCompletion === 'never' ? `/app?focus=${listing.id}&celebrate=1` : null);
+    }
     else showError(r.notConfigured
       ? t('quota.stripe_soon', 'Le paiement en ligne sera bientôt disponible.')
       : (r.error || t('msg.error', 'Une erreur est survenue.')));
@@ -741,7 +746,18 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       />
 
       {/* Interface Stripe (déblocage 5 €) affichée directement sur la fiche */}
-      {unlockCS && <StripeCheckoutModal clientSecret={unlockCS} onClose={() => setUnlockCS(null)} />}
+      {unlockCS && (
+        <StripeCheckoutModal
+          clientSecret={unlockCS}
+          onClose={() => { setUnlockCS(null); setUnlockReturn(null); }}
+          onComplete={unlockReturn ? () => {
+            setUnlockCS(null);
+            const to = unlockReturn;
+            setUnlockReturn(null);
+            navigate(to);
+          } : undefined}
+        />
+      )}
 
       {/* Report Modal */}
       <AnimatePresence>

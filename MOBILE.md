@@ -28,21 +28,34 @@ dans `src/native.ts` — **no-op total sur le web**, activé seulement dans l'ap
 - **Android Studio** (SDK absent sur cette machine). Après install :
   `pnpm cap:android` ouvre le projet, Run sur émulateur/appareil.
 
-## ⚠️ À traiter AVANT de soumettre aux stores (verrouillé sur des décisions)
+## Paiements et connexion dans l'app (résolus)
 
-Ces deux points marchent en web mais pas tels quels dans le webview mobile :
+1. **Paiement Stripe** — l'origine mobile est `capacitor://localhost`, que Stripe
+   refuse comme `return_url` (https obligatoire). L'app envoie désormais
+   `platform: 'native'` à `create-checkout-session`, qui crée la session avec
+   `redirect_on_completion: 'never'` : **Stripe ne redirige plus du tout**, le
+   modal Embedded Checkout appelle `onComplete` et l'app navigue elle-même vers
+   la fiche débloquée. Aucun aller-retour hors de l'application.
+   Côté web rien ne change, mais l'origine de la `return_url` est maintenant
+   **validée** (https, ou localhost en dev) : poser le secret `SITE_URL` de la
+   fonction évite toute dépendance à l'en-tête `Origin`.
 
-1. **Retour de paiement Stripe** — `create-checkout-session` construit le
-   `return_url` à partir de l'origine de la requête. En mobile l'origine est
-   `capacitor://localhost`, que **Stripe refuse** (https obligatoire). À résoudre
-   en même temps que la **stratégie de paiement iOS** (encore à trancher :
-   exemption marketplace / paiement web / Apple IAP). Voir aussi la commission
-   Apple de 30 % sur le numérique.
+   ⚠️ Reste une **décision produit**, pas technique : Apple prélève 30 % sur le
+   numérique consommé dans l'app. À trancher avant soumission (exemption
+   marketplace / achat sur le web uniquement / Apple IAP).
 
-2. **OAuth Google (Supabase)** — la redirection OAuth ne revient pas dans un
-   webview sans **deep link** (`com.globly.app://`) déclaré et ajouté aux URLs
-   de redirection Supabase. **L'email/mot de passe fonctionne sans rien changer**
-   → chemin recommandé pour une v1 mobile.
+2. **Connexion Google** — Google refuse l'authentification dans une webview
+   embarquée. L'app ouvre donc le **navigateur système** (`@capacitor/browser`)
+   et le retour se fait par **deep link** `com.globly.app://auth-callback`,
+   déclaré dans `ios/App/App/Info.plist` (CFBundleURLTypes) et dans le manifeste
+   Android (intent-filter BROWSABLE). Le client Supabase passe en **flux PKCE**
+   uniquement en natif, et `src/native.ts` échange le code contre une session à
+   la réception du lien. Le web garde son flux d'origine.
+
+   **À faire une fois dans Supabase** → Authentication > URL Configuration >
+   Redirect URLs : ajouter `com.globly.app://auth-callback`.
+
+   L'email/mot de passe fonctionne sans rien configurer.
 
 Le reste (globe 3D, marketplace, messagerie, CRM, data room, favoris, profils)
 fonctionne dans le webview sans modification.
@@ -54,3 +67,5 @@ fonctionne dans le webview sans modification.
 - Projets natifs `ios/` et `android/` générés.
 - Encoche/safe-areas gérées (`viewport-fit=cover` + `env(safe-area-inset-*)`).
 - Barre de statut, clavier, bouton retour Android câblés (`src/native.ts`).
+- Deep link `com.globly.app://` déclaré des deux côtés + réception dans `src/native.ts`.
+- Paiement Stripe sans redirection et connexion Google par navigateur système.

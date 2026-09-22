@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { APP_SCHEME } from '@/native';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -120,6 +122,25 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+
+    if (Capacitor.isNativePlatform()) {
+      // Google refuse l'authentification dans une webview embarquée : on ouvre le
+      // navigateur système, et le retour se fait par deep link (voir src/native.ts).
+      // À déclarer dans Supabase > Authentication > URL Configuration :
+      //   com.globly.app://auth-callback
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${APP_SCHEME}://auth-callback`, skipBrowserRedirect: true },
+      });
+      if (error) setError(error.message);
+      else if (data?.url) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: data.url });
+      }
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + '/' }

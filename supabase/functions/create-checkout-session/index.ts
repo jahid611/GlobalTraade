@@ -52,13 +52,37 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json({ error: "Non authentifié." }, 401);
 
-    const { kind, plan, target, returnPath } = await req.json();
-    const origin = Deno.env.get("SITE_URL") || req.headers.get("origin") || "";
+    const { kind, plan, target, returnPath, platform } = await req.json();
+
+    // App native (Capacitor) : l'origine est `capacitor://localhost`, que Stripe
+    // refuse comme return_url (https obligatoire). On demande alors à Stripe de
+    // NE PAS rediriger : le modal Embedded Checkout appelle `onComplete` et l'app
+    // navigue elle-même vers returnPath, sans jamais quitter l'application.
+    const isNative = platform === "native";
+
+    // Web : return_url obligatoirement en https (ou localhost en dev). On ne fait
+    // jamais confiance à l'origine de la requête sans la valider.
+    const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/$/, "");
+    const reqOrigin = req.headers.get("origin") || "";
+    const originOk = (o: string) => /^https:\/\//.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o);
+    const origin = siteUrl && originOk(siteUrl) ? siteUrl : (originOk(reqOrigin) ? reqOrigin : "");
+
+    if (!isNative && !origin) {
+      return json({
+        error: "Origine de retour invalide : configurez le secret SITE_URL (https://…) de la fonction.",
+      }, 400);
+    }
+
     // Embedded Checkout : Stripe redirige la page vers return_url à la fin.
     // returnPath peut déjà contenir des query params -> on ajoute session_id proprement.
     const rp = returnPath || "/payment?success=1";
     const sep = rp.includes("?") ? "&" : "?";
     const returnUrl = `${origin}${rp}${sep}session_id={CHECKOUT_SESSION_ID}`;
+
+    // Stripe n'accepte qu'un seul des deux réglages.
+    const completion = isNative
+      ? { redirect_on_completion: "never" as const }
+      : { return_url: returnUrl };
 
     // Réutilise le client Stripe rattaché à l'utilisateur s'il existe
     let customerId: string | undefined;
@@ -89,7 +113,7 @@ serve(async (req) => {
         subscription_data: { metadata: { ...baseMeta, plan } },
         metadata: { ...baseMeta, plan },
         ui_mode: "embedded",
-        return_url: returnUrl,
+        ...completion,
         allow_promotion_codes: true,
       });
     } else if (kind === "unlock" || kind === "boost" || kind === "prospection") {
@@ -121,13 +145,13 @@ serve(async (req) => {
         payment_intent_data: { metadata: meta },
         metadata: meta,
         ui_mode: "embedded",
-        return_url: returnUrl,
+        ...completion,
       });
     } else {
       return json({ error: "Type de paiement inconnu." }, 400);
     }
 
-    return json({ clientSecret: session.client_secret });
+    return json({ clientSecret: session.client_secret, redirectOnCompletion: isNative ? "never" : "always" });
   } catch (e: any) {
     return json({ error: e?.message || "Erreur Stripe." }, 400);
   }
