@@ -20,9 +20,12 @@ SELECT
   CASE WHEN show_phone = true OR auth.uid() = id OR (EXISTS (SELECT 1 FROM profiles ap WHERE ap.id = auth.uid() AND ap.is_admin = true)) THEN phone ELSE NULL::text END AS phone,
   plan_type,
   buyer_type, buyer_level, target_sectors, target_geo, target_budget, target_revenue, apport, experience, ambitions,
-  -- Identité professionnelle (issue de l'onboarding)
-  account_type, company_name, legal_form, role_function, country,
-  (SELECT count(*) FROM profile_views v WHERE v.profile_id = p.id) AS profile_views_count
+  (SELECT count(*) FROM profile_views v WHERE v.profile_id = p.id) AS profile_views_count,
+  -- Identité professionnelle (issue de l'onboarding).
+  -- ⚠️ Ajoutée APRÈS profile_views_count, et surtout pas au milieu :
+  -- CREATE OR REPLACE VIEW interdit de renommer ou de réordonner les colonnes
+  -- existantes, il n'autorise qu'un ajout en fin de liste.
+  account_type, company_name, legal_form, role_function, country
 FROM profiles p;
 
 GRANT SELECT ON public.safe_profiles TO authenticated, anon;

@@ -92,22 +92,64 @@ console.log(`\nCompte d'audit : ${email || E.AUDIT_EMAIL} (${uid})\n`);
 const lire = async (cols) =>
   (await api(`profiles?id=eq.${uid}&select=${cols}`, { token })).json?.[0] || {};
 
-for (const [nom, patch, col, attendu] of [
-  ["Formule payante non auto-attribuable", { plan_type: 'business' }, 'plan_type', 'business'],
-  ["Rôle admin non auto-attribuable", { is_admin: true }, 'is_admin', true],
-  ["Badge KYC « vérifié » non auto-attribuable", { kyc_status: 'verified' }, 'kyc_status', 'verified'],
-  ["Identifiant d'abonnement Stripe non falsifiable", { stripe_subscription_id: 'sub_faux' }, 'stripe_subscription_id', 'sub_faux'],
-]) {
-  await api(`profiles?id=eq.${uid}`, { method: 'PATCH', token, body: patch, prefer: 'return=minimal' });
-  const apres = await lire(col);
-  check(nom, apres[col] !== attendu, apres[col] === attendu ? `valeur obtenue : ${apres[col]}` : '');
+// La ligne `profiles` n'existe qu'à partir de l'onboarding : aucun trigger ne
+// la crée à l'inscription. Sans elle, toutes les assertions seraient
+// trivialement vraies (rien à modifier) et l'audit ne prouverait rien.
+// On la crée donc — en tentant au passage de s'octroyer des privilèges, ce qui
+// teste la protection à l'INSERT.
+{
+  const existe = (await lire('id')).id;
+  if (!existe) {
+    await api('profiles', {
+      method: 'POST', token, prefer: 'return=minimal',
+      body: { id: uid, full_name: 'Audit Privilèges', is_admin: true, plan_type: 'business', kyc_status: 'verified' },
+    });
+    const cree = await lire('id,is_admin,plan_type,kyc_status');
+    if (!cree.id) {
+      console.error("\nImpossible de créer la ligne profiles du compte d'audit — audit interrompu.");
+      process.exit(2);
+    }
+    check("Création de profil : privilèges hostiles ignorés",
+      cree.is_admin === false && cree.plan_type === 'free' && cree.kyc_status === 'none',
+      `is_admin=${cree.is_admin} plan_type=${cree.plan_type} kyc=${cree.kyc_status}`);
+  } else {
+    console.log('  ⏭️  Création de profil — ligne déjà existante, test sans objet');
+  }
 }
 
-// Le membre doit malgré tout pouvoir demander la vérification de son identité
-await api(`profiles?id=eq.${uid}`, { method: 'PATCH', token, body: { kyc_status: 'pending' }, prefer: 'return=minimal' });
-const kyc = await lire('kyc_status');
-check("Demande de vérification d'identité toujours possible (non-régression)", kyc.kyc_status === 'pending',
-  kyc.kyc_status !== 'pending' ? `statut resté à ${kyc.kyc_status}` : '');
+// L'assertion porte sur « la valeur n'a pas bougé », et non sur « la valeur
+// n'est pas celle de l'attaque » : sur un compte déjà payant, la seconde
+// formulation donnerait un faux négatif alors que le trigger a bien fait son
+// travail en conservant l'ancienne valeur.
+for (const [nom, patch, col] of [
+  ["Formule payante non auto-attribuable", { plan_type: 'business' }, 'plan_type'],
+  ["Rôle admin non auto-attribuable", { is_admin: true }, 'is_admin'],
+  ["Badge KYC « vérifié » non auto-attribuable", { kyc_status: 'verified' }, 'kyc_status'],
+  ["Identifiant d'abonnement Stripe non falsifiable", { stripe_subscription_id: 'sub_faux' }, 'stripe_subscription_id'],
+]) {
+  const avant = (await lire(col))[col];
+  await api(`profiles?id=eq.${uid}`, { method: 'PATCH', token, body: patch, prefer: 'return=minimal' });
+  const apres = (await lire(col))[col];
+  check(nom, apres === avant, apres === avant ? '' : `${JSON.stringify(avant)} → ${JSON.stringify(apres)}`);
+}
+
+// Le membre doit malgré tout pouvoir demander la vérification de son identité.
+// La transition n'est ouverte que depuis « none » ou « rejected » : sur un
+// compte déjà vérifié, il n'y a rien à tester.
+const kycAvant = (await lire('kyc_status')).kyc_status;
+if (kycAvant === 'none' || kycAvant === 'rejected' || kycAvant == null) {
+  await api(`profiles?id=eq.${uid}`, { method: 'PATCH', token, body: { kyc_status: 'pending' }, prefer: 'return=minimal' });
+  const kyc = await lire('kyc_status');
+  check("Demande de vérification d'identité toujours possible (non-régression)", kyc.kyc_status === 'pending',
+    kyc.kyc_status !== 'pending' ? `statut resté à ${kyc.kyc_status}` : '');
+} else {
+  console.log(`  ⏭️  Demande de vérification d'identité — compte déjà « ${kycAvant} », test sans objet`);
+}
+
+// Le membre doit pouvoir modifier ce qui lui appartient vraiment
+await api(`profiles?id=eq.${uid}`, { method: 'PATCH', token, body: { bio: `audit ${Date.now()}` }, prefer: 'return=minimal' });
+const bio = (await lire('bio')).bio;
+check('Modification de son profil toujours possible (non-régression)', /^audit \d+$/.test(bio || ''), bio ? '' : 'bio non enregistrée');
 
 // ── listing_unlocks ─────────────────────────────────────────────────────
 const cible = (await api('listings_secure?select=id&limit=1', { token })).json?.[0];

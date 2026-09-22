@@ -59,8 +59,8 @@ SELECT pg_temp.verdict('Badge « vérifié » non auto-attribuable', 'none', kyc
 UPDATE public.profiles SET stripe_subscription_id = 'sub_faux' WHERE id = :'membre';
 SELECT pg_temp.verdict('Abonnement Stripe non falsifiable', '', COALESCE(stripe_subscription_id, '')) FROM public.profiles WHERE id = :'membre';
 
-UPDATE public.profiles SET buyer_level = 'confirme' WHERE id = :'membre';
-SELECT pg_temp.verdict('Niveau de qualification réservé à l''admin', '', COALESCE(buyer_level, '')) FROM public.profiles WHERE id = :'membre';
+UPDATE public.profiles SET buyer_level = 'qualifie' WHERE id = :'membre';
+SELECT pg_temp.verdict('Niveau de qualification réservé à l''admin', 'profil_cree', buyer_level) FROM public.profiles WHERE id = :'membre';
 
 UPDATE public.listings SET boosted_until = now() + interval '30 days', is_premium = true
 WHERE id = '33333333-3333-3333-3333-333333333333';
@@ -80,6 +80,19 @@ VALUES ('55555555-5555-5555-5555-555555555555', :'membre', 'Annonce trichée', t
 SELECT pg_temp.verdict('Mise en avant impossible dès la création', 'false|',
        is_premium::text || '|' || COALESCE(boosted_until::text, ''))
 FROM public.listings WHERE id = '55555555-5555-5555-5555-555555555555';
+
+-- Création de profil : l'onboarding doit continuer de fonctionner, et les
+-- privilèges demandés par le client doivent être ignorés.
+-- (Régression du 22/09/2026 : forcer buyer_level à NULL cassait tout INSERT.)
+SET request.jwt.claims = '{"sub":"66666666-6666-6666-6666-666666666666","role":"authenticated"}';
+INSERT INTO public.profiles (id, full_name, is_admin, plan_type, kyc_status, buyer_level)
+VALUES ('66666666-6666-6666-6666-666666666666', 'Nouveau Membre', true, 'business', 'verified', 'finance_verifie');
+SET request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+SELECT pg_temp.verdict('Création de profil possible (onboarding)', 'Nouveau Membre', full_name)
+FROM public.profiles WHERE id = '66666666-6666-6666-6666-666666666666';
+SELECT pg_temp.verdict('Création de profil : privilèges hostiles ignorés', 'false|free|none|profil_cree',
+       is_admin::text || '|' || plan_type || '|' || kyc_status || '|' || buyer_level)
+FROM public.profiles WHERE id = '66666666-6666-6666-6666-666666666666';
 
 -- Déblocage payant que l'on s'offre soi-même
 DO $$
@@ -122,8 +135,8 @@ SET request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"
 UPDATE public.profiles SET kyc_status = 'verified' WHERE id = :'membre';
 SELECT pg_temp.verdict('Un admin valide bien un KYC', 'verified', kyc_status) FROM public.profiles WHERE id = :'membre';
 
-UPDATE public.profiles SET buyer_level = 'confirme' WHERE id = :'membre';
-SELECT pg_temp.verdict('Un admin fixe bien le niveau de qualification', 'confirme', COALESCE(buyer_level, ''))
+UPDATE public.profiles SET buyer_level = 'qualifie' WHERE id = :'membre';
+SELECT pg_temp.verdict('Un admin fixe bien le niveau de qualification', 'qualifie', buyer_level)
 FROM public.profiles WHERE id = :'membre';
 
 UPDATE public.profiles SET plan_type = 'business' WHERE id = :'membre';

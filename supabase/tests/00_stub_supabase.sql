@@ -25,8 +25,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone text,
   plan_type text NOT NULL DEFAULT 'free',
   is_admin boolean NOT NULL DEFAULT false,
-  kyc_status text NOT NULL DEFAULT 'none',
-  buyer_level text,
+  kyc_status text DEFAULT 'none',
+  -- Conforme à la production : NOT NULL, avec un défaut et une contrainte.
+  -- Un stub plus laxiste que la vraie base laisse passer des correctifs qui
+  -- la cassent — c'est exactement ce qui est arrivé le 22/09/2026, où forcer
+  -- buyer_level à NULL a cassé toute création de profil en production.
+  buyer_level text NOT NULL DEFAULT 'profil_cree'
+    CHECK (buyer_level = ANY (ARRAY['profil_cree','qualifie','finance_verifie'])),
   stripe_customer_id text,
   stripe_subscription_id text,
   target_sectors text,

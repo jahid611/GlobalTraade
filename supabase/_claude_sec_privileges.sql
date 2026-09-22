@@ -108,9 +108,11 @@ BEGIN
   IF public.is_trusted_writer() THEN RETURN NEW; END IF;
   NEW.is_admin               := false;
   NEW.plan_type              := 'free';
-  NEW.kyc_status             := COALESCE(NEW.kyc_status, 'none');
-  IF NEW.kyc_status <> 'none' THEN NEW.kyc_status := 'none'; END IF;
-  NEW.buyer_level            := NULL;
+  NEW.kyc_status             := 'none';
+  -- ⚠️ buyer_level est NOT NULL avec pour défaut 'profil_cree' : le forcer à
+  -- NULL casserait toute création de profil, donc l'onboarding entier.
+  -- On le ramène au niveau de départ, pas à rien.
+  NEW.buyer_level            := 'profil_cree';
   NEW.stripe_customer_id     := NULL;
   NEW.stripe_subscription_id := NULL;
   RETURN NEW;
