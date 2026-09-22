@@ -94,3 +94,35 @@ se fait par `mfa.challengeAndVerify`.
 Pour imposer l'aal2 jusqu'au niveau des données, les policies RLS sensibles
 peuvent tester `auth.jwt() ->> 'aal' = 'aal2'` — non fait aujourd'hui, le blocage
 est côté application.
+
+## Escalade de privilège par colonne (corrigée le 22/09/2026)
+
+**Constat.** Les policies RLS de Postgres sont *par ligne*, jamais *par
+colonne*. La policy « un membre modifie son propre profil » autorisait donc à
+modifier **n'importe quelle colonne** de ce profil — y compris celles qui
+décident de ce qui a été payé. Vérifié en production avec un compte gratuit
+fraîchement créé et la seule clé anon, en une requête HTTP :
+
+| Ce qui était possible | Conséquence |
+|---|---|
+| `profiles.plan_type = 'business'` | formule à 120 €/mois gratuite |
+| `profiles.is_admin = true` | **accès administrateur complet** |
+| `profiles.kyc_status = 'verified'` | badge « vérifié » usurpé |
+| `profiles.stripe_*` | identifiants d'abonnement falsifiés |
+| `INSERT listing_unlocks` | déblocage à 5 € gratuit, sur n'importe quelle annonce |
+| `listings.boosted_until` / `is_premium` | mise en avant à 10 € gratuite, badge premium |
+
+**Correctif** (`supabase/_claude_sec_privileges.sql`) : ces colonnes ne sont
+plus jamais écrites par l'application. Des triggers `BEFORE INSERT OR UPDATE`
+restaurent silencieusement l'ancienne valeur dès que l'appelant n'est pas
+`service_role` (webhook Stripe) ou une connexion SQL directe. Silencieusement,
+et non par une erreur : aucun écran existant ne casse. Deux transitions restent
+ouvertes au membre parce qu'elles sont légitimes — demander la vérification de
+son identité (`none`/`rejected` → `pending`) et demander la vérification d'un
+projet (`non_soumis`/`rejete` → `en_attente`) ; la décision reste à l'admin.
+La table `listing_unlocks` perd sa policy d'écriture : seul le webhook crée un
+déblocage.
+
+**Vérification.** `node scripts/audit-privileges.mjs` rejoue les sept tentatives
+contre la base réelle et sort en erreur si l'une d'elles passe. À relancer après
+toute modification des policies.

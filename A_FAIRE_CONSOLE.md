@@ -10,12 +10,22 @@ Coller, dans cet ordre (tous idempotents, rejouables sans risque) :
 
 | Fichier | Ce que ça fait |
 |---|---|
+| **`supabase/_claude_sec_privileges.sql`** | 🚨 **EN PREMIER, C'EST URGENT** — empêche un membre de s'attribuer lui-même la formule Business, le rôle admin, le badge « vérifié », les déblocages à 5 € et les mises en avant à 10 €. Faille vérifiée en production. |
 | `supabase/_claude_prospection_paid.sql` | colonne `paid` + RLS : le client ne peut plus s'attribuer un contact de prospection facturé |
 | `supabase/_claude_email_alerts.sql` | `profiles.email_alerts` et `last_digest_sent_at` pour les alertes email |
 | `supabase/_claude_safe_profiles_identity.sql` | `safe_profiles` expose l'identité professionnelle affichée sur le profil |
 
 (Si les anciens patchs `_claude_*.sql` n'ont jamais été appliqués, les coller
 d'abord — voir `supabase/SCHEMA.md`.)
+
+Puis vérifier que la faille est bien fermée :
+
+```bash
+node scripts/audit-privileges.mjs
+```
+
+Les huit contrôles doivent être au vert. Aujourd'hui, sur la base de
+production, **sept sont au rouge**.
 
 ## 2. Supabase — Edge Functions → Secrets
 

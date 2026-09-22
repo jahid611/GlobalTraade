@@ -188,7 +188,12 @@ export function SearchableSelect({
       >
         <span className="truncate">
           {current ? (
-            <><span className="text-white/40 mr-2">{current.value}</span>{current.label}</>
+            // Le préfixe ne sert qu'aux listes codées (code APE + libellé) :
+            // sur une liste où la valeur EST le libellé, il afficherait « France France ».
+            <>
+              {current.value !== current.label && <span className="text-white/40 mr-2">{current.value}</span>}
+              {current.label}
+            </>
           ) : (
             <span className="text-white/40">{placeholder}</span>
           )}
