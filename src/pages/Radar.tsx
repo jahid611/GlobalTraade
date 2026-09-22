@@ -22,7 +22,7 @@ import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
 import { PricingModal } from "@/components/PricingModal";
 import { StripeCheckoutModal } from "@/components/StripeCheckoutModal";
-import { startCheckout } from "@/services/stripe";
+import { startCheckout, openCheckout } from "@/services/stripe";
 import { useNavigate } from "react-router-dom";
 import { usePlan, isApeLocked, PLAN_PRICES, EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
 import {
@@ -75,7 +75,6 @@ export default function Radar() {
   const [adding, setAdding] = useState<string | null>(null);
   // Paiement des contacts de prospection au-delà du forfait (2 € l'unité)
   const [prospectCS, setProspectCS] = useState<string | null>(null);
-  const [prospectReturn, setProspectReturn] = useState<string | null>(null);
 
   // --- Profil : la prospection est bridée au code APE du membre ---
   // (obligation de renseigner son secteur ; seuls les admins prospectent librement)
@@ -161,9 +160,9 @@ export default function Radar() {
             target: { type: 'prospection', ids: extras.map((p) => p.siren), name: `${extras.length} contact(s)` },
             returnPath: '/radar?success=1',
           });
-          if (r.ok && r.clientSecret) {
-            setProspectCS(r.clientSecret);
-            setProspectReturn(r.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
+          if (r.ok && (r.clientSecret || r.url)) {
+            if (r.url) await openCheckout(r.url);
+            else setProspectCS(r.clientSecret!);
             showError(t('quota.prospection_pay_first',
               `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} € — réglez-les, puis relancez l'export.`) as string);
           } else {
@@ -600,7 +599,7 @@ export default function Radar() {
             userId={user?.id}
             onClose={() => setEditing(null)}
             onSaved={() => { setEditing(null); queryClient.invalidateQueries({ queryKey: ["prospects"] }); }}
-            onPayExtra={(cs, ret) => { setEditing(null); setProspectCS(cs); setProspectReturn(ret); }}
+            onPayExtra={(cs) => { setEditing(null); setProspectCS(cs); }}
           />
         )}
       </AnimatePresence>
@@ -617,23 +616,12 @@ export default function Radar() {
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
 
-      {prospectCS && (
-        <StripeCheckoutModal
-          clientSecret={prospectCS}
-          onClose={() => { setProspectCS(null); setProspectReturn(null); }}
-          onComplete={prospectReturn ? () => {
-            setProspectCS(null);
-            setProspectReturn(null);
-            queryClient.invalidateQueries({ queryKey: ["prospects"] });
-            showSuccess(t('quota.prospection_paid', 'Contacts réglés — relancez l\'envoi.'));
-          } : undefined}
-        />
-      )}
+      {prospectCS && <StripeCheckoutModal clientSecret={prospectCS} onClose={() => setProspectCS(null)} />}
     </div>
   );
 }
 
-function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPayExtra }: { prospect: Prospect; senderName: string; plan: PlanType; userId?: string; onClose: () => void; onSaved: () => void; onPayExtra: (clientSecret: string, nativeReturn: string | null) => void }) {
+function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPayExtra }: { prospect: Prospect; senderName: string; plan: PlanType; userId?: string; onClose: () => void; onSaved: () => void; onPayExtra: (clientSecret: string) => void }) {
   const { t, i18n } = useTranslation();
   // Langue de l'email mémorisée EN BASE (prospect.mail_lang) ; sinon langue du site.
   const initialLang: "fr" | "en" =
@@ -717,11 +705,8 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
         target: { type: 'prospection', id: prospect.siren, name: prospect.nom },
         returnPath: '/radar?success=1',
       });
-      if (c.ok && c.clientSecret) {
-        onPayExtra(c.clientSecret, c.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
-        showError(r.error || '');
-        return;
-      }
+      if (c.ok && c.url) { await openCheckout(c.url); showError(r.error || ''); return; }
+      if (c.ok && c.clientSecret) { onPayExtra(c.clientSecret); showError(r.error || ''); return; }
     }
     showError(r.notConfigured
       ? t('crm.mail.send_soon', "L'envoi automatique sera bientôt disponible.")
@@ -748,8 +733,9 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
           target: { type: 'prospection', id: prospect.siren, name: prospect.nom },
           returnPath: '/radar?success=1',
         });
-        if (r.ok && r.clientSecret) {
-          onPayExtra(r.clientSecret, r.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
+        if (r.ok && (r.clientSecret || r.url)) {
+          if (r.url) await openCheckout(r.url);
+          else onPayExtra(r.clientSecret!);
           showError(t('quota.prospection_extra_one',
             `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} € — réglez-le, puis relancez l'envoi.`) as string);
         } else {

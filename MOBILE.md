@@ -30,19 +30,27 @@ dans `src/native.ts` — **no-op total sur le web**, activé seulement dans l'ap
 
 ## Paiements et connexion dans l'app (résolus)
 
-1. **Paiement Stripe** — l'origine mobile est `capacitor://localhost`, que Stripe
-   refuse comme `return_url` (https obligatoire). L'app envoie désormais
-   `platform: 'native'` à `create-checkout-session`, qui crée la session avec
-   `redirect_on_completion: 'never'` : **Stripe ne redirige plus du tout**, le
-   modal Embedded Checkout appelle `onComplete` et l'app navigue elle-même vers
-   la fiche débloquée. Aucun aller-retour hors de l'application.
-   Côté web rien ne change, mais l'origine de la `return_url` est maintenant
-   **validée** (https, ou localhost en dev) : poser le secret `SITE_URL` de la
-   fonction évite toute dépendance à l'en-tête `Origin`.
+1. **Paiement : achat sur le web** — décision du 22/09/2026. **Aucun paiement
+   n'est encaissé dans l'application** : ni Stripe embarqué, ni achat intégré
+   Apple/Google, donc pas de commission de 30 %. Quand l'utilisateur lance un
+   paiement depuis l'app, celle-ci ouvre une page de paiement **Stripe hébergée**
+   dans le navigateur du téléphone (`@capacitor/browser`), hors de
+   l'application. Au retour, `appStateChange` émet `globly:resume` et
+   `useAppResumeRefresh` réinvalide plan / déblocages / annonces : l'annonce
+   payée se déverrouille toute seule, sans action de l'utilisateur.
 
-   ⚠️ Reste une **décision produit**, pas technique : Apple prélève 30 % sur le
-   numérique consommé dans l'app. À trancher avant soumission (exemption
-   marketplace / achat sur le web uniquement / Apple IAP).
+   Côté serveur, `create-checkout-session` renvoie une `url` quand
+   `platform: 'native'` (Checkout hébergé, `success_url` / `cancel_url` sur le
+   site avec `from=app`), et un `clientSecret` sinon (Checkout embarqué dans un
+   modal du site, comportement web inchangé). `SITE_URL` est **obligatoire** :
+   l'origine de retour est validée (https), jamais reprise telle quelle de
+   l'en-tête `Origin`.
+
+   ⚠️ **À vérifier avec Apple à la soumission.** Faire sortir vers un paiement
+   web depuis l'app relève des règles anti-steering (3.1.1) : c'est autorisé
+   sans condition aux États-Unis depuis la décision de 2025, et ailleurs cela
+   passe par l'entitlement *External Purchase Link* à demander à Apple. Le code
+   ne change pas selon la réponse — seul le droit de montrer le bouton change.
 
 2. **Connexion Google** — Google refuse l'authentification dans une webview
    embarquée. L'app ouvre donc le **navigateur système** (`@capacitor/browser`)

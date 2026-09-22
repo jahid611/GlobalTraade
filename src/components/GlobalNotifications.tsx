@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
+import { useAppResumeRefresh } from '@/hooks/use-app-resume';
 
 // Budget parser utility
 function parseBudgetRange(str: string): { min: number; max: number } | null {
@@ -51,6 +52,8 @@ function quickMatchScore(listing: { industry?: string; location?: string; price?
 }
 
 export function GlobalNotifications() {
+  // Retour d'un paiement fait hors de l'app (mobile) → rafraîchit les données
+  useAppResumeRefresh();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();

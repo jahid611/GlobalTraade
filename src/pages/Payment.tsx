@@ -13,7 +13,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { normalizePlan, PLAN_PRICES, UNLOCK_PRICE, BOOST_PRICE, BOOST_DAYS } from '@/services/planService';
 import { UnlockTargetType } from '@/services/unlockService';
-import { startCheckout } from '@/services/stripe';
+import { startCheckout, openCheckout } from '@/services/stripe';
 import { StripeCheckoutModal } from '@/components/StripeCheckoutModal';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -45,15 +45,15 @@ export default function Payment() {
   const [profile, setProfile] = useState<any>(null);
   const [loadingKind, setLoadingKind] = useState<string | null>(null); // bouton en cours
   const [clientSecret, setClientSecret] = useState<string | null>(null); // session Stripe embarquée
-  // App native : Stripe ne redirige pas (return_url https impossible depuis
-  // `capacitor://localhost`) → on navigue nous-mêmes à la fin du paiement.
-  const [nativeReturn, setNativeReturn] = useState<string | null>(null);
 
   const unlockTarget = useMemo(() => parseTarget(searchParams.get('unlock')), [searchParams]);
   const boostTarget = useMemo(() => parseTarget(searchParams.get('boost')), [searchParams]);
   const targetName = searchParams.get('name') || '';
   const success = searchParams.get('success') === '1';
   const canceled = searchParams.get('canceled') === '1';
+  // Page ouverte dans le navigateur du téléphone depuis l'app mobile : on dit
+  // clairement quoi faire ensuite, sinon l'utilisateur reste bloqué là.
+  const fromApp = searchParams.get('from') === 'app';
 
   const currentPlan = normalizePlan(profile?.plan_type);
 
@@ -64,7 +64,9 @@ export default function Payment() {
   // Retour depuis Stripe : le webhook met la base à jour (asynchrone) → on rafraîchit
   useEffect(() => {
     if (success) {
-      showSuccess('Paiement confirmé ! Votre compte se met à jour dans quelques secondes.');
+      showSuccess(fromApp
+        ? 'Paiement confirmé ! Vous pouvez revenir dans l\'application Globly.'
+        : 'Paiement confirmé ! Votre compte se met à jour dans quelques secondes.');
       const refresh = () => {
         queryClient.invalidateQueries({ queryKey: ['viewer-plan-v3'] });
         queryClient.invalidateQueries({ queryKey: ['unlock'] });
@@ -76,16 +78,18 @@ export default function Payment() {
       return () => clearTimeout(t);
     }
     if (canceled) showError('Paiement annulé.');
-  }, [success, canceled]);
+  }, [success, canceled, fromApp]);
 
   const pay = async (payload: Parameters<typeof startCheckout>[0], loadingId: string) => {
     if (!user) return navigate('/login');
     setLoadingKind(loadingId);
     const r = await startCheckout(payload);
     setLoadingKind(null);
-    if (r.ok && r.clientSecret) {
+    if (r.ok && r.url) {
+      // App mobile : paiement hors de l'application (navigateur du téléphone)
+      await openCheckout(r.url);
+    } else if (r.ok && r.clientSecret) {
       setClientSecret(r.clientSecret); // ouvre l'interface Stripe dans le modal
-      setNativeReturn(r.redirectOnCompletion === 'never' ? (payload.returnPath || '/payment?success=1') : null);
     } else {
       showError(r.notConfigured
         ? 'Le paiement en ligne sera bientôt disponible (Stripe en cours de configuration).'
@@ -228,18 +232,7 @@ export default function Payment() {
 
       </main>
 
-      {clientSecret && (
-        <StripeCheckoutModal
-          clientSecret={clientSecret}
-          onClose={() => { setClientSecret(null); setNativeReturn(null); }}
-          onComplete={nativeReturn ? () => {
-            setClientSecret(null);
-            const to = nativeReturn;
-            setNativeReturn(null);
-            navigate(to);
-          } : undefined}
-        />
-      )}
+      {clientSecret && <StripeCheckoutModal clientSecret={clientSecret} onClose={() => setClientSecret(null)} />}
     </div>
   );
 }

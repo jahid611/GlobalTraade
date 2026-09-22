@@ -34,6 +34,14 @@ export async function initNative() {
       else App.exitApp();
     });
 
+    // Retour dans l'app après un détour par le navigateur du téléphone
+    // (paiement « achat sur le web »). On signale la reprise : les écrans
+    // rafraîchissent leurs données pour que le contenu payé apparaisse tout
+    // seul, sans que l'utilisateur ait à recharger quoi que ce soit.
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) window.dispatchEvent(new Event('globly:resume'));
+    });
+
     // Retour de connexion Google : le navigateur système renvoie vers
     // `com.globly.app://auth-callback?code=…`. On échange le code contre une
     // session (PKCE), on referme le navigateur et on entre dans l'app.

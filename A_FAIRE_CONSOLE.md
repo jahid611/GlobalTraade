@@ -61,10 +61,12 @@ Voir `supabase/EMAILS.md` (relance d'annonces, résumé de correspondances) et
 
 ---
 
-## Décision produit qui reste ouverte
+## Paiement mobile : achat sur le web (décidé)
 
-**Paiement dans l'app iOS.** Techniquement, les paiements fonctionnent
-maintenant dans l'app (Stripe ne redirige plus). Mais Apple prélève 30 % sur le
-numérique consommé dans l'app : à trancher avant soumission — exemption
-« marketplace de biens physiques / services réels », achat sur le web
-uniquement, ou Apple IAP. Voir `MOBILE.md`.
+Aucun paiement n'est encaissé dans l'app : elle ouvre une page de paiement
+Stripe dans le navigateur du téléphone. Pas de commission de 30 %.
+
+Seul point à traiter **au moment de la soumission à l'App Store** : ce lien
+sortant relève des règles anti-steering d'Apple (3.1.1). Libre aux États-Unis
+depuis 2025 ; ailleurs, demander l'entitlement *External Purchase Link*. Le code
+est identique dans les deux cas. Voir `MOBILE.md`.

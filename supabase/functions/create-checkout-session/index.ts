@@ -4,13 +4,17 @@
 //  - boost        : mise en avant d'une annonce/projet/recherche (10 €, 30 j)
 //  - prospection  : contact de prospection supplémentaire (2 €)
 //
+// Web : Checkout EMBARQUÉ (modal du site). App mobile : Checkout HÉBERGÉ par
+// Stripe, ouvert dans le navigateur du téléphone — aucun paiement n'est encaissé
+// dans l'application (voir MOBILE.md, « achat sur le web »).
+//
 // Les MONTANTS sont fixés ici (serveur) : le client ne peut pas les falsifier.
 // La clé secrète Stripe n'est jamais exposée. Le fulfillment (mise à jour de la
 // base) est fait par la fonction `stripe-webhook` après paiement confirmé.
 //
 // Secrets requis (Supabase > Edge Functions > Secrets) :
 //   STRIPE_SECRET_KEY   (sk_live_… ou sk_test_…)
-//   SITE_URL            (ex. https://globaltrade-six.vercel.app) — optionnel
+//   SITE_URL            (ex. https://globaltrade-six.vercel.app) — OBLIGATOIRE
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -54,35 +58,41 @@ serve(async (req) => {
 
     const { kind, plan, target, returnPath, platform } = await req.json();
 
-    // App native (Capacitor) : l'origine est `capacitor://localhost`, que Stripe
-    // refuse comme return_url (https obligatoire). On demande alors à Stripe de
-    // NE PAS rediriger : le modal Embedded Checkout appelle `onComplete` et l'app
-    // navigue elle-même vers returnPath, sans jamais quitter l'application.
+    // STRATÉGIE DE PAIEMENT MOBILE — décidée le 22/09/2026 : **achat sur le web**.
+    // Rien n'est encaissé dans l'application (ni Stripe embarqué, ni achat
+    // intégré Apple/Google) : l'app ouvre la page de paiement Stripe dans le
+    // navigateur du téléphone, hors de l'application. On renvoie donc une URL
+    // de Checkout hébergée par Stripe au lieu d'un client_secret.
     const isNative = platform === "native";
 
-    // Web : return_url obligatoirement en https (ou localhost en dev). On ne fait
-    // jamais confiance à l'origine de la requête sans la valider.
+    // L'origine de retour est toujours en https (ou localhost en dev). On ne
+    // fait jamais confiance à l'origine de la requête sans la valider — et
+    // depuis l'app elle vaut `capacitor://localhost`, que Stripe refuse.
     const siteUrl = (Deno.env.get("SITE_URL") || "").replace(/\/$/, "");
     const reqOrigin = req.headers.get("origin") || "";
     const originOk = (o: string) => /^https:\/\//.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o);
     const origin = siteUrl && originOk(siteUrl) ? siteUrl : (originOk(reqOrigin) ? reqOrigin : "");
 
-    if (!isNative && !origin) {
+    if (!origin) {
       return json({
         error: "Origine de retour invalide : configurez le secret SITE_URL (https://…) de la fonction.",
       }, 400);
     }
 
-    // Embedded Checkout : Stripe redirige la page vers return_url à la fin.
     // returnPath peut déjà contenir des query params -> on ajoute session_id proprement.
     const rp = returnPath || "/payment?success=1";
     const sep = rp.includes("?") ? "&" : "?";
     const returnUrl = `${origin}${rp}${sep}session_id={CHECKOUT_SESSION_ID}`;
 
-    // Stripe n'accepte qu'un seul des deux réglages.
+    // Web : Checkout embarqué dans un modal du site (return_url).
+    // App : Checkout hébergé par Stripe, ouvert dans le navigateur du téléphone.
+    // `from=app` fait afficher « revenez dans l'application » sur la page de retour.
     const completion = isNative
-      ? { redirect_on_completion: "never" as const }
-      : { return_url: returnUrl };
+      ? {
+          success_url: `${origin}/payment?success=1&from=app&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/payment?canceled=1&from=app`,
+        }
+      : { ui_mode: "embedded" as const, return_url: returnUrl };
 
     // Réutilise le client Stripe rattaché à l'utilisateur s'il existe
     let customerId: string | undefined;
@@ -112,7 +122,6 @@ serve(async (req) => {
         }],
         subscription_data: { metadata: { ...baseMeta, plan } },
         metadata: { ...baseMeta, plan },
-        ui_mode: "embedded",
         ...completion,
         allow_promotion_codes: true,
       });
@@ -153,14 +162,16 @@ serve(async (req) => {
         }],
         payment_intent_data: { metadata: meta },
         metadata: meta,
-        ui_mode: "embedded",
         ...completion,
       });
     } else {
       return json({ error: "Type de paiement inconnu." }, 400);
     }
 
-    return json({ clientSecret: session.client_secret, redirectOnCompletion: isNative ? "never" : "always" });
+    // L'app n'a que faire d'un client_secret : elle a besoin de l'URL à ouvrir.
+    return isNative
+      ? json({ url: session.url })
+      : json({ clientSecret: session.client_secret });
   } catch (e: any) {
     return json({ error: e?.message || "Erreur Stripe." }, 400);
   }
