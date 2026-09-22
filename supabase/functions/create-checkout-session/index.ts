@@ -123,10 +123,19 @@ serve(async (req) => {
         boost: "Mise en avant (30 jours)",
         prospection: "Contact de prospection supplémentaire",
       };
+      // Prospection : on peut régler plusieurs contacts supplémentaires d'un coup
+      // (campagne). Les SIREN concernés voyagent dans les métadonnées — Stripe
+      // limite chaque valeur à 500 caractères, soit ~45 SIREN.
+      const ids: string[] = Array.isArray(target?.ids)
+        ? target.ids.map((x: unknown) => String(x)).filter(Boolean).slice(0, 40)
+        : [];
+      const quantity = kind === "prospection" && ids.length > 0 ? ids.length : 1;
+
       const meta = {
         ...baseMeta,
         target_type: target?.type ? String(target.type) : "",
-        target_id: target?.id ? String(target.id) : "",
+        target_id: target?.id ? String(target.id) : (ids[0] || ""),
+        target_ids: ids.join(","),
         target_name: target?.name ? String(target.name).slice(0, 120) : "",
       };
       session = await stripe.checkout.sessions.create({
@@ -135,7 +144,7 @@ serve(async (req) => {
         customer_email: customerId ? undefined : user.email,
         client_reference_id: user.id,
         line_items: [{
-          quantity: 1,
+          quantity,
           price_data: {
             currency: "eur",
             unit_amount: amount,

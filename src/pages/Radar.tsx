@@ -21,6 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { APE_CODES } from "@/data/apeCodes";
 import { SearchableSelect, Dropdown, ConfirmDialog } from "@/components/PickerKit";
 import { PricingModal } from "@/components/PricingModal";
+import { StripeCheckoutModal } from "@/components/StripeCheckoutModal";
+import { startCheckout } from "@/services/stripe";
 import { useNavigate } from "react-router-dom";
 import { usePlan, isApeLocked, PLAN_PRICES, EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
 import {
@@ -71,6 +73,9 @@ export default function Radar() {
   const [total, setTotal] = useState<number | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [adding, setAdding] = useState<string | null>(null);
+  // Paiement des contacts de prospection au-delà du forfait (2 € l'unité)
+  const [prospectCS, setProspectCS] = useState<string | null>(null);
+  const [prospectReturn, setProspectReturn] = useState<string | null>(null);
 
   // --- Profil : la prospection est bridée au code APE du membre ---
   // (obligation de renseigner son secteur ; seuls les admins prospectent librement)
@@ -144,16 +149,30 @@ export default function Radar() {
       const newOnes = list.filter((_, i) => !alreadyCounted[i]);
       if (newOnes.length > 0) {
         const quota = await getProspectionQuota(user.id);
-        const extras = Math.max(0, quota.used + newOnes.length - quota.included);
-        if (extras > 0) {
-          const ok = window.confirm(
-            t('quota.prospection_extra_confirm',
-              `Votre forfait inclut ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées par mois. Cette campagne dépasse le forfait de ${extras} contact(s), facturé(s) ${EXTRA_PROSPECT_PRICE} € chacun (${extras * EXTRA_PROSPECT_PRICE} €). Continuer ?`) as string
-          );
-          if (!ok) return;
+        const startExtra = Math.max(0, quota.included - quota.used);
+        const included = newOnes.slice(0, startExtra);
+        const extras = newOnes.slice(startExtra);
+
+        // Les contacts supplémentaires sont PAYANTS : on ouvre Stripe. Ils ne
+        // seront enregistrés (et donc exportables) qu'une fois le paiement reçu.
+        if (extras.length > 0) {
+          const r = await startCheckout({
+            kind: 'prospection',
+            target: { type: 'prospection', ids: extras.map((p) => p.siren), name: `${extras.length} contact(s)` },
+            returnPath: '/radar?success=1',
+          });
+          if (r.ok && r.clientSecret) {
+            setProspectCS(r.clientSecret);
+            setProspectReturn(r.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
+            showError(t('quota.prospection_pay_first',
+              `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} € — réglez-les, puis relancez l'export.`) as string);
+          } else {
+            showError(r.error || t('msg.error', 'Une erreur est survenue.'));
+          }
+          return;
         }
-        const startExtra = quota.included - quota.used;
-        await Promise.all(newOnes.map((p, i) => registerProspectionContact(user.id, p.siren, p.nom, i >= startExtra)));
+
+        await Promise.all(included.map((p) => registerProspectionContact(user.id, p.siren, p.nom)));
       }
     }
 
@@ -581,6 +600,7 @@ export default function Radar() {
             userId={user?.id}
             onClose={() => setEditing(null)}
             onSaved={() => { setEditing(null); queryClient.invalidateQueries({ queryKey: ["prospects"] }); }}
+            onPayExtra={(cs, ret) => { setEditing(null); setProspectCS(cs); setProspectReturn(ret); }}
           />
         )}
       </AnimatePresence>
@@ -596,11 +616,24 @@ export default function Radar() {
       />
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
+
+      {prospectCS && (
+        <StripeCheckoutModal
+          clientSecret={prospectCS}
+          onClose={() => { setProspectCS(null); setProspectReturn(null); }}
+          onComplete={prospectReturn ? () => {
+            setProspectCS(null);
+            setProspectReturn(null);
+            queryClient.invalidateQueries({ queryKey: ["prospects"] });
+            showSuccess(t('quota.prospection_paid', 'Contacts réglés — relancez l\'envoi.'));
+          } : undefined}
+        />
+      )}
     </div>
   );
 }
 
-function EditModal({ prospect, senderName, plan, userId, onClose, onSaved }: { prospect: Prospect; senderName: string; plan: PlanType; userId?: string; onClose: () => void; onSaved: () => void }) {
+function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPayExtra }: { prospect: Prospect; senderName: string; plan: PlanType; userId?: string; onClose: () => void; onSaved: () => void; onPayExtra: (clientSecret: string, nativeReturn: string | null) => void }) {
   const { t, i18n } = useTranslation();
   // Langue de l'email mémorisée EN BASE (prospect.mail_lang) ; sinon langue du site.
   const initialLang: "fr" | "en" =
@@ -670,17 +703,28 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved }: { p
     }
     if (!email.trim()) { showError(t('crm.mail.email_required', "Renseigne d'abord l'email du dirigeant")); return; }
 
-    // Quota Business : 20 entreprises contactées / mois, puis 2 € chacune
+    // Quota Business : 20 entreprises contactées / mois, puis 2 € chacune.
+    // Au-delà du forfait, le contact doit être PAYÉ avant d'être utilisable :
+    // c'est le webhook Stripe qui l'enregistre (la RLS interdit au client
+    // d'écrire une ligne facturée).
     if (userId && !(await isProspectAlreadyCounted(userId, prospect.siren))) {
       const quota = await getProspectionQuota(userId);
       if (quota.extra) {
-        const ok = window.confirm(
-          t('quota.prospection_extra_one',
-            `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire sera facturé ${EXTRA_PROSPECT_PRICE} €. Continuer ?`) as string
-        );
-        if (!ok) return;
+        const r = await startCheckout({
+          kind: 'prospection',
+          target: { type: 'prospection', id: prospect.siren, name: prospect.nom },
+          returnPath: '/radar?success=1',
+        });
+        if (r.ok && r.clientSecret) {
+          onPayExtra(r.clientSecret, r.redirectOnCompletion === 'never' ? '/radar?success=1' : null);
+          showError(t('quota.prospection_extra_one',
+            `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} € — réglez-le, puis relancez l'envoi.`) as string);
+        } else {
+          showError(r.error || t('msg.error', 'Une erreur est survenue.'));
+        }
+        return;
       }
-      await registerProspectionContact(userId, prospect.siren, prospect.nom, quota.extra);
+      await registerProspectionContact(userId, prospect.siren, prospect.nom);
     }
 
     const mailto = `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

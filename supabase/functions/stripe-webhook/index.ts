@@ -11,9 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const BOOST_DAYS = 30;
-const TABLE_BY_TYPE: Record<string, string> = { listing: "listings", project: "projects", search_ad: "search_ads" };
+import { fulfillSession } from "../_shared/fulfill.ts";
 
 serve(async (req) => {
   const secret = Deno.env.get("STRIPE_SECRET_KEY");
@@ -40,38 +38,35 @@ serve(async (req) => {
   try {
     if (event.type === "checkout.session.completed") {
       const s = event.data.object as Stripe.Checkout.Session;
-      const m = (s.metadata || {}) as Record<string, string>;
-      const userId = m.user_id;
-      if (!userId) return new Response("ok", { status: 200 });
-
-      if (m.kind === "subscription") {
-        await admin.from("profiles").update({
-          plan_type: m.plan,
-          stripe_customer_id: s.customer as string,
-          stripe_subscription_id: s.subscription as string,
-        }).eq("id", userId);
-      } else if (m.kind === "unlock") {
-        await admin.from("listing_unlocks").upsert(
-          { user_id: userId, target_type: m.target_type, target_id: m.target_id, amount_cents: 500 },
-          { onConflict: "user_id,target_type,target_id", ignoreDuplicates: true },
-        );
-      } else if (m.kind === "boost") {
-        const table = TABLE_BY_TYPE[m.target_type];
-        if (table) {
-          const until = new Date(Date.now() + BOOST_DAYS * 864e5).toISOString();
-          await admin.from(table).update({ boosted_until: until }).eq("id", m.target_id);
-        }
-      }
-      // Enregistre l'identifiant client Stripe pour les achats à l'acte aussi
-      if (s.customer && m.kind !== "subscription") {
-        await admin.from("profiles").update({ stripe_customer_id: s.customer as string }).eq("id", userId);
-      }
+      await fulfillSession(admin, {
+        id: s.id,
+        customer: s.customer as string | null,
+        subscription: s.subscription as string | null,
+        metadata: s.metadata as Record<string, string> | null,
+      });
     } else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
       const userId = (sub.metadata as Record<string, string>)?.user_id;
       if (userId) await admin.from("profiles").update({ plan_type: "free", stripe_subscription_id: null }).eq("id", userId);
+    } else if (event.type === "customer.subscription.updated") {
+      // Changement de formule, impayé, résiliation immédiate… On aligne le plan
+      // sur l'état réel de l'abonnement plutôt que de le laisser figé.
+      const sub = event.data.object as Stripe.Subscription;
+      const meta = (sub.metadata as Record<string, string>) || {};
+      const userId = meta.user_id;
+      if (userId) {
+        const active = sub.status === "active" || sub.status === "trialing";
+        await admin.from("profiles").update({
+          plan_type: active ? (meta.plan || "pro") : "free",
+          stripe_subscription_id: active ? sub.id : null,
+        }).eq("id", userId);
+      }
     }
   } catch (e: any) {
+    // ⚠️ Le marqueur d'idempotence a été posé AVANT le fulfillment : si celui-ci
+    // échoue, on le retire, sinon la nouvelle tentative de Stripe répondrait
+    // « déjà traité » et le paiement resterait sans effet, définitivement.
+    await admin.from("stripe_events").delete().eq("id", event.id);
     return new Response(`Erreur fulfillment: ${e.message}`, { status: 500 });
   }
 

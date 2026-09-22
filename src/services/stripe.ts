@@ -11,7 +11,7 @@ export const STRIPE_PUBLISHABLE_KEY = (import.meta.env.VITE_STRIPE_PUBLISHABLE_K
 
 export type CheckoutPayload =
   | { kind: 'subscription'; plan: 'pro' | 'business'; returnPath?: string }
-  | { kind: 'unlock' | 'boost' | 'prospection'; target?: { type: string; id: string; name?: string }; returnPath?: string };
+  | { kind: 'unlock' | 'boost' | 'prospection'; target?: { type: string; id?: string; name?: string; ids?: string[] }; returnPath?: string };
 
 export type CheckoutResult = {
   ok: boolean;
