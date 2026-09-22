@@ -17,13 +17,14 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { checkContactQuota, registerContactInitiation } from '@/services/quotaService';
 import { DealTimeline } from '@/components/DealTimeline';
+import type { ChatMessage, OfferMetadata } from '@/types/domain';
 
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   listing: Record<string, any> | null;
   user: { id: string; user_metadata?: Record<string, any>; [key: string]: any } | null;
-  initialNeed?: any;
+  initialNeed?: { id: string; title?: string; [key: string]: unknown };
 }
 
 export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatPanelProps) {
@@ -236,7 +237,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     }
 
     const content = initialNeed ? `PROPOSITION AIDE: ${amount}` : `OFFRE: ${amount}€`;
-    let metadata: any = { amount, status: 'pending' };
+    let metadata: OfferMetadata = { amount, status: 'pending' };
 
     if (initialNeed) {
       metadata = {
@@ -333,7 +334,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     return format(d, 'd MMM', { locale: dateLocale });
   };
 
-  const renderOfferCard = (msg: any, isMine: boolean) => {
+  const renderOfferCard = (msg: ChatMessage, isMine: boolean) => {
     const isNeedOffer = msg.type === 'need_offer';
     const status = msg.metadata?.status || 'pending';
     const amount = msg.metadata?.amount || 0;
@@ -343,7 +344,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       ? amount 
       : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
         style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
-      }).format(amount);
+      }).format(Number(amount));
 
     return (
       <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
@@ -424,7 +425,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                       buyerName: isMine ? (user?.user_metadata?.full_name || 'Acheteur') : (contactProfile?.full_name || 'Vendeur'),
                       sellerName: isMine ? (contactProfile?.full_name || 'Vendeur') : (user?.user_metadata?.full_name || 'Acheteur'),
                       listingName: listing?.name || 'N/A',
-                      amount: amount,
+                      amount: Number(amount),
                       financing: financing,
                       offerDate: msg.created_at,
                       acceptedDate: new Date().toISOString(),
@@ -514,7 +515,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                         
                         {isOffer ? (
                           <div className="w-full flex justify-center my-8">
-                            {renderOfferCard(msg, isMine)}
+                            {renderOfferCard(msg as unknown as ChatMessage, isMine)}
                           </div>
                         ) : (
                           <motion.div 

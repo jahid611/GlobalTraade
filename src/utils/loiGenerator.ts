@@ -4,7 +4,7 @@ interface LOIParams {
   sellerName: string;
   listingName: string;
   amount: number;
-  financing: string;
+  financing: string | { loan: number; equity: number };
   offerDate: string;
   acceptedDate: string;
   lang: string;
@@ -149,10 +149,17 @@ export const generateLOI = async ({
   doc.text(isFr ? "3. Conditions Financières" : "3. Financial Terms", margin, y);
   y += 4;
 
+  // Une offre porte soit un mode simple ('cash' / 'loan'), soit la répartition
+  // emprunt / fonds propres choisie par l'acheteur : dans ce cas la lettre
+  // d'intention doit la reprendre telle quelle, pas la résumer en « prêt ».
   const financingLabel =
-    financing === "cash"
-      ? isFr ? "Fonds propres (Cash)" : "Own Funds (Cash)"
-      : isFr ? "Prêt bancaire" : "Bank Loan";
+    typeof financing === "object" && financing
+      ? isFr
+        ? `Emprunt ${financing.loan} % · Fonds propres ${financing.equity} %`
+        : `Loan ${financing.loan}% · Own funds ${financing.equity}%`
+      : financing === "cash"
+        ? isFr ? "Fonds propres (Cash)" : "Own Funds (Cash)"
+        : isFr ? "Prêt bancaire" : "Bank Loan";
 
   autoTable(doc, {
     startY: y,

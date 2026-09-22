@@ -2,13 +2,14 @@
 
 import React, { useMemo } from 'react';
 import { Gauge, TrendingUp, TrendingDown, Wallet, Landmark, Coins, Globe, HeartHandshake, Users, Cpu, ShieldAlert, Sparkles } from 'lucide-react';
+import type { Listing } from '@/types/domain';
 
 // Note de qualité de l'entreprise sur 100, répartie en 10 critères notés
 // sur 10, à la manière d'une évaluation d'investisseur / repreneur.
 // Calculée à partir des données de l'annonce (financier + qualitatif).
 // Débloquée avec l'accès complet (5 € ou formule Pro/Business).
 
-type Crit = { key: string; label: string; score: number; Icon: any; note: string };
+type Crit = { key: string; label: string; score: number; Icon: React.ElementType; note: string };
 
 const clamp10 = (v: number) => Math.max(0, Math.min(10, Math.round(v)));
 
@@ -17,7 +18,7 @@ function cagr(older?: number, newer?: number): number | null {
   return newer / older - 1;
 }
 
-export function computeCompanyScore(listing: any): { total: number; crits: Crit[] } {
+export function computeCompanyScore(listing: Listing): { total: number; crits: Crit[] } {
   const rev1 = Number(listing.revenue_n1) || 0;
   const rev2 = Number(listing.revenue_n2) || 0;
   const rev3 = Number(listing.revenue_n3) || 0;
@@ -97,7 +98,7 @@ export function computeCompanyScore(listing: any): { total: number; crits: Crit[
 
 const barColor = (s: number) => s >= 7 ? '#34d399' : s >= 4 ? '#a855f7' : '#f87171';
 
-export function CompanyScore({ listing }: { listing: any }) {
+export function CompanyScore({ listing }: { listing: Listing }) {
   const { total, crits } = useMemo(() => computeCompanyScore(listing), [listing]);
 
   const light = total >= 70 ? { emoji: '🟢', label: 'Entreprise solide et attractive', color: 'text-emerald-400' }

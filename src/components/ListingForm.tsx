@@ -18,8 +18,13 @@ import { useTranslation } from 'react-i18next';
 import { uploadListingImage, saveListing } from '@/services/listingService';
 import { checkPublicationQuota } from '@/services/planService';
 import { Dropdown } from '@/components/PickerKit';
+import type { TFunction } from 'i18next';
+import type { Listing } from '@/types/domain';
 
-const getListingSchema = (t: any) => {
+// Réponse de l'API adresse (data.gouv / Nominatim)
+type AddressSuggestion = { display_name: string; lat: string; lon: string };
+
+const getListingSchema = (t: TFunction) => {
   const currentYear = new Date().getFullYear();
   // Nombre OBLIGATOIRE : un champ vide ("") est rejeté (≠ 0). 0 reste accepté
   // s'il est saisi explicitement. Évite que z.coerce.number() transforme "" en 0.
@@ -62,9 +67,9 @@ const getListingSchema = (t: any) => {
 
 type ListingData = z.infer<ReturnType<typeof getListingSchema>>;
 
-interface ListingFormProps { isOpen: boolean; onClose: () => void; onSuccess: () => void; listingToEdit?: any; }
+interface ListingFormProps { isOpen: boolean; onClose: () => void; onSuccess: () => void; listingToEdit?: Partial<Listing>; }
 
-const formatNumber = (val: any) => {
+const formatNumber = (val: number | string | null | undefined) => {
   if (val === undefined || val === null || val === '') return '';
   const str = String(val);
   const isNegative = str.startsWith('-');
@@ -154,9 +159,9 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
           client_concentration: listingToEdit.client_concentration ?? "",
           digital_maturity: listingToEdit.digital_maturity ?? "",
           market_trend: listingToEdit.market_trend ?? "",
-          revenue_n2: listingToEdit.revenue_n2 ?? ("" as any),
-          revenue_n3: listingToEdit.revenue_n3 ?? ("" as any),
-          established_year: listingToEdit.established_year ? String(listingToEdit.established_year) : "",
+          revenue_n2: listingToEdit.revenue_n2 ?? "",
+          revenue_n3: listingToEdit.revenue_n3 ?? "",
+          established_year: listingToEdit.established_year ?? "",
         });
         setAddressQuery(listingToEdit.address || ""); setAddressSelected(true); 
         setLogoBase64(listingToEdit.logo_url || null);
@@ -180,7 +185,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
     return () => clearTimeout(timer);
   }, [addressQuery, addressSelected]);
 
-  const selectAddress = (suggestion: any) => {
+  const selectAddress = (suggestion: AddressSuggestion) => {
     setAddressQuery(suggestion.display_name);
     setValue('address', suggestion.display_name, { shouldValidate: true });
     setValue('lat', parseFloat(suggestion.lat), { shouldValidate: true });
@@ -262,7 +267,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
       const nullableText = ['website_url', 'reason_for_selling', 'management_type', 'client_concentration', 'digital_maturity', 'market_trend'] as const;
       const nullableNum = ['revenue_n2', 'revenue_n3'] as const;
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         ...data,
         owner_id: session.user.id,
         logo_url: finalLogoUrl,

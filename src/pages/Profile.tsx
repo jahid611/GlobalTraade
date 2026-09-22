@@ -401,7 +401,7 @@ export default function Profile() {
         {/* Projet de reprise — critères du repreneur (utile aux vendeurs) */}
         {(() => {
           const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
-          const toChips = (s: any, isRegion = false) => (typeof s === 'string' ? s.split(',') : []).map((x: string) => x.trim()).filter(Boolean)
+          const toChips = (s: string | null | undefined, isRegion = false) => (typeof s === 'string' ? s.split(',') : []).map((x: string) => x.trim()).filter(Boolean)
             .map((v: string) => isRegion ? (REGION_KEYS.has(v) ? regionLabel(v) : v) : (t(`industry.${v}`, { defaultValue: v }) as string));
           const sectors = toChips(metadata.target_sectors);
           const regions = toChips(metadata.target_geo, true);

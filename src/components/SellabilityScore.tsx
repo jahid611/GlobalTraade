@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Gauge, LockSimple, ArrowRight, CheckCircle } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
+import type { Listing } from '@/types/domain';
 
 // Indicateur de cessibilité sur 100, basé sur les critères des
 // entreprises qui se vendent le plus vite : transparence financière,
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 
 type Tip = { key: string; points: number; done: boolean };
 
-export function computeSellability(listing: any): { score: number; tips: Tip[] } {
+export function computeSellability(listing: Listing): { score: number; tips: Tip[] } {
   const tips: Tip[] = [
     { key: 'price', points: 10, done: !!listing.price },
     { key: 'revenue', points: 10, done: !!listing.revenue_n1 },
@@ -41,7 +42,7 @@ export function computeSellability(listing: any): { score: number; tips: Tip[] }
   return { score: Math.min(100, score), tips: tips.filter(tip => !tip.done).sort((a, b) => b.points - a.points) };
 }
 
-export function SellabilityScore({ listing, isPremium }: { listing: any; isPremium: boolean }) {
+export function SellabilityScore({ listing, isPremium }: { listing: Listing; isPremium: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { score, tips } = useMemo(() => computeSellability(listing), [listing]);

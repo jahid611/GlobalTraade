@@ -3,6 +3,7 @@
 // + les critères d'investissement du profil (target_sectors / target_geo).
 import type { MatchCriteria } from "@/components/SmartMatchForm";
 import { matchRegion } from "@/lib/geoRegions";
+import type { Listing } from "@/types/domain";
 
 export interface ProfileCriteria {
   target_sectors?: string | null;
@@ -15,12 +16,12 @@ export interface MatchResult {
   reasons: string[];
 }
 
-const num = (v: any) => {
+const num = (v: number | string | null | undefined) => {
   const n = Number(v);
   return isNaN(n) ? 0 : n;
 };
 
-export function scoreListing(listing: any, c: MatchCriteria, profile?: ProfileCriteria): MatchResult {
+export function scoreListing(listing: Listing, c: MatchCriteria, profile?: ProfileCriteria): MatchResult {
   let pts = 0;
   let max = 0;
   const reasons: string[] = [];

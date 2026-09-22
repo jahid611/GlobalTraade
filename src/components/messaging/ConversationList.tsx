@@ -6,19 +6,10 @@ import { Search, MessageCircle, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import type { TFunction } from 'i18next';
+import type { Conversation } from '@/types/domain';
 
-interface Conversation {
-  id: string;
-  listing_id: string;
-  listing_name: string;
-  other_user_id: string;
-  contact_name: string;
-  contact_kyc: string;
-  avatar_url?: string;
-  last_message: string;
-  date: string;
-  unread: boolean;
-}
+
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -26,7 +17,7 @@ interface ConversationListProps {
   onSelect: (conv: Conversation) => void;
   onDelete: (conv: Conversation) => void;
   language: string;
-  t: (key: string, opts?: any) => string;
+  t: TFunction;
 }
 
 export function ConversationList({ 

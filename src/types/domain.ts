@@ -118,3 +118,49 @@ export interface SafeProfile {
   profile_views_count: number;
   updated_at: string | null;
 }
+
+// ── Messagerie ────────────────────────────────────────────────────────────
+// Message tel que stocké dans `messages`. `type`/`metadata` portent les offres
+// d'achat échangées dans le fil (voir _claude_messages_offers.sql).
+export interface OfferMetadata {
+  amount?: number | string;
+  status?: 'pending' | 'accepted' | 'declined' | string;
+  /** soit une répartition emprunt/fonds propres, soit 'cash' | 'loan' */
+  financing?: { loan: number; equity: number } | string;
+  /** propositions d'aide sur un besoin de projet */
+  need_id?: string;
+  need_title?: string;
+  conditions?: string;
+  message?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  content: string;
+  sender_id: string;
+  receiver_id?: string;
+  listing_id?: string | null;
+  project_id?: string | null;
+  type?: string;
+  metadata?: OfferMetadata | null;
+  is_read?: boolean | null;
+  created_at: string;
+}
+
+/** Fil de discussion reconstitué côté client à partir des messages. */
+export interface Conversation {
+  id: string;
+  listing_id?: string | null;
+  project_id?: string | null;
+  listing_name: string;
+  listing_owner_id?: string;
+  listing_price?: number | null;
+  other_user_id: string;
+  contact_name: string;
+  contact_kyc: string;
+  avatar_url?: string | null;
+  my_name?: string;
+  last_message: string;
+  date: string;
+  unread: boolean;
+}

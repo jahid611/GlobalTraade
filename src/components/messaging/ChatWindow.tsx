@@ -11,18 +11,13 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { generateLOI } from '@/utils/loiGenerator';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import type { TFunction } from 'i18next';
+import type { ChatMessage, Conversation } from '@/types/domain';
 
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  type?: string;
-  metadata?: any;
-  created_at: string;
-}
+type Message = ChatMessage;
 
 interface ChatWindowProps {
-  activeConv: any;
+  activeConv: Conversation;
   messages: Message[];
   userId: string;
   onSendMessage: (content: string) => void;
@@ -35,7 +30,7 @@ interface ChatWindowProps {
   onClose?: () => void;
   activeTab: 'messages' | 'workflow';
   onTabChange: (tab: 'messages' | 'workflow') => void;
-  t: (key: string, opts?: any) => string;
+  t: TFunction;
 }
 
 export function ChatWindow({
@@ -97,7 +92,7 @@ export function ChatWindow({
       ? amount 
       : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
         style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
-      }).format(amount);
+      }).format(Number(amount));
 
     return (
       <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
@@ -176,7 +171,7 @@ export function ChatWindow({
                       buyerName: isMine ? (activeConv.my_name || 'Acheteur') : activeConv.contact_name,
                       sellerName: isMine ? activeConv.contact_name : (activeConv.my_name || 'Vendeur'),
                       listingName: activeConv.listing_name,
-                      amount: amount,
+                      amount: Number(amount),
                       financing: financing,
                       offerDate: msg.created_at,
                       acceptedDate: new Date().toISOString(),
@@ -221,7 +216,7 @@ export function ChatWindow({
             </Link>
             {hasAcceptedOffer && (
               <span className="mt-1 text-[9px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-md font-bold tracking-widest whitespace-nowrap shadow-sm">
-                {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(acceptedOffer.metadata.amount)}
+                {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(acceptedOffer.metadata.amount))}
               </span>
             )}
           </div>

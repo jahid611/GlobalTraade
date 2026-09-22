@@ -1,11 +1,19 @@
 // jspdf chargé à la demande (voir teaserGenerator).
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
+import type { TFunction } from 'i18next';
+
+// Lignes exportées : on ne dépend que de ce que le PDF lit réellement.
+type DdTask = { title?: string; category?: string; status?: string; created_at?: string | null; completed_at?: string | null };
+type AuditLog = { viewed_at?: string | null; created_at?: string | null; viewer?: { full_name?: string | null } | null; document?: { name?: string | null } | null };
+
+// jspdf-autotable greffe `lastAutoTable` sur l'instance jsPDF sans le déclarer.
+type AutoTableDoc = { lastAutoTable?: { finalY: number } };
 
 const PRIMARY_COLOR: [number, number, number] = [10, 10, 10];
 const ACCENT_COLOR: [number, number, number] = [168, 85, 247]; // Primary purple
 
-export const exportDueDiligenceReport = async (tasks: any[], listingName: string, t: any, lang: string) => {
+export const exportDueDiligenceReport = async (tasks: DdTask[], listingName: string, t: TFunction, lang: string) => {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
@@ -31,7 +39,7 @@ export const exportDueDiligenceReport = async (tasks: any[], listingName: string
   doc.text(lang === 'fr' ? "État d'avancement des tâches" : "Task Progress Status", 15, 55);
 
   const tableData = tasks.map(task => [
-    task.category.toUpperCase(),
+    (task.category || '').toUpperCase(),
     task.title,
     task.created_at ? format(new Date(task.created_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
     task.status === 'completed' ? (lang === 'fr' ? 'Validé' : 'Completed') : 
@@ -61,7 +69,7 @@ export const exportDueDiligenceReport = async (tasks: any[], listingName: string
     }
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY || 65;
+  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || 65;
   
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
@@ -75,7 +83,7 @@ export const exportDueDiligenceReport = async (tasks: any[], listingName: string
   doc.save(`Due_Diligence_Report_${listingName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 };
 
-export const exportVDRAuditTrail = async (logs: any[], listingName: string, t: any, lang: string) => {
+export const exportVDRAuditTrail = async (logs: AuditLog[], listingName: string, t: TFunction, lang: string) => {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
@@ -121,7 +129,7 @@ export const exportVDRAuditTrail = async (logs: any[], listingName: string, t: a
     styles: { font: 'helvetica', fontSize: 9 },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY || 65;
+  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || 65;
   
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);

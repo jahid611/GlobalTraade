@@ -1,3 +1,9 @@
+import type { TFunction } from 'i18next';
+import type { Listing } from '@/types/domain';
+
+// jspdf-autotable greffe `lastAutoTable` sur l'instance jsPDF sans le déclarer.
+type AutoTableDoc = { lastAutoTable?: { finalY: number } };
+
 // jspdf chargé à la demande (voir teaserGenerator).
 // Dossier de présentation complet de l'entreprise (premium) :
 // identité, logo intégré, chiffres, structure, atouts immatériels.
@@ -19,16 +25,17 @@ const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   }
 };
 
-export const generatePremiumPresentation = async (listing: any, t: any, lang: string) => {
+export const generatePremiumPresentation = async (listing: Listing, t: TFunction, lang: string) => {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
   const en = lang === 'en';
 
-  const formatCurrency = (val: any) => {
-    if (!val) return en ? "Not disclosed" : "Non communiqué";
+  const formatCurrency = (val: number | string | null | undefined) => {
+    const n = typeof val === 'string' ? Number(val) : val;
+    if (!n || Number.isNaN(n)) return en ? "Not disclosed" : "Non communiqué";
     return new Intl.NumberFormat(en ? 'en-US' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-      .format(val)
+      .format(n)
       .replace(/ /g, ' ');
   };
 
@@ -98,7 +105,7 @@ export const generatePremiumPresentation = async (listing: any, t: any, lang: st
     columnStyles: { 0: { fontStyle: 'bold', cellWidth: 100 } }
   });
 
-  let finalY = (doc as any).lastAutoTable.finalY || y + 40;
+  let finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || y + 40;
 
   // Structure opérationnelle
   doc.setFontSize(14);
@@ -118,7 +125,7 @@ export const generatePremiumPresentation = async (listing: any, t: any, lang: st
     columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } }
   });
 
-  finalY = (doc as any).lastAutoTable.finalY || finalY + 40;
+  finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || finalY + 40;
 
   // Atouts immatériels
   const intangibles: [string, string][] = [];

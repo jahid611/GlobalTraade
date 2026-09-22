@@ -58,7 +58,7 @@ const EMPTY_FORM = {
 };
 
 // Conversions liste <-> chaîne stockée (colonnes text)
-const toList = (s: any): string[] => (typeof s === 'string' && s.trim() ? s.split(',').map((x) => x.trim()).filter(Boolean) : Array.isArray(s) ? s : []);
+const toList = (s: string | string[] | null | undefined): string[] => (typeof s === 'string' && s.trim() ? s.split(',').map((x) => x.trim()).filter(Boolean) : Array.isArray(s) ? s : []);
 const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
 const INDUSTRY_SET = new Set(INDUSTRIES);
 
@@ -187,7 +187,7 @@ export function SearchAdsBoard() {
   const labelCls = "text-[10px] uppercase tracking-widest text-white/50 font-medium mb-2 block";
 
   // Rend une série de chips (avec troncature « +N »)
-  const Chips = ({ items, icon: Icon, max = 3 }: { items: string[]; icon: any; max?: number }) => {
+  const Chips = ({ items, icon: Icon, max = 3 }: { items: string[]; icon: React.ElementType; max?: number }) => {
     if (!items.length) return null;
     const shown = items.slice(0, max);
     const rest = items.length - shown.length;

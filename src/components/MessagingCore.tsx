@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
 import { ConversationList } from './messaging/ConversationList';
 import { ChatWindow } from './messaging/ChatWindow';
+import type { ChatMessage, Conversation, OfferMetadata } from '@/types/domain';
 
 interface MessagingCoreProps {
   variant?: 'full' | 'sidebar';
@@ -20,13 +21,13 @@ interface MessagingCoreProps {
 export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [allMessages, setAllMessages] = useState<any[]>([]);
-  const [activeConv, setActiveConv] = useState<any>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
+  const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'chat'>(variant === 'sidebar' ? 'list' : 'chat');
   
-  const [convToDelete, setConvToDelete] = useState<any>(null);
+  const [convToDelete, setConvToDelete] = useState<Conversation | null>(null);
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
   const [loanPct, setLoanPct] = useState(50); // part financée par emprunt (le reste = fonds propres)
@@ -126,7 +127,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       const listingMap = new Map(listingsRes.data?.map(l => [l.id, l]));
       const projectMap = new Map(projectsRes.data?.map(p => [p.id, p]));
 
-      const convMap = new Map();
+      const convMap = new Map<string, Conversation>();
       const enrichedMessages = messages.map(msg => {
         const sender = profileMap.get(msg.sender_id);
         const receiver = profileMap.get(msg.receiver_id);
@@ -170,9 +171,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       setAllMessages(prev => {
         const optimistic = prev.filter(m => String(m.id).startsWith('temp-'));
         const stillOptimistic = optimistic.filter(om => !enrichedMessages.some(em => em.content === om.content && em.sender_id === om.sender_id));
-        return [...enrichedMessages, ...stillOptimistic].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return [...enrichedMessages, ...stillOptimistic].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       });
-      setConversations(Array.from(convMap.values()).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setConversations(Array.from(convMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
     setLoading(false);
   };
@@ -295,7 +296,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     }
   };
 
-  const handleOfferAction = async (msg: any, newStatus: string) => {
+  const handleOfferAction = async (msg: ChatMessage, newStatus: string) => {
     if (!user) return;
     const newMetadata = { ...(msg.metadata || {}), status: newStatus };
     const { error } = await supabase.from('messages')

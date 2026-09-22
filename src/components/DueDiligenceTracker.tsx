@@ -17,6 +17,11 @@ import { useAuth } from '@/components/AuthProvider';
 import { showSuccess, showError } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
 import { exportDueDiligenceReport } from '@/utils/pdfExport';
+import type { TFunction } from 'i18next';
+
+// Configuration visuelle d'une catégorie de tâche (couleur, icône, libellé)
+type CatConfig = { color: string; icon: React.ElementType; label: string };
+type ColumnDef = { status: Task['status']; label: string; colorClass: string; borderClass: string };
 
 interface Task {
   id: string;
@@ -78,7 +83,9 @@ const FR_TO_KEY: Record<string, string> = {
 };
 
 // Aperçu de la carte pendant le drag (suit le doigt/curseur, non rogné)
-function KanbanCardPreview({ task, catConfig, getTaskDisplayTitle }: any) {
+function KanbanCardPreview({ task, catConfig, getTaskDisplayTitle }: {
+  task: Task; catConfig: CatConfig; getTaskDisplayTitle: (title: string) => string;
+}) {
   return (
     <div className="bg-[#26242b] border border-white/25 rounded-2xl p-4 shadow-[0_30px_80px_rgba(0,0,0,0.7)] w-[300px] rotate-2 text-white cursor-grabbing">
       <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${catConfig.color} bg-opacity-10 inline-flex items-center gap-1.5 text-white`}>
@@ -93,7 +100,19 @@ function KanbanTaskCard({
   task, catConfig, isEditing, editTaskTitle, setEditTaskTitle,
   handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask,
   t, getTaskDisplayTitle
-}: any) {
+}: {
+  task: Task;
+  catConfig: CatConfig;
+  isEditing: boolean;
+  editTaskTitle: string;
+  setEditTaskTitle: (v: string) => void;
+  handleUpdateTaskTitle: () => void;
+  cycleTaskStatus: (id: string) => void;
+  setEditingTaskId: (id: string | null) => void;
+  handleDeleteTask: (id: string) => void;
+  t: TFunction;
+  getTaskDisplayTitle: (title: string) => string;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: isEditing });
   const StatusIcon = STATUS_ICON[task.status as string] || Circle;
 
@@ -155,7 +174,7 @@ function KanbanTaskCard({
 }
 
 // Colonne = zone où l'on peut déposer une tâche (dnd-kit droppable)
-function KanbanColumn({ col, count, children }: any) {
+function KanbanColumn({ col, count, children }: { col: ColumnDef; count: number; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.status });
   return (
     <div ref={setNodeRef} className="snap-center relative w-[82vw] xs:w-[78vw] sm:w-[340px] shrink-0 h-full flex flex-col">
@@ -440,7 +459,7 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
     const task = tasks.find(t => t.id === taskId);
     if (!task || !user || task.status === newStatus) return;
     
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as any, completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task['status'], completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
     await supabase.from('due_diligence_tasks').update({ 
       status: newStatus, 
       completed_at: newStatus === 'completed' ? new Date().toISOString() : null, 
@@ -475,7 +494,7 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
 
   if (loading) return <div className="animate-pulse bg-white/5 rounded-2xl h-full w-full" />;
 
-  const KANBAN_COLUMNS = [
+  const KANBAN_COLUMNS: ColumnDef[] = [
     { status: 'pending', label: t('dd.badge_pending', 'À Fournir'), colorClass: 'text-white/60', borderClass: 'border-white/10' },
     { status: 'in_progress', label: t('dd.badge_progress', 'En Cours'), colorClass: 'text-blue-400', borderClass: 'border-blue-500/20' },
     { status: 'completed', label: t('dd.badge_completed', 'Vérifié'), colorClass: 'text-emerald-400', borderClass: 'border-emerald-500/20' }

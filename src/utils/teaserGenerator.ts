@@ -1,6 +1,12 @@
+import type { TFunction } from 'i18next';
+import type { Listing } from '@/types/domain';
+
+// jspdf-autotable greffe `lastAutoTable` sur l'instance jsPDF sans le déclarer.
+type AutoTableDoc = { lastAutoTable?: { finalY: number } };
+
 // jspdf/jspdf-autotable sont chargés à la demande (au clic) pour ne pas alourdir
 // le bundle initial : ~600 Ko qui ne sont téléchargés qu'au moment de l'export.
-export const generateBlindTeaser = async (listing: any, t: any, lang: string) => {
+export const generateBlindTeaser = async (listing: Listing, t: TFunction, lang: string) => {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
@@ -56,10 +62,11 @@ export const generateBlindTeaser = async (listing: any, t: any, lang: string) =>
   doc.setFont("helvetica", "bold");
   doc.text(lang === 'en' ? "1. Key Financial Indicators" : "1. Indicateurs Financiers Clés", 15, 105);
 
-  const formatCurrency = (val: any) => {
-    if (!val) return lang === 'en' ? "Not disclosed" : "Non communiqué";
+  const formatCurrency = (val: number | string | null | undefined) => {
+    const n = typeof val === 'string' ? Number(val) : val;
+    if (!n || Number.isNaN(n)) return lang === 'en' ? "Not disclosed" : "Non communiqué";
     return new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-      .format(val)
+      .format(n)
       .replace(/\u202F/g, ' ')
       .replace(/\s/g, ' ');
   };
@@ -84,7 +91,7 @@ export const generateBlindTeaser = async (listing: any, t: any, lang: string) =>
   });
 
   // Operational Highlights
-  const finalY = (doc as any).lastAutoTable.finalY || 110;
+  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || 110;
   
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
