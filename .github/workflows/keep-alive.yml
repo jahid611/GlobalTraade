@@ -1,0 +1,69 @@
+# Maintien en éveil du projet Supabase.
+#
+# Sur l'offre gratuite, un projet sans la moindre requête pendant 7 jours est
+# mis en pause : le site tombe, et il faut le réveiller à la main depuis le
+# tableau de bord. Ce workflow fait une vraie lecture en base tous les jours —
+# une requête suffit à remettre le compteur à zéro.
+#
+# Il échoue bruyamment si la base ne répond pas, pour recevoir l'alerte GitHub
+# avant que les utilisateurs ne s'en aperçoivent.
+#
+# ⚠️ GitHub désactive les workflows planifiés d'un dépôt resté 60 jours sans
+# activité. Tant qu'on pousse régulièrement, il n'y a rien à faire ; après une
+# longue pause, il faut le réactiver dans l'onglet Actions.
+
+name: Keep-alive Supabase
+
+on:
+  schedule:
+    # Tous les jours à 04:17 UTC. Minute volontairement décalée : les crons
+    # programmés à l'heure pile sont les plus retardés par GitHub.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lecture en base (REST)
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ] || [ -z "${KEY:-}" ]; then
+            echo "::error::Secrets SUPABASE_URL / SUPABASE_ANON_KEY absents du dépôt."
+            exit 1
+          fi
+
+          # Une vraie requête sur une vraie table : c'est ce qui compte comme
+          # activité, pas un simple ping réseau.
+          code=$(curl -sS -o /tmp/reponse.json -w '%{http_code}' --max-time 30 \
+            "$URL/rest/v1/listings_secure?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+
+          echo "HTTP $code"
+          head -c 300 /tmp/reponse.json || true
+          echo
+
+          if [ "$code" != "200" ]; then
+            echo "::error::La base n'a pas répondu (HTTP $code) — projet en pause ou clé invalide ?"
+            exit 1
+          fi
+          echo "✅ Base interrogée, compteur d'inactivité remis à zéro."
+
+      - name: Vérification du service d'authentification
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            "$URL/auth/v1/health" -H "apikey: $KEY")
+          echo "auth/health : HTTP $code"
+          [ "$code" = "200" ] || echo "::warning::Service d'authentification injoignable (HTTP $code)."
