@@ -6,6 +6,7 @@ import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet } from 'lucide-react';
 import { regionLabel, FR_REGIONS } from '@/lib/geoRegions';
+import { ROLE_FUNCTION_LABELS } from '@/lib/ranges';
 import { usePlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -278,6 +279,25 @@ export default function Profile() {
                   <RatingBadge userId={targetId} />
                   <BuyerBadges userId={targetId} />
                 </div>
+
+                {/* Identité professionnelle — collectée à l'inscription, affichée
+                    ici en une ligne : qui c'est, pour quelle société, depuis où. */}
+                {(() => {
+                  const bits = [
+                    metadata.account_type && (t(`onb.type_${metadata.account_type}`, metadata.account_type) as string),
+                    metadata.role_function && (t(`onb.role_${metadata.role_function}`, ROLE_FUNCTION_LABELS[metadata.role_function] || metadata.role_function) as string),
+                    metadata.company_name && [metadata.company_name, metadata.legal_form].filter(Boolean).join(' · '),
+                    metadata.country,
+                  ].filter(Boolean) as string[];
+                  if (!bits.length) return null;
+                  return (
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
+                      {bits.map((b, i) => (
+                        <span key={i} className="text-xs text-white/70 font-light px-3 py-1 rounded-full bg-white/5 border border-white/10">{b}</span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
               
               <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">

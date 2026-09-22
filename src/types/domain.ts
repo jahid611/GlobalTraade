@@ -100,6 +100,12 @@ export interface SafeProfile {
   phone: string | null;
   buyer_type: string | null;
   buyer_level: string | null;
+  // ── Identité professionnelle (onboarding) ──
+  account_type: string | null;
+  company_name: string | null;
+  legal_form: string | null;
+  role_function: string | null;
+  country: string | null;
   target_sectors: string | null;
   target_geo: string | null;
   target_budget: string | null;

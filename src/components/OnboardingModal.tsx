@@ -4,35 +4,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ChevronRight, ChevronLeft, Check, Building2, Target, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dropdown } from "@/components/PickerKit";
+import { Dropdown, SearchableSelect } from "@/components/PickerKit";
+import { MultiSelect } from "@/components/MultiSelect";
+import { INDUSTRIES } from "@/lib/industries";
+import { FR_REGIONS } from "@/lib/geoRegions";
+import { AMOUNT_RANGE_OPTIONS, COUNTRIES, LEGAL_FORMS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "react-i18next";
-
-// Parse un montant écrit librement (450k, 450 000, 1,5M, 450000€) en nombre.
-function parseAmount(raw: string): number | null {
-  let s = (raw || "").toLowerCase().replace(/[€\s  ]/g, "").replace(",", ".");
-  let mult = 1;
-  if (s.endsWith("k")) { mult = 1_000; s = s.slice(0, -1); }
-  else if (s.endsWith("m")) { mult = 1_000_000; s = s.slice(0, -1); }
-  if (!/^\d*\.?\d+$/.test(s)) return null;
-  const n = parseFloat(s);
-  return isNaN(n) ? null : Math.round(n * mult);
-}
-
-// Uniformise un budget (simple ou fourchette) en "450 000 €" / "100 000 € – 5 000 000 €".
-function normalizeBudget(input: string): string {
-  const v = (input || "").trim();
-  if (!v) return "";
-  const parts = v.split(/\s*(?:-|–|—|à|to)\s*/i).filter(Boolean);
-  const out = parts.map((p) => {
-    const n = parseAmount(p);
-    return n == null ? null : n.toLocaleString("fr-FR").replace(/[  ]/g, " ") + " €";
-  });
-  if (out.some((x) => x == null)) return v; // illisible -> on laisse tel quel
-  return out.join(" – ");
-}
 
 // Gate global : affiche l'onboarding pour TOUT utilisateur connecté (email OU
 // Google OAuth) dont onboarding_completed n'est pas true. Monté une fois dans App.
@@ -99,13 +79,24 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
     { value: "conseil", label: t("onb.type_advisor", "Conseil"), desc: t("onb.type_advisor_desc", "J'accompagne des opérations (M&A, expert)") },
   ];
 
-  const legalForms = useMemo(
-    () => ["SAS", "SASU", "SARL", "EURL", "SA", "SNC", "EI", "Micro-entreprise", t("onb.legal_other", "Autre")].map((v) => ({ value: v, label: v })),
+  // Toutes les listes viennent des référentiels partagés : aucune saisie libre
+  // (hors nom, téléphone et raison sociale), pour que les données restent
+  // filtrables et comparables d'un formulaire à l'autre.
+  const legalForms = useMemo(() => LEGAL_FORMS.map((v) => ({ value: v, label: v })), []);
+  const countryOptions = useMemo(() => COUNTRIES.map((v) => ({ value: v, label: v })), []);
+  const roleOptions = useMemo(
+    () => ROLE_FUNCTIONS.map((v) => ({ value: v, label: t(`onb.role_${v}`, ROLE_FUNCTION_LABELS[v]) as string })),
     [t]
   );
+  const sectorOptions = useMemo(
+    () => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })),
+    [t]
+  );
+  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
+  const listVal = (v: string) => (v ? v.split(",").map((x) => x.trim()).filter(Boolean) : []);
 
   const canNext = () => {
-    if (step === 1) return accountType !== "" && fullName.trim().length >= 2 && country.trim().length >= 2;
+    if (step === 1) return accountType !== "" && fullName.trim().length >= 2 && country !== "";
     if (step === 4) return acceptTerms && certify;
     return true;
   };
@@ -136,15 +127,15 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
         id: uid,
         full_name: fullName.trim(),
         phone: phone.trim() || null,
-        country: country.trim() || null,
+        country: country || null,
         account_type: accountType || null,
         company_name: companyName.trim() || null,
         siren: siren.trim() || null,
         legal_form: legalForm || null,
-        role_function: roleFunction.trim() || null,
-        target_sectors: targetSectors.trim() || null,
-        target_budget: targetBudget.trim() || null,
-        target_geo: targetGeo.trim() || null,
+        role_function: roleFunction || null,
+        target_sectors: targetSectors || null,
+        target_budget: targetBudget || null,
+        target_geo: targetGeo || null,
         terms_accepted_at: new Date().toISOString(),
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
@@ -239,7 +230,8 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.country", "Pays")} *</label>
-                    <input value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass} placeholder="France" />
+                    <SearchableSelect value={country} onChange={setCountry} options={countryOptions}
+                      placeholder={t("onb.select", "Sélectionnez…") as string} className={btnDropdown} />
                   </div>
                 </div>
               </>
@@ -268,7 +260,8 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 </div>
                 <div>
                   <label className={labelClass}>{t("onb.role", "Votre fonction")}</label>
-                  <input value={roleFunction} onChange={(e) => setRoleFunction(e.target.value)} className={inputClass} placeholder={t("onb.role_ph", "Dirigeant, Associé, Directeur M&A…")} />
+                  <Dropdown value={roleFunction} onChange={setRoleFunction} options={roleOptions}
+                    placeholder={t("onb.select", "Sélectionnez…") as string} buttonClassName={btnDropdown} />
                 </div>
               </>
             )}
@@ -278,24 +271,21 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <p className="text-white/40 text-xs font-light -mt-1">{t("onb.s3_hint", "Pour des recommandations pertinentes. Vous pourrez les affiner dans Réglages.")}</p>
                 <div>
                   <label className={labelClass}>{t("onb.sectors", "Secteurs visés")}</label>
-                  <input value={targetSectors} onChange={(e) => setTargetSectors(e.target.value)} className={inputClass} placeholder="ex: Tech, SaaS, E-commerce, Restauration" />
+                  <MultiSelect options={sectorOptions} selected={listVal(targetSectors)}
+                    onChange={(v) => setTargetSectors(v.join(","))}
+                    placeholder={t("searchads.sectors_ph", "Choisir un ou plusieurs secteurs") as string} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.budget", "Budget")}</label>
-                    <input
-                      value={targetBudget}
-                      onChange={(e) => setTargetBudget(e.target.value)}
-                      onBlur={() => setTargetBudget(normalizeBudget(targetBudget))}
-                      className={inputClass}
-                      placeholder="ex: 450 000 €"
-                      inputMode="text"
-                    />
-                    <p className="text-white/30 text-[11px] font-light mt-1.5">{t("onb.budget_hint", "Écris comme tu veux (450k, 450000, 100k - 5M…), le montant est mis au format automatiquement.")}</p>
+                    <Dropdown value={targetBudget} onChange={setTargetBudget} options={AMOUNT_RANGE_OPTIONS}
+                      placeholder={t("searchads.any", "Indifférent") as string} buttonClassName={btnDropdown} />
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.geo", "Zone géographique")}</label>
-                    <input value={targetGeo} onChange={(e) => setTargetGeo(e.target.value)} className={inputClass} placeholder="ex: Île-de-France, Europe" />
+                    <MultiSelect options={regionOptions} selected={listVal(targetGeo)}
+                      onChange={(v) => setTargetGeo(v.join(","))}
+                      placeholder={t("searchads.regions_ph", "Choisir une ou plusieurs régions") as string} />
                   </div>
                 </div>
               </>

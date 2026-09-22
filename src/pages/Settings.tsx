@@ -21,8 +21,9 @@ import { MultiSelect } from '@/components/MultiSelect';
 import { Dropdown } from '@/components/PickerKit';
 import { INDUSTRIES } from '@/lib/industries';
 import { FR_REGIONS } from '@/lib/geoRegions';
+import { AMOUNT_RANGE_OPTIONS } from '@/lib/ranges';
 
-const SETTINGS_RANGES = ['< 100 k€', '100 – 250 k€', '250 – 500 k€', '500 k€ – 1 M€', '1 – 3 M€', '3 – 5 M€', '5 – 10 M€', '> 10 M€'].map((v) => ({ value: v, label: v }));
+
 const listVal = (s: string) => (s ? s.split(',').map((x) => x.trim()).filter(Boolean) : []);
 
 const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => void }) => (
@@ -398,7 +399,7 @@ export default function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
                   <div>
                     <label className={labelClass}>{t('settings.target_budget')}</label>
-                    <Dropdown value={targetBudget} onChange={setTargetBudget} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
+                    <Dropdown value={targetBudget} onChange={setTargetBudget} options={AMOUNT_RANGE_OPTIONS} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                   <div>
                     <label className={labelClass}>{t('settings.target_geo')}</label>
@@ -429,11 +430,11 @@ export default function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
                   <div>
                     <label className={labelClass}>{t('settings.apport', 'Apport disponible')}</label>
-                    <Dropdown value={apport} onChange={setApport} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
+                    <Dropdown value={apport} onChange={setApport} options={AMOUNT_RANGE_OPTIONS} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                   <div>
                     <label className={labelClass}>{t('settings.target_revenue', 'CA recherché')}</label>
-                    <Dropdown value={targetRevenue} onChange={setTargetRevenue} options={SETTINGS_RANGES} placeholder={t('searchads.any', 'Indifférent') as string} />
+                    <Dropdown value={targetRevenue} onChange={setTargetRevenue} options={AMOUNT_RANGE_OPTIONS} placeholder={t('searchads.any', 'Indifférent') as string} />
                   </div>
                 </div>
 

@@ -18,6 +18,7 @@ import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
 import { INDUSTRIES } from '@/lib/industries';
 import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
+import { AMOUNT_RANGE_OPTIONS as RANGE_OPTIONS, isAmountRange } from '@/lib/ranges';
 import { MultiSelect } from '@/components/MultiSelect';
 import { Dropdown } from '@/components/PickerKit';
 
@@ -42,8 +43,7 @@ export function useSearchAds() {
 }
 
 // Tranches cohérentes (M&A PME françaises)
-const AMOUNT_RANGES = ['< 100 k€', '100 – 250 k€', '250 – 500 k€', '500 k€ – 1 M€', '1 – 3 M€', '3 – 5 M€', '5 – 10 M€', '> 10 M€'];
-const RANGE_OPTIONS = AMOUNT_RANGES.map((v) => ({ value: v, label: v }));
+
 
 const EMPTY_FORM = {
   title: '',
@@ -120,8 +120,8 @@ export function SearchAdsBoard() {
       buyer_type: profile?.buyer_type || '',
       sectors: toList(profile?.target_sectors).filter((v) => INDUSTRY_SET.has(v)),
       regions: toList(profile?.target_geo).filter((v) => REGION_KEYS.has(v)),
-      budget: AMOUNT_RANGES.includes(profile?.target_budget) ? profile!.target_budget : '',
-      revenue_range: AMOUNT_RANGES.includes(profile?.target_revenue) ? profile!.target_revenue : '',
+      budget: isAmountRange(profile?.target_budget) ? profile!.target_budget : '',
+      revenue_range: isAmountRange(profile?.target_revenue) ? profile!.target_revenue : '',
       apport_available: !!profile?.apport,
     });
     setEditingId(null);
