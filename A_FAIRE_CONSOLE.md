@@ -1,4 +1,19 @@
-# À faire dans les consoles (rien de tout ça n'est faisable depuis le code)
+# À faire dans les consoles
+
+> **Tout est automatisé depuis le 22/09/2026.** Une fois un jeton Supabase
+> déposé dans `~/.supabase-token` (compte propriétaire de la base de
+> production), la section 1 se joue en une commande :
+>
+> ```bash
+> node scripts/apply-sql.mjs        # applique les patchs en attente
+> node scripts/audit-privileges.mjs # vérifie que la faille est fermée
+> ```
+>
+> `apply-sql.mjs` déduit le projet de `.env.local` : impossible d'appliquer un
+> correctif à la mauvaise base par inadvertance. `--check` fait un état des
+> lieux sans rien modifier.
+
+## Rappel : ce qui reste manuel
 
 Tout le code est poussé et vert (typecheck, 39 tests, build). Il reste ces
 actions manuelles, dans l'ordre. Tant qu'elles ne sont pas faites, l'app reste
