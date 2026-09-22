@@ -65,6 +65,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Double authentification : renseigné dès qu'un code de sécurité est attendu
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   
   const [carouselIndex, setCarouselIndex] = useState(0);
 
@@ -115,9 +118,43 @@ export default function Login() {
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) setError(signInError.message);
-      else navigate('/');
+      else if (!(await requiresMfa())) navigate('/');
     }
     setLoading(false);
+  };
+
+  // Double authentification : après le mot de passe, la session est en « aal1 ».
+  // Si le compte a un code de sécurité, Supabase attend « aal2 » → on demande
+  // le code à 6 chiffres avant d'entrer dans l'app.
+  const requiresMfa = async (): Promise<boolean> => {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (data?.nextLevel !== 'aal2' || data.nextLevel === data.currentLevel) return false;
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const totp = (factors?.totp || []).find((f) => f.status === 'verified');
+    if (!totp) return false;
+    setMfaFactorId(totp.id);
+    setMfaCode('');
+    return true;
+  };
+
+  const submitMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaFactorId || mfaCode.length < 6) return;
+    setLoading(true);
+    setError("");
+    const { error: mfaError } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code: mfaCode });
+    setLoading(false);
+    if (mfaError) { setError(t('mfa.bad_code', 'Code incorrect. Réessayez.') as string); return; }
+    setMfaFactorId(null);
+    navigate('/');
+  };
+
+  const cancelMfa = async () => {
+    // La session « aal1 » ne donne accès à rien : on la ferme proprement.
+    await supabase.auth.signOut();
+    setMfaFactorId(null);
+    setMfaCode('');
+    setError("");
   };
 
   const handleGoogleLogin = async () => {
@@ -280,6 +317,36 @@ export default function Login() {
               <img src="/logo.png" alt="Globly" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
               <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signin' ? t('auth.signin') : t('auth.signup')}</h2>
             </div>
+            {mfaFactorId ? (
+              <form onSubmit={submitMfa} className="flex flex-col gap-6">
+                <div>
+                  <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">
+                    {t('mfa.login_label', 'Code de sécurité')}
+                  </label>
+                  <input
+                    autoFocus
+                    inputMode="numeric"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="123456"
+                    className={`${inputClass} text-center tracking-[0.4em]`}
+                  />
+                  <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                    {t('mfa.login_hint', "Tapez le code à 6 chiffres affiché par l'application de votre téléphone.")}
+                  </p>
+                </div>
+                {error && <p className="text-red-400 text-sm font-light text-center">{error}</p>}
+                <Button type="submit" disabled={loading || mfaCode.length < 6}
+                  className="w-full rounded-full h-14 bg-primary hover:bg-primary/90 text-white font-light disabled:opacity-40">
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('mfa.confirm', 'Valider')}
+                </Button>
+                <button type="button" onClick={cancelMfa}
+                  className="text-slate-500 dark:text-white/40 hover:text-primary text-sm font-light transition-colors">
+                  {t('common.cancel', 'Annuler')}
+                </button>
+              </form>
+            ) : (
+            <>
             <form onSubmit={handleAuth} className="flex flex-col gap-6">
               {mode === 'signup' && (
                 <div>
@@ -319,6 +386,8 @@ export default function Login() {
                 {mode === 'signin' ? t('auth.toggle_signup') : t('auth.toggle_signin')}
               </button>
             </div>
+            </>
+            )}
           </div>
         </motion.div>
       </main>

@@ -78,3 +78,19 @@
    étaient stockés (les documents de data room transitent par `vdr_documents`,
    gouvernés par NDA).
 4. Pas encore de 2FA ni de politique de session avancée (défauts Supabase Auth).
+
+## Double authentification (2FA)
+
+Optionnelle, par code TOTP (Google Authenticator et équivalents), via Supabase
+Auth MFA. Activation depuis **Réglages → Code de sécurité à la connexion**
+(`src/components/TwoFactorSettings.tsx`).
+
+À la connexion, la session issue du seul mot de passe est en **aal1** : tant que
+le code n'est pas fourni, `ProtectedRoute` renvoie vers l'écran de connexion —
+quitter l'écran du code ne donne donc accès à aucune page. Le passage en **aal2**
+se fait par `mfa.challengeAndVerify`.
+
+**À activer dans Supabase** : Authentication → Providers → MFA (TOTP).
+Pour imposer l'aal2 jusqu'au niveau des données, les policies RLS sensibles
+peuvent tester `auth.jwt() ->> 'aal' = 'aal2'` — non fait aujourd'hui, le blocage
+est côté application.

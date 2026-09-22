@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { TwoFactorSettings } from '@/components/TwoFactorSettings';
 import { LogOut, Upload, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -503,6 +504,10 @@ export default function Settings() {
                       </p>
                     </div>
                     <CustomToggle active={emailAlerts} onToggle={() => setEmailAlerts(!emailAlerts)} />
+                  </div>
+
+                  <div className="pt-[2vh] border-t border-white/10">
+                    <TwoFactorSettings />
                   </div>
                 </div>
               </div>
