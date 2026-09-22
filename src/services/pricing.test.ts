@@ -37,6 +37,21 @@ describe('cohérence des tarifs front ↔ Edge Function Stripe', () => {
   });
 });
 
+// Le forfait mensuel de prospection est vérifié côté serveur avant tout envoi
+// (send-prospect-email) : il doit rester aligné sur celui affiché au client,
+// sinon l'app promet un quota que le serveur refuse — ou l'inverse.
+describe('cohérence du forfait de prospection front ↔ Edge Function', () => {
+  it(`forfait = ${PROSPECTION_MONTHLY_INCLUDED} contacts des deux côtés`, () => {
+    const src = readFileSync(
+      resolve(__dirname, '../../supabase/functions/send-prospect-email/index.ts'),
+      'utf8'
+    );
+    const m = src.match(/MONTHLY_INCLUDED\s*=\s*(\d+)/);
+    expect(m, "MONTHLY_INCLUDED introuvable dans l'Edge Function").toBeTruthy();
+    expect(Number(m![1])).toBe(PROSPECTION_MONTHLY_INCLUDED);
+  });
+});
+
 // ── Quota de publication ────────────────────────────────────────────────────
 describe('computePublicationQuota', () => {
   it('free : 1 annonce active maximum', () => {

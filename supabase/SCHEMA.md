@@ -3,6 +3,15 @@
 > Snapshot généré depuis la base live le 2026-07-24. Source de vérité unique
 > remplaçant la lecture des ~50 patchs SQL historiques. À régénérer après
 > toute migration.
+>
+> ⚠️ **En attente d'application** (patchs écrits le 2026-09-22, pas encore
+> collés dans le SQL Editor — ce snapshot ne les reflète donc pas) :
+> - `_claude_prospection_paid.sql` — `prospection_contacts.paid`, et RLS
+>   interdisant au client d'écrire un contact facturé
+> - `_claude_email_alerts.sql` — `profiles.email_alerts`,
+>   `profiles.last_digest_sent_at`
+> - `_claude_safe_profiles_identity.sql` — `safe_profiles` recréée avec
+>   `account_type`, `company_name`, `legal_form`, `role_function`, `country`
 
 ## Tables
 
