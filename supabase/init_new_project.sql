@@ -1,3 +1,7 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — ce script commence par des
+-- DROP TABLE ... CASCADE (profils, annonces, messages) : il efface les données.
+-- Conservé pour l'historique ; l'état réel de la base est dans supabase/SCHEMA.md.
+
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

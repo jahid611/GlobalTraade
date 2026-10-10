@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Listing } from '@/types/domain';
 import { WorldGlobe, ListingNode } from '@/components/Globe';
 import { BusinessModal } from '@/components/BusinessModal';
@@ -56,29 +56,57 @@ export default function AppMap() {
   const [celebrateUnlock, setCelebrateUnlock] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Fiche à ouvrir dès que son annonce est présente dans la liste. Mémorisée
+  // AVANT de nettoyer l'URL / l'état de navigation : un rafraîchissement de la
+  // liste entre-temps ne fait plus perdre la demande.
+  const pendingOpen = useRef<{ id: string; celebrate: boolean } | null>(null);
+  const [openRequest, setOpenRequest] = useState(0);
+  // Minuteries de la séquence « nouvelle cession » (vol du globe puis fiche).
+  const flightTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { flightTimers.current.forEach(clearTimeout); }, []);
+
   // Retour de paiement Stripe : /app?focus=<id>&celebrate=1 → rouvre la fiche
-  // débloquée et déclenche l'animation de cadenas.
+  // débloquée et déclenche l'animation de cadenas. `?listing=<id>` est un alias
+  // de `focus` (liens directs vers une annonce).
   useEffect(() => {
-    const focus = searchParams.get('focus');
-    if (focus && listings.length > 0) {
-      const celeb = searchParams.get('celebrate') === '1';
-      setFocusListingId(focus);
-      const timer = setTimeout(() => {
-        handleSelectListing(focus);
-        if (celeb) {
-          setCelebrateUnlock(true);
-          // Le déblocage vient d'être écrit côté serveur : on rafraîchit le feed
-          // pour récupérer les financiers désormais visibles (l'effet de
-          // synchronisation ci-dessous met alors la fiche ouverte à jour → le
-          // simulateur LBO se déverrouille sans refresh manuel).
-          refetch();
-        }
-      }, 700);
-      ['focus', 'celebrate', 'session_id', 'success'].forEach((k) => searchParams.delete(k));
-      setSearchParams(searchParams, { replace: true });
-      return () => clearTimeout(timer);
+    const focus = searchParams.get('focus') || searchParams.get('listing');
+    if (!focus) return;
+    pendingOpen.current = { id: focus, celebrate: searchParams.get('celebrate') === '1' };
+    setFocusListingId(focus);
+    setOpenRequest((n) => n + 1);
+    const rest = new URLSearchParams(searchParams);
+    ['focus', 'listing', 'celebrate', 'session_id', 'success'].forEach((k) => rest.delete(k));
+    setSearchParams(rest, { replace: true, state: location.state });
+  }, [searchParams]);
+
+  // Navigation interne (`navigate('/app', { state: { focusId } })`) : l'état est
+  // consommé UNE fois puis vidé dans React Router — sinon `navFocusId` persiste
+  // et la fiche se rouvre à chaque rafraîchissement des annonces.
+  useEffect(() => {
+    if (!navFocusId) return;
+    pendingOpen.current = { id: navFocusId, celebrate: false };
+    setFocusListingId(navFocusId);
+    setOpenRequest((n) => n + 1);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [navFocusId]);
+
+  // Ouvre la fiche demandée dès que l'annonce est dans la liste.
+  useEffect(() => {
+    const pending = pendingOpen.current;
+    if (!pending) return;
+    const listing = listings.find((l) => l.id === pending.id);
+    if (!listing) return;
+    pendingOpen.current = null;
+    setSelectedListing(listing);
+    if (pending.celebrate) {
+      setCelebrateUnlock(true);
+      // Le déblocage vient d'être écrit côté serveur : on rafraîchit le feed
+      // pour récupérer les financiers désormais visibles (l'effet de
+      // synchronisation ci-dessous met alors la fiche ouverte à jour → le
+      // simulateur LBO se déverrouille sans refresh manuel).
+      refetch();
     }
-  }, [listings]);
+  }, [listings, openRequest]);
 
   // Garde la fiche ouverte synchronisée avec le feed : quand les données
   // rafraîchissent (ex. financiers qui apparaissent après un déblocage), la
@@ -93,17 +121,6 @@ export default function AppMap() {
 
   const hasUnread = useUnreadMessages(user?.id);
   const isOverlayOpen = !!selectedListing || isFormOpen || isChatOpen || isSidebarMessagingOpen;
-
-  useEffect(() => {
-    if (navFocusId && listings.length > 0) {
-      setFocusListingId(navFocusId);
-      const timer = setTimeout(() => {
-        handleSelectListing(navFocusId);
-      }, 800);
-      window.history.replaceState({}, document.title);
-      return () => clearTimeout(timer);
-    }
-  }, [navFocusId, listings]);
 
   const handleSelectListing = async (id: string) => {
     const listing = listings.find(l => l.id === id);
@@ -148,8 +165,11 @@ export default function AppMap() {
       // …on fait voler le globe dessus, puis on ouvre sa fiche une fois arrivé.
       setSelectedListing(null);
       setFocusListingId(undefined);
-      setTimeout(() => setFocusListingId(created.id), 50);
-      setTimeout(() => setSelectedListing(created), 1600);
+      flightTimers.current.forEach(clearTimeout);
+      flightTimers.current = [
+        setTimeout(() => setFocusListingId(created.id), 50),
+        setTimeout(() => setSelectedListing(created), 1600),
+      ];
     }
   };
 
@@ -266,8 +286,10 @@ export default function AppMap() {
                   onClick={handlePremiumClick}
                   className="flex h-10 sm:h-12 px-3 sm:px-6 rounded-full liquid-glass bg-primary/80 dark:bg-primary/20 border-primary/40 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none hover:bg-primary/90 dark:hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[9px] sm:text-xs font-medium tracking-wide uppercase items-center"
                 >
-                  <span className={isMobile ? "hidden xs:inline" : ""}>{t('nav.upgrade', 'Voir les formules')}</span>
-                  {isMobile && <span className="xs:hidden">{t('nav.upgrade_short', 'Formules')}</span>}
+                  {/* Libellé court sur mobile (aucun breakpoint `xs` dans tailwind.config.ts) */}
+                  {isMobile
+                    ? <span>{t('nav.upgrade_short', 'Formules')}</span>
+                    : <span>{t('nav.upgrade', 'Voir les formules')}</span>}
                 </button>
               )}
               

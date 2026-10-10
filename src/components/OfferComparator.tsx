@@ -6,11 +6,17 @@ import { motion } from 'framer-motion';
 import { Trophy, DollarSign, Clock, ShieldCheck, TrendingUp, ChevronDown, ChevronUp, Handshake, Star } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { useTranslation } from 'react-i18next';
+import { financingKind, type FinancingKind } from '@/lib/offers';
+import type { OfferMetadata } from '@/types/domain';
 
 interface Offer {
   id: string;
   amount: number;
-  financing: string;
+  // Deux formes en base : l'ancienne chaîne ('cash' | 'loan' | 'mixed') ou la
+  // répartition { loan, equity } en % (écrite par ChatPanel / MessagingCore).
+  financing: OfferMetadata['financing'] | null;
+  financingKind: FinancingKind;
   status: string;
   created_at: string;
   sender_id: string;
@@ -29,6 +35,7 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     fetchOffers();
@@ -46,8 +53,9 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 
     const senderIds = [...new Set(msgs.map(m => m.sender_id))];
+    // Vue publique : la RLS de `profiles` ne renvoie que sa propre ligne
     const { data: profiles } = await supabase
-      .from('profiles')
+      .from('safe_profiles')
       .select('id, full_name, avatar_url, kyc_status')
       .in('id', senderIds);
 
@@ -63,12 +71,13 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
       const p = profileMap.get(m.sender_id);
       return {
         id: m.id,
-        amount: m.metadata?.amount || 0,
-        financing: m.metadata?.financing || 'unknown',
+        amount: Number(m.metadata?.amount) || 0,
+        financing: m.metadata?.financing ?? null,
+        financingKind: financingKind(m.metadata?.financing),
         status: m.metadata?.status || 'pending',
         created_at: m.created_at,
         sender_id: m.sender_id,
-        sender_name: p?.full_name || 'Investisseur',
+        sender_name: p?.full_name || '',
         sender_avatar: p?.avatar_url,
         sender_kyc: p?.kyc_status,
       };
@@ -92,8 +101,8 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
         else score += 10;
       }
       // Financing (max 25)
-      if (o.financing === 'cash') score += 25;
-      else if (o.financing === 'mixed') score += 15;
+      if (o.financingKind === 'cash') score += 25;
+      else if (o.financingKind === 'mixed') score += 15;
       else score += 8;
       // KYC (max 20)
       if (o.sender_kyc === 'verified') score += 20;
@@ -111,8 +120,20 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
   if (loading || offers.length < 2) return null;
 
   const bestOffer = scored[0];
-  const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
-  const financingLabel = (f: string) => f === 'cash' ? 'Cash' : f === 'loan' ? 'Emprunt' : f === 'mixed' ? 'Mixte' : f;
+  const fmt = (v: number) => new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  // Toujours une chaîne : rendre l'objet { loan, equity } tel quel faisait
+  // planter React (et tout le Dashboard avec).
+  const financingLabel = (kind: FinancingKind) =>
+    kind === 'cash' ? t('compare.fin_cash', 'Cash')
+    : kind === 'loan' ? t('compare.fin_loan', 'Emprunt')
+    : kind === 'mixed' ? t('compare.fin_mixed', 'Mixte')
+    : t('compare.fin_unknown', 'Non précisé');
+  // Détail de la répartition, en infobulle, quand elle est connue
+  const financingDetail = (f: Offer['financing']) =>
+    f && typeof f === 'object'
+      ? `${t('msg.loan', 'Emprunt')} ${Number(f.loan) || 0}% · ${t('msg.equity', 'Fonds propres')} ${Number(f.equity) || 0}%`
+      : undefined;
+  const senderName = (o: Offer) => o.sender_name || t('compare.investor', 'Investisseur');
 
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
@@ -122,8 +143,8 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
             <Trophy className="w-5 h-5 text-amber-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-white">Comparateur d'Offres</p>
-            <p className="text-[11px] text-white/40 font-light">{offers.length} offres reçues — Meilleure : {fmt(bestOffer.amount)}</p>
+            <p className="text-sm font-medium text-white">{t('compare.title', "Comparateur d'Offres")}</p>
+            <p className="text-[11px] text-white/40 font-light">{t('compare.summary', '{{count}} offres reçues — Meilleure : {{amount}}', { count: offers.length, amount: fmt(bestOffer.amount) })}</p>
           </div>
         </div>
         {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
@@ -133,11 +154,11 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="border-t border-white/5">
           {/* Header row */}
           <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-5 py-3 text-[9px] uppercase tracking-widest text-white/30 font-medium border-b border-white/5">
-            <span>Investisseur</span>
-            <span className="w-24 text-right">Montant</span>
-            <span className="w-20 text-center">Financement</span>
-            <span className="w-16 text-center">KYC</span>
-            <span className="w-16 text-right">Score</span>
+            <span>{t('compare.col_investor', 'Investisseur')}</span>
+            <span className="w-24 text-right">{t('compare.col_amount', 'Montant')}</span>
+            <span className="w-20 text-center">{t('compare.col_financing', 'Financement')}</span>
+            <span className="w-16 text-center">{t('compare.col_kyc', 'KYC')}</span>
+            <span className="w-16 text-right">{t('compare.col_score', 'Score')}</span>
           </div>
 
           {scored.map((offer, i) => (
@@ -147,9 +168,9 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
                 {i === 0 && <Star className="w-3.5 h-3.5 text-amber-400 shrink-0 fill-amber-400" />}
                 <Avatar className="w-8 h-8 shrink-0 border-none bg-white/10">
                   <AvatarImage src={offer.sender_avatar} className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-white/60 text-xs font-light">{offer.sender_name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="bg-transparent text-white/60 text-xs font-light">{senderName(offer).charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-light text-white/80 truncate">{offer.sender_name}</span>
+                <span className="text-sm font-light text-white/80 truncate">{senderName(offer)}</span>
               </div>
 
               {/* Amount */}
@@ -157,15 +178,15 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
                 <span className={`text-sm font-medium tabular-nums ${i === 0 ? 'text-white' : 'text-white/60'}`}>{fmt(offer.amount)}</span>
                 {listingPrice > 0 && (
                   <p className={`text-[10px] font-light ${offer.amount >= listingPrice ? 'text-emerald-400' : 'text-white/30'}`}>
-                    {((offer.amount / listingPrice) * 100).toFixed(0)}% du prix
+                    {t('compare.pct_of_price', '{{pct}}% du prix', { pct: ((offer.amount / listingPrice) * 100).toFixed(0) })}
                   </p>
                 )}
               </div>
 
               {/* Financing */}
               <div className="w-20 text-center">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${offer.financing === 'cash' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : offer.financing === 'mixed' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-white/5 text-white/50 border border-white/10'}`}>
-                  {financingLabel(offer.financing)}
+                <span title={financingDetail(offer.financing)} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${offer.financingKind === 'cash' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : offer.financingKind === 'mixed' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-white/5 text-white/50 border border-white/10'}`}>
+                  {financingLabel(offer.financingKind)}
                 </span>
               </div>
 
@@ -183,7 +204,7 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
           ))}
 
           <div className="px-5 py-3 text-[10px] text-white/20 font-light text-center">
-            Score basé sur : montant (40%), financement (25%), vérification KYC (20%), réactivité (15%)
+            {t('compare.score_basis', 'Score basé sur : montant (40%), financement (25%), vérification KYC (20%), réactivité (15%)')}
           </div>
         </motion.div>
       )}

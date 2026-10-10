@@ -18,6 +18,8 @@ import { useNavigate } from 'react-router-dom';
 import { checkContactQuota, registerContactInitiation } from '@/services/quotaService';
 import { DealTimeline } from '@/components/DealTimeline';
 import type { ChatMessage, OfferMetadata } from '@/types/domain';
+import { OfferCard } from '@/components/messaging/OfferCard';
+import { OFFER_MIN_PCT, OFFER_MAX_PCT, isOfferMessage } from '@/lib/offers';
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -43,9 +45,8 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
   const [offerConditions, setOfferConditions] = useState("");
   const [offerMessage, setOfferMessage] = useState("");
   const [loanPct, setLoanPct] = useState(50); // part emprunt, le reste = fonds propres
-  const OFFER_MIN_PCT = 0.6;
-  const OFFER_MAX_PCT = 1.1;
   const [offerToEdit, setOfferToEdit] = useState<Record<string, any> | null>(null);
+  const [isSendingOffer, setIsSendingOffer] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -85,7 +86,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
         return isFromMe || isToMe;
       });
 
-      const unreadMsgs = data.filter(m => String(m.receiver_id) === currentUserId && !m.is_read);
+      const unreadMsgs = filtered.filter(m => String(m.receiver_id) === currentUserId && !m.is_read);
       if (unreadMsgs.length > 0) {
         supabase.from('messages')
           .update({ is_read: true })
@@ -133,6 +134,18 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       }, () => {
         fetchRef.current();
       })
+      // Changement de statut d'une offre (acceptée / refusée / modifiée) : on
+      // applique la ligne reçue sans recharger tout le fil.
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `listing_id=eq.${listing.id}`
+      }, (payload) => {
+        const updated = payload.new as Record<string, any>;
+        if (!updated?.id) return;
+        setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -150,30 +163,34 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     getProfile();
   }, [isOpen, listing?.id, listing?.owner_id]);
 
+  // Messagerie par formule : gratuit = annonce débloquée (5 €) uniquement ;
+  // Pro = 20 nouvelles conversations/mois ; Business = illimité.
+  // La règle vaut pour TOUT premier envoi de la conversation : message texte
+  // comme offre. Renvoie false (et redirige vers les formules) si c'est refusé.
+  const ensureCanInitiate = async (): Promise<boolean> => {
+    if (!user || !listing) return false;
+    const quota = await checkContactQuota(user.id, String(listing.owner_id),
+      listing.id ? { targetType: 'listing', targetId: String(listing.id) } : null);
+    if (quota.allowed) return true;
+    if (quota.reason === 'locked' && listing.id) {
+      showError(t('quota.msg_locked', 'La messagerie est réservée aux annonces débloquées (5 €) et aux formules Pro et Business.'));
+      navigate(`/payment?unlock=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`);
+    } else if (quota.reason === 'locked') {
+      showError(t('quota.msg_locked_generic', 'La messagerie est réservée aux formules Pro et Business.'));
+      navigate('/payment');
+    } else {
+      showError(t('quota.contacts_reached', 'Limite de nouvelles prises de contact atteinte ce mois-ci. Passez Business pour contacter sans limite.'));
+      navigate('/payment');
+    }
+    return false;
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !listing) return;
 
-    // Messagerie par formule : gratuit = annonce débloquée (5 €) uniquement ;
-    // Pro = 20 nouvelles conversations/mois ; Business = illimité.
     const isFirstMessage = messages.filter(m => !String(m.id).startsWith('temp-')).length === 0;
-    if (isFirstMessage) {
-      const quota = await checkContactQuota(user.id, String(listing.owner_id),
-        listing.id ? { targetType: 'listing', targetId: String(listing.id) } : null);
-      if (!quota.allowed) {
-        if (quota.reason === 'locked' && listing.id) {
-          showError(t('quota.msg_locked', 'La messagerie est réservée aux annonces débloquées (5 €) et aux formules Pro et Business.'));
-          navigate(`/payment?unlock=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`);
-        } else if (quota.reason === 'locked') {
-          showError(t('quota.msg_locked_generic', 'La messagerie est réservée aux formules Pro et Business.'));
-          navigate('/payment');
-        } else {
-          showError(t('quota.contacts_reached', 'Limite de nouvelles prises de contact atteinte ce mois-ci. Passez Business pour contacter sans limite.'));
-          navigate('/payment');
-        }
-        return;
-      }
-    }
+    if (isFirstMessage && !(await ensureCanInitiate())) return;
 
     const content = newMessage.trim();
     setNewMessage("");
@@ -256,20 +273,39 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
 
     const type = initialNeed ? 'need_offer' : 'offer';
 
+    if (isSendingOffer) return;
+
     if (offerToEdit) {
-      const optimMessages = messages.map(m => m.id === offerToEdit.id ? { ...m, content, metadata } : m);
-      setMessages(optimMessages);
+      const previousMessages = messages;
+      setIsSendingOffer(true);
+      setMessages(messages.map(m => m.id === offerToEdit.id ? { ...m, content, metadata } : m));
+
+      const { error } = await supabase.from('messages').update({ content, metadata }).eq('id', offerToEdit.id);
+      setIsSendingOffer(false);
+      if (error) {
+        console.error("Offer update error:", error);
+        setMessages(previousMessages);
+        showError(t('msg.error'));
+        return;
+      }
       setIsOfferModalOpen(false);
       setOfferToEdit(null);
       setOfferAmount("");
       setOfferConditions("");
       setOfferMessage("");
       showSuccess(t('needs.toast_sent', 'Proposition envoyée avec succès.'));
-
-      await supabase.from('messages').update({ content, metadata }).eq('id', offerToEdit.id);
       return;
     }
-    
+
+    // Même règle que pour le premier message texte : un compte gratuit ne peut
+    // pas ouvrir une conversation par une offre sur une annonce non débloquée.
+    const isFirstMessage = messages.filter(m => !String(m.id).startsWith('temp-')).length === 0;
+    setIsSendingOffer(true);
+    if (isFirstMessage && !(await ensureCanInitiate())) {
+      setIsSendingOffer(false);
+      return;
+    }
+
     const tempMsg = {
       id: `temp-${Date.now()}`,
       listing_id: listing.id,
@@ -280,30 +316,47 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       metadata,
       created_at: new Date().toISOString()
     };
-    
-    const newMessagesList = [...messages, tempMsg];
-    setMessages(newMessagesList);
+
+    setMessages(prev => [...prev, tempMsg]);
+
+    const { data, error } = await supabase.from('messages')
+      .insert([{ listing_id: listing.id, sender_id: user.id, receiver_id: listing.owner_id, content, type, metadata }])
+      .select().single();
+    setIsSendingOffer(false);
+
+    // Le succès n'est annoncé qu'une fois l'offre réellement enregistrée ; en
+    // cas d'échec la fenêtre reste ouverte avec la saisie, pour réessayer.
+    if (error || !data) {
+      console.error("Offer insert error:", error);
+      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      showError(t('msg.error'));
+      return;
+    }
+
+    setMessages(prev => prev.some(m => m.id === data.id)
+      ? prev.filter(m => m.id !== tempMsg.id)
+      : prev.map(m => m.id === tempMsg.id ? data : m));
     setIsOfferModalOpen(false);
     setOfferAmount("");
     setOfferConditions("");
     setOfferMessage("");
     showSuccess(t('needs.toast_sent', 'Proposition envoyée avec succès.'));
-
-    const { data } = await supabase.from('messages')
-      .insert([{ listing_id: listing.id, sender_id: user.id, receiver_id: listing.owner_id, content, type, metadata }])
-      .select().single();
-      
-    if (data) {
-      const updatedMessages = newMessagesList.map(m => m.id === tempMsg.id ? data : m);
-      setMessages(updatedMessages);
+    if (isFirstMessage) {
+      registerContactInitiation(user.id, String(listing.owner_id), listing.id).catch(() => {});
     }
   };
 
   const handleDeleteOffer = async (msg: Record<string, any>) => {
+    const previousMessages = messages;
     const optimMsgs = messages.filter(m => m.id !== msg.id);
     setMessages(optimMsgs);
+    const { error } = await supabase.from('messages').delete().eq('id', msg.id);
+    if (error) {
+      setMessages(previousMessages);
+      showError(t('msg.error'));
+      return;
+    }
     showSuccess(t('msg.offer_deleted_success'));
-    await supabase.from('messages').delete().eq('id', msg.id);
   };
 
   const handleOfferAction = async (msg: Record<string, any>, newStatus: string) => {
@@ -334,117 +387,26 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     return format(d, 'd MMM', { locale: dateLocale });
   };
 
-  const renderOfferCard = (msg: ChatMessage, isMine: boolean) => {
-    const isNeedOffer = msg.type === 'need_offer';
-    const status = msg.metadata?.status || 'pending';
-    const amount = msg.metadata?.amount || 0;
-    const financing = msg.metadata?.financing || 'loan';
-    
-    const formattedAmount = isNeedOffer && isNaN(Number(amount)) 
-      ? amount 
-      : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
-        style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
-      }).format(Number(amount));
-
-    return (
-      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
-        isMine ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] ml-auto' : 'liquid-glass bg-white/[0.03] border-white/10'
-      }`}>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/10 text-white/60 border border-white/10'}`}>
-              <Handshake className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                {isMine ? (isNeedOffer ? t('needs.your_proposal', 'Votre proposition') : t('msg.your_offer', 'Votre offre')) : (isNeedOffer ? `${t('needs.proposal_from', 'Proposition de')} ${contactProfile?.full_name || t('msg.seller')}` : `${t('msg.offer_from', 'Offre de')} ${contactProfile?.full_name || t('msg.seller')}`)}
-              </p>
-              <p className="text-[13px] font-medium text-white">{isNeedOffer ? msg.metadata?.need_title : t('msg.negotiation', 'Négociation')}</p>
-            </div>
-          </div>
-          <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
-            status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-            status === 'declined' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-            'bg-white/5 text-white/50 border-white/10'
-          }`}>
-            {status === 'accepted' ? t('msg.offer_accepted', 'Acceptée') : status === 'declined' ? t('msg.offer_declined', 'Refusée') : t('msg.pending', 'En attente')}
-          </div>
+  const renderOfferCard = (msg: ChatMessage, isMine: boolean) => (
+    <OfferCard
+      msg={msg}
+      isMine={isMine}
+      contactName={contactProfile?.full_name || t('msg.seller')}
+      loi={{
+        buyerName: isMine ? (user?.user_metadata?.full_name || 'Acheteur') : (contactProfile?.full_name || 'Vendeur'),
+        sellerName: isMine ? (contactProfile?.full_name || 'Vendeur') : (user?.user_metadata?.full_name || 'Acheteur'),
+        listingName: listing?.name || 'N/A',
+      }}
+      onOfferAction={handleOfferAction}
+      pendingMineSlot={
+        <div className="flex gap-2">
+          <button onClick={() => handleDeleteOffer(msg)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/50 hover:text-red-500 text-xs font-medium transition-all flex items-center justify-center gap-2">
+            <Trash2 size={14} /> {t('msg.offer_delete', "Retirer l'offre")}
+          </button>
         </div>
-        
-        <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
-          <div className="text-2xl font-light text-white tracking-tight mb-2 text-center break-words">{formattedAmount}</div>
-          {!isNeedOffer && (
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
-              <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-                {financing && typeof financing === 'object'
-                  ? `${t('msg.loan', 'Emprunt')} ${financing.loan}% · ${t('msg.equity', 'Fonds propres')} ${financing.equity}%`
-                  : (financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt'))}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {isNeedOffer && msg.metadata?.conditions && (
-          <div className="mb-4 bg-white/5 p-3 rounded-xl border border-white/10">
-            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-medium">{t('needs.offer_conditions', 'Conditions')}</p>
-            <p className="text-xs text-white/80 font-light">{msg.metadata.conditions}</p>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {status === 'pending' ? (
-            isMine ? (
-              <div className="flex gap-2">
-                <button onClick={() => handleDeleteOffer(msg)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/50 hover:text-red-500 text-xs font-medium transition-all flex items-center justify-center gap-2">
-                  <Trash2 size={14} /> {t('msg.offer_delete', 'Retirer l\'offre')}
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => handleOfferAction(msg, 'declined')}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
-                >
-                  <XCircle className="w-4 h-4" /> {t('profile.decline', 'Refuser')}
-                </button>
-                <button 
-                  onClick={() => handleOfferAction(msg, 'accepted')}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                >
-                  <Check className="w-4 h-4" /> {t('profile.accept', 'Accepter')}
-                </button>
-              </div>
-            )
-          ) : (
-            <div className="space-y-3">
-              {!isNeedOffer && status === 'accepted' && (
-                <Button 
-                  onClick={() => {
-                    generateLOI({
-                      buyerName: isMine ? (user?.user_metadata?.full_name || 'Acheteur') : (contactProfile?.full_name || 'Vendeur'),
-                      sellerName: isMine ? (contactProfile?.full_name || 'Vendeur') : (user?.user_metadata?.full_name || 'Acheteur'),
-                      listingName: listing?.name || 'N/A',
-                      amount: Number(amount),
-                      financing: financing,
-                      offerDate: msg.created_at,
-                      acceptedDate: new Date().toISOString(),
-                      lang: i18n.language,
-                      t,
-                    });
-                  }}
-                  variant="outline" 
-                  className="w-full h-11 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-medium transition-all group"
-                >
-                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi', 'Générer la LOI')}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+      }
+    />
+  );
 
   return (
     <>
@@ -502,7 +464,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                   )}
                   {messages.map((msg, i) => {
                     const isMine = msg.sender_id === user?.id;
-                    const isOffer = msg.type === 'offer' || msg.type === 'need_offer' || msg.content.startsWith('OFFRE:') || msg.content.startsWith('PROPOSITION AIDE:');
+                    const isOffer = isOfferMessage(msg);
                     const showDate = i === 0 || formatMessageDate(msg.created_at) !== formatMessageDate(messages[i-1].created_at);
                     
                     return (
@@ -696,7 +658,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
               )}
 
               <div className="pt-4 flex flex-col gap-3">
-                <Button type="submit" disabled={!offerAmount} className="w-full rounded-xl h-14 bg-primary hover:bg-primary/90 text-white text-[15px] font-medium transition-all shadow-[0_0_25px_rgba(168,85,247,0.4)] border-none">
+                <Button type="submit" disabled={!offerAmount || isSendingOffer} className="w-full rounded-xl h-14 bg-primary hover:bg-primary/90 text-white text-[15px] font-medium transition-all shadow-[0_0_25px_rgba(168,85,247,0.4)] border-none">
                   {offerToEdit ? t('msg.offer_modify') : t('msg.offer_submit')}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); setOfferConditions(""); setOfferMessage(""); }} className="w-full rounded-xl h-12 text-white/50 hover:text-white hover:bg-white/5 transition-colors border-none">

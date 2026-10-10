@@ -1,3 +1,9 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — fichier conservé pour l'historique.
+-- Il confirme automatiquement l'email de chaque nouveau compte (outil de
+-- développement local). En production, n'importe qui pourrait s'inscrire avec
+-- l'adresse d'un tiers. Pour vérifier qu'il n'est pas actif :
+--   select tgname from pg_trigger where tgrelid = 'auth.users'::regclass and not tgisinternal;
+
 -- 1. Création de la fonction qui valide l'email immédiatement
 CREATE OR REPLACE FUNCTION public.auto_confirm_new_user()
 RETURNS trigger

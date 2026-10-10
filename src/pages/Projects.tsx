@@ -8,7 +8,7 @@ import { SolarSystem } from "@/components/SolarSystem";
 import { ProjectForm } from "@/components/ProjectForm";
 import { HelpBanner } from "@/components/HelpBanner";
 import { useAuth } from "@/components/AuthProvider";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchProjects, deleteProject, expressInterest, incrementProjectViews, Project, HelpType, type TeamRole, type MaterialItem } from "@/services/projectService";
 import { showSuccess, showError } from "@/utils/toast";
@@ -101,7 +101,7 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
         </div>
       )}
       {/* Description */}
-      <p className="text-white/50 text-sm leading-relaxed line-clamp-3 flex-1">{project.description}</p>
+      <p className="text-white/50 text-sm leading-relaxed line-clamp-3 flex-1">{project.description || project.description_excerpt}</p>
 
       {/* Help tags */}
       <div className="flex flex-wrap gap-1.5">
@@ -138,6 +138,8 @@ function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: 
 function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project: Project; onClose: () => void; userId?: string; onEdit: () => void; onDelete: () => void }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
   const [sending, setSending] = useState(false);
   const [selectedHelp, setSelectedHelp] = useState<HelpType | null>(null);
   const [message, setMessage] = useState("");
@@ -148,28 +150,22 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
   // de fetch) → pas de fuite avec un cache périmé (downgrade / changement de fiche).
   const { plan, isFetching: planFetching } = usePlan(userId);
   const { unlocked, isFetching: unlockFetching } = useIsUnlocked(userId, 'project', project.id);
-  const hasFullAccess = hasContentAccess({ isOwner: userId === project.owner_id, plan, planFetching, unlocked, unlockFetching });
+  const entitled = hasContentAccess({ isOwner: userId === project.owner_id, plan, planFetching, unlocked, unlockFetching });
+  // Le dossier n'est affiché que si le SERVEUR l'a réellement renvoyé (vue
+  // projects_secure). Juste après un paiement, la fiche en cache est encore la
+  // version masquée : on la redemande, et on reste verrouillé d'ici là.
+  const hasFullAccess = entitled && project.has_full_access !== false;
+  useEffect(() => {
+    if (entitled && project.has_full_access === false) {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    }
+  }, [entitled, project.has_full_access, queryClient]);
 
+  const goLogin = () => navigate('/login', { state: { from: location } });
   const goUnlock = () => {
-    if (!userId) { window.location.href = "/login"; return; }
+    if (!userId) { goLogin(); return; }
     navigate(`/payment?unlock=project:${project.id}&name=${encodeURIComponent(project.title || '')}`);
   };
-
-  const LockedGate = ({ children }: { children: React.ReactNode }) => (
-    hasFullAccess ? <>{children}</> : (
-      <div className="relative">
-        <div className="blur-md select-none pointer-events-none">{children}</div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <p className="text-sm text-white font-light text-center px-8">
-            {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
-          </p>
-          <Button onClick={goUnlock} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
-            <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
-          </Button>
-        </div>
-      </div>
-    )
-  );
 
   const handleInterest = async () => {
     if (!userId) return;
@@ -240,9 +236,32 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
             </div>
           </div>
 
-          <LockedGate>
-          <p className="text-white/70 leading-relaxed text-sm whitespace-pre-wrap">{project.description}</p>
-          </LockedGate>
+          {hasFullAccess ? (
+            <p className="text-white/70 leading-relaxed text-sm whitespace-pre-wrap">{project.description}</p>
+          ) : (
+            <div>
+              {/* Amorce publique, puis un faux texte sous le flou : le vrai
+                  descriptif n'est pas dans la page tant qu'il n'est pas débloqué. */}
+              {project.description_excerpt && (
+                <p className="text-white/70 leading-relaxed text-sm whitespace-pre-wrap">{project.description_excerpt}</p>
+              )}
+              <div className="relative mt-3">
+                <div className="blur-md select-none pointer-events-none space-y-2" aria-hidden="true">
+                  {[92, 100, 84, 96, 68].map((w, i) => (
+                    <div key={i} className="h-3 rounded-full bg-white/25" style={{ width: `${w}%` }} />
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <p className="text-sm text-white font-light text-center px-8">
+                    {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
+                  </p>
+                  <Button onClick={goUnlock} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
+                    <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {project.city && <span className="flex items-center gap-1.5 text-xs text-white/50 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><MapPin className="w-3 h-3"/>{project.city}{project.country && `, ${project.country}`}</span>}
@@ -360,7 +379,7 @@ function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { project
               ) : (
                 <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 text-center">
                   <p className="text-white/60 text-sm mb-4">{t('hub.login_required')}</p>
-                  <Button onClick={()=>window.location.href="/login"} className="rounded-full bg-primary hover:bg-primary/90 text-white h-10 px-8 text-xs font-medium transition-all shadow-lg">
+                  <Button onClick={goLogin} className="rounded-full bg-primary hover:bg-primary/90 text-white h-10 px-8 text-xs font-medium transition-all shadow-lg">
                     {t('hub.login_btn')}
                   </Button>
                 </div>
@@ -411,6 +430,7 @@ export default function Projects() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -468,6 +488,36 @@ export default function Projects() {
     }),
   });
 
+  // La fiche ouverte lit toujours la version fraîche de la liste : après un
+  // déblocage, le dossier démasqué remplace la version verrouillée sans refermer.
+  const openProject = useMemo(
+    () => (selectedProject ? projects.find((p: Project) => p.id === selectedProject.id) ?? selectedProject : null),
+    [projects, selectedProject],
+  );
+
+  // Retour de paiement : /projects?focus=<id>&celebrate=1 rouvre la fiche payée.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [pendingFocus, setPendingFocus] = useState<{ id: string; celebrate: boolean } | null>(null);
+  useEffect(() => {
+    const id = searchParams.get('focus');
+    if (!id) return;
+    setPendingFocus({ id, celebrate: searchParams.get('celebrate') === '1' });
+    queryClient.invalidateQueries({ queryKey: ['unlock'] });
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    const next = new URLSearchParams(searchParams);
+    ['focus', 'celebrate', 'session_id'].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, queryClient]);
+  useEffect(() => {
+    if (!pendingFocus || isLoading) return;
+    const found = projects.find((p: Project) => p.id === pendingFocus.id);
+    if (found) {
+      setSelectedProject(found);
+      if (pendingFocus.celebrate) showSuccess(t('unlock.project_done', 'Projet débloqué : le dossier complet est ouvert.'));
+    }
+    setPendingFocus(null);
+  }, [pendingFocus, projects, isLoading, t]);
+
   const displayedProjects = useMemo(() => {
     const base = mineOnly && user ? projects.filter((p: Project) => p.owner_id === user.id) : projects;
     // Projets mis en avant (10 €) en tête
@@ -476,7 +526,7 @@ export default function Projects() {
 
   // Quota d'annonces actives (gratuit 1, Pro 5, Business illimité)
   const openCreateProject = async () => {
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate("/login", { state: { from: location } }); return; }
     const quota = await checkPublicationQuota(user.id);
     if (!quota.allowed) {
       showError(t('quota.publications_reached_short', `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure.`));
@@ -591,32 +641,35 @@ export default function Projects() {
 
       {/* FAB */}
       <button onClick={openCreateProject}
-        className="fixed bottom-8 right-8 z-[110] w-16 h-16 flex items-center justify-center bg-primary border border-white/20 rounded-full hover:bg-primary/90 transition-all group shadow-[0_10px_40px_rgba(168,85,247,0.4),0_0_20_rgba(168,85,247,0.2)] hover:scale-110 active:scale-95 animate-pulse-slow">
+        className="fixed bottom-8 right-8 z-[110] w-16 h-16 flex items-center justify-center bg-primary border border-white/20 rounded-full hover:bg-primary/90 transition-all group shadow-[0_10px_40px_rgba(168,85,247,0.4),0_0_20px_rgba(168,85,247,0.2)] hover:scale-110 active:scale-95">
         <div className="absolute inset-0 bg-primary rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity"/>
         <Plus className="w-8 h-8 text-white relative z-10" weight="bold"/>
       </button>
 
       {/* Detail Modal */}
       <AnimatePresence>
-        {selectedProject && (
-          <ProjectDetail 
-            project={selectedProject} 
+        {openProject && (
+          <ProjectDetail
+            key="project-detail"
+            project={openProject}  
             onClose={()=>setSelectedProject(null)} 
             userId={user?.id}
-            onEdit={() => { setProjectToEdit(selectedProject); setSelectedProject(null); setIsFormOpen(true); }}
-            onDelete={() => setProjectToDelete(selectedProject)}
+            onEdit={() => { setProjectToEdit(openProject); setSelectedProject(null); setIsFormOpen(true); }}
+            onDelete={() => setProjectToDelete(openProject)}
           />
         )}
         {isFormOpen && (
-          <ProjectForm 
-            isOpen={true} 
+          <ProjectForm
+            key="project-form"
+            isOpen={true}  
             onClose={()=>{setIsFormOpen(false); setProjectToEdit(null);}} 
             onSuccess={()=>{setIsFormOpen(false); setProjectToEdit(null); queryClient.invalidateQueries({queryKey:["projects"]});}} 
             projectToEdit={projectToEdit}
           />
         )}
-        <DeleteConfirmModal 
-          isOpen={!!projectToDelete} 
+        <DeleteConfirmModal
+          key="project-delete"
+          isOpen={!!projectToDelete}  
           onClose={()=>setProjectToDelete(null)} 
           onConfirm={handleDelete}
           title={projectToDelete?.title || ""}

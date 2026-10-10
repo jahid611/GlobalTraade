@@ -12,6 +12,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { ConversationList } from './messaging/ConversationList';
 import { ChatWindow } from './messaging/ChatWindow';
 import type { ChatMessage, Conversation, OfferMetadata } from '@/types/domain';
+import { OFFER_MIN_PCT, OFFER_MAX_PCT, isPurchaseOfferMessage } from '@/lib/offers';
 
 interface MessagingCoreProps {
   variant?: 'full' | 'sidebar';
@@ -32,11 +33,6 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   const [offerAmount, setOfferAmount] = useState("");
   const [loanPct, setLoanPct] = useState(50); // part financée par emprunt (le reste = fonds propres)
 
-  // Bornes de cohérence d'une offre sur une entreprise : entre 60 % et 110 %
-  // du prix demandé (pas de lowball, pas de surenchère absurde).
-  const OFFER_MIN_PCT = 0.6;
-  const OFFER_MAX_PCT = 1.1;
-  
   const [isMobileListOpen, setIsMobileListOpen] = useState(true);
   const [contactStatus, setContactStatus] = useState<'none' | 'pending' | 'connected'>('none');
   const [activeTab, setActiveTab] = useState<'messages' | 'workflow'>('messages');
@@ -60,10 +56,15 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
   const markMessagesAsRead = async () => {
     if (!activeConv || !user) return;
+    // Uniquement la conversation ouverte : même projet OU même annonce (selon
+    // le type de conversation) ET même interlocuteur. La mise à jour en base
+    // porte sur ces identifiants-là, donc elle est restreinte de la même façon.
     const unreadMsgs = allMessages.filter(m => 
-      (m.listing_id === activeConv.listing_id || m.project_id === activeConv.project_id) && 
+      (activeConv.project_id ? m.project_id === activeConv.project_id : (!m.project_id && m.listing_id === activeConv.listing_id)) && 
+      m.sender_id === activeConv.other_user_id &&
       m.receiver_id === user.id && 
-      !m.is_read
+      !m.is_read &&
+      !String(m.id).startsWith('temp-')
     );
 
     if (unreadMsgs.length > 0) {
@@ -119,7 +120,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
           ? supabase.from('listings_secure').select('*').in('id', listingIds)
           : Promise.resolve({ data: [] }),
         projectIds.length > 0
-          ? supabase.from('projects').select('*').in('id', projectIds)
+          ? supabase.from('projects_secure').select('*').in('id', projectIds)
           : Promise.resolve({ data: [] })
       ]);
 
@@ -174,6 +175,11 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         return [...enrichedMessages, ...stillOptimistic].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       });
       setConversations(Array.from(convMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } else {
+      // Plus aucun message en base : on vide l'état (sinon la dernière
+      // conversation supprimée reste affichée). Les envois en cours restent.
+      setAllMessages(prev => prev.filter(m => String(m.id).startsWith('temp-')));
+      setConversations([]);
     }
     setLoading(false);
   };
@@ -222,7 +228,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     const today = new Date().toDateString();
     const todayOffersCount = allMessages.filter(m => 
       m.sender_id === user?.id && 
-      (m.type === 'offer' || m.content.startsWith('OFFRE:')) &&
+      isPurchaseOfferMessage(m) &&
       new Date(m.created_at).toDateString() === today
     ).length;
 

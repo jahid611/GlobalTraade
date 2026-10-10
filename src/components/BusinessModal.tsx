@@ -23,6 +23,39 @@ import { StripeCheckoutModal } from './StripeCheckoutModal';
 
 const businessCache: Record<string, any> = {};
 
+// Défini AU NIVEAU MODULE : déclaré dans le rendu de la fiche, il changeait
+// d'identité à chaque rendu et React remontait tout son contenu.
+function LockedGate({ hasFullAccess, onUnlock, children }: { hasFullAccess: boolean; onUnlock: () => void; children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    hasFullAccess ? <>{children}</> : (
+      <div className="relative">
+        <div className="blur-md select-none pointer-events-none">{children}</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <p className="text-sm text-white font-light text-center px-8">
+            {t('quota.unlock_hint', `Débloquez cette annonce pour ${UNLOCK_PRICE} € : contenu complet, messagerie et analyses.`)}
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={onUnlock}
+              className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
+            >
+              {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+            </button>
+            <button
+              onClick={() => navigate('/payment')}
+              className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
+            >
+              {t('quota.see_plans', 'Voir les formules')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+}
+
 interface BusinessModalProps {
   listing: Listing | null;
   user: any;
@@ -108,8 +141,10 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
     };
 
     // On n'essaie d'enregistrer qu'une seule fois par session pour cette annonce
-    if (!businessCache[`${listing.id}_viewed`]) {
-      businessCache[`${listing.id}_viewed`] = true;
+    // (clé liée à l'utilisateur : sinon, après un changement de compte dans la
+    // même session, la vue du second compte n'était jamais enregistrée)
+    if (!businessCache[`${cacheKey}_viewed`]) {
+      businessCache[`${cacheKey}_viewed`] = true;
       registerView();
     }
     
@@ -219,32 +254,6 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       : (r.error || t('msg.error', 'Une erreur est survenue.')));
   };
 
-  const LockedGate = ({ children }: { children: React.ReactNode }) => (
-    hasFullAccess ? <>{children}</> : (
-      <div className="relative">
-        <div className="blur-md select-none pointer-events-none">{children}</div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <p className="text-sm text-white font-light text-center px-8">
-            {t('quota.unlock_hint', `Débloquez cette annonce pour ${UNLOCK_PRICE} € : contenu complet, messagerie et analyses.`)}
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <button
-              onClick={goUnlock}
-              className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
-            >
-              {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
-            </button>
-            <button
-              onClick={() => navigate('/payment')}
-              className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
-            >
-              {t('quota.see_plans', 'Voir les formules')}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
   const hasGallery = listing.image_urls && listing.image_urls.length > 0;
   const isSafeUrl = (url: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
 
@@ -459,7 +468,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
               </div>
 
               <div className="mb-12 sm:mb-16">
-              <LockedGate>
+              <LockedGate hasFullAccess={hasFullAccess} onUnlock={goUnlock}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
                 <div>
                   <h3 className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-medium flex items-center gap-2"><FileText className="w-3.5 h-3.5"/> {t('modal.about')}</h3>
@@ -578,19 +587,21 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                 </div>
               )}
 
-              {/* Note /100 en 10 critères : points forts et axes d'amélioration */}
-              {user && hasFullAccess && !isOwner && (
+              {/* Note /100 en 10 critères : points forts et axes d'amélioration.
+                  Elle expose marge, multiple et EBE par salarié : même règle que
+                  CA / EBITDA, soumise à l'autorisation du vendeur. */}
+              {user && hasFullAccess && !isOwner && financialsShared && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
                   <CompanyScore listing={listing} />
                 </div>
               )}
 
-              {/* AI Insights */}
-              {user && listing.ebitda && listing.revenue_n1 && (
+              {/* AI Insights — dérivés des financiers : soumis au partage du vendeur */}
+              {user && financialsShared && listing.ebitda && listing.revenue_n1 && (
                 <div className="mb-12 sm:mb-16">
                   <div className="w-full h-px bg-white/10 mb-10 sm:mb-14" />
-                  <LockedGate>
+                  <LockedGate hasFullAccess={hasFullAccess} onUnlock={goUnlock}>
                     <AIInsightsPanel listing={listing} />
                   </LockedGate>
                 </div>

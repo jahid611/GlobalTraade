@@ -21,7 +21,10 @@ SET search_path = vault, public
 AS $$
   SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = p_nom LIMIT 1
 $$;
-REVOKE ALL ON FUNCTION public.secret(text) FROM anon, authenticated;
+-- ⚠️ PUBLIC d'abord : Postgres accorde EXECUTE à PUBLIC par défaut, et anon comme
+-- authenticated en héritent. Sans lui, la fonction restait appelable par un
+-- visiteur anonyme via /rest/v1/rpc/secret (constaté le 10/10/2026).
+REVOKE ALL ON FUNCTION public.secret(text) FROM PUBLIC, anon, authenticated;
 
 -- Déprogrammation préalable (cron.unschedule lève si la tâche n'existe pas)
 DO $$

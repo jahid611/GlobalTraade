@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import {
   Send, Copy, RefreshCw, User, Download, CheckSquare, Square, Info, HelpCircle,
 } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
+// Messages d'information (ni succès ni erreur) : `toast` de sonner en direct.
+import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { searchCompanies, type CompanyResult } from "@/services/sireneService";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,13 +74,16 @@ export default function Radar() {
   const [results, setResults] = useState<CompanyResult[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [totalPages, setTotalPages] = useState(1);
+  // Nombre d'entreprises renvoyées pour la page AVANT le filtre « département
+  // strict » (appliqué après pagination : une page peut se retrouver vide).
+  const [pageRawCount, setPageRawCount] = useState(0);
   const [adding, setAdding] = useState<string | null>(null);
   // Paiement des contacts de prospection au-delà du forfait (2 € l'unité)
   const [prospectCS, setProspectCS] = useState<string | null>(null);
 
   // --- Profil : la prospection est bridée au code APE du membre ---
   // (obligation de renseigner son secteur ; seuls les admins prospectent librement)
-  const { data: myProfile } = useQuery({
+  const { data: myProfile, isLoading: profileLoading } = useQuery({
     queryKey: ["radar-profile", user?.id],
     queryFn: async () => {
       const { data } = await supabase.from('profiles').select('ape_code, is_admin').eq('id', user!.id).single();
@@ -109,9 +114,35 @@ export default function Radar() {
 
   // --- CRM ---
   const { data: prospects = [], isLoading: crmLoading } = useQuery({
-    queryKey: ["prospects"],
+    // Clé liée au compte : les prospects du compte précédent ne s'affichent
+    // jamais. Le préfixe ["prospects"] reste celui qu'on invalide partout.
+    queryKey: ["prospects", user?.id],
     queryFn: listProspects,
+    enabled: !!user?.id,
   });
+
+  // Retour de paiement Stripe (contacts de prospection supplémentaires) :
+  // /radar?success=1 → on rafraîchit, on confirme et on nettoie l'URL.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paymentReturnSeen = useRef(false);
+  useEffect(() => {
+    const paid = searchParams.get('success') === '1';
+    const canceled = searchParams.get('canceled') === '1';
+    if (!paid && !canceled) return;
+    if (!paymentReturnSeen.current) {
+      paymentReturnSeen.current = true;
+      if (paid) {
+        setTab("crm");
+        queryClient.invalidateQueries({ queryKey: ["prospects"] });
+        showSuccess(t('radar.payment_return', "Paiement reçu. Vos contacts supplémentaires sont en cours d'activation : relancez l'envoi ou l'export dans quelques instants."));
+      } else {
+        showError(t('radar.payment_canceled', 'Paiement annulé.'));
+      }
+    }
+    const rest = new URLSearchParams(searchParams);
+    ['success', 'canceled', 'session_id'].forEach((k) => rest.delete(k));
+    setSearchParams(rest, { replace: true });
+  }, [searchParams]);
   const prospectSirens = useMemo(() => new Set(prospects.map((p) => p.siren)), [prospects]);
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [toDelete, setToDelete] = useState<Prospect | null>(null);
@@ -163,7 +194,7 @@ export default function Radar() {
           if (r.ok && (r.clientSecret || r.url)) {
             if (r.url) await openCheckout(r.url);
             else setProspectCS(r.clientSecret!);
-            showError(t('quota.prospection_pay_first',
+            toast.info(t('quota.prospection_pay_first',
               `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} € — réglez-les, puis relancez l'export.`) as string);
           } else {
             showError(r.error || t('msg.error', 'Une erreur est survenue.'));
@@ -198,6 +229,7 @@ export default function Radar() {
       let list = r.results;
       if (strictDept && dept) list = list.filter((c) => c.departement === dept.trim());
       setResults(list);
+      setPageRawCount(r.results.length);
       setTotal(r.total);
       setTotalPages(r.totalPages);
       setPage(r.page);
@@ -277,8 +309,24 @@ export default function Radar() {
     </Tooltip>
   );
 
-  // Gratuit : CRM et prospection non atteignables — écran d'accès
-  if (user && !planLoading && plan === 'free') {
+  // Tant que la formule (et le statut admin) ne sont pas connus, on n'affiche
+  // ni la page ni l'écran verrouillé : un état de chargement.
+  if (user && (planLoading || profileLoading)) {
+    return (
+      <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
+        <SolarSystem />
+        <Navbar />
+        <main className="relative z-10 pt-[35vh] pb-20 px-6 flex flex-col items-center gap-4" role="status" aria-live="polite">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="text-white/40 text-xs uppercase tracking-widest">{t('radar.loading', 'Chargement de votre espace de prospection…')}</p>
+        </main>
+      </div>
+    );
+  }
+
+  // Gratuit : CRM et prospection non atteignables — écran d'accès.
+  // Les admins passent quelle que soit leur formule (la console admin pointe ici).
+  if (user && plan === 'free' && !myProfile?.is_admin) {
     return (
       <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
         <SolarSystem />
@@ -454,10 +502,16 @@ export default function Radar() {
               })}
             </div>
 
-            {results.length > 0 && (
+            {!searching && total != null && results.length === 0 && pageRawCount > 0 && (
+              <div className="text-center py-10 text-white/40 text-sm">
+                {t('radar.page_filtered_empty', "Aucune entreprise de cette page n'a son siège dans ce département. Passez à la page suivante ou décochez le filtre strict.")}
+              </div>
+            )}
+
+            {total != null && (results.length > 0 || pageRawCount > 0 || totalPages > 1) && (
               <div className="flex items-center justify-center gap-4 pt-4">
                 <Button onClick={() => runSearch(page - 1)} disabled={page <= 1 || searching} className="rounded-lg bg-white/5 hover:bg-white/10"><ChevronLeft size={16} /></Button>
-                <span className="text-white/50 text-sm">Page {page} / {totalPages}</span>
+                <span className="text-white/50 text-sm">{t('radar.page_of', { page, total: totalPages, defaultValue: 'Page {{page}} / {{total}}' })}</span>
                 <Button onClick={() => runSearch(page + 1)} disabled={page >= totalPages || searching} className="rounded-lg bg-white/5 hover:bg-white/10"><ChevronRight size={16} /></Button>
               </div>
             )}
@@ -705,8 +759,10 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
         target: { type: 'prospection', id: prospect.siren, name: prospect.nom },
         returnPath: '/radar?success=1',
       });
-      if (c.ok && c.url) { await openCheckout(c.url); showError(r.error || ''); return; }
-      if (c.ok && c.clientSecret) { onPayExtra(c.clientSecret); showError(r.error || ''); return; }
+      const payFirst = r.error || (t('quota.prospection_extra_one',
+        `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} € — réglez-le, puis relancez l'envoi.`) as string);
+      if (c.ok && c.url) { await openCheckout(c.url); toast.info(payFirst); return; }
+      if (c.ok && c.clientSecret) { onPayExtra(c.clientSecret); toast.info(payFirst); return; }
     }
     showError(r.notConfigured
       ? t('crm.mail.send_soon', "L'envoi automatique sera bientôt disponible.")
@@ -736,7 +792,7 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
         if (r.ok && (r.clientSecret || r.url)) {
           if (r.url) await openCheckout(r.url);
           else onPayExtra(r.clientSecret!);
-          showError(t('quota.prospection_extra_one',
+          toast.info(t('quota.prospection_extra_one',
             `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} € — réglez-le, puis relancez l'envoi.`) as string);
         } else {
           showError(r.error || t('msg.error', 'Une erreur est survenue.'));
@@ -829,8 +885,9 @@ function EditModal({ prospect, senderName, plan, userId, onClose, onSaved, onPay
             <Copy size={15} />
           </Button>
         </div>
-        <button onClick={sendViaMailbox} disabled={!email.trim()}
-          className="text-xs text-white/40 hover:text-white/70 mb-6 disabled:opacity-40 transition-colors">
+        <button onClick={sendViaMailbox} disabled={!email.trim() || plan !== 'business'}
+          title={plan !== 'business' ? (t('quota.prospection_business', 'La prospection ciblée (envoi de campagnes) est réservée à la formule Business.') as string) : undefined}
+          className="text-xs text-white/40 hover:text-white/70 mb-6 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
           {t('crm.mail.open_mailbox', 'Ouvrir dans ma messagerie')}
         </button>
 

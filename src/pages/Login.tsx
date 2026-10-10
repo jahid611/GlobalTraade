@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { APP_SCHEME } from '@/native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { ChevronLeft, Loader2, Sun, Moon } from 'lucide-react';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/components/AuthProvider';
+import { showSuccess } from '@/utils/toast';
 
 const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
   <div className="fixed inset-0 z-0 overflow-hidden bg-gradient-to-br from-slate-300 via-slate-200 to-blue-200/70 dark:from-[#2b2a2f] dark:via-[#2b2a2f] dark:to-[#2b2a2f] transition-colors duration-700">
@@ -51,25 +53,58 @@ const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
 
 type AuthMode = 'signin' | 'signup' | 'forgot_password' | 'reset_password';
 
+// Mot de passe : 8 caractères minimum avec majuscule, minuscule et chiffre.
+// Tout caractère est accepté (aucune liste blanche de symboles).
+const isStrongPassword = (pwd: string) =>
+  pwd.length >= 8 && /[a-z]/.test(pwd) && /[A-Z]/.test(pwd) && /\d/.test(pwd);
+
+// Cible de retour après connexion : uniquement un chemin interne (posé par
+// ProtectedRoute dans `location.state.from`), jamais une URL externe.
+const internalPath = (from: unknown): string => {
+  let path = '/';
+  if (typeof from === 'string') path = from;
+  else if (from && typeof from === 'object' && typeof (from as { pathname?: unknown }).pathname === 'string') {
+    const loc = from as { pathname: string; search?: string; hash?: string };
+    path = `${loc.pathname}${loc.search || ''}${loc.hash || ''}`;
+  }
+  if (!path.startsWith('/') || path[1] === '/' || path[1] === '\\') return '/';
+  if (path === '/login' || path.startsWith('/login?') || path.startsWith('/login#')) return '/';
+  return path;
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
-  
+  const { user, loading: authLoading } = useAuth();
+
   const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState<AuthMode>(location.state?.mode || 'signin');
-  
+  const [mode, setMode] = useState<AuthMode>(() => {
+    // Arrivée depuis le lien reçu par email : /login?mode=reset
+    if (new URLSearchParams(location.search).get('mode') === 'reset') return 'reset_password';
+    const wanted = location.state?.mode;
+    return wanted === 'signup' || wanted === 'forgot_password' ? wanted : 'signin';
+  });
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Message d'information (email envoyé, vérifiez votre boîte mail…)
+  const [info, setInfo] = useState("");
   // Double authentification : renseigné dès qu'un code de sécurité est attendu
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
-  
+  // Une action de ce formulaire est en cours : elle gère elle-même la suite,
+  // la redirection automatique « déjà connecté » ne doit pas la doubler.
+  const busyRef = useRef(false);
+
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  const returnTo = internalPath(location.state?.from);
 
   useEffect(() => {
     setMounted(true);
@@ -82,59 +117,180 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [carouselIndex]);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  // Lien de réinitialisation ouvert alors que la page est déjà montée.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setError("");
+        setInfo("");
+        setPassword("");
+        setPasswordConfirm("");
+        setMode('reset_password');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-    if (mode === 'signup') {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._-])[A-Za-z\d@$!%*?&._-]{8,}$/;
-      if (!passwordRegex.test(password)) {
-        setError(t('val.password_strict'));
-        setLoading(false);
-        return;
-      }
-      const { error: signUpError } = await supabase.auth.signUp({ 
-        email, password, options: { data: { full_name: fullName.trim() } }
-      });
-      
-      if (signUpError) {
-        // HACK: Contournement pour Docker Local sans SMTP
-        // Si l'erreur concerne l'envoi d'email, l'utilisateur est déjà créé en base !
-        if (signUpError.message.includes('Error sending confirmation email') || signUpError.message.includes('email')) {
-          // On force la connexion puisque le Trigger SQL a validé le compte
-          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-          if (!signInError) {
-            navigate('/');
-          } else {
-            setError(signUpError.message);
-          }
-        } else {
-          setError(signUpError.message);
-        }
-      } else {
-        navigate('/');
-      }
-    } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) setError(signInError.message);
-      else if (!(await requiresMfa())) navigate('/');
-    }
-    setLoading(false);
+  const switchMode = (next: AuthMode) => {
+    setError("");
+    setInfo("");
+    setPassword("");
+    setPasswordConfirm("");
+    setMode(next);
+  };
+
+  // Erreurs Supabase courantes → message traduit (jamais le texte brut anglais).
+  const authErrorMessage = (err: { message?: string; code?: string; status?: number } | null | undefined): string => {
+    const code = err?.code || '';
+    const msg = (err?.message || '').toLowerCase();
+    if (code === 'invalid_credentials' || msg.includes('invalid login credentials'))
+      return t('auth.err_invalid_credentials', 'Email ou mot de passe incorrect.') as string;
+    if (code === 'email_not_confirmed' || msg.includes('email not confirmed'))
+      return t('auth.err_email_not_confirmed', "Votre adresse email n'est pas encore confirmée. Cliquez sur le lien reçu par email.") as string;
+    if (code === 'user_already_exists' || code === 'email_exists' || msg.includes('already registered') || msg.includes('already been registered'))
+      return t('auth.err_email_taken', 'Un compte existe déjà avec cette adresse email. Connectez-vous.') as string;
+    if (err?.status === 429 || code.includes('rate_limit') || msg.includes('rate limit') || msg.includes('too many') || msg.includes('for security purposes'))
+      return t('auth.err_too_many', 'Trop de tentatives. Patientez quelques minutes avant de réessayer.') as string;
+    if (code === 'weak_password' || msg.includes('password should'))
+      return t('val.password_rules', 'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule et un chiffre.') as string;
+    if (code === 'same_password' || msg.includes('different from the old password'))
+      return t('auth.err_same_password', "Le nouveau mot de passe doit être différent de l'ancien.") as string;
+    if (code === 'session_not_found' || msg.includes('session missing') || msg.includes('session_not_found'))
+      return t('auth.reset_link_invalid', 'Ce lien est invalide ou a expiré. Demandez un nouveau lien.') as string;
+    if (msg.includes('failed to fetch') || msg.includes('network'))
+      return t('auth.err_network', 'Connexion impossible. Vérifiez votre accès à Internet et réessayez.') as string;
+    return t('auth.err_generic', 'Une erreur est survenue. Veuillez réessayer.') as string;
   };
 
   // Double authentification : après le mot de passe, la session est en « aal1 ».
   // Si le compte a un code de sécurité, Supabase attend « aal2 » → on demande
   // le code à 6 chiffres avant d'entrer dans l'app.
-  const requiresMfa = async (): Promise<boolean> => {
-    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (data?.nextLevel !== 'aal2' || data.nextLevel === data.currentLevel) return false;
-    const { data: factors } = await supabase.auth.mfa.listFactors();
+  // Renvoie null si le niveau n'a pas pu être vérifié (on n'entre alors pas).
+  const requiresMfa = async (): Promise<boolean | null> => {
+    const { data, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalError || !data) return null;
+    if (data.nextLevel !== 'aal2' || data.nextLevel === data.currentLevel) return false;
+    const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) return null;
     const totp = (factors?.totp || []).find((f) => f.status === 'verified');
     if (!totp) return false;
     setMfaFactorId(totp.id);
     setMfaCode('');
     return true;
+  };
+
+  // Entre dans l'app (ou demande le code de sécurité) une fois la session ouverte.
+  const enterApp = async () => {
+    const needsCode = await requiresMfa();
+    if (needsCode === false) navigate(returnTo, { replace: true });
+    else if (needsCode === null) setError(t('auth.err_generic', 'Une erreur est survenue. Veuillez réessayer.') as string);
+  };
+
+  // Déjà connecté en arrivant sur /login → on repart vers la page demandée.
+  // (Sauf pendant la réinitialisation du mot de passe, qui a besoin de la session.)
+  useEffect(() => {
+    if (authLoading || !user || busyRef.current) return;
+    if (mode === 'reset_password' || mfaFactorId) return;
+    let cancelled = false;
+    (async () => {
+      const needsCode = await requiresMfa();
+      if (!cancelled && !busyRef.current && needsCode === false) navigate(returnTo, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [authLoading, user?.id, mode, mfaFactorId]);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+    busyRef.current = true;
+
+    try {
+      if (mode === 'signup') {
+        if (!isStrongPassword(password)) {
+          setError(t('val.password_rules', 'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule et un chiffre.') as string);
+          return;
+        }
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email, password, options: { data: { full_name: fullName.trim() } }
+        });
+
+        if (signUpError) {
+          setError(authErrorMessage(signUpError));
+        } else if (data.session) {
+          await enterApp();
+        } else {
+          // Aucune session : le compte attend la confirmation de l'adresse email.
+          setPassword("");
+          setMode('signin');
+          setInfo(t('auth.check_inbox', 'Vérifiez votre boîte mail : un lien de confirmation vient de vous être envoyé. Cliquez dessus puis connectez-vous.') as string);
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) setError(authErrorMessage(signInError));
+        else await enterApp();
+      }
+    } catch (err) {
+      setError(authErrorMessage(err as { message?: string }));
+    } finally {
+      busyRef.current = false;
+      setLoading(false);
+    }
+  };
+
+  // Mot de passe oublié : on répond toujours la même chose, que le compte
+  // existe ou non (pas d'énumération de comptes).
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login?mode=reset`,
+      });
+    } catch { /* même réponse dans tous les cas */ }
+    setLoading(false);
+    setInfo(t('auth.forgot_sent', 'Si un compte existe avec cette adresse, un email contenant un lien de réinitialisation vient de lui être envoyé.') as string);
+  };
+
+  // Enregistre le nouveau mot de passe (session ouverte par le lien reçu).
+  const updatePassword = async () => {
+    setLoading(true);
+    busyRef.current = true;
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        // Compte protégé par un code de sécurité : Supabase l'exige avant de
+        // changer le mot de passe → on le demande, puis on enregistre.
+        if (updateError.code === 'insufficient_aal' && (await requiresMfa())) return;
+        setError(authErrorMessage(updateError));
+        return;
+      }
+      showSuccess(t('auth.reset_done', 'Votre mot de passe a été mis à jour.') as string);
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      setError(authErrorMessage(err as { message?: string }));
+    } finally {
+      busyRef.current = false;
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    if (!isStrongPassword(password)) {
+      setError(t('val.password_rules', 'Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule et un chiffre.') as string);
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError(t('auth.err_password_mismatch', 'Les deux mots de passe ne correspondent pas.') as string);
+      return;
+    }
+    await updatePassword();
   };
 
   const submitMfa = async (e: React.FormEvent) => {
@@ -146,7 +302,9 @@ export default function Login() {
     setLoading(false);
     if (mfaError) { setError(t('mfa.bad_code', 'Code incorrect. Réessayez.') as string); return; }
     setMfaFactorId(null);
-    navigate('/');
+    // Code demandé pendant une réinitialisation : on termine l'enregistrement.
+    if (mode === 'reset_password') { await updatePassword(); return; }
+    navigate(returnTo, { replace: true });
   };
 
   const cancelMfa = async () => {
@@ -155,6 +313,7 @@ export default function Login() {
     setMfaFactorId(null);
     setMfaCode('');
     setError("");
+    if (mode === 'reset_password') switchMode('signin');
   };
 
   const handleGoogleLogin = async () => {
@@ -169,7 +328,7 @@ export default function Login() {
         provider: 'google',
         options: { redirectTo: `${APP_SCHEME}://auth-callback`, skipBrowserRedirect: true },
       });
-      if (error) setError(error.message);
+      if (error) setError(authErrorMessage(error));
       else if (data?.url) {
         const { Browser } = await import('@capacitor/browser');
         await Browser.open({ url: data.url });
@@ -182,7 +341,7 @@ export default function Login() {
       provider: 'google',
       options: { redirectTo: window.location.origin + '/' }
     });
-    if (error) setError(error.message);
+    if (error) setError(authErrorMessage(error));
     setLoading(false);
   };
 
@@ -233,7 +392,7 @@ export default function Login() {
       </div>
 
       <main className="relative z-10 flex flex-col lg:flex-row w-full min-h-screen">
-        <motion.div className={`w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 order-2 ${mode === 'signin' ? 'lg:order-1' : 'lg:order-2'} relative`}>
+        <motion.div className={`w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 order-2 ${mode !== 'signup' ? 'lg:order-1' : 'lg:order-2'} relative`}>
           <div className="max-w-xl mx-auto lg:mx-0 w-full relative min-h-[550px] sm:min-h-[600px] flex flex-col justify-center">
             <AnimatePresence mode="wait">
               {carouselIndex === 0 ? (
@@ -310,12 +469,15 @@ export default function Login() {
           </div>
         </motion.div>
 
-        <motion.div className={`w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 order-1 ${mode === 'signin' ? 'lg:order-2' : 'lg:order-1'} relative`}>
+        <motion.div className={`w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 order-1 ${mode !== 'signup' ? 'lg:order-2' : 'lg:order-1'} relative`}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/10 rounded-full blur-[100px] pointer-events-none hidden dark:block" />
           <div className="w-full max-w-[380px] flex flex-col relative z-20">
             <div className="flex flex-col items-center text-center mb-10 mt-16 lg:mt-0">
               <img src="/logo.png" alt="Globly" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
-              <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signin' ? t('auth.signin') : t('auth.signup')}</h2>
+              <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signup' ? t('auth.signup')
+                : mode === 'forgot_password' ? t('auth.forgot_title', 'Mot de passe oublié')
+                : mode === 'reset_password' ? t('auth.reset_title', 'Nouveau mot de passe')
+                : t('auth.signin')}</h2>
             </div>
             {mfaFactorId ? (
               <form onSubmit={submitMfa} className="flex flex-col gap-6">
@@ -345,6 +507,67 @@ export default function Login() {
                   {t('common.cancel', 'Annuler')}
                 </button>
               </form>
+            ) : mode === 'forgot_password' ? (
+              <>
+              <form onSubmit={handleForgot} className="flex flex-col gap-6">
+                <p className="text-slate-600 dark:text-white/60 text-sm font-light text-center leading-relaxed">
+                  {t('auth.forgot_desc', 'Indiquez votre adresse email : nous vous enverrons un lien pour choisir un nouveau mot de passe.')}
+                </p>
+                <div>
+                  <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.email')}</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus autoComplete="email" className={inputClass} placeholder="jean@entreprise.com" />
+                </div>
+                {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
+                {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
+                <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.forgot_submit', 'Envoyer le lien')}
+                </Button>
+              </form>
+              <div className="mt-8 text-center">
+                <button type="button" onClick={() => switchMode('signin')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+                  {t('auth.back_to_signin', 'Retour à la connexion')}
+                </button>
+              </div>
+              </>
+            ) : mode === 'reset_password' ? (
+              authLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+              ) : !user ? (
+                <div className="flex flex-col gap-6">
+                  <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-3 px-4 rounded-lg leading-relaxed">
+                    {t('auth.reset_link_invalid', 'Ce lien est invalide ou a expiré. Demandez un nouveau lien.')}
+                  </p>
+                  <Button type="button" onClick={() => { navigate('/login', { replace: true, state: location.state }); switchMode('forgot_password'); }} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
+                    {t('auth.reset_request_new', 'Demander un nouveau lien')}
+                  </Button>
+                  <div className="text-center">
+                    <button type="button" onClick={() => { navigate('/login', { replace: true, state: location.state }); switchMode('signin'); }} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+                      {t('auth.back_to_signin', 'Retour à la connexion')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleReset} className="flex flex-col gap-6">
+                  <p className="text-slate-600 dark:text-white/60 text-sm font-light text-center leading-relaxed">
+                    {t('auth.reset_desc', 'Choisissez votre nouveau mot de passe.')}
+                  </p>
+                  <div>
+                    <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.new_password', 'Nouveau mot de passe')}</label>
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoFocus autoComplete="new-password" className={inputClass} placeholder="••••••••" />
+                    <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                      {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.confirm_password', 'Confirmer le mot de passe')}</label>
+                    <input type="password" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} required autoComplete="new-password" className={inputClass} placeholder="••••••••" />
+                  </div>
+                  {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
+                  <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.reset_submit', 'Enregistrer le mot de passe')}
+                  </Button>
+                </form>
+              )
             ) : (
             <>
             <form onSubmit={handleAuth} className="flex flex-col gap-6">
@@ -360,8 +583,20 @@ export default function Login() {
               </div>
               <div>
                 <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.password')}</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className={inputClass} placeholder="••••••••" />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} className={inputClass} placeholder="••••••••" />
+                {mode === 'signup' ? (
+                  <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                    {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}
+                  </p>
+                ) : (
+                  <div className="text-right mt-2 mr-2">
+                    <button type="button" onClick={() => switchMode('forgot_password')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white text-xs font-medium transition-colors">
+                      {t('auth.forgot_link', 'Mot de passe oublié ?')}
+                    </button>
+                  </div>
+                )}
               </div>
+              {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
               {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
               <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'signin' ? t('auth.signin') : t('auth.submit'))}
@@ -382,7 +617,7 @@ export default function Login() {
               {t('auth.google')}
             </Button>
             <div className="mt-8 text-center">
-              <button onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+              <button type="button" onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
                 {mode === 'signin' ? t('auth.toggle_signup') : t('auth.toggle_signin')}
               </button>
             </div>

@@ -80,6 +80,11 @@ export interface SearchAd {
   boosted_until: string | null;
   created_at: string;
   updated_at: string | null;
+  // ── Champs calculés par la vue `search_ads_secure` ──
+  /** un descriptif existe (même si l'appelant n'a pas le droit de le lire) */
+  has_description?: boolean;
+  /** le serveur a renvoyé le descriptif (auteur, admin, payant, débloqué) */
+  has_full_access?: boolean;
 }
 
 // Profil public tel que renvoyé par la vue `safe_profiles`

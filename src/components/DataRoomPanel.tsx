@@ -43,6 +43,18 @@ type VdrAccessLog = {
 
 const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Message d'une erreur attrapée (`unknown`) : Error, erreur Supabase (objet
+// { message }) ou chaîne ; sinon le repli fourni.
+const errorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'string' && err) return err;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === 'string' && msg) return msg;
+  }
+  return fallback;
+};
+
 export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelProps) {
   useScrollLock(isOpen);
   const [ndaStatus, setNdaStatus] = useState<string | null>(null);
@@ -137,8 +149,9 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
         let profilesMap = new Map();
         if (profileIds.size > 0) {
+          // Vue publique : la RLS de `profiles` ne renvoie que sa propre ligne
           const { data: profiles } = await supabase
-            .from('profiles')
+            .from('safe_profiles')
             .select('id, full_name, avatar_url')
             .in('id', Array.from(profileIds));
           
@@ -181,7 +194,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       showSuccess(t('vdr.toast_nda_signed'));
       fetchData();
     } catch (err) {
-      showError(err.message);
+      showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
     }
   };
 
@@ -196,7 +209,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
       fetchData();
     } catch (err) {
-      showError(err.message);
+      showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
     }
   };
 
@@ -224,7 +237,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       showSuccess(t('vdr.toast_doc_success'));
       fetchData();
     } catch (err) {
-      showError(`${t('vdr.toast_upload_error')}${err.message}`);
+      showError(`${t('vdr.toast_upload_error')}${errorMessage(err, '')}`);
     } finally {
       setUploading(false);
     }
@@ -387,7 +400,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-2 shrink-0 opacity-100 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:focus-within:opacity-100 transition-opacity">
                                 <button onClick={() => viewDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title={t('vdr.view')}>
                                   <Eye size={16} />
                                 </button>
@@ -592,7 +605,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                 </p>
                               </div>
                             </div>
-                            <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-2 shrink-0 opacity-100 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:focus-within:opacity-100 transition-opacity">
                               <button onClick={() => viewDocument(doc)} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-primary/20 hover:text-primary border border-white/10 rounded-lg text-white transition-colors" title={t('vdr.view')}>
                                 <Eye size={16} />
                               </button>

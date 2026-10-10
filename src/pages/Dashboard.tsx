@@ -5,7 +5,7 @@ import type { Listing } from '@/types/domain';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -27,8 +27,20 @@ import { generatePremiumPresentation } from '@/utils/premiumPresentation';
 import { normalizePlan, BOOST_PRICE } from '@/services/planService';
 import { isBoosted } from '@/services/boostService';
 import { initNativeFeel } from '@/utils/nativeFeel';
+import { scoreListing } from '@/lib/matching';
+import type { MatchCriteria } from '@/components/SmartMatchForm';
+import { rangeBounds } from '@/lib/rangeBounds';
+import { INDUSTRIES } from '@/lib/industries';
+import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
 
 initNativeFeel();
+
+// Valeurs encadrées des critères du profil (Réglages > critères) : secteurs =
+// libellés de INDUSTRIES, zones = clés de FR_REGIONS, séparés par des virgules.
+const INDUSTRY_SET = new Set<string>(INDUSTRIES);
+const REGION_KEY_SET = new Set<string>(FR_REGIONS.map((r) => r.key));
+const listVal = (v: unknown): string[] =>
+  (typeof v === 'string' ? v.split(',') : []).map((x) => x.trim()).filter(Boolean);
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,29 +53,45 @@ export default function Dashboard() {
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [listingToEdit, setListingToEdit] = useState<any>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['dashboard', user?.id, JSON.stringify(user?.user_metadata)],
     queryFn: async () => {
       if (!user) throw new Error("Not logged in");
 
       const [
-        { data: listings },
+        { data: listings, error: listingsError },
         { data: favs },
         { count: profileViewsCount },
         { data: profile },
-        { count: messagesCount },
+        { data: conversationRows },
         { count: connectionsCount },
         { data: suggested }
       ] = await Promise.all([
         // Lectures d'annonces via la vue masquante (colonnes sensibles bridées côté serveur)
         supabase.from('listings_secure').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }),
         supabase.from('favorites').select('listing_id').eq('user_id', user.id),
-        supabase.from('profile_views').select('id', { count: 'exact' }).eq('profile_id', user.id),
+        supabase.from('profile_views').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('messages').select('id', { count: 'exact' }).eq('receiver_id', user.id),
-        supabase.from('connections').select('id', { count: 'exact' }).or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`).eq('status', 'accepted'),
+        // « Discussions en cours » = nombre de CONVERSATIONS, pas de messages reçus :
+        // on ne lit que les colonnes qui identifient une conversation.
+        supabase.from('messages').select('sender_id, receiver_id, listing_id, project_id')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order('created_at', { ascending: false }).limit(1000),
+        supabase.from('connections').select('id', { count: 'exact', head: true }).or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`).eq('status', 'accepted'),
         supabase.from('listings_secure').select('*').neq('owner_id', user.id).order('created_at', { ascending: false }).limit(10)
       ]);
+
+      // Supabase ne lève pas : sans ce contrôle, une panne afficherait un
+      // tableau de bord vide (« 0 annonce ») au lieu d'un état d'erreur.
+      if (listingsError) throw listingsError;
+
+      // Même identifiant de conversation que la messagerie : (annonce ou projet) + interlocuteur.
+      const conversationIds = new Set(
+        (conversationRows || []).map((m: { sender_id: string; receiver_id: string; listing_id: string | null; project_id: string | null }) => {
+          const other = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+          return m.project_id ? `project_${m.project_id}_${other}` : `${m.listing_id}_${other}`;
+        })
+      );
 
       const myListings = (listings || []).map(l => ({ ...l, view_count: l.view_count || 0 }));
       // Les annonces favorites sont récupérées via la vue masquante à partir de leurs ids
@@ -80,7 +108,7 @@ export default function Dashboard() {
         allSuggested,
         profileViews: profileViewsCount || 0,
         profile,
-        messagesCount: messagesCount || 0,
+        conversationsCount: conversationIds.size,
         connectionsCount: connectionsCount || 0
       };
     },
@@ -117,6 +145,35 @@ export default function Dashboard() {
     setListingToDelete(null);
   };
 
+  // La requête a échoué et rien n'est en cache : état d'erreur avec « Réessayer »
+  // (et non un squelette qui ne se termine jamais).
+  if (isError && !data) {
+    return (
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vh] bg-primary/10 blur-[100px] rounded-full" />
+        </div>
+        <SolarSystem />
+        <Navbar />
+        <main className="relative z-10 flex-1 w-full max-w-xl mx-auto px-[6vw] pt-[25vh] pb-20 text-center">
+          <div role="alert" className="liquid-glass dark:bg-white/[0.02] border border-white/30 dark:border-white/10 rounded-[2rem] p-10 sm:p-14 flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/20 dark:border-white/10">
+              <WarningCircle className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-2xl font-light mb-3 text-white">{t('dash.load_error_title', 'Tableau de bord indisponible')}</h1>
+            <p className="text-white dark:text-white/60 font-light mb-8 leading-relaxed text-sm">
+              {t('dash.load_error_desc', "Vos données n'ont pas pu être chargées. Vérifiez votre connexion puis réessayez.")}
+            </p>
+            <Button onClick={() => refetch()} disabled={isFetching} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
+              {isFetching ? t('dash.retrying', 'Nouvelle tentative…') : t('common.retry', 'Réessayer')}
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
@@ -136,64 +193,42 @@ export default function Dashboard() {
     );
   }
 
-  const { myListings, myFavorites, allSuggested, profileViews, profile, messagesCount, connectionsCount } = data;
+  const { myListings, myFavorites, allSuggested, profileViews, profile, conversationsCount, connectionsCount } = data;
 
-  const targetSectors = (profile?.target_sectors || user?.user_metadata?.target_sectors || "").toLowerCase();
-  const targetGeo = (profile?.target_geo || user?.user_metadata?.target_geo || "").toLowerCase();
-  const targetBudgetStr = (profile?.target_budget || user?.user_metadata?.target_budget || "").toLowerCase();
-  
-  const hasCriteria = targetSectors || targetGeo || targetBudgetStr;
+  // Critères d'investissement du profil → critères du moteur de matching réel
+  // (`scoreListing`, le même que la Marketplace). Seules les valeurs encadrées
+  // comptent : un ancien texte libre n'est pas interprété au hasard.
+  const criteriaSectors = listVal(profile?.target_sectors || user?.user_metadata?.target_sectors).filter((v) => INDUSTRY_SET.has(v));
+  const criteriaRegions = listVal(profile?.target_geo || user?.user_metadata?.target_geo).filter((v) => REGION_KEY_SET.has(v));
+  const targetBudgetLabel: string = profile?.target_budget || user?.user_metadata?.target_budget || "";
+  const budgetBounds = rangeBounds(targetBudgetLabel);
 
-  const calculateMatchScore = (listing: Listing) => {
-    if (!hasCriteria) {
-      const hash = listing.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-      return 30 + (hash % 20);
-    }
-    let score = 20;
-    const listingSector = (listing.industry || "").toLowerCase();
-    const listingLocation = (listing.location || listing.address || "").toLowerCase();
-    const listingDesc = (listing.description || "").toLowerCase();
-    const listingPrice = Number(listing.price) || 0;
+  const hasCriteria = criteriaSectors.length > 0 || criteriaRegions.length > 0 || !!budgetBounds;
 
-    if (targetSectors) {
-      const keywords = targetSectors.split(',').map((s: string) => s.trim()).filter(Boolean);
-      let sectorPoints = 0;
-      keywords.forEach(word => {
-        if (listingSector.includes(word)) sectorPoints += 40;
-        else if (listingDesc.includes(word)) sectorPoints += 25;
-      });
-      score += Math.min(40, sectorPoints);
-    }
-    if (targetGeo) {
-      const geos = targetGeo.split(',').map((g: string) => g.trim()).filter(Boolean);
-      let geoPoints = 0;
-      geos.forEach(g => { if (listingLocation.includes(g)) geoPoints += 35; });
-      score += Math.min(35, geoPoints);
-    }
-    if (targetBudgetStr && listingPrice > 0) {
-      const cleanBudget = targetBudgetStr.replace(/[^0-9km-]/g, '');
-      const parts = cleanBudget.split('-');
-      const parseVal = (p: string) => {
-        let n = parseFloat(p);
-        if (p.includes('k')) n *= 1000;
-        else if (p.includes('m')) n *= 1000000;
-        return n;
-      };
-      let min = 0, max = Infinity;
-      if (parts.length === 2) { min = parseVal(parts[0]); max = parseVal(parts[1]); }
-      else { max = parseVal(parts[0]); min = max * 0.5; }
-      if (listingPrice >= min && listingPrice <= max) score += 40;
-      else {
-        const diffMin = Math.abs(listingPrice - min) / min;
-        const diffMax = Math.abs(listingPrice - max) / max;
-        if (Math.min(diffMin, diffMax) < 0.3) score += 20;
-      }
-    }
-    score += listing.id.charCodeAt(listing.id.length - 1) % 5;
-    return Math.min(99, Math.round(score));
+  const matchCriteria: MatchCriteria = {
+    industries: criteriaSectors,
+    regions: criteriaRegions,
+    stakeMin: 0,
+    stakeMax: 100,
+    budgetMin: budgetBounds?.min ?? 0,
+    budgetMax: budgetBounds?.max ?? 0, // 0 = pas de plafond pour le moteur
   };
 
-  const suggestedDeals = allSuggested.map(deal => ({ ...deal, matchScore: calculateMatchScore(deal) })).sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
+  // Sans critères : aucune note (un pourcentage serait inventé) — on montre les
+  // dernières annonces et on invite à renseigner ses critères.
+  const suggestedDeals: (Listing & { matchScore: number | null })[] = hasCriteria
+    ? allSuggested
+        .map((deal: Listing) => ({ ...deal, matchScore: scoreListing(deal, matchCriteria).score as number | null }))
+        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+        .slice(0, 3)
+    : allSuggested.slice(0, 3).map((deal: Listing) => ({ ...deal, matchScore: null }));
+
+  // Rappel lisible des critères utilisés (libellés traduits, pas les valeurs brutes).
+  const criteriaSummary = [
+    ...criteriaSectors.map((v) => t(`industry.${v}`, { defaultValue: v }) as string),
+    ...criteriaRegions.map((k) => regionLabel(k)),
+    ...(budgetBounds ? [targetBudgetLabel] : []),
+  ].join(' • ');
 
   const listingsToConfirm = myListings.filter((l: Listing) => l.status === 'pending_renewal');
   const pausedListings = myListings.filter((l: Listing) => l.status === 'inactive');
@@ -324,7 +359,7 @@ export default function Dashboard() {
             <div className="w-12 h-12 rounded-2xl bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/30 dark:border-white/10 group-hover:border-white/50 transition-colors">
               <ChatTeardrop className="w-6 h-6 text-white" />
             </div>
-            <p className="text-4xl font-light text-white mb-2 tracking-tight">{messagesCount}</p>
+            <p className="text-4xl font-light text-white mb-2 tracking-tight">{conversationsCount}</p>
             <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-2">{t('dash.negotiations')}</span>
             <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/40 font-light leading-relaxed">
               {t('dash.negotiations_desc')}
@@ -436,14 +471,16 @@ export default function Dashboard() {
                 </h2>
                 <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light mt-2">
                   {hasCriteria
-                    ? `${t('dash.radar_based_on')}${[targetSectors, targetGeo].filter(Boolean).join(' • ') || t('dash.active_search')}`
+                    ? `${t('dash.radar_based_on')}${criteriaSummary || t('dash.active_search')}`
                     : t('dash.radar_configure')}
                 </p>
                 <button
                   onClick={() => navigate('/settings#criteres')}
                   className="mt-3 inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-colors font-medium uppercase tracking-widest"
                 >
-                  <Target className="w-3.5 h-3.5" /> {t('dash.edit_criteria', { defaultValue: 'Modifier mes critères' })}
+                  <Target className="w-3.5 h-3.5" /> {hasCriteria
+                    ? t('dash.edit_criteria', { defaultValue: 'Modifier mes critères' })
+                    : t('dash.set_criteria', { defaultValue: 'Renseigner mes critères' })}
                 </button>
               </div>
             </div>
@@ -454,11 +491,13 @@ export default function Dashboard() {
                   <div key={deal.id} className="relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-500 rounded-[2.5rem] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
                     <div className="relative">
-                      {/* Badge Match Score */}
-                      <div className="absolute -top-3 -right-2 z-20 liquid-glass border border-primary/50 text-white px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)] flex items-center gap-2 transform group-hover:scale-105 transition-transform duration-300">
-                        <Activity className="w-3 h-3 text-white animate-pulse" />
-                        <span className="text-sm font-bold text-white">{deal.matchScore}% {t('dash.match')}</span>
-                      </div>
+                      {/* Badge Match Score — uniquement s'il est calculé à partir de vrais critères */}
+                      {deal.matchScore !== null && (
+                        <div className="absolute -top-3 -right-2 z-20 liquid-glass border border-primary/50 text-white px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)] flex items-center gap-2 transform group-hover:scale-105 transition-transform duration-300">
+                          <Activity className="w-3 h-3 text-white animate-pulse" />
+                          <span className="text-sm font-bold text-white">{deal.matchScore}% {t('dash.match')}</span>
+                        </div>
+                      )}
                       <BusinessCard
                         listing={deal}
                         onClick={() => navigate('/app', { state: { focusId: deal.id } })}
@@ -553,7 +592,8 @@ export default function Dashboard() {
                     onClick={() => navigate('/app', { state: { focusId: listing.id } })}
                     onFavoriteToggle={(id, isFav) => {
                       if (!isFav) {
-                        queryClient.setQueryData(['dashboard', user?.id], (old: any) => {
+                        // La clé réelle est ['dashboard', id, métadonnées] : on cible par préfixe.
+                        queryClient.setQueriesData({ queryKey: ['dashboard', user?.id] }, (old: any) => {
                           if (!old) return old;
                           return { ...old, myFavorites: old.myFavorites.filter((f: Listing) => f.id !== id) };
                         });

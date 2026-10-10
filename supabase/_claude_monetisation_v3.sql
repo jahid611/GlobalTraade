@@ -1,3 +1,10 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — fichier conservé pour l'historique.
+-- Il recrée les règles « Users manage their unlocks » et « Users manage their
+-- prospection contacts » (FOR ALL), fermées depuis par _claude_sec_privileges.sql
+-- et _claude_prospection_paid.sql : le rejouer rendrait gratuits le déblocage à
+-- 5 € et les contacts de prospection facturés. La mention « rejouable sans
+-- risque » ci-dessous n'est plus vraie.
+
 -- ============================================================
 -- MONÉTISATION V3 — à coller dans Supabase Studio > SQL Editor
 -- (idempotent, rejouable sans risque).

@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnreadMessages } from "@/hooks/use-unread-messages";
-import { useListings } from "@/hooks/use-listings";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useTheme } from "next-themes";
@@ -50,8 +49,8 @@ const PLAN_BADGE: Record<PlanType, { label: string; className: string }> = {
 };
 
 export function Navbar() {
-  useListings();
-  const { theme, setTheme } = useTheme();
+  // `resolvedTheme` : avec `enableSystem`, `theme` peut valoir "system".
+  const { resolvedTheme, setTheme } = useTheme();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
 
@@ -105,7 +104,7 @@ export function Navbar() {
 
   const toggleTheme = (e: React.MouseEvent) => {
     e.preventDefault();
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   const getAvatarUrl = () =>
@@ -168,12 +167,12 @@ export function Navbar() {
         onClick={toggleTheme}
         className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center transition-all text-sm font-light"
       >
-        {theme === "dark" ? (
+        {resolvedTheme === "dark" ? (
           <Moon className="mr-3 h-4 w-4 text-slate-300" />
         ) : (
           <Sun className="mr-3 h-4 w-4 text-yellow-400" />
         )}
-        {theme === "dark" ? t("theme.dark") : t("theme.light")}
+        {resolvedTheme === "dark" ? t("theme.dark") : t("theme.light")}
       </DropdownMenuItem>
 
       {user && (
@@ -270,7 +269,7 @@ export function Navbar() {
                   onClick={toggleTheme}
                   className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-transparent text-white/70 hover:text-white transition-all"
                 >
-                  {theme === "dark" ? (
+                  {resolvedTheme === "dark" ? (
                     <Moon className="w-[18px] h-[18px]" />
                   ) : (
                     <Sun className="w-[18px] h-[18px]" />
@@ -535,7 +534,7 @@ export function Navbar() {
                     variant="ghost"
                     className="w-12 h-12 rounded-full bg-transparent border-none p-0 text-white shadow-none hover:bg-transparent"
                   >
-                    {theme === "dark" ? (
+                    {resolvedTheme === "dark" ? (
                       <Moon className="w-5 h-5" />
                     ) : (
                       <Sun className="w-5 h-5" />

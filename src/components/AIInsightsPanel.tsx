@@ -82,9 +82,10 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
       }
     }
 
-    // Rent ratio
+    // Rent ratio — `rent` est un loyer ANNUEL (formulaire « Loyer annuel »,
+    // PDF, CompanyScore) : pas de multiplication par 12.
     if (listing.rent && listing.revenue_n1) {
-      const rentRatio = (listing.rent * 12 / listing.revenue_n1) * 100;
+      const rentRatio = (listing.rent / listing.revenue_n1) * 100;
       if (rentRatio > 15) {
         flags.push({ type: 'red', label: t('ai.rent_high', 'Charge locative élevée'), detail: t('ai.rent_high_det', { ratio: rentRatio.toFixed(0) }) });
         score -= 5;

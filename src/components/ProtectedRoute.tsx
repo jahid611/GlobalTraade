@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,14 +17,42 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // aucune page — sinon il suffirait de quitter l'écran du code pour entrer.
   // null = pas encore vérifié.
   const [mfaPending, setMfaPending] = useState<boolean | null>(null);
+  // Utilisateur dont le niveau d'assurance a déjà été vérifié avec succès.
+  const verifiedFor = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    if (!user) { setMfaPending(false); return; }
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+    if (!user) { verifiedFor.current = null; setMfaPending(false); return; }
+    const userId = user.id;
+    // Nouvel utilisateur (ou session jamais vérifiée) : rien ne s'ouvre avant
+    // la réponse. Une simple re-vérification garde la page affichée.
+    if (verifiedFor.current !== userId) setMfaPending(null);
+    // Le niveau d'assurance doit être CONNU pour ouvrir la page : l'appel ne
+    // lève pas forcément, il peut renvoyer `{ error }`. En cas d'échec on
+    // réessaie une fois, puis on reste fermé (renvoi vers /login).
+    const readLevel = async () => {
+      try {
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (error || !data) return null;
+        return data;
+      } catch {
+        return null;
+      }
+    };
+    (async () => {
+      const level = (await readLevel()) ?? (await readLevel());
       if (cancelled) return;
-      setMfaPending(!!data && data.nextLevel === 'aal2' && data.currentLevel !== 'aal2');
-    }).catch(() => { if (!cancelled) setMfaPending(false); });
+      if (level) {
+        const pending = level.nextLevel === 'aal2' && level.currentLevel !== 'aal2';
+        verifiedFor.current = pending ? null : userId;
+        setMfaPending(pending);
+        return;
+      }
+      // Échec d'une simple re-vérification (rafraîchissement du jeton) alors
+      // que cette session a déjà été validée : on ne jette pas l'utilisateur
+      // dehors. Sinon, on reste fermé.
+      if (verifiedFor.current !== userId) setMfaPending(true);
+    })();
     return () => { cancelled = true; };
   }, [user]);
 
@@ -46,7 +74,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 3. Code de sécurité attendu mais pas encore fourni → retour à la connexion
+  // 3. Code de sécurité attendu mais pas encore fourni (ou niveau impossible à
+  //    vérifier) → retour à la connexion
   if (mfaPending) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

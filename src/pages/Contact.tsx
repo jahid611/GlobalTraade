@@ -1,24 +1,100 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Mail, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
+import { Mail, MapPin, Clock, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SolarSystem } from '@/components/SolarSystem';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/AuthProvider';
+
+// Limites alignées sur les contraintes de la table `contact_messages`.
+const MAX_NAME = 120;
+const MAX_EMAIL = 200;
+const MAX_SUBJECT = 200;
+const MAX_MESSAGE = 5000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type ContactField = 'name' | 'email' | 'subject' | 'message';
 
 export default function Contact() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [form, setForm] = useState<Record<ContactField, string>>({ name: '', email: '', subject: '', message: '' });
+  // Champ leurre : invisible pour un humain, rempli par les robots.
+  const [website, setWebsite] = useState('');
+  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
+  const [submitError, setSubmitError] = useState('');
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitted(true);
-    }, 800);
+  // Membre connecté : nom et email pré-remplis (modifiables).
+  useEffect(() => {
+    if (!user) return;
+    setForm((f) => ({
+      ...f,
+      name: f.name || (user.user_metadata?.full_name as string) || '',
+      email: f.email || user.email || '',
+    }));
+  }, [user]);
+
+  const setField = (field: ContactField) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
+
+  const validate = (): Partial<Record<ContactField, string>> => {
+    const out: Partial<Record<ContactField, string>> = {};
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const subject = form.subject.trim();
+    const message = form.message.trim();
+    if (!name) out.name = t('contact.err_name', 'Indiquez votre nom.') as string;
+    else if (name.length > MAX_NAME) out.name = t('contact.err_too_long', { max: MAX_NAME, defaultValue: '{{max}} caractères maximum.' }) as string;
+    if (!email || email.length > MAX_EMAIL || !EMAIL_RE.test(email)) out.email = t('contact.err_email', 'Indiquez une adresse email valide.') as string;
+    if (!subject) out.subject = t('contact.err_subject', "Indiquez le sujet de votre message.") as string;
+    else if (subject.length > MAX_SUBJECT) out.subject = t('contact.err_too_long', { max: MAX_SUBJECT, defaultValue: '{{max}} caractères maximum.' }) as string;
+    if (message.length < 10) out.message = t('contact.err_message', 'Votre message est trop court (10 caractères minimum).') as string;
+    else if (message.length > MAX_MESSAGE) out.message = t('contact.err_too_long', { max: MAX_MESSAGE, defaultValue: '{{max}} caractères maximum.' }) as string;
+    return out;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sending) return;
+    setSubmitError('');
+    const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
+    // Robot : on répond comme si tout allait bien, sans rien enregistrer.
+    if (website.trim()) { setIsSubmitted(true); return; }
+
+    setSending(true);
+    try {
+      const { error } = await supabase.from('contact_messages').insert({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject.trim(),
+        message: form.message.trim(),
+        user_id: user?.id ?? null,
+      });
+      if (error) throw error;
+      setForm((f) => ({ ...f, subject: '', message: '' }));
+      setIsSubmitted(true);
+    } catch {
+      setSubmitError(t('contact.err_send', "Votre message n'a pas pu être envoyé. Réessayez dans un instant ou écrivez-nous directement par email.") as string);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inputClass = (field: ContactField) =>
+    `w-full liquid-glass bg-white/5 border rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all !shadow-none ${errors[field] ? 'border-red-400/60' : 'border-white/10'}`;
+  const fieldError = (field: ContactField) =>
+    errors[field] ? <p id={`contact-${field}-error`} className="text-red-400 text-xs font-light ml-1">{errors[field]}</p> : null;
 
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white flex flex-col font-sans selection:bg-primary/30 relative overflow-x-hidden">
@@ -68,59 +144,98 @@ export default function Contact() {
                   <div className="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle size={40} />
                   </div>
-                  <h3 className="text-2xl font-medium text-white mb-4">Message Envoyé</h3>
+                  <h3 className="text-2xl font-medium text-white mb-4">{t('contact.sent_title', 'Message envoyé')}</h3>
                   <p className="text-white/60 font-light text-lg">{t('contact.success')}</p>
                   <button 
                     onClick={() => setIsSubmitted(false)}
                     className="mt-8 px-8 py-3 liquid-glass bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm uppercase tracking-widest font-medium !shadow-none"
                   >
-                    Nouveau Message
+                    {t('contact.new_message', 'Nouveau message')}
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} noValidate className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70 ml-1">{t('contact.name')}</label>
-                    <input 
-                      type="text" 
+                    <label htmlFor="contact-name" className="text-sm font-medium text-white/70 ml-1">{t('contact.name')}</label>
+                    <input
+                      id="contact-name"
+                      type="text"
                       required
-                      className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all !shadow-none"
-                      placeholder="Jean Dupont"
+                      autoComplete="name"
+                      maxLength={MAX_NAME}
+                      value={form.name}
+                      onChange={setField('name')}
+                      aria-invalid={!!errors.name}
+                      aria-describedby={errors.name ? 'contact-name-error' : undefined}
+                      className={inputClass('name')}
+                      placeholder={t('contact.name_ph', 'Jean Dupont') as string}
                     />
+                    {fieldError('name')}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70 ml-1">{t('auth.email')}</label>
-                    <input 
-                      type="email" 
+                    <label htmlFor="contact-email" className="text-sm font-medium text-white/70 ml-1">{t('auth.email')}</label>
+                    <input
+                      id="contact-email"
+                      type="email"
                       required
-                      className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all !shadow-none"
-                      placeholder="jean.dupont@entreprise.com"
+                      autoComplete="email"
+                      maxLength={MAX_EMAIL}
+                      value={form.email}
+                      onChange={setField('email')}
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? 'contact-email-error' : undefined}
+                      className={inputClass('email')}
+                      placeholder={t('contact.email_ph', 'jean.dupont@entreprise.com') as string}
                     />
+                    {fieldError('email')}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70 ml-1">{t('contact.subject')}</label>
-                    <input 
-                      type="text" 
+                    <label htmlFor="contact-subject" className="text-sm font-medium text-white/70 ml-1">{t('contact.subject')}</label>
+                    <input
+                      id="contact-subject"
+                      type="text"
                       required
-                      className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all !shadow-none"
-                      placeholder="Demande de partenariat..."
+                      maxLength={MAX_SUBJECT}
+                      value={form.subject}
+                      onChange={setField('subject')}
+                      aria-invalid={!!errors.subject}
+                      aria-describedby={errors.subject ? 'contact-subject-error' : undefined}
+                      className={inputClass('subject')}
+                      placeholder={t('contact.subject_ph', 'Demande de partenariat...') as string}
                     />
+                    {fieldError('subject')}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70 ml-1">{t('contact.message')}</label>
-                    <textarea 
+                    <label htmlFor="contact-message" className="text-sm font-medium text-white/70 ml-1">{t('contact.message')}</label>
+                    <textarea
+                      id="contact-message"
                       required
                       rows={5}
-                      className="w-full liquid-glass bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-none !shadow-none"
-                      placeholder="Comment pouvons-nous vous aider ?"
+                      maxLength={MAX_MESSAGE}
+                      value={form.message}
+                      onChange={setField('message')}
+                      aria-invalid={!!errors.message}
+                      aria-describedby={errors.message ? 'contact-message-error' : undefined}
+                      className={`${inputClass('message')} resize-none`}
+                      placeholder={t('contact.message_ph', 'Comment pouvons-nous vous aider ?') as string}
                     ></textarea>
+                    {fieldError('message')}
                   </div>
-                  <button 
+                  {/* Champ leurre anti-robot : hors écran, hors tabulation, ignoré des lecteurs d'écran */}
+                  <div aria-hidden="true" className="absolute -left-[9999px] top-auto w-px h-px overflow-hidden">
+                    <label htmlFor="contact-website">Website</label>
+                    <input id="contact-website" type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                  </div>
+                  {submitError && (
+                    <p role="alert" className="text-red-400 text-sm font-light bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 leading-relaxed">{submitError}</p>
+                  )}
+                  <button
                     type="submit"
-                    className="w-full liquid-glass bg-primary border-none hover:bg-primary/90 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1"
+                    disabled={sending}
+                    className="w-full liquid-glass bg-primary border-none hover:bg-primary/90 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1 disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
                   >
-                    {t('contact.send')}
-                    <Send size={18} />
+                    {sending ? t('contact.sending', 'Envoi en cours…') : t('contact.send')}
+                    {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                   </button>
                 </form>
               )}

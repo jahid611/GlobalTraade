@@ -13,14 +13,55 @@ import { fr } from 'date-fns/locale';
 import { showSuccess, showError } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDialog } from '@/components/PickerKit';
 
 type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports' | 'ratings' | 'projets';
+
+// Défini hors du rendu : sinon React recrée (démonte/remonte) chaque bouton à
+// chaque rendu de la console.
+const TabButton = ({ label, icon: Icon, active, onSelect }: { label: string; icon: React.ElementType; active: boolean; onSelect: () => void }) => (
+  <button
+    onClick={onSelect}
+    className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all text-sm font-medium ${
+      active
+        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+        : 'text-white/40 hover:text-white hover:bg-white/5'
+    }`}
+  >
+    <Icon size={16} /> {label}
+  </button>
+);
+
+// Résultat d'une écriture Supabase terminée par `.select('id')`.
+type WriteResult = PromiseLike<{ data: unknown[] | null; error: unknown }>;
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useTranslation();
+  // Confirmation d'une action destructrice (remplace `window.confirm`).
+  const [confirmAction, setConfirmAction] = useState<{ title: string; message?: string; confirmLabel: string; run: () => void } | null>(null);
+
+  // Exécute une écriture d'administration et n'annonce le succès que si elle a
+  // VRAIMENT eu lieu : on lit `error`, et comme la RLS peut faire qu'une
+  // écriture ne touche aucune ligne sans erreur, « 0 ligne » est un échec.
+  const adminWrite = async (write: WriteResult, successMsg: string | null, errorMsg: string): Promise<boolean> => {
+    let failed = false;
+    try {
+      const { data, error } = await write;
+      failed = !!error || !data || data.length === 0;
+    } catch {
+      failed = true;
+    }
+    if (failed) {
+      showError(errorMsg);
+      return false;
+    }
+    if (successMsg) showSuccess(successMsg);
+    queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+    return true;
+  };
 
   const { data: adminData, isLoading } = useQuery({
     queryKey: ['admin-data'],
@@ -38,9 +79,9 @@ export default function AdminDashboard() {
       ] = await Promise.all([
         supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('listings_secure').select('*').order('created_at', { ascending: false }),
-        supabase.from('messages').select('id', { count: 'exact' }),
-        supabase.from('listing_views').select('id', { count: 'exact' }),
-        supabase.from('favorites').select('id', { count: 'exact' }),
+        supabase.from('messages').select('id', { count: 'exact', head: true }),
+        supabase.from('listing_views').select('id', { count: 'exact', head: true }),
+        supabase.from('favorites').select('id', { count: 'exact', head: true }),
         supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false }),
         supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false }),
         supabase.from('buyer_badges').select('id, buyer_type, buyer_level'),
@@ -83,14 +124,21 @@ export default function AdminDashboard() {
     }
   });
 
-  const handleDeleteListing = async (id: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer cette annonce ?")) return;
-    const { error } = await supabase.from('listings').delete().eq('id', id);
-    if (error) showError("Erreur de suppression");
-    else {
-      showSuccess("Annonce supprimée");
-      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-    }
+  const handleDeleteListing = (id: string, name?: string | null) => {
+    setConfirmAction({
+      title: t('admin.confirm_delete_listing_title', 'Supprimer cette annonce ?'),
+      message: name
+        ? t('admin.confirm_delete_listing_msg', { name, defaultValue: '« {{name}} » sera définitivement supprimée.' })
+        : t('admin.confirm_delete_irreversible', 'Cette action est définitive.'),
+      confirmLabel: t('admin.delete', 'Supprimer'),
+      run: () => {
+        adminWrite(
+          supabase.from('listings').delete().eq('id', id).select('id'),
+          t('admin.listing_deleted', 'Annonce supprimée'),
+          t('admin.listing_delete_error', "L'annonce n'a pas pu être supprimée."),
+        );
+      },
+    });
   };
 
   if (isLoading) return (
@@ -104,8 +152,8 @@ export default function AdminDashboard() {
   );
 
   const filteredListings = adminData?.listings.filter(l => 
-    l.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    l.industry.toLowerCase().includes(searchQuery.toLowerCase())
+    (l.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (l.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   const filteredUsers = adminData?.profiles.filter(p => 
@@ -113,18 +161,10 @@ export default function AdminDashboard() {
     p.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const TabButton = ({ id, label, icon: Icon }: { id: TabType, label: string, icon: React.ElementType }) => (
-    <button
-      onClick={() => { setActiveTab(id); setSearchQuery(""); }}
-      className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all text-sm font-medium ${
-        activeTab === id 
-          ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-          : 'text-white/40 hover:text-white hover:bg-white/5'
-      }`}
-    >
-      <Icon size={16} /> {label}
-    </button>
-  );
+  const tabProps = (id: TabType) => ({
+    active: activeTab === id,
+    onSelect: () => { setActiveTab(id); setSearchQuery(""); },
+  });
 
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
@@ -142,13 +182,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
-            <TabButton id="overview" label={t('admin.tab_overview') || 'Aperçu'} icon={Eye} />
-            <TabButton id="listings" label={t('admin.tab_listings') || 'Annonces'} icon={Store} />
-            <TabButton id="users" label={t('admin.tab_users') || 'Membres'} icon={Users} />
-            <TabButton id="kyc" label="KYC" icon={BadgeCheck} />
-            <TabButton id="reports" label="Signalements" icon={AlertOctagon} />
-            <TabButton id="ratings" label="Notes" icon={Star} />
-            <TabButton id="projets" label="Projets" icon={Briefcase} />
+            <TabButton {...tabProps("overview")} label={t('admin.tab_overview') || 'Aperçu'} icon={Eye} />
+            <TabButton {...tabProps("listings")} label={t('admin.tab_listings') || 'Annonces'} icon={Store} />
+            <TabButton {...tabProps("users")} label={t('admin.tab_users') || 'Membres'} icon={Users} />
+            <TabButton {...tabProps("kyc")} label="KYC" icon={BadgeCheck} />
+            <TabButton {...tabProps("reports")} label="Signalements" icon={AlertOctagon} />
+            <TabButton {...tabProps("ratings")} label="Notes" icon={Star} />
+            <TabButton {...tabProps("projets")} label="Projets" icon={Briefcase} />
           </div>
         </div>
 
@@ -263,8 +303,8 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2">
-                                <button onClick={() => window.open(`/app`, '_blank')} className="p-2 text-white/20 hover:text-primary transition-colors"><ExternalLink size={16} /></button>
-                                <button onClick={() => handleDeleteListing(l.id)} className="p-2 text-white/20 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                <button onClick={() => window.open(`/app?focus=${l.id}`, '_blank')} className="p-2 text-white/20 hover:text-primary transition-colors"><ExternalLink size={16} /></button>
+                                <button onClick={() => handleDeleteListing(l.id, l.name)} className="p-2 text-white/20 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
                               </div>
                             </td>
                           </tr>
@@ -295,9 +335,11 @@ export default function AdminDashboard() {
                                 <select
                                   value={u.buyer_level || 'profil_cree'}
                                   onChange={async (e) => {
-                                    const { error } = await supabase.from('profiles').update({ buyer_level: e.target.value }).eq('id', u.id);
-                                    if (error) showError('Erreur mise à jour niveau');
-                                    else { showSuccess('Niveau repreneur mis à jour'); queryClient.invalidateQueries({ queryKey: ['admin-data'] }); }
+                                    await adminWrite(
+                                      supabase.from('profiles').update({ buyer_level: e.target.value }).eq('id', u.id).select('id'),
+                                      t('admin.buyer_level_updated', 'Niveau repreneur mis à jour'),
+                                      t('admin.buyer_level_error', 'Erreur mise à jour niveau'),
+                                    );
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                   className="mt-1 text-[10px] bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white/70 outline-none cursor-pointer"
@@ -396,9 +438,11 @@ export default function AdminDashboard() {
                         <div className="flex gap-3">
                           <button
                             onClick={async () => {
-                              await supabase.from('profiles').update({ kyc_status: 'verified' }).eq('id', u.id);
-                              showSuccess(t('kyc.admin_approved'));
-                              queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                              await adminWrite(
+                                supabase.from('profiles').update({ kyc_status: 'verified' }).eq('id', u.id).select('id'),
+                                t('kyc.admin_approved'),
+                                t('admin.kyc_update_error', "Le statut de vérification n'a pas pu être modifié."),
+                              );
                             }}
                             className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-all flex items-center justify-center gap-2"
                           >
@@ -406,9 +450,11 @@ export default function AdminDashboard() {
                           </button>
                           <button
                             onClick={async () => {
-                              await supabase.from('profiles').update({ kyc_status: 'rejected' }).eq('id', u.id);
-                              showSuccess(t('kyc.admin_rejected'));
-                              queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                              await adminWrite(
+                                supabase.from('profiles').update({ kyc_status: 'rejected' }).eq('id', u.id).select('id'),
+                                t('kyc.admin_rejected'),
+                                t('admin.kyc_update_error', "Le statut de vérification n'a pas pu être modifié."),
+                              );
                             }}
                             className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/60 hover:text-red-400 text-xs font-medium transition-all flex items-center justify-center gap-2"
                           >
@@ -474,7 +520,7 @@ export default function AdminDashboard() {
                       </div>
                       
                       {r.listings && (
-                        <div className="bg-white/5 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors" onClick={() => window.open('/app', '_blank')}>
+                        <div className="bg-white/5 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors" onClick={() => window.open(`/app?focus=${r.listings.id}`, '_blank')}>
                           <div>
                             <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Cible</p>
                             <p className="text-xs font-medium text-white truncate">{r.listings.name}</p>
@@ -490,20 +536,29 @@ export default function AdminDashboard() {
                       <div className="flex gap-2 mt-2">
                         <button
                           onClick={async () => {
-                            await supabase.from('reports').update({ status: 'resolved' }).eq('id', r.id);
-                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+                            await adminWrite(
+                              supabase.from('reports').update({ status: 'resolved' }).eq('id', r.id).select('id'),
+                              t('admin.report_resolved', 'Signalement marqué comme résolu'),
+                              t('admin.report_update_error', "Le signalement n'a pas pu être mis à jour."),
+                            );
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
                         >
                           Marquer résolu
                         </button>
                         <button
-                          onClick={async () => {
-                            if(confirm('Supprimer ce signalement ?')) {
-                              await supabase.from('reports').delete().eq('id', r.id);
-                              queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-                            }
-                          }}
+                          onClick={() => setConfirmAction({
+                            title: t('admin.confirm_delete_report_title', 'Supprimer ce signalement ?'),
+                            message: t('admin.confirm_delete_irreversible', 'Cette action est définitive.'),
+                            confirmLabel: t('admin.delete', 'Supprimer'),
+                            run: () => {
+                              adminWrite(
+                                supabase.from('reports').delete().eq('id', r.id).select('id'),
+                                t('admin.report_deleted', 'Signalement supprimé'),
+                                t('admin.report_delete_error', "Le signalement n'a pas pu être supprimé."),
+                              );
+                            },
+                          })}
                           className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
                         >
                           Supprimer
@@ -542,9 +597,11 @@ export default function AdminDashboard() {
                       <div className="flex gap-2 mt-auto">
                         <button
                           onClick={async () => {
-                            await supabase.from('projects').update({ verification_status: 'verifie' }).eq('id', p.id);
-                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-                            showSuccess('Projet vérifié');
+                            await adminWrite(
+                              supabase.from('projects').update({ verification_status: 'verifie' }).eq('id', p.id).select('id'),
+                              t('admin.project_verified', 'Projet vérifié'),
+                              t('admin.project_update_error', "Le projet n'a pas pu être mis à jour."),
+                            );
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
                         >
@@ -552,9 +609,11 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={async () => {
-                            await supabase.from('projects').update({ verification_status: 'rejete' }).eq('id', p.id);
-                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-                            showSuccess('Projet rejeté');
+                            await adminWrite(
+                              supabase.from('projects').update({ verification_status: 'rejete' }).eq('id', p.id).select('id'),
+                              t('admin.project_rejected', 'Projet rejeté'),
+                              t('admin.project_update_error', "Le projet n'a pas pu être mis à jour."),
+                            );
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
                         >
@@ -603,9 +662,11 @@ export default function AdminDashboard() {
                       <div className="flex gap-2 mt-2">
                         <button
                           onClick={async () => {
-                            await supabase.from('ratings').update({ status: 'published' }).eq('id', r.id);
-                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-                            showSuccess('Note publiée');
+                            await adminWrite(
+                              supabase.from('ratings').update({ status: 'published' }).eq('id', r.id).select('id'),
+                              t('admin.rating_published', 'Note publiée'),
+                              t('admin.rating_update_error', "La note n'a pas pu être mise à jour."),
+                            );
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
                         >
@@ -613,9 +674,11 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={async () => {
-                            await supabase.from('ratings').update({ status: 'rejected' }).eq('id', r.id);
-                            queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-                            showSuccess('Note rejetée');
+                            await adminWrite(
+                              supabase.from('ratings').update({ status: 'rejected' }).eq('id', r.id).select('id'),
+                              t('admin.rating_rejected', 'Note rejetée'),
+                              t('admin.rating_update_error', "La note n'a pas pu être mise à jour."),
+                            );
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
                         >
@@ -630,6 +693,16 @@ export default function AdminDashboard() {
           )}
         </AnimatePresence>
       </main>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.title || ''}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        cancelLabel={t('common.cancel', 'Annuler')}
+        onConfirm={() => confirmAction?.run()}
+        onClose={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

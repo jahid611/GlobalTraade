@@ -94,7 +94,7 @@ export function GlobalNotifications() {
                 duration: 8000,
               });
             } else {
-              const { data: listingData } = await supabase.from('listings').select('name').eq('id', newMessage.listing_id as string).single();
+              const { data: listingData } = await supabase.from('listings_secure').select('name').eq('id', newMessage.listing_id as string).maybeSingle();
               toast.success(`💬 ${t('notif.toast_message', { name: senderName })}`, {
                 description: listingData?.name || '...',
                 action: { label: t('notif.reply'), onClick: () => navigate('/messages') },
@@ -113,14 +113,14 @@ export function GlobalNotifications() {
             const meta = msg.metadata as Record<string, unknown> | null;
             const status = meta?.status as string;
             if (status === 'accepted') {
-              const { data: listingData } = await supabase.from('listings').select('name').eq('id', msg.listing_id as string).single();
+              const { data: listingData } = await supabase.from('listings_secure').select('name').eq('id', msg.listing_id as string).maybeSingle();
               toast.success(`✅ ${t('notif.toast_offer_accepted')}`, {
                 description: `"${listingData?.name || '...'}"`,
                 action: { label: t('notif.see'), onClick: () => navigate('/messages') },
                 duration: 8000,
               });
             } else if (status === 'declined') {
-              const { data: listingData } = await supabase.from('listings').select('name').eq('id', msg.listing_id as string).single();
+              const { data: listingData } = await supabase.from('listings_secure').select('name').eq('id', msg.listing_id as string).maybeSingle();
               toast(`❌ ${t('notif.toast_offer_declined')}`, {
                 description: `"${listingData?.name || '...'}"`,
                 action: { label: t('notif.see'), onClick: () => navigate('/messages') },
@@ -151,15 +151,16 @@ export function GlobalNotifications() {
 
             if (score >= 92) {
               const fmt = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-              toast.success(`🏆 Opportunité Or — ${score}% Match`, {
-                description: `${newListing.name || 'Nouvelle annonce'} • ${fmt.format(newListing.price as number || 0)}`,
-                action: { label: 'Voir', onClick: () => navigate(`/app?listing=${newListing.id}`) },
+              toast.success(`🏆 ${t('notif.gold_match', 'Opportunité Or — {{score}}% Match', { score })}`, {
+                description: `${newListing.name || t('notif.new_listing', 'Nouvelle annonce')} • ${fmt.format(newListing.price as number || 0)}`,
+                // AppMap n'ouvre une fiche que sur ?focus=<id>
+                action: { label: t('notif.see'), onClick: () => navigate(`/app?focus=${newListing.id}`) },
                 duration: 12000,
               });
             } else if (score >= 75) {
-              toast(`🎯 Nouveau match ${score}%`, {
-                description: `${newListing.name || 'Nouvelle annonce'}`,
-                action: { label: 'Voir', onClick: () => navigate(`/app?listing=${newListing.id}`) },
+              toast(`🎯 ${t('notif.new_match', 'Nouveau match {{score}}%', { score })}`, {
+                description: `${newListing.name || t('notif.new_listing', 'Nouvelle annonce')}`,
+                action: { label: t('notif.see'), onClick: () => navigate(`/app?focus=${newListing.id}`) },
                 duration: 8000,
               });
             }

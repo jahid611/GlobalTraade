@@ -46,7 +46,10 @@ const CustomToggle = ({ active, onToggle }: { active: boolean, onToggle: () => v
 export default function Settings() {
   const { user, refreshUser } = useAuth();
   // Coordonnées publiques : réservé aux formules Pro et Business
-  const { plan } = usePlan(user?.id);
+  const { plan, isLoading: planLoading } = usePlan(user?.id);
+  // Formule gratuite CONFIRMÉE (pas pendant le chargement, où `plan` vaut
+  // 'free' par défaut) : les coordonnées publiques ne peuvent pas rester actives.
+  const contactLocked = !planLoading && plan === 'free';
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -149,6 +152,11 @@ export default function Settings() {
     getProfile();
   }, [user]);
 
+  // Valeurs réellement enregistrées : après un retour en gratuit, un ancien
+  // « afficher mon email » resté vrai en base doit pouvoir être coupé.
+  const effectiveShowEmail = contactLocked ? false : showEmail;
+  const effectiveShowPhone = contactLocked ? false : showPhone;
+
   const hasUnsavedChanges = () => {
     if (!initialData) return false;
     return (
@@ -156,8 +164,8 @@ export default function Settings() {
       bio !== initialData.bio || 
       phone !== initialData.phone || 
       contactEmail !== initialData.contact_email || 
-      showEmail !== initialData.show_email || 
-      showPhone !== initialData.show_phone || 
+      effectiveShowEmail !== initialData.show_email || 
+      effectiveShowPhone !== initialData.show_phone || 
       emailAlerts !== initialData.email_alerts ||
       avatarBase64 !== initialData.avatar_url ||
       targetSectors !== initialData.target_sectors ||
@@ -193,8 +201,8 @@ export default function Settings() {
         bio,
         phone,
         contact_email: contactEmail,
-        show_email: showEmail,
-        show_phone: showPhone,
+        show_email: effectiveShowEmail,
+        show_phone: effectiveShowPhone,
         email_alerts: emailAlerts,
         avatar_url: avatarUrl
       };
@@ -209,8 +217,8 @@ export default function Settings() {
         bio,
         phone,
         contact_email: contactEmail,
-        show_email: showEmail,
-        show_phone: showPhone,
+        show_email: effectiveShowEmail,
+        show_phone: effectiveShowPhone,
         target_sectors: targetSectors,
         target_budget: targetBudget,
         target_geo: targetGeo
@@ -240,7 +248,9 @@ export default function Settings() {
 
       // L'aperçu et l'état de référence pointent désormais sur l'URL Storage
       if (avatarFile) { setAvatarBase64(avatarUrl); setAvatarFile(null); }
-      setInitialData({ ...authPayload, avatar_url: avatarUrl, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
+      setShowEmail(effectiveShowEmail);
+      setShowPhone(effectiveShowPhone);
+      setInitialData({ ...authPayload, email_alerts: emailAlerts, avatar_url: avatarUrl, buyer_type: buyerType, apport, target_revenue: targetRevenue, experience, ambitions });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showSuccess(t('settings.saved'));

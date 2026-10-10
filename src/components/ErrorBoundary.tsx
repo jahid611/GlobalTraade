@@ -1,7 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { Button } from './ui/button';
-import { SolarSystem } from './SolarSystem';
 import { captureBoundaryError } from '@/monitoring';
 
 interface Props {
@@ -34,7 +33,25 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#2b2a2f] text-white flex items-center justify-center relative overflow-hidden">
-          <SolarSystem />
+          {/* Décor 100 % CSS : ni WebGL ni ressource distante. Le fallback doit
+              s'afficher même si c'est la 3D qui a planté ou si le réseau est coupé. */}
+          <div aria-hidden="true" className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#a855f7]/10 blur-3xl" />
+            <div className="absolute -bottom-[25%] -right-[10%] w-[55vw] h-[55vw] rounded-full bg-[#3b82f6]/10 blur-3xl" />
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                backgroundImage:
+                  'radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,0.7) 50%, transparent 51%),' +
+                  'radial-gradient(1px 1px at 78% 14%, rgba(255,255,255,0.5) 50%, transparent 51%),' +
+                  'radial-gradient(1.5px 1.5px at 34% 71%, rgba(255,255,255,0.6) 50%, transparent 51%),' +
+                  'radial-gradient(1px 1px at 61% 48%, rgba(255,255,255,0.4) 50%, transparent 51%),' +
+                  'radial-gradient(1.5px 1.5px at 89% 79%, rgba(255,255,255,0.6) 50%, transparent 51%),' +
+                  'radial-gradient(1px 1px at 22% 90%, rgba(255,255,255,0.5) 50%, transparent 51%),' +
+                  'radial-gradient(1px 1px at 47% 9%, rgba(255,255,255,0.6) 50%, transparent 51%)',
+              }}
+            />
+          </div>
           
           <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/10 via-[#2b2a2f]/80 to-[#2b2a2f]" />
 

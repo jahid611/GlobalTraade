@@ -1,3 +1,7 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — ce script commence par des
+-- DROP TABLE ... CASCADE (profils, annonces, messages) : il efface les données.
+-- Conservé pour l'historique ; l'état réel de la base est dans supabase/SCHEMA.md.
+
 DROP TABLE IF EXISTS public.profile_views CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 DROP TABLE IF EXISTS public.listing_views CASCADE;

@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import type { Listing } from '@/types/domain';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet } from 'lucide-react';
+import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet, UserX } from 'lucide-react';
 import { regionLabel, FR_REGIONS } from '@/lib/geoRegions';
 import { ROLE_FUNCTION_LABELS } from '@/lib/ranges';
-import { usePlan } from '@/services/planService';
+import { usePlan, normalizePlan, isPaidPlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,11 +28,26 @@ import { initNativeFeel } from '@/utils/nativeFeel';
 
 initNativeFeel();
 
+// Justificatif d'identité (KYC) : formats acceptés → extension normalisée en
+// minuscules (l'admin n'ouvre que jpg/jpeg/png/pdf/webp), 10 Mo maximum.
+const KYC_EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
+const KYC_KNOWN_EXTS = ['jpg', 'jpeg', 'png', 'pdf', 'webp'];
+const KYC_MAX_BYTES = 10 * 1024 * 1024;
+
+// Profils déjà comptés comme « vus » pendant cette session de navigation
+// (clé visiteur:profil) : une vue par profil consulté, pas une par montage.
+const countedProfileViews = new Set<string>();
+
 export default function Profile() {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const { plan: myPlan } = usePlan(currentUser?.id);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -58,19 +73,23 @@ export default function Profile() {
   const [kycUploading, setKycUploading] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
 
+  // Vue de profil : une seule fois par profil consulté, jamais sur le sien.
+  // (Dépend de l'id, pas de la référence de `currentUser` qui change souvent.)
+  const viewerId = currentUser?.id;
   useEffect(() => {
-    if (currentUser && targetId && targetId !== currentUser.id) {
-      const registerView = async () => {
-        const { error } = await supabase.from('profile_views').insert([{ profile_id: targetId, viewer_id: currentUser.id }]);
-        if (!error) {
-          queryClient.invalidateQueries({ queryKey: ['profile', targetId] });
-        }
-      };
-      registerView();
-    }
-  }, [targetId, currentUser]);
+    if (!viewerId || !targetId || targetId === viewerId) return;
+    const viewKey = `${viewerId}:${targetId}`;
+    if (countedProfileViews.has(viewKey)) return;
+    countedProfileViews.add(viewKey);
+    const registerView = async () => {
+      const { error } = await supabase.from('profile_views').insert([{ profile_id: targetId, viewer_id: viewerId }]);
+      if (error) countedProfileViews.delete(viewKey);
+      else queryClient.invalidateQueries({ queryKey: ['profile', targetId] });
+    };
+    registerView();
+  }, [targetId, viewerId]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['profile', targetId, currentUser?.id],
     queryFn: async () => {
       if (!targetId) throw new Error("No target ID");
@@ -130,11 +149,15 @@ export default function Profile() {
       let connectionId = null;
 
       if (!isOwnProfile && currentUser?.id) {
-        const { data: conn } = await supabase
+        // Deux lignes peuvent exister (une demande dans chaque sens) : pas de
+        // `maybeSingle` qui échouerait — on en lit quelques-unes et on garde
+        // la relation acceptée en priorité.
+        const { data: conns } = await supabase
           .from('connections')
           .select('*')
           .or(`and(requester_id.eq.${currentUser.id},recipient_id.eq.${targetId}),and(requester_id.eq.${targetId},recipient_id.eq.${currentUser.id})`)
-          .maybeSingle();
+          .limit(2);
+        const conn = (conns || []).find((c) => c.status === 'accepted') || (conns || [])[0];
 
         if (conn) {
           connectionId = conn.id;
@@ -149,41 +172,89 @@ export default function Profile() {
     enabled: !!targetId
   });
 
+  const connectionError = () => showError(t('profile.connection_error', "L'action n'a pas pu être enregistrée. Réessayez."));
+
   const handleConnect = async () => {
-    if (!currentUser) return navigate('/login');
+    if (!currentUser) return navigate('/login', { state: { from: location } });
     if (!data?.targetUser) return;
     const { error } = await supabase.from('connections').insert({ requester_id: currentUser.id, recipient_id: data.targetUser.id });
-    if (!error) {
-      showSuccess(t('profile.req_sent'));
-      refetch();
-    }
+    if (error) { connectionError(); return; }
+    showSuccess(t('profile.req_sent'));
+    refetch();
   };
 
   const handleAccept = async (connId: string | null) => {
     if (!connId) return;
-    const { error } = await supabase.from('connections').update({ status: 'accepted' }).eq('id', connId);
-    if (!error) {
-      showSuccess(t('profile.req_accepted'));
-      refetch();
-    }
+    // `.select('id')` : la RLS peut ne modifier aucune ligne sans renvoyer d'erreur.
+    const { data: updated, error } = await supabase.from('connections').update({ status: 'accepted' }).eq('id', connId).select('id');
+    if (error || !updated?.length) { connectionError(); refetch(); return; }
+    showSuccess(t('profile.req_accepted'));
+    refetch();
   };
 
   const handleDeclineOrRemove = async (isDecline = false, connId: string | null) => {
     if (!connId) return;
-    const { error } = await supabase.from('connections').delete().eq('id', connId);
-    if (!error) {
-      showSuccess(isDecline ? t('profile.req_declined') : t('profile.rel_removed'));
-      refetch();
-    }
+    const { data: removed, error } = await supabase.from('connections').delete().eq('id', connId).select('id');
+    if (error || !removed?.length) { connectionError(); refetch(); return; }
+    showSuccess(isDecline ? t('profile.req_declined') : t('profile.rel_removed'));
+    refetch();
   };
 
   const handleContact = () => {
-    if (!currentUser) return navigate('/login');
-    if (data?.listings && data.listings.length > 0) { 
-      setChatListing(data.listings[0]); 
-      setIsChatOpen(true); 
+    if (!currentUser) return navigate('/login', { state: { from: location } });
+    if (data?.listings && data.listings.length > 0) {
+      setChatListing(data.listings[0]);
+      setIsChatOpen(true);
     }
-    else showSuccess(t('profile.no_listing'));
+    // Refus (aucune annonce à laquelle rattacher la conversation) : pas un succès.
+    else showError(t('profile.no_listing'));
+  };
+
+  // Envoi du justificatif d'identité (KYC) — utilisé par les deux encarts
+  // (première demande et nouvelle demande après un refus).
+  const handleKycUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = ''; // permet de re-sélectionner le même fichier
+    if (!file || !currentUser || kycUploading) return;
+
+    const ext = KYC_EXT_BY_TYPE[file.type];
+    if (!ext) {
+      showError(t('kyc.bad_type', 'Format non accepté. Envoyez une image (JPG, PNG, WebP) ou un PDF.'));
+      return;
+    }
+    if (file.size > KYC_MAX_BYTES) {
+      showError(t('kyc.too_large', 'Fichier trop volumineux (10 Mo maximum).'));
+      return;
+    }
+
+    setKycUploading(true);
+    try {
+      const dir = `kyc/${currentUser.id}`;
+      // `upload` ne lève pas : il renvoie `{ error }`.
+      const { error: uploadError } = await supabase.storage.from('documents')
+        .upload(`${dir}/document.${ext}`, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      // Anciens justificatifs d'une autre extension : supprimés pour que l'admin
+      // ouvre bien le dernier document envoyé (échec non bloquant).
+      const stale = KYC_KNOWN_EXTS.filter((x) => x !== ext).map((x) => `${dir}/document.${x}`);
+      await supabase.storage.from('documents').remove(stale).catch(() => undefined);
+
+      // Le statut ne passe à « en attente » qu'APRÈS un envoi réussi, et on
+      // vérifie la valeur réellement enregistrée (un déclencheur peut la refuser).
+      const { data: updated, error: statusError } = await supabase.from('profiles')
+        .update({ kyc_status: 'pending' }).eq('id', currentUser.id).select('kyc_status');
+      if (statusError) throw statusError;
+      if (updated?.[0]?.kyc_status !== 'pending') throw new Error('kyc_status unchanged');
+
+      showSuccess(t('kyc.submitted_success'));
+      refetch();
+    } catch {
+      showError(t('kyc.upload_error', 'Erreur lors de l\'upload.'));
+    } finally {
+      setKycUploading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -210,7 +281,7 @@ export default function Profile() {
     }
   };
 
-  if (isLoading || !data?.targetUser) {
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30 overflow-x-hidden">
         <div className="fixed inset-0 z-0 pointer-events-none">
@@ -232,6 +303,44 @@ export default function Profile() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-[380px] rounded-[2rem] bg-white/5" />)}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Profil inexistant (ou illisible) : un écran clair, pas un squelette sans fin.
+  if (!data?.targetUser) {
+    return (
+      <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30 overflow-x-hidden">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
+        </div>
+        <SolarSystem />
+        <Navbar />
+        <main className="relative z-10 pt-[25vh] pb-20 max-w-xl mx-auto px-[6vw] sm:px-8 w-full flex-1 text-center">
+          <div className="liquid-glass dark:bg-white/[0.02] border border-white/30 dark:border-white/10 rounded-[2rem] p-10 sm:p-14">
+            <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-6">
+              <UserX className="w-8 h-8 text-white/70" />
+            </div>
+            <h1 className="text-3xl font-light mb-3 text-white">
+              {isError ? t('profile.load_error_title', 'Profil indisponible') : t('profile.not_found_title', 'Profil introuvable')}
+            </h1>
+            <p className="text-white/60 font-light text-sm leading-relaxed mb-8">
+              {isError
+                ? t('profile.load_error_desc', "Ce profil n'a pas pu être chargé. Vérifiez votre connexion puis réessayez.")
+                : t('profile.not_found_desc', "Ce profil n'existe pas ou n'est plus disponible.")}
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {isError && (
+                <Button onClick={() => refetch()} className="rounded-full h-12 px-8 bg-primary hover:bg-primary/90 text-white font-medium outline-none">
+                  {t('common.retry', 'Réessayer')}
+                </Button>
+              )}
+              <Button onClick={() => navigate('/marketplace')} variant="outline" className="rounded-full h-12 px-8 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-white/20 outline-none font-medium">
+                {t('profile.back_marketplace', 'Retour à la marketplace')}
+              </Button>
+            </div>
           </div>
         </main>
       </div>
@@ -379,7 +488,7 @@ export default function Profile() {
             {metadata.bio && <p className="text-[clamp(0.875rem,1vw,1rem)] font-light text-white dark:text-white/80 leading-relaxed max-w-2xl mb-6 mx-auto md:mx-0">{metadata.bio}</p>}
 
             {/* Coordonnées publiques : uniquement si le membre est en formule payante */}
-            {['pro', 'business', 'premium'].includes(metadata.plan_type) &&
+            {isPaidPlan(normalizePlan(metadata.plan_type)) &&
              ((metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone)) ? (
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                 {metadata.show_email && metadata.contact_email && (
@@ -478,24 +587,10 @@ export default function Profile() {
                 <label className="shrink-0 cursor-pointer w-full sm:w-auto">
                   <input
                     type="file"
-                    accept="image/*,.pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !currentUser) return;
-                      setKycUploading(true);
-                      try {
-                        const ext = file.name.split('.').pop();
-                        const path = `kyc/${currentUser.id}/document.${ext}`;
-                        await supabase.storage.from('documents').upload(path, file, { upsert: true });
-                        await supabase.from('profiles').update({ kyc_status: 'pending' }).eq('id', currentUser.id);
-                        showSuccess(t('kyc.submitted_success'));
-                        refetch();
-                      } catch (err) {
-                        showError(t('kyc.upload_error', 'Erreur lors de l\'upload.'));
-                      }
-                      setKycUploading(false);
-                    }}
+                    disabled={kycUploading}
+                    onChange={handleKycUpload}
                   />
                   <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none shadow-[0_0_20px_rgba(59,130,246,0.4)]">
                     {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -531,24 +626,10 @@ export default function Profile() {
                 <label className="shrink-0 cursor-pointer w-full sm:w-auto">
                   <input
                     type="file"
-                    accept="image/*,.pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !currentUser) return;
-                      setKycUploading(true);
-                      try {
-                        const ext = file.name.split('.').pop();
-                        const path = `kyc/${currentUser.id}/document.${ext}`;
-                        await supabase.storage.from('documents').upload(path, file, { upsert: true });
-                        await supabase.from('profiles').update({ kyc_status: 'pending' }).eq('id', currentUser.id);
-                        showSuccess(t('kyc.submitted_success'));
-                        refetch();
-                      } catch (err) {
-                        showError(t('kyc.upload_error', 'Erreur lors de l\'upload.'));
-                      }
-                      setKycUploading(false);
-                    }}
+                    disabled={kycUploading}
+                    onChange={handleKycUpload}
                   />
                   <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full liquid-glass border-white/30 dark:border-white/10 bg-transparent hover:bg-white/20 dark:hover:bg-white/10 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none">
                     {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}

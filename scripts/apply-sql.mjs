@@ -18,11 +18,13 @@ import { homedir } from 'node:os';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Patchs en attente, dans l'ordre : la sécurité d'abord.
+// Les quatre patchs du 22/09 (sec_privileges, prospection_paid, email_alerts,
+// safe_profiles_identity) sont appliqués en production : ils sont sortis de la
+// liste. Ne pas les y remettre — prospection_paid n'est pas rejouable, et
+// safe_profiles_identity annulerait le masquage des coordonnées posé par le
+// durcissement 2.
 const EN_ATTENTE = [
-  'supabase/_claude_sec_privileges.sql',
-  'supabase/_claude_prospection_paid.sql',
-  'supabase/_claude_email_alerts.sql',
-  'supabase/_claude_safe_profiles_identity.sql',
+  'supabase/_claude_sec_durcissement_2.sql',
 ];
 
 function jeton() {

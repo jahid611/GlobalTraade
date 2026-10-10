@@ -24,7 +24,7 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
   const [tab, setTab] = useState<TabKey>('profile');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['viewers', userId, listingIds.join(',')],
+    queryKey: ['viewers', userId, listingIds.join(','), isPremium],
     queryFn: async () => {
       const [profileViews, listingViews, favs] = await Promise.all([
         supabase.from('profile_views')
@@ -76,7 +76,9 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
         favorites: enrich(favs.data || [], 'user_id'),
       };
     },
-    enabled: !!userId,
+    // Sans droit d'accès, on ne charge RIEN : ni les vues, ni les identités.
+    // (Un flou CSS ne protège pas des données déjà présentes dans la page.)
+    enabled: !!userId && isPremium,
     staleTime: 1000 * 60 * 2,
   });
 
@@ -87,6 +89,10 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
   ];
 
   const rows = data?.[tab] || [];
+
+  // Aperçu factice affiché sous le flou pour un compte gratuit : même aspect
+  // que la vraie liste, aucune donnée réelle.
+  const placeholderRows = [0, 1, 2, 3];
 
   return (
     <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 relative overflow-hidden">
@@ -111,8 +117,22 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
         ))}
       </div>
 
-      <div className={!isPremium ? 'blur-md select-none pointer-events-none' : ''}>
-        {isLoading ? (
+      <div className={!isPremium ? 'blur-md select-none pointer-events-none' : ''} aria-hidden={!isPremium || undefined}>
+        {!isPremium ? (
+          <ul className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
+            {placeholderRows.map((n) => (
+              <li key={n}>
+                <div className="w-full flex items-center gap-3 p-2 rounded-2xl text-left">
+                  <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center"><UserIcon className="w-5 h-5 text-white/50" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-light truncate">{t('viewers.anonymous', 'Membre Globly')}</p>
+                    <p className="text-xs text-white/40 font-light">••/••/••••</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : isLoading ? (
           <p className="text-sm text-white/40 font-light">…</p>
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/50 font-light">{t('viewers.empty', 'Personne pour le moment. Revenez bientôt.')}</p>

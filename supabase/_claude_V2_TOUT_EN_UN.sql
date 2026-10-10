@@ -1,3 +1,9 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — fichier conservé pour l'historique.
+-- Il recrée trg_sync_listing_premium (qui remet is_premium à false sur toutes
+-- les annonces), les tables dossiers/appointments supprimées depuis, et l'ancien
+-- trigger de vérification des projets. La mention « sans risque » ci-dessous
+-- n'est plus vraie.
+
 -- ============================================================
 -- GLOBLY V2 — SCRIPT COMPLET (à coller UNE FOIS dans
 -- Supabase Studio > SQL Editor, puis Run). Idempotent :

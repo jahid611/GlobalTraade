@@ -1,3 +1,7 @@
+-- ⛔ NE PAS REJOUER sur la base actuelle — fichier conservé pour l'historique.
+-- Il recrée trg_sync_listing_premium, qui remet is_premium à false sur toutes
+-- les annonces (la formule « premium » n'existe plus).
+
 -- ============================================================
 -- PREMIUM VENDEUR
 -- À coller dans Supabase Studio > SQL Editor (idempotent).

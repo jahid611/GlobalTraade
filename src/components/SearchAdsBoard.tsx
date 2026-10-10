@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,7 @@ import { INDUSTRIES } from '@/lib/industries';
 import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
 import { AMOUNT_RANGE_OPTIONS as RANGE_OPTIONS, isAmountRange } from '@/lib/ranges';
 import { MultiSelect } from '@/components/MultiSelect';
-import { Dropdown } from '@/components/PickerKit';
+import { Dropdown, ConfirmDialog } from '@/components/PickerKit';
 
 // Annonces inversées : les repreneurs publient leur recherche. Tous les
 // champs sont ENCADRÉS (listes déroulantes cohérentes avec Globly) — secteurs
@@ -31,8 +31,10 @@ export function useSearchAds() {
   return useQuery({
     queryKey: ['search-ads'],
     queryFn: async () => {
+      // Vue masquante : le descriptif n'est renvoyé que si l'appelant y a droit
+      // (auteur, admin, formule payante ou recherche débloquée à 5 €).
       const { data } = await supabase
-        .from('search_ads')
+        .from('search_ads_secure')
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
@@ -73,6 +75,7 @@ export function SearchAdsBoard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [adToDelete, setAdToDelete] = useState<SearchAd | null>(null);
 
   const sectorOptions = useMemo(() => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })), [t]);
   const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
@@ -89,15 +92,24 @@ export function SearchAdsBoard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const hasFullAccess = (ad: SearchAd) => hasContentAccess({
+  const isEntitled = (ad: SearchAd) => hasContentAccess({
     isOwner: user?.id === ad.owner_id,
     plan,
     planFetching,
     unlocked: !!unlockedIds?.has(ad.id),
   });
+  // Le descriptif n'est affiché que si le SERVEUR l'a réellement renvoyé.
+  const hasFullAccess = (ad: SearchAd) => isEntitled(ad) && ad.has_full_access !== false;
+
+  // Juste après un paiement, la liste en cache est encore la version masquée :
+  // on la redemande.
+  const staleMasked = ads.some((ad: SearchAd) => ad.has_full_access === false && isEntitled(ad));
+  useEffect(() => {
+    if (staleMasked) queryClient.invalidateQueries({ queryKey: ['search-ads'] });
+  }, [staleMasked, queryClient]);
 
   const goUnlock = (ad: SearchAd) => {
-    if (!user) return navigate('/login');
+    if (!user) return navigate('/login', { state: { from: { pathname: '/marketplace' } } });
     navigate(`/payment?unlock=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`);
   };
 
@@ -265,7 +277,7 @@ export function SearchAdsBoard() {
                           className="p-2.5 rounded-full text-white/50 hover:text-amber-300 hover:bg-amber-500/10 transition-colors outline-none"><RocketLaunch className="w-5 h-5" /></button>
                       )}
                       <button onClick={() => openEdit(ad)} className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors outline-none"><PencilSimple className="w-5 h-5" /></button>
-                      <button onClick={() => remove(ad)} className="p-2.5 rounded-full text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors outline-none"><Trash className="w-5 h-5" /></button>
+                      <button onClick={() => setAdToDelete(ad)} className="p-2.5 rounded-full text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors outline-none"><Trash className="w-5 h-5" /></button>
                     </>
                   ) : hasFullAccess(ad) ? (
                     <Button onClick={() => navigate(`/profile/${ad.owner_id}`)} className="rounded-full h-11 px-5 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
@@ -278,17 +290,31 @@ export function SearchAdsBoard() {
                   )}
                 </div>
               </div>
-              {ad.description && (
-                hasFullAccess(ad) ? (
-                  <p className="text-sm text-white/40 font-light mt-4 leading-relaxed">{ad.description}</p>
-                ) : (
-                  <p className="text-sm text-white/25 font-light mt-4 leading-relaxed blur-sm select-none">{ad.description}</p>
-                )
+              {hasFullAccess(ad) ? (
+                ad.description && <p className="text-sm text-white/40 font-light mt-4 leading-relaxed">{ad.description}</p>
+              ) : (ad.has_description ?? !!ad.description) && (
+                // Faux texte sous le flou : le vrai descriptif n'est pas dans la page.
+                <div className="mt-4 space-y-2 blur-sm select-none pointer-events-none" aria-hidden="true">
+                  {[94, 78].map((w, i) => (
+                    <div key={i} className="h-3 rounded-full bg-white/20" style={{ width: `${w}%` }} />
+                  ))}
+                </div>
               )}
             </motion.div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!adToDelete}
+        title={t('searchads.delete_title', 'Supprimer cette recherche ?')}
+        message={adToDelete?.title || undefined}
+        confirmLabel={t('searchads.delete_confirm', 'Supprimer')}
+        cancelLabel={t('common.cancel', 'Annuler')}
+        danger
+        onConfirm={() => { const ad = adToDelete; setAdToDelete(null); if (ad) remove(ad); }}
+        onClose={() => setAdToDelete(null)}
+      />
 
       {createPortal(
         <AnimatePresence>

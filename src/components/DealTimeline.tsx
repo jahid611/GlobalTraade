@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, ShieldCheck, Handshake, CheckCircle2, Search, Zap, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { isPurchaseOfferMessage } from '@/lib/offers';
 
 interface DealTimelineProps {
   listingId?: string;
@@ -53,7 +54,7 @@ export function DealTimeline({ listingId, projectId, buyerId, sellerId, messages
       if (interestMessages.length > 0) return 'interest';
       return 'contact';
     } else {
-      const offerMessages = messages.filter(m => m.type === 'offer' || m.content.startsWith('OFFRE:'));
+      const offerMessages = messages.filter(m => isPurchaseOfferMessage(m));
       const acceptedOffer = offerMessages.find(m => m.metadata?.status === 'accepted');
       
       if (acceptedOffer) return 'diligence';

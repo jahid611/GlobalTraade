@@ -60,9 +60,53 @@ export interface Project {
   created_at: string;
   updated_at: string;
   profiles?: { full_name: string; avatar_url: string; kyc_status: string };
+  // ── Champs calculés par la vue `projects_secure` (absents de la table) ──
+  /** amorce publique du descriptif (140 caractères), visible même verrouillé */
+  description_excerpt?: string | null;
+  /** le serveur a renvoyé le dossier complet (porteur, admin, payant, débloqué) */
+  has_full_access?: boolean;
 }
 
-export type ProjectInsert = Omit<Project, 'id' | 'view_count' | 'interest_count' | 'created_at' | 'updated_at' | 'profiles'>;
+export type ProjectInsert = Omit<Project, 'id' | 'view_count' | 'interest_count' | 'created_at' | 'updated_at' | 'profiles' | 'description_excerpt' | 'has_full_access'>;
+
+// Les projets se lisent via la vue masquante `projects_secure` : le dossier
+// (description, budget, financement, équipe, matériel) n'est renvoyé que si
+// l'appelant y a droit — sinon ces champs valent null. Le verrou affiché à
+// l'écran n'est donc plus un simple flou : le contenu n'arrive pas au navigateur.
+// Voir supabase/_claude_sec_durcissement_2.sql.
+type SecureProjectRow = Omit<Project, 'profiles'> & {
+  owner_full_name: string | null;
+  owner_avatar_url: string | null;
+  owner_kyc_status: string | null;
+};
+
+const VIEW_ONLY_FIELDS = ['description_excerpt', 'has_full_access', 'owner_full_name', 'owner_avatar_url', 'owner_kyc_status'] as const;
+
+function fromSecureRow(row: SecureProjectRow): Project {
+  const { owner_full_name, owner_avatar_url, owner_kyc_status, ...rest } = row;
+  return {
+    ...rest,
+    // Les listes masquées reviennent à null : on garde des tableaux côté écran.
+    description: rest.description ?? '',
+    help_types: rest.help_types ?? [],
+    team_roles: rest.team_roles ?? [],
+    material_items: rest.material_items ?? [],
+    expertise_domains: rest.expertise_domains ?? [],
+    profiles: {
+      full_name: owner_full_name ?? '',
+      avatar_url: owner_avatar_url ?? '',
+      kyc_status: owner_kyc_status ?? 'none',
+    },
+  };
+}
+
+/** Retire ce qui n'existe que dans la vue avant d'écrire dans la table. */
+function toTablePayload<T extends object>(payload: T): T {
+  const clean = { ...payload } as Record<string, unknown>;
+  for (const k of VIEW_ONLY_FIELDS) delete clean[k];
+  delete clean.profiles;
+  return clean as T;
+}
 
 // ── Fetch all published projects ──────────────────────────────
 export async function fetchProjects(filters?: {
@@ -73,8 +117,8 @@ export async function fetchProjects(filters?: {
   is_urgent?: boolean;
 }): Promise<Project[]> {
   let query = supabase
-    .from('projects')
-    .select('*, profiles(full_name, avatar_url, kyc_status)')
+    .from('projects_secure')
+    .select('*')
     .eq('is_published', true)
     .order('created_at', { ascending: false });
 
@@ -86,25 +130,25 @@ export async function fetchProjects(filters?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as Project[];
+  return ((data || []) as SecureProjectRow[]).map(fromSecureRow);
 }
 
 // ── Fetch my own projects ─────────────────────────────────────
 export async function fetchMyProjects(userId: string): Promise<Project[]> {
   const { data, error } = await supabase
-    .from('projects')
-    .select('*, profiles(full_name, avatar_url, kyc_status)')
+    .from('projects_secure')
+    .select('*')
     .eq('owner_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []) as Project[];
+  return ((data || []) as SecureProjectRow[]).map(fromSecureRow);
 }
 
 // ── Create project ────────────────────────────────────────────
 export async function createProject(payload: ProjectInsert): Promise<Project> {
   const { data, error } = await supabase
     .from('projects')
-    .insert(payload)
+    .insert(toTablePayload(payload))
     .select()
     .single();
   if (error) throw error;
@@ -115,7 +159,7 @@ export async function createProject(payload: ProjectInsert): Promise<Project> {
 export async function updateProject(id: string, payload: Partial<ProjectInsert>): Promise<Project> {
   const { data, error } = await supabase
     .from('projects')
-    .update(payload)
+    .update(toTablePayload(payload))
     .eq('id', id)
     .select()
     .single();
@@ -180,7 +224,8 @@ export async function expressInterest(
 export async function incrementProjectViews(projectId: string, userId?: string) {
   if (!userId) return;
   
-  const { error } = await supabase
+  // Un doublon (déjà vu) est refusé par la contrainte d'unicité : c'est voulu.
+  await supabase
     .from('project_views')
     .insert({ project_id: projectId, viewer_id: userId });
 }

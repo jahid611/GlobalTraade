@@ -40,4 +40,12 @@ echo "   ✅ le banc d'essai reproduit bien la faille"
 echo
 echo "── Avec supabase/_claude_sec_privileges.sql appliqué"
 psql -q -d "$DB" -f supabase/_claude_sec_privileges.sql >/dev/null
-psql -q -d "$DB" -f supabase/tests/10_privileges.sql 2>&1 | grep -vE "^(CREATE|GRANT|DROP|SET|INSERT|UPDATE|DELETE|DO)\b" || true
+# On garde le code de sortie de psql, pas celui de grep : l'ancien `| grep … ||
+# true` avalait l'exception finale des tests, et ce contrôle ne pouvait donc
+# jamais échouer.
+sortie=$(psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/10_privileges.sql 2>&1) && statut=0 || statut=$?
+echo "$sortie" | grep -vE "^(CREATE|GRANT|DROP|SET|INSERT|UPDATE|DELETE|DO)\b" || true
+if [ "$statut" -ne 0 ]; then
+  echo "❌ Des règles de sécurité ne tiennent pas avec le correctif appliqué."
+  exit 1
+fi

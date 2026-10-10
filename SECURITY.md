@@ -126,3 +126,35 @@ déblocage.
 **Vérification.** `node scripts/audit-privileges.mjs` rejoue les sept tentatives
 contre la base réelle et sort en erreur si l'une d'elles passe. À relancer après
 toute modification des policies.
+
+## Durcissement 2 (10/10/2026)
+
+Audit complet du code et de la base, rejoué contre la production avec la seule
+clé anon. Correctif : `supabase/_claude_sec_durcissement_2.sql`.
+
+| Constat (vérifié en production) | Correctif |
+|---|---|
+| `public.secret()` appelable par un visiteur anonyme (`/rest/v1/rpc/secret`) : le `REVOKE` d'origine oubliait `PUBLIC`. La clé `service_role` était lisible. | `REVOKE … FROM PUBLIC`. **Clés à régénérer** (`service_role`, `RECONCILE_KEY`). |
+| Projets : description, budget, financement renvoyés à un anonyme, puis floutés à l'écran. | Lecture par la vue masquante `projects_secure` ; la table n'est lisible en entier que par le porteur, l'admin, les formules payantes et les déblocages. |
+| Recherches de repreneurs : descriptif renvoyé à un anonyme. | Vue masquante `search_ads_secure`, même règle. |
+| SIRET « masqué » envoyé quand même ; annonces en pause lisibles. | `listings_secure` masque le SIRET et filtre les annonces inactives. |
+| Coordonnées d'un profil exposées sans regarder la formule. | `safe_profiles` exige une formule payante. |
+
+Fermé dans le même patch, d'après la lecture des règles (non exploité) :
+le destinataire d'une offre pouvait en réécrire le contenu et l'expéditeur se
+l'accepter ; une demande de relation, une note en modération ou un intérêt de
+projet pouvaient être validés par leur propre auteur ; le compteur de quota de
+contacts pouvait être effacé ; les compteurs de vues et le journal de la data
+room acceptaient n'importe quel `viewer_id`. Un admin, à l'inverse, ne pouvait
+ni valider un KYC ni vérifier un projet (aucune règle ne lui laissait lire la
+ligne) : c'est réparé.
+
+**Reste ouvert, connu :**
+- Les quotas de messagerie (gratuit : pas de nouveau contact ; Pro : 20 par
+  mois) et de publication ne sont vérifiés que par l'application. Un appel
+  direct à l'API les contourne.
+- Les règles du stockage (`storage.objects`) et les triggers sur `auth.users`
+  ne figurent dans aucun fichier fiable : à relever avec les deux requêtes en
+  fin de patch.
+- Le test `scripts/test-sql.sh` ne pouvait pas échouer (`|| true`) : corrigé,
+  mais il ne couvre que le correctif du 22/09, pas celui-ci.

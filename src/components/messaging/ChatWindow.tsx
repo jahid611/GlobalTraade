@@ -13,6 +13,8 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { TFunction } from 'i18next';
 import type { ChatMessage, Conversation } from '@/types/domain';
+import { OfferCard } from './OfferCard';
+import { isOfferMessage } from '@/lib/offers';
 
 type Message = ChatMessage;
 
@@ -78,119 +80,28 @@ export function ChatWindow({
 
   const acceptedOffer = [...messages]
     .reverse()
-    .find(m => (m.type === 'offer' || m.type === 'need_offer' || m.content.startsWith('OFFRE:') || m.content.startsWith('PROPOSITION AIDE:')) && m.metadata?.status === 'accepted');
+    .find(m => isOfferMessage(m) && m.metadata?.status === 'accepted');
   
   const hasAcceptedOffer = !!acceptedOffer;
 
-  const renderOfferCard = (msg: Message, isMine: boolean) => {
-    const isNeedOffer = msg.type === 'need_offer';
-    const status = msg.metadata?.status || 'pending';
-    const amount = msg.metadata?.amount || 0;
-    const financing = msg.metadata?.financing || 'loan';
-    
-    const formattedAmount = isNeedOffer && isNaN(Number(amount)) 
-      ? amount 
-      : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
-        style: 'currency', currency: 'EUR', maximumFractionDigits: 0 
-      }).format(Number(amount));
-
-    return (
-      <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
-        isMine ? 'liquid-glass bg-primary/10 border-primary/30 ml-auto shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'liquid-glass bg-white/[0.03] border-white/10'
-      }`}>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isMine ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/10 text-white/60 border border-white/10'}`}>
-              <Handshake className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                {isMine ? (isNeedOffer ? t('needs.your_proposal', 'Votre proposition') : t('msg.your_offer', 'Votre offre')) : (isNeedOffer ? `${t('needs.proposal_from', 'Proposition de')} ${activeConv.contact_name}` : `${t('msg.offer_from', 'Offre de')} ${activeConv.contact_name}`)}
-              </p>
-              <p className="text-[13px] font-medium text-white">{isNeedOffer ? msg.metadata?.need_title : t('msg.negotiation', 'Négociation')}</p>
-            </div>
-          </div>
-          <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
-            status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-            status === 'declined' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-            'bg-white/5 text-white/50 border-white/10'
-          }`}>
-            {status === 'accepted' ? t('msg.offer_accepted', 'Acceptée') : status === 'declined' ? t('msg.offer_declined', 'Refusée') : t('msg.pending', 'En attente')}
-          </div>
+  const renderOfferCard = (msg: Message, isMine: boolean) => (
+    <OfferCard
+      msg={msg}
+      isMine={isMine}
+      contactName={activeConv.contact_name}
+      loi={{
+        buyerName: isMine ? (activeConv.my_name || 'Acheteur') : activeConv.contact_name,
+        sellerName: isMine ? activeConv.contact_name : (activeConv.my_name || 'Vendeur'),
+        listingName: activeConv.listing_name,
+      }}
+      onOfferAction={onOfferAction}
+      pendingMineSlot={
+        <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-white/10 rounded-xl text-white/40 text-xs font-light italic">
+          <Clock className="w-3.5 h-3.5 animate-spin [animation-duration:3s]" /> {t('msg.waiting_response', 'En attente de réponse...')}
         </div>
-
-        <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
-          <div className="text-2xl font-light text-white tracking-tight mb-2 text-center break-words">{formattedAmount}</div>
-          {!isNeedOffer && (
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
-              <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-                {financing && typeof financing === 'object'
-                  ? `${t('msg.loan', 'Emprunt')} ${financing.loan}% · ${t('msg.equity', 'Fonds propres')} ${financing.equity}%`
-                  : (financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt'))}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {isNeedOffer && msg.metadata?.conditions && (
-          <div className="mb-4 bg-white/5 p-3 rounded-xl border border-white/10">
-            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-medium">{t('needs.offer_conditions', 'Conditions')}</p>
-            <p className="text-xs text-white/80 font-light">{msg.metadata.conditions}</p>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {status === 'pending' ? (
-            isMine ? (
-              <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 border border-white/10 rounded-xl text-white/40 text-xs font-light italic">
-                <Clock className="w-3.5 h-3.5 animate-spin-slow" /> {t('msg.waiting_response', 'En attente de réponse...')}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => onOfferAction(msg, 'declined')}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/60 hover:text-red-400 text-xs font-medium transition-all"
-                >
-                  <XCircle className="w-4 h-4" /> {t('profile.decline', 'Refuser')}
-                </button>
-                <button 
-                  onClick={() => onOfferAction(msg, 'accepted')}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                >
-                  <Check className="w-4 h-4" /> {t('profile.accept', 'Accepter')}
-                </button>
-              </div>
-            )
-          ) : (
-            <div className="space-y-3">
-              {!isNeedOffer && status === 'accepted' && (
-                <Button 
-                  onClick={() => {
-                    generateLOI({
-                      buyerName: isMine ? (activeConv.my_name || 'Acheteur') : activeConv.contact_name,
-                      sellerName: isMine ? activeConv.contact_name : (activeConv.my_name || 'Vendeur'),
-                      listingName: activeConv.listing_name,
-                      amount: Number(amount),
-                      financing: financing,
-                      offerDate: msg.created_at,
-                      acceptedDate: new Date().toISOString(),
-                      lang: i18n.language,
-                      t,
-                    });
-                  }}
-                  variant="outline" 
-                  className="w-full h-11 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-medium transition-all group"
-                >
-                  <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" /> {t('msg.generate_loi', 'Générer la LOI')}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+      }
+    />
+  );
 
   return (
     <div className="flex flex-col h-full bg-transparent text-white">
@@ -289,7 +200,6 @@ export function ChatWindow({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
               className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-3 sm:p-5 space-y-[4px]"
-              ref={scrollRef}
               style={{
                 maskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)',
                 WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)'
@@ -307,7 +217,7 @@ export function ChatWindow({
 
               {messages.map((msg) => {
                 const isMine = msg.sender_id === userId;
-                const isOffer = msg.type === 'offer' || msg.type === 'need_offer' || msg.content.startsWith('OFFRE:') || msg.content.startsWith('PROPOSITION AIDE:');
+                const isOffer = isOfferMessage(msg);
                 
                 if (isOffer) {
                   return (

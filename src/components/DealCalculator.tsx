@@ -16,6 +16,66 @@ const LIGHT_META: Record<Light, { emoji: string; label: string; color: string; b
   red:    { emoji: '🔴', label: 'Financement difficile',                 color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20' },
 };
 
+// Composants définis AU NIVEAU MODULE : déclarés dans le rendu, ils changeaient
+// d'identité à chaque onChange, React les remontait et le glissement d'un
+// curseur s'interrompait au premier pas.
+function InfoBlock({ open, title, text }: { open: boolean; title: string; text: string }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+          <div className="mt-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-100 text-xs font-light leading-relaxed">
+            <strong className="font-medium text-blue-300 block mb-1">{title}</strong>
+            {text}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: string }) {
+  return (
+    <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1.5">{label}</p>
+      <p className={`text-xl font-light ${accent || 'text-white'} tabular-nums`}>{value}</p>
+      {hint && <p className="text-[11px] text-white/35 font-light mt-1 leading-snug">{hint}</p>}
+    </div>
+  );
+}
+
+interface SliderProps {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  value: number;
+  onChange: (value: number) => void;
+  color: string;
+  max?: number;
+  infoId?: string;
+  infoTitle?: string;
+  infoText?: string;
+  /** identifiant du bloc d'aide actuellement ouvert */
+  showInfo: string | null;
+  onToggleInfo: (id: string | null) => void;
+}
+
+function Slider({ label, icon: Icon, value, onChange, color, max = 100, infoId, infoTitle, infoText, showInfo, onToggleInfo }: SliderProps) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={() => infoId && onToggleInfo(showInfo === infoId ? null : infoId)} className="text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5 hover:text-white transition-colors">
+          <Icon className="w-3.5 h-3.5" /> {label} {infoId && <Info className="w-3 h-3" />}
+        </button>
+        <span className="text-sm font-medium tabular-nums" style={{ color }}>{value}%</span>
+      </div>
+      <input type="range" min={0} max={max} step={1} value={value} onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full"
+        style={{ accentColor: color }} />
+      {infoId && <InfoBlock open={showInfo === infoId} title={infoTitle || ''} text={infoText || ''} />}
+    </div>
+  );
+}
+
 export function DealCalculator({ listing }: DealCalculatorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -119,42 +179,6 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
 
   const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
 
-  const InfoBlock = ({ id, title, text }: { id: string; title: string; text: string }) => (
-    <AnimatePresence>
-      {showInfo === id && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-          <div className="mt-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-100 text-xs font-light leading-relaxed">
-            <strong className="font-medium text-blue-300 block mb-1">{title}</strong>
-            {text}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-
-  const Stat = ({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: string }) => (
-    <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
-      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1.5">{label}</p>
-      <p className={`text-xl font-light ${accent || 'text-white'} tabular-nums`}>{value}</p>
-      {hint && <p className="text-[11px] text-white/35 font-light mt-1 leading-snug">{hint}</p>}
-    </div>
-  );
-
-  const Slider = ({ label, icon: Icon, value, onChange, color, max = 100, infoId, infoTitle, infoText }: any) => (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <button onClick={() => infoId && setShowInfo(showInfo === infoId ? null : infoId)} className="text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5 hover:text-white transition-colors">
-          <Icon className="w-3.5 h-3.5" /> {label} {infoId && <Info className="w-3 h-3" />}
-        </button>
-        <span className="text-sm font-medium tabular-nums" style={{ color }}>{value}%</span>
-      </div>
-      <input type="range" min={0} max={max} step={1} value={value} onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full"
-        style={{ accentColor: color }} />
-      {infoId && <InfoBlock id={infoId} title={infoTitle} text={infoText} />}
-    </div>
-  );
-
   const lm = LIGHT_META[calc.light];
 
   return (
@@ -238,19 +262,19 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
 
               {/* CURSEURS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <Slider label="Apport personnel" icon={PiggyBank} value={apportPct} color="#a855f7"
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Apport personnel" icon={PiggyBank} value={apportPct} color="#a855f7"
                   onChange={(v: number) => setSource(setApportPct, apportPct, v)}
                   infoId="apport" infoTitle="Pourquoi l'apport est crucial ?"
                   infoText="Les banques financent rarement 100 % d'un rachat. Un apport de 20 % à 30 % prouve l'engagement du repreneur (skin in the game) et réduit le risque." />
-                <Slider label="Investisseurs" icon={Users} value={investisseursPct} color="#e879f9"
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Investisseurs" icon={Users} value={investisseursPct} color="#e879f9"
                   onChange={(v: number) => setSource(setInvestisseursPct, investisseursPct, v)}
                   infoId="inv" infoTitle="Investisseurs / co-repreneurs"
                   infoText="Des fonds propres apportés par des tiers (business angels, fonds, associés) renforcent la structure et rassurent la banque, au prix d'un partage du capital." />
-                <Slider label="Crédit vendeur" icon={Handshake} value={creditVendeurPct} color="#fbbf24" max={50}
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Crédit vendeur" icon={Handshake} value={creditVendeurPct} color="#fbbf24" max={50}
                   onChange={(v: number) => setSource(setCreditVendeurPct, creditVendeurPct, v)}
                   infoId="cv" infoTitle="Qu'est-ce que le crédit vendeur ?"
                   infoText="Un prêt accordé par le vendeur (souvent 10-20 % du prix, sur 3 ans). Signal très positif : il prouve la confiance du cédant dans la pérennité de l'entreprise." />
-                <Slider label="Aides / subventions" icon={Gift} value={aidesPct} color="#34d399" max={40}
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Aides / subventions" icon={Gift} value={aidesPct} color="#34d399" max={40}
                   onChange={(v: number) => setSource(setAidesPct, aidesPct, v)}
                   infoId="aides" infoTitle="Aides et subventions"
                   infoText="Prêts d'honneur (Initiative France, Réseau Entreprendre), garanties Bpifrance, aides régionales : des fonds non dilutifs qui allègent l'emprunt bancaire." />

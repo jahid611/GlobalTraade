@@ -24,6 +24,26 @@ import type { Listing } from '@/types/domain';
 // Réponse de l'API adresse (data.gouv / Nominatim)
 type AddressSuggestion = { display_name: string; lat: string; lon: string };
 
+// URL saisie sans schéma (« www.exemple.fr ») -> « https://www.exemple.fr ».
+// Une valeur qui porte déjà un schéma est laissée telle quelle.
+const normalizeWebsiteUrl = (value: unknown): unknown => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
+// Étape du formulaire où se trouve chaque champ (pour ramener l'utilisateur
+// sur le premier champ en erreur à la soumission).
+const FIELD_STEP: Record<string, number> = {
+  name: 1, siret: 1, hide_siret: 1, share_financials: 1, industry: 1, website_url: 1,
+  address: 2, lat: 2, lng: 2,
+  price: 3, revenue_n1: 3, ebitda: 3, revenue_n2: 3, revenue_n3: 3,
+  rent: 4, surface: 4, employees: 4, established_year: 4, description: 4, reason_for_selling: 4, lease_details: 4,
+  management_type: 5, client_concentration: 5, digital_maturity: 5, market_trend: 5,
+};
+
 const getListingSchema = (t: TFunction) => {
   const currentYear = new Date().getFullYear();
   // Nombre OBLIGATOIRE : un champ vide ("") est rejeté (≠ 0). 0 reste accepté
@@ -39,7 +59,10 @@ const getListingSchema = (t: TFunction) => {
     hide_siret: z.boolean().default(false),
     share_financials: z.boolean().default(true),
     industry: z.string().min(2, t('val.industry_req')),
-    website_url: z.string().url(t('val.invalid_url', 'URL invalide')).optional().nullable().or(z.literal("")),
+    website_url: z.preprocess(
+      normalizeWebsiteUrl,
+      z.string().url(t('val.invalid_url', 'URL invalide')).optional().nullable().or(z.literal(""))
+    ),
     address: z.string().min(5, t('val.address_req')),
     lat: z.number({ required_error: t('val.address_req') }),
     lng: z.number({ required_error: t('val.address_req') }),
@@ -135,7 +158,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
 
   const schema = useMemo(() => getListingSchema(t), [t]);
   
-  const { register, handleSubmit, setValue, watch, reset, trigger, control, formState: { errors } } = useForm<ListingData>({ 
+  const { register, handleSubmit, setValue, getValues, watch, reset, trigger, control, formState: { errors } } = useForm<ListingData>({ 
     resolver: zodResolver(schema) 
   });
   
@@ -226,7 +249,14 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
 
   const handleNextStep = async () => {
     let fields: (keyof ListingData)[] = [];
-    if (step === 1) fields = ['name', 'siret', 'industry'];
+    if (step === 1) {
+      fields = ['name', 'siret', 'industry', 'website_url'];
+      // Le site web est validé à SON étape ; une URL saisie sans schéma est
+      // complétée (https://) et le champ mis à jour sous les yeux de l'utilisateur.
+      const rawUrl = getValues('website_url');
+      const normalizedUrl = normalizeWebsiteUrl(rawUrl);
+      if (typeof normalizedUrl === 'string' && normalizedUrl !== rawUrl) setValue('website_url', normalizedUrl);
+    }
     else if (step === 2) fields = ['address', 'lat', 'lng'];
     else if (step === 3) fields = ['price', 'revenue_n1', 'ebitda', 'revenue_n2', 'revenue_n3'];
     else if (step === 4) fields = ['rent', 'surface', 'employees', 'description', 'lease_details'];
@@ -236,6 +266,15 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
   };
 
   const handlePrevStep = () => { setDirection(-1); setStep(s => Math.max(1, s - 1)); };
+
+  // Soumission refusée par la validation : on ramène à l'étape du premier champ
+  // en erreur (sinon le bouton « Valider » ne faisait rien, sans aucun message).
+  const onInvalid = (formErrors: Record<string, unknown>) => {
+    const steps = Object.keys(formErrors).map(field => FIELD_STEP[field]).filter((n): n is number => typeof n === 'number');
+    const target = steps.length > 0 ? Math.min(...steps) : step;
+    if (target !== step) { setDirection(target < step ? -1 : 1); setStep(target); }
+    showError(t('form.err_invalid_fields', 'Certains champs sont manquants ou invalides. Corrigez-les pour enregistrer votre annonce.'));
+  };
 
   const onSubmit = async (data: ListingData) => {
     setIsSubmitting(true);
@@ -756,7 +795,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
               {t('form.next')} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-fit h-12 px-6 sm:px-10 rounded-full liquid-glass bg-primary/10 border border-primary/40 text-white font-medium hover:bg-primary/20 transition-all flex items-center gap-2 text-sm">
+            <Button onClick={handleSubmit(onSubmit, onInvalid)} disabled={isSubmitting} className="w-fit h-12 px-6 sm:px-10 rounded-full liquid-glass bg-primary/10 border border-primary/40 text-white font-medium hover:bg-primary/20 transition-all flex items-center gap-2 text-sm">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{t('form.validate')} <Check className="w-4 h-4 ml-1" /></>}
             </Button>
           )}

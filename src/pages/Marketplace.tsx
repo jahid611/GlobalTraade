@@ -61,7 +61,7 @@ const SkeletonCard = () => (
 
 export default function Marketplace() {
   const queryClient = useQueryClient();
-  const { data: listings = [] } = useListings();
+  const { data: listings = [], isLoading } = useListings();
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -84,6 +84,9 @@ export default function Marketplace() {
   const [isMatching, setIsMatching] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [matchCriteria, setMatchCriteria] = useState<MatchCriteria | null>(null);
+  // Changer la clé remonte le formulaire de recherche intelligente : ses champs
+  // reviennent à zéro en même temps que les critères appliqués.
+  const [smartFormKey, setSmartFormKey] = useState(0);
 
   const navigate = useNavigate();
 
@@ -235,7 +238,7 @@ export default function Marketplace() {
         <>
         <div className="relative z-10 max-w-xl mx-auto mb-[10vh]">
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
-            <SmartMatchForm onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
+            <SmartMatchForm key={smartFormKey} onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
           </motion.div>
         </div>
 
@@ -244,7 +247,9 @@ export default function Marketplace() {
             <div>
               <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-[0.5vh] text-white">{t('market.portfolios')}</h2>
               <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/90 font-light">
-                {displayedListings.length} {t('market.found')}
+                {isLoading
+                  ? t('market.loading', 'Chargement des opportunités…')
+                  : <>{displayedListings.length} {t('market.found')}</>}
               </p>
               {matchCriteria && (
                 <button
@@ -280,6 +285,10 @@ export default function Marketplace() {
                  {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
                </div>
             </motion.div>
+          ) : isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
+              {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
+            </div>
           ) : displayedListings.length === 0 ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-[15vh] text-center flex flex-col items-center bg-black/20 border border-white/20 border-dashed rounded-[2rem] backdrop-blur-md">
               <Store className="w-[10vw] sm:w-12 h-[10vw] sm:h-12 text-white/50 mx-auto mb-[3vh]" strokeWidth={1} />
@@ -287,7 +296,7 @@ export default function Marketplace() {
               <p className="text-white/80 font-light text-[clamp(0.875rem,1vw,1rem)] max-w-md mx-auto mb-6 leading-relaxed">
                 {t('market.no_match_desc')}
               </p>
-              <Button variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)} className="text-white bg-transparent border-white/30 hover:bg-white/10 rounded-full font-medium h-12 px-8 transition-all">
+              <Button variant="outline" onClick={() => { setFilters(DEFAULT_FILTERS); setMatchCriteria(null); setSmartFormKey(k => k + 1); }} className="text-white bg-transparent border-white/30 hover:bg-white/10 rounded-full font-medium h-12 px-8 transition-all">
                 {t('market.reset_filters')}
               </Button>
             </motion.div>

@@ -97,21 +97,37 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
     };
   }, [user?.id]);
 
+  // Repli tant que la table `dismissed_notifications` n'existe pas : les clés
+  // masquées vivent dans user_metadata.
+  const loadDismissedKeysFromMetadata = async () => {
+    const { data: authData, error } = await supabase.auth.getUser();
+    if (error) {
+      notifCache.dismissedKeys = new Set();
+      return;
+    }
+    const hidden = authData.user?.user_metadata?.hidden_notifications || [];
+    notifCache.dismissedKeys = new Set(hidden);
+  };
+
   const loadDismissedKeys = async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
+      // supabase-js ne lève pas : il renvoie { error }. C'est `error` qu'il
+      // faut tester pour que le repli serve réellement.
+      const { data, error } = await supabase
         .from('dismissed_notifications')
         .select('notification_key')
         .eq('user_id', user.id);
-      
+
+      if (error) {
+        await loadDismissedKeysFromMetadata();
+        return;
+      }
       notifCache.dismissedKeys = new Set((data || []).map(d => d.notification_key));
     } catch (e) {
-      // Fallback: if table doesn't exist yet, try user_metadata
+      // Erreur réseau : même repli
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        const hidden = authData.user?.user_metadata?.hidden_notifications || [];
-        notifCache.dismissedKeys = new Set(hidden);
+        await loadDismissedKeysFromMetadata();
       } catch (err) {
         notifCache.dismissedKeys = new Set();
       }
@@ -127,7 +143,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
 
       const { data: conns } = await supabase.from('connections').select('*').eq('recipient_id', user.id).eq('status', 'pending');
       const { data: acceptedConns } = await supabase.from('connections').select('*').eq('requester_id', user.id).eq('status', 'accepted');
-      const { data: listings } = await supabase.from('listings').select('id, name').eq('owner_id', user.id);
+      const { data: listings } = await supabase.from('listings_secure').select('id, name').eq('owner_id', user.id);
         
       const listingIds = listings?.map(l => l.id) || [];
       let favs: { id: string; user_id: string; created_at: string; listing_id: string }[] = [];
@@ -138,14 +154,14 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
 
       // Fetch offer messages: received offers (pending) + my offers that got a response
       const { data: receivedOffers } = await supabase.from('messages')
-        .select('*, listings(id, name)')
+        .select('*')
         .eq('receiver_id', user.id)
         .eq('type', 'offer')
         .order('created_at', { ascending: false })
         .limit(20);
 
       const { data: myOffersAnswered } = await supabase.from('messages')
-        .select('*, listings(id, name)')
+        .select('*')
         .eq('sender_id', user.id)
         .eq('type', 'offer')
         .neq('metadata->>status', 'pending')
@@ -170,6 +186,17 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
       const notifs: NotificationItemData[] = [];
       const listingsMap = new Map(listings?.map(l => [l.id, l]));
 
+      // Nom des annonces concernées par les offres : lu via la vue
+      // `listings_secure` (plus de jointure sur la table `listings` brute).
+      const offerListingIds = Array.from(new Set(
+        [...(receivedOffers || []), ...(myOffersAnswered || [])].map(o => o.listing_id).filter(Boolean)
+      ));
+      const offerListingsMap = new Map<string, { id: string; name: string }>();
+      if (offerListingIds.length > 0) {
+        const { data: offerListings } = await supabase.from('listings_secure').select('id, name').in('id', offerListingIds);
+        (offerListings || []).forEach(l => offerListingsMap.set(l.id, l));
+      }
+
       conns?.forEach(c => {
         if (!profilesMap.has(c.requester_id)) return;
         notifs.push({ id: `conn_${c.id}`, type: 'connection', created_at: c.created_at, profile: profilesMap.get(c.requester_id) });
@@ -187,13 +214,13 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
 
       receivedOffers?.forEach(o => {
         if (!profilesMap.has(o.sender_id)) return;
-        notifs.push({ id: `offer_recv_${o.id}`, type: 'offer_received', created_at: o.created_at, profile: profilesMap.get(o.sender_id), listing: o.listings, metadata: o.metadata });
+        notifs.push({ id: `offer_recv_${o.id}`, type: 'offer_received', created_at: o.created_at, profile: profilesMap.get(o.sender_id), listing: offerListingsMap.get(o.listing_id), metadata: o.metadata });
       });
 
       myOffersAnswered?.forEach(o => {
         if (!profilesMap.has(o.receiver_id)) return;
         const status = o.metadata?.status;
-        notifs.push({ id: `offer_resp_${o.id}`, type: status === 'accepted' ? 'offer_accepted' : 'offer_declined', created_at: o.created_at, profile: profilesMap.get(o.receiver_id), listing: o.listings, metadata: o.metadata });
+        notifs.push({ id: `offer_resp_${o.id}`, type: status === 'accepted' ? 'offer_accepted' : 'offer_declined', created_at: o.created_at, profile: profilesMap.get(o.receiver_id), listing: offerListingsMap.get(o.listing_id), metadata: o.metadata });
       });
 
       // Filter out dismissed notifications using persistent keys
@@ -260,19 +287,25 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
     notifCache.dismissedKeys.add(notifId);
     
     // Persist dismissal to database
+    const persistToMetadata = async () => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) return;
+      const currentHidden = authData.user?.user_metadata?.hidden_notifications || [];
+      if (!currentHidden.includes(notifId)) {
+        await supabase.auth.updateUser({ data: { hidden_notifications: [...currentHidden, notifId] } });
+      }
+    };
     try {
-      await supabase.from('dismissed_notifications').upsert(
+      const { error } = await supabase.from('dismissed_notifications').upsert(
         { user_id: user.id, notification_key: notifId },
         { onConflict: 'user_id,notification_key' }
       );
+      // Fallback to user_metadata if table doesn't exist yet (supabase-js
+      // renvoie { error }, il ne lève pas)
+      if (error) await persistToMetadata();
     } catch (err) {
-      // Fallback to user_metadata if table doesn't exist yet
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        const currentHidden = authData.user?.user_metadata?.hidden_notifications || [];
-        if (!currentHidden.includes(notifId)) {
-          await supabase.auth.updateUser({ data: { hidden_notifications: [...currentHidden, notifId] } });
-        }
+        await persistToMetadata();
       } catch(e2) {}
     }
   };
