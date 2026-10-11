@@ -265,6 +265,48 @@ export default function Payment() {
         subtitle: targetName || (t('pay.boost_subtitle', { days: BOOST_DAYS, defaultValue: 'Votre annonce apparaît en priorité pendant {{days}} jours.' }) as string), icon: Rocket, accent: 'text-amber-400' }
     : null;
 
+  // Ce que l'on achète, dit clairement avant de payer : le nom de ce qui est
+  // concerné, ce que cela apporte, et le fait que c'est un paiement unique.
+  const oneShotKind = oneShot ? `${oneShot.kind}:${oneShot.target.type}` : '';
+  const oneShotWhat: Record<string, string> = {
+    'boost:listing': t('pay.what_boost_listing', "Votre annonce d'entreprise à vendre"),
+    'boost:project': t('pay.what_boost_project', 'Votre projet'),
+    'boost:search_ad': t('pay.what_boost_search', 'Votre recherche de repreneur'),
+    'unlock:listing': t('pay.what_unlock_listing', "Une annonce d'entreprise à vendre"),
+    'unlock:project': t('pay.what_unlock_project', 'Un projet'),
+    'unlock:search_ad': t('pay.what_unlock_search', 'Une recherche de repreneur'),
+  };
+  const oneShotBenefits: Record<string, string[]> = {
+    'boost:listing': [
+      t('pay.b_boost_listing_1', { days: BOOST_DAYS, defaultValue: 'Votre annonce passe en tête de la marketplace pendant {{days}} jours.' }),
+      t('pay.b_boost_2', "Une étiquette « En avant » la distingue des autres."),
+      t('pay.b_boost_3', "Plus de personnes la voient, donc plus de chances d'être contacté."),
+    ],
+    'boost:project': [
+      t('pay.b_boost_project_1', { days: BOOST_DAYS, defaultValue: 'Votre projet passe en tête du Project Hub pendant {{days}} jours.' }),
+      t('pay.b_boost_2', "Une étiquette « En avant » la distingue des autres."),
+      t('pay.b_boost_project_3', "Plus de personnes le voient, donc plus de chances de recevoir de l'aide."),
+    ],
+    'boost:search_ad': [
+      t('pay.b_boost_search_1', { days: BOOST_DAYS, defaultValue: 'Votre recherche passe en tête de la liste des repreneurs pendant {{days}} jours.' }),
+      t('pay.b_boost_2', "Une étiquette « En avant » la distingue des autres."),
+      t('pay.b_boost_search_3', "Les vendeurs la voient en premier, donc plus de chances d'être contacté."),
+    ],
+    'unlock:listing': [
+      t('pay.b_unlock_listing_1', "Le dossier complet de l'entreprise : description, chiffre d'affaires, résultat, bail."),
+      t('pay.b_unlock_listing_2', 'La messagerie pour écrire directement au vendeur.'),
+      t('pay.b_unlock_listing_3', 'Le simulateur de financement et la note sur 100 de cette annonce.'),
+    ],
+    'unlock:project': [
+      t('pay.b_unlock_project_1', 'Le dossier complet du projet : description, budget, besoins détaillés.'),
+      t('pay.b_unlock_project_2', 'La messagerie pour écrire directement au porteur du projet.'),
+    ],
+    'unlock:search_ad': [
+      t('pay.b_unlock_search_1', 'La description complète de ce que ce repreneur recherche.'),
+      t('pay.b_unlock_search_2', 'La messagerie pour lui écrire directement.'),
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30 relative flex flex-col font-sans overflow-x-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -295,8 +337,28 @@ export default function Payment() {
                   <oneShot.icon className="w-7 h-7" />
                 </div>
                 <h2 className="text-2xl font-light mb-2">{oneShot.title}</h2>
-                <p className="text-sm text-white/50 font-light mb-6 leading-relaxed">{oneShot.subtitle}</p>
-                <div className="text-4xl font-light mb-8">{oneShot.price} €</div>
+                {/* De quoi il s'agit : le type, et le nom quand on le connaît */}
+                <p className="text-sm text-white/60 font-light leading-relaxed">{oneShotWhat[oneShotKind]}</p>
+                {/* Le nom tient sur UNE ligne : s'il est trop long, il est coupé par « … » */}
+                {targetName && (
+                  <p className="text-base text-white font-medium mt-1 truncate" title={targetName}>« {targetName} »</p>
+                )}
+
+                {/* Ce que cet achat apporte */}
+                <div className="mt-6 mb-6 rounded-2xl p-4 text-left" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#a5b4fc' }}>{t('pay.you_get', 'Ce que vous obtenez')}</p>
+                  <ul className="space-y-2.5">
+                    {(oneShotBenefits[oneShotKind] || []).map((line) => (
+                      <li key={line} className="flex items-start gap-2.5 text-sm text-white/85 font-light leading-snug">
+                        <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#6ee7b7' }} />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="text-4xl font-light mb-1.5">{oneShot.price} €</div>
+                <p className="text-sm text-white/60 font-light mb-7">{t('pay.one_time', 'Paiement unique, sans abonnement : rien ne sera prélevé ensuite.')}</p>
                 <Button onClick={() => pay({ kind: oneShot.kind, target: oneShot.target, returnPath: oneShot.returnPath }, 'oneshot')} disabled={loadingKind === 'oneshot'}
                   className="w-full h-14 rounded-full bg-primary hover:bg-primary/90 text-white font-medium text-sm">
                   {loadingKind === 'oneshot' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Lock className="w-4 h-4 mr-2" /> {t('pay.pay_with_stripe', { price: oneShot.price, defaultValue: 'Payer {{price}} € avec Stripe' })}</>}
@@ -413,7 +475,18 @@ export default function Payment() {
 
       </main>
 
-      {clientSecret && <StripeCheckoutModal clientSecret={clientSecret} onClose={() => setClientSecret(null)} />}
+      {clientSecret && (
+        <StripeCheckoutModal
+          clientSecret={clientSecret}
+          onClose={() => setClientSecret(null)}
+          summary={oneShot ? {
+            title: oneShot.title,
+            subject: `${oneShotWhat[oneShotKind]}${targetName ? ` : « ${targetName} »` : ''}`,
+            lines: oneShotBenefits[oneShotKind] || [],
+            note: t('pay.one_time', 'Paiement unique, sans abonnement : rien ne sera prélevé ensuite.'),
+          } : undefined}
+        />
+      )}
     </div>
   );
 }

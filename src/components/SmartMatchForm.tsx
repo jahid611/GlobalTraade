@@ -26,6 +26,8 @@ interface SmartMatchFormProps {
    * pensé pour être l'élément principal de la page (marketplace).
    */
   variant?: 'card' | 'hero';
+  /** Critères déjà remplis à l'ouverture (ex. : le projet de reprise du membre). */
+  initial?: MatchCriteria;
 }
 
 export const BUDGET_MIN = 5000;
@@ -34,11 +36,11 @@ export const BUDGET_MAX = 3000000;
 const fmtEur = (n: number) =>
   n >= 1000000 ? `${(n / 1000000).toFixed(n % 1000000 ? 1 : 0)} M€` : `${Math.round(n / 1000)} k€`;
 
-export function SmartMatchForm({ onResults, onReset, variant = 'card' }: SmartMatchFormProps) {
+export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }: SmartMatchFormProps) {
   const { t, i18n } = useTranslation();
-  const [industries, setIndustries] = useState<string[]>([]);
-  const [regions, setRegions] = useState<string[]>([]);
-  const [budget, setBudget] = useState<[number, number]>([BUDGET_MIN, BUDGET_MAX]);
+  const [industries, setIndustries] = useState<string[]>(initial?.industries ?? []);
+  const [regions, setRegions] = useState<string[]>(initial?.regions ?? []);
+  const [budget, setBudget] = useState<[number, number]>([initial?.budgetMin ?? BUDGET_MIN, initial?.budgetMax ?? BUDGET_MAX]);
   const [loading, setLoading] = useState(false);
 
   // Toujours la liste maîtresse complète — la même que partout sur le site.

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
-import { SmartMatchForm, MatchCriteria } from '@/components/SmartMatchForm';
+import { SmartMatchForm, MatchCriteria, BUDGET_MIN, BUDGET_MAX } from '@/components/SmartMatchForm';
+import { parseBuyerProject, toMatchCriteria, hasSearchCriteria } from '@/lib/buyerProject';
 import { scoreListing, ProfileCriteria } from '@/lib/matching';
 import { matchRegion, regionLabel } from '@/lib/geoRegions';
 import { ListingForm } from '@/components/ListingForm';
@@ -12,9 +13,9 @@ import { BusinessCard } from '@/components/BusinessCard';
 import { AdvancedFilters, FilterState } from '@/components/AdvancedFilters';
 import { HelpBanner } from '@/components/HelpBanner';
 import { Dropdown } from '@/components/PickerKit';
-import { Store, Filter, Plus, Loader2, Search, X } from 'lucide-react';
+import { Store, Filter, Plus, Loader2, Search, X, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListings } from '@/hooks/use-listings';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -182,6 +183,34 @@ export default function Marketplace() {
     setTimeout(() => setIsMatching(false), 600);
   };
 
+  // « Chercher avec mon projet de reprise » : le projet enregistré dans les
+  // Réglages pré-remplit la recherche intelligente, qui fonctionne comme d'habitude.
+  const myProject = useMemo(() => parseBuyerProject({
+    target_sectors: user?.user_metadata?.target_sectors,
+    target_budget: user?.user_metadata?.target_budget,
+    target_geo: user?.user_metadata?.target_geo,
+  }), [user]);
+  const canSearchWithProject = !!user && hasSearchCriteria(myProject);
+  const [projectSearch, setProjectSearch] = useState<{ key: number; criteria: MatchCriteria } | null>(null);
+  const searchWithProject = () => {
+    const criteria = toMatchCriteria(myProject, { min: BUDGET_MIN, max: BUDGET_MAX });
+    const key = smartFormKey + 1;
+    setProjectSearch({ key, criteria });
+    setSmartFormKey(key);
+    setMode('listings');
+    handleSmartMatch(criteria);
+  };
+  // Lien direct depuis le profil ou les Réglages : /marketplace?projet=1
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('projet') !== '1' || !user) return;
+    if (canSearchWithProject) searchWithProject();
+    const next = new URLSearchParams(searchParams);
+    next.delete('projet');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user]);
+
   const getActiveFilterCount = () => {
     let count = 0;
     if (filters.industries.length) count++;
@@ -227,7 +256,7 @@ export default function Marketplace() {
   ];
 
   const smartForm = (
-    <SmartMatchForm key={smartFormKey} variant="hero" onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} />
+    <SmartMatchForm key={smartFormKey} variant="hero" onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} initial={projectSearch?.key === smartFormKey ? projectSearch.criteria : undefined} />
   );
 
   const filtersButton = (
@@ -259,12 +288,12 @@ export default function Marketplace() {
             aria-hidden="true"
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="xl:hidden absolute -top-10 right-0 sm:right-6 w-[150px] sm:w-[180px] z-0 !pointer-events-none opacity-35"
+            className="xl:hidden absolute -top-3 right-0 sm:right-6 w-[92px] sm:w-[130px] z-0 !pointer-events-none"
           >
             <img src="/mascot/globi-peche.png" alt="" className="w-full h-auto" />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 pr-[100px] sm:pr-[150px] xl:pr-0">
             <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
               {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
             </h1>
@@ -318,6 +347,34 @@ export default function Marketplace() {
           {/* ── La recherche intelligente : l'élément principal de la page ── */}
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
             {smartForm}
+            {/* Raccourci : la recherche pré-remplie avec le projet de reprise du membre */}
+            {user && (
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-4 sm:px-5 py-3.5">
+                <Target className="w-5 h-5 text-[#a5b4fc] shrink-0 hidden sm:block" />
+                <p className="flex-1 min-w-0 text-sm text-white/70 font-light leading-snug">
+                  {canSearchWithProject
+                    ? t('bp.search_hint', 'Votre projet de reprise est enregistré : lancez la recherche avec vos secteurs, vos régions et votre budget, sans rien retaper.')
+                    : t('bp.search_hint_empty', 'Décrivez votre projet de reprise une fois : vous pourrez ensuite lancer cette recherche en un clic.')}
+                </p>
+                {canSearchWithProject ? (
+                  <button
+                    type="button"
+                    onClick={searchWithProject}
+                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full bg-primary/25 hover:bg-primary/40 border border-primary/50 text-sm font-medium text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0"
+                  >
+                    <Search className="w-4 h-4 shrink-0" /> {t('bp.search_cta', 'Chercher avec mon projet de reprise')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/settings#criteres')}
+                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-sm font-medium text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0"
+                  >
+                    {t('bp.fill_cta', 'Décrire mon projet')}
+                  </button>
+                )}
+              </div>
+            )}
           </motion.div>
 
           {/* L'aide passe sous la recherche : elle explique, elle ne doit pas la précéder. */}

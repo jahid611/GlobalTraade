@@ -4,7 +4,8 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash, Users, Money, Package, Brain, Globe, CaretDown, Lightbulb, Wrench, RocketLaunch, ChartLineUp, ArrowLeft, ArrowRight, Check, Handshake, MagnifyingGlass, PencilSimple, Fire, Info } from "phosphor-react";
 import { Button } from "@/components/ui/button";
-import { createProject, updateProject, ProjectInsert, HelpType, TeamRole, MaterialItem, type Project, type ProjectStage } from "@/services/projectService";
+import { createProject, updateProject, ProjectInsert, HelpType, TeamRole, MaterialItem, type Project, type ProjectStage , ExpertiseDetails, NetworkDetails } from "@/services/projectService";
+import { ChoicePills, payChoices, placeChoices, startChoices, materialModeChoices, materialConditionChoices, expertiseFormatChoices, expertisePayChoices, expertiseSuggestions, networkTargetChoices, networkScopeChoices, labelOf, totalPeople, quantityOf, totalMaterialValue } from '@/components/projects/needsMeta';
 import { canonicalIndustry, industryOptions } from "@/lib/industries";
 import { useAuth } from "@/components/AuthProvider";
 import { showSuccess, showError } from "@/utils/toast";
@@ -241,7 +242,7 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
     apport_personnel:"", funds_usage:"", revenue_current:"", revenue_forecast:"", financing_types:[],
     human_needed:false, team_roles:[],
     material_needed:false, material_items:[],
-    expertise_needed:false, expertise_domains:[],
+    expertise_needed:false, expertise_domains:[], expertise_details:{}, network_details:{},
     is_urgent:false, deadline:"", is_published:true,
     ...projectToEdit
   });
@@ -313,11 +314,11 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
     clearError("help");
   };
 
-  const addRole = () => set("team_roles", [...(form.team_roles||[]), { title:"", skills:"", type:"full", count:1 }]);
+  const addRole = () => set("team_roles", [...(form.team_roles||[]), { title:"", skills:"", type:"full", count:1, mission:"", pay:"", place:"", start:"" }]);
   const removeRole = (i: number) => set("team_roles", (form.team_roles||[]).filter((_:any,idx:number)=>idx!==i));
   const updateRole = <K extends keyof TeamRole>(i: number, k: K, v: TeamRole[K]) => set("team_roles", (form.team_roles||[]).map((r:TeamRole,idx:number)=>idx===i?{...r,[k]:v}:r));
 
-  const addMat = () => set("material_items", [...(form.material_items||[]), { name:"", quantity:"1", estimated_value:0, urgent:false }]);
+  const addMat = () => set("material_items", [...(form.material_items||[]), { name:"", quantity:"1", estimated_value:0, urgent:false, mode:"", condition:"", purpose:"" }]);
   const removeMat = (i: number) => set("material_items", (form.material_items||[]).filter((_:any,idx:number)=>idx!==i));
   const updateMat = <K extends keyof MaterialItem>(i: number, k: K, v: MaterialItem[K]) => set("material_items", (form.material_items||[]).map((m:MaterialItem,idx:number)=>idx===i?{...m,[k]:v}:m));
 
@@ -361,6 +362,8 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
   const helpTypes = (form.help_types || []) as HelpType[];
   const has = (h: HelpType) => helpTypes.includes(h);
   const hasDetails = helpTypes.length > 0;
+  const expertise = (form.expertise_details || {}) as ExpertiseDetails;
+  const network = (form.network_details || {}) as NetworkDetails;
   const titleId = fid("dialog-title");
 
   // --- Récapitulatif ---
@@ -614,6 +617,9 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                             <Field label={t('pf.team_skills', 'Compétences attendues')} htmlFor={fid(`role-skills-${i}`)}>
                               <input id={fid(`role-skills-${i}`)} className={inputCls} placeholder={t('pf.team_skills_ph', 'Ex. : React, gestion de projet, anglais')} value={r.skills} onChange={e=>updateRole(i,"skills",e.target.value)}/>
                             </Field>
+                            <Field label={t('need.team_mission', 'Ce que cette personne fera')} htmlFor={fid(`role-mission-${i}`)} hint={t('need.team_mission_hint', 'Une phrase suffit : on doit comprendre le travail attendu.')}>
+                              <input id={fid(`role-mission-${i}`)} className={inputCls} maxLength={160} placeholder={t('need.team_mission_ph', 'Ex. : tenir la caisse et servir les clients le week-end')} value={r.mission || ""} onChange={e=>updateRole(i,"mission",e.target.value)}/>
+                            </Field>
                             <div className="grid grid-cols-2 gap-3">
                               <Field label={t('pf.team_type', 'Engagement')}>
                                 <Dropdown
@@ -628,11 +634,25 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                                 />
                               </Field>
                               <Field label={t('pf.team_count', 'Nombre de personnes')} htmlFor={fid(`role-count-${i}`)}>
-                                <input id={fid(`role-count-${i}`)} type="number" inputMode="numeric" className={inputCls} min="1" placeholder={t('pf.team_count_ph', 'Ex. : 1')} value={r.count} onChange={e=>updateRole(i,"count",Number(e.target.value))}/>
+                                <input id={fid(`role-count-${i}`)} type="number" inputMode="numeric" className={inputCls} min="1" max="99" placeholder={t('pf.team_count_ph', 'Ex. : 1')} value={r.count} onChange={e=>updateRole(i,"count",Math.max(1, Math.min(99, Number(e.target.value) || 1)))}/>
                               </Field>
                             </div>
+                            <Field label={t('need.team_pay', 'Comment sera-t-elle rémunérée ?')}>
+                              <ChoicePills label={t('need.team_pay', 'Comment sera-t-elle rémunérée ?')} tone={HELP_TONES.human} choices={payChoices(t)} value={r.pay} onChange={(v: string)=>updateRole(i,"pay",v)} />
+                            </Field>
+                            <Field label={t('need.team_place', 'Où travaillera-t-elle ?')}>
+                              <ChoicePills label={t('need.team_place', 'Où travaillera-t-elle ?')} tone={HELP_TONES.human} choices={placeChoices(t)} value={r.place} onChange={(v: string)=>updateRole(i,"place",v)} />
+                            </Field>
+                            <Field label={t('need.team_start', 'À partir de quand ?')}>
+                              <ChoicePills label={t('need.team_start', 'À partir de quand ?')} tone={HELP_TONES.human} choices={startChoices(t)} value={r.start} onChange={(v: string)=>updateRole(i,"start",v)} />
+                            </Field>
                           </div>
                         ))}
+                        {roles.length > 0 && (
+                          <p className="text-sm font-medium px-1" style={{ color: HELP_TONES.human.text }}>
+                            {totalPeople(roles) === 1 ? t('need.team_total_one', 'Au total : 1 personne recherchée.') : t('need.team_total_many', { defaultValue: 'Au total : {{n}} personnes recherchées.', n: totalPeople(roles) })}
+                          </p>
+                        )}
                         {!roles.length && <p className="text-white/50 text-sm text-center py-2">{t('project.form.no_roles')}</p>}
                         <button type="button" onClick={addRole}
                           className="w-full min-h-[48px] rounded-2xl border border-dashed border-white/25 text-sm font-medium text-white/80 hover:text-white hover:border-white/50 hover:bg-white/5 flex items-center justify-center gap-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -656,16 +676,39 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                             <Field label={t('pf.mat_name', 'De quoi s\'agit-il ?')} htmlFor={fid(`mat-name-${i}`)}>
                               <input id={fid(`mat-name-${i}`)} className={inputCls} placeholder={t('pf.mat_name_ph', 'Ex. : Four professionnel')} value={m.name} onChange={e=>updateMat(i,"name",e.target.value)}/>
                             </Field>
+                            <Field label={t('need.mat_purpose', 'À quoi servira-t-il ?')} htmlFor={fid(`mat-purpose-${i}`)}>
+                              <input id={fid(`mat-purpose-${i}`)} className={inputCls} maxLength={160} placeholder={t('need.mat_purpose_ph', 'Ex. : cuire 300 baguettes par jour')} value={m.purpose || ""} onChange={e=>updateMat(i,"purpose",e.target.value)}/>
+                            </Field>
                             <div className="grid grid-cols-2 gap-3">
-                              <Field label={t('pf.mat_qty', 'Quantité')} htmlFor={fid(`mat-qty-${i}`)}>
-                                <input id={fid(`mat-qty-${i}`)} className={inputCls} placeholder={t('pf.mat_qty_ph', 'Ex. : 2')} value={m.quantity} onChange={e=>updateMat(i,"quantity",e.target.value)}/>
+                              <Field label={t('need.mat_qty', 'Combien ?')} htmlFor={fid(`mat-qty-${i}`)}>
+                                <input id={fid(`mat-qty-${i}`)} type="number" inputMode="numeric" min="1" max="9999" className={inputCls} placeholder={t('pf.mat_qty_ph', 'Ex. : 2')} value={m.quantity} onChange={e=>updateMat(i,"quantity",e.target.value.replace(/\D/g, "").slice(0, 4))}/>
                               </Field>
-                              <Field label={t('pf.mat_val', 'Valeur estimée (€)')} htmlFor={fid(`mat-val-${i}`)}>
-                                <input id={fid(`mat-val-${i}`)} type="number" inputMode="numeric" className={inputCls} placeholder={t('pf.mat_val_ph', 'Ex. : 500')} value={m.estimated_value||""} onChange={e=>updateMat(i,"estimated_value",Number(e.target.value))}/>
+                              <Field label={t('need.mat_val', "Valeur à l'unité (€)")} htmlFor={fid(`mat-val-${i}`)}>
+                                <input id={fid(`mat-val-${i}`)} type="number" inputMode="numeric" min="0" className={inputCls} placeholder={t('pf.mat_val_ph', 'Ex. : 500')} value={m.estimated_value||""} onChange={e=>updateMat(i,"estimated_value",Math.max(0, Number(e.target.value) || 0))}/>
                               </Field>
                             </div>
+                            {quantityOf(m) > 1 && Number(m.estimated_value) > 0 && (
+                              <p className="text-sm text-white/70 -mt-1">
+                                {t('need.mat_line_total', { defaultValue: 'Soit {{total}} pour les {{n}}.', total: money(quantityOf(m) * Number(m.estimated_value)), n: quantityOf(m) })}
+                              </p>
+                            )}
+                            <Field label={t('need.mat_mode', 'Comment peut-on vous aider ?')}>
+                              <ChoicePills label={t('need.mat_mode', 'Comment peut-on vous aider ?')} tone={HELP_TONES.material} choices={materialModeChoices(t)} value={m.mode} onChange={(v: string)=>updateMat(i,"mode",v)} />
+                            </Field>
+                            <Field label={t('need.mat_condition', "L'état")}>
+                              <ChoicePills label={t('need.mat_condition', "L'état")} tone={HELP_TONES.material} choices={materialConditionChoices(t)} value={m.condition} onChange={(v: string)=>updateMat(i,"condition",v)} />
+                            </Field>
+                            <label className="flex items-center gap-3 min-h-[44px] cursor-pointer">
+                              <input type="checkbox" checked={!!m.urgent} onChange={e=>updateMat(i,"urgent",e.target.checked)} className="accent-primary w-[18px] h-[18px] shrink-0 cursor-pointer" />
+                              <span className="text-sm text-white/85">{t('need.mat_urgent', "C'est urgent : le projet est bloqué sans cela")}</span>
+                            </label>
                           </div>
                         ))}
+                        {totalMaterialValue(materials) > 0 && (
+                          <p className="text-sm font-medium px-1" style={{ color: HELP_TONES.material.text }}>
+                            {t('need.mat_total', { defaultValue: 'Valeur totale du matériel : {{total}}.', total: money(totalMaterialValue(materials)) })}
+                          </p>
+                        )}
                         {!materials.length && <p className="text-white/50 text-sm text-center py-2">{t('project.form.no_material')}</p>}
                         <button type="button" onClick={addMat}
                           className="w-full min-h-[48px] rounded-2xl border border-dashed border-white/25 text-sm font-medium text-white/80 hover:text-white hover:border-white/50 hover:bg-white/5 flex items-center justify-center gap-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -684,12 +727,48 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                         placeholder={t('pf.exp_ph', 'Ex. : Marketing, droit des sociétés, comptabilité')}
                         removeLabel={tag => t('pf.exp_remove', { defaultValue: 'Retirer {{tag}}', tag })}
                       />
+                      <div className="mt-3">
+                        <p className="text-xs text-white/60 mb-2">{t('need.exp_quick', 'Ou ajoutez en un clic :')}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {expertiseSuggestions(t).filter(d => !(form.expertise_domains||[]).includes(d)).map(d => (
+                            <button key={d} type="button" onClick={() => set("expertise_domains", [...(form.expertise_domains||[]), d])}
+                              className="min-h-[40px] px-3.5 rounded-full border border-dashed border-white/25 text-sm text-white/80 hover:text-white hover:border-white/50 hover:bg-white/5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                              + {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-5 space-y-4">
+                        <Field label={t('need.exp_question', 'Votre question, précisément')} htmlFor={fid("exp-question")} hint={t('need.exp_question_hint', "Plus la question est précise, plus vite quelqu'un pourra y répondre.")}>
+                          <textarea id={fid("exp-question")} rows={3} maxLength={400} className={`${inputCls} h-auto py-3 resize-none`} placeholder={t('need.exp_question_ph', 'Ex. : quel statut choisir pour ouvrir une boulangerie à deux associés ?')}
+                            value={expertise.question || ""} onChange={e => set("expertise_details", { ...expertise, question: e.target.value })} />
+                        </Field>
+                        <Field label={t('need.exp_format', 'Sous quelle forme ?')}>
+                          <ChoicePills label={t('need.exp_format', 'Sous quelle forme ?')} tone={HELP_TONES.expertise} choices={expertiseFormatChoices(t)} value={expertise.format} onChange={(v: string) => set("expertise_details", { ...expertise, format: v })} />
+                        </Field>
+                        <Field label={t('need.exp_pay', 'Cette aide sera-t-elle rémunérée ?')}>
+                          <ChoicePills label={t('need.exp_pay', 'Cette aide sera-t-elle rémunérée ?')} tone={HELP_TONES.expertise} choices={expertisePayChoices(t)} value={expertise.pay} onChange={(v: string) => set("expertise_details", { ...expertise, pay: v })} />
+                        </Field>
+                      </div>
                     </ToneSection>
                   )}
 
                   {has("network") && (
                     <ToneSection tone={HELP_TONES.network} icon={Handshake} title={t('pf.net_title', 'Réseau et mises en relation')}
-                      description={t('pf.net_desc', 'Rien à préciser ici : votre fiche indiquera que vous cherchez des contacts.')} />
+                      description={t('need.net_desc', 'Dites qui vous voulez rencontrer : on ne peut vous présenter quelqu\'un que si on sait qui chercher.')}>
+                      <div className="space-y-4">
+                        <Field label={t('need.net_targets', 'Qui voulez-vous rencontrer ?')} hint={t('need.net_targets_hint', 'Plusieurs choix possibles.')}>
+                          <ChoicePills multiple label={t('need.net_targets', 'Qui voulez-vous rencontrer ?')} tone={HELP_TONES.network} choices={networkTargetChoices(t)} value={network.targets || []} onChange={(v: string[]) => set("network_details", { ...network, targets: v })} />
+                        </Field>
+                        <Field label={t('need.net_scope', 'Où ?')}>
+                          <ChoicePills label={t('need.net_scope', 'Où ?')} tone={HELP_TONES.network} choices={networkScopeChoices(t)} value={network.scope} onChange={(v: string) => set("network_details", { ...network, scope: v })} />
+                        </Field>
+                        <Field label={t('need.net_note', 'Qui exactement, et pourquoi')} htmlFor={fid("net-note")}>
+                          <textarea id={fid("net-note")} rows={3} maxLength={400} className={`${inputCls} h-auto py-3 resize-none`} placeholder={t('need.net_note_ph', 'Ex. : un meunier de la région pour négocier ma farine, et une banque qui finance les commerces.')}
+                            value={network.note || ""} onChange={e => set("network_details", { ...network, note: e.target.value })} />
+                        </Field>
+                      </div>
+                    </ToneSection>
                   )}
 
                   {!hasDetails && (
@@ -786,11 +865,21 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
                     {has("material") && (
                       <SummaryRow label={t('pf.sum_material', 'Matériel')}>
                         {materials.length
-                          ? materials.map(m => `${m.quantity || 1} × ${m.name?.trim() || t('pf.sum_untitled', 'Sans intitulé')}${m.estimated_value ? ` (${money(m.estimated_value)})` : ""}`).join("\n")
+                          ? materials.map(m => `${quantityOf(m)} × ${m.name?.trim() || t('pf.sum_untitled', 'Sans intitulé')}${m.estimated_value ? ` (${money(quantityOf(m) * Number(m.estimated_value))})` : ""}${m.mode ? ` · ${labelOf(materialModeChoices(t), m.mode)}` : ""}`).join("\n")
+                            + (totalMaterialValue(materials) > 0 ? `\n${t('need.mat_total', { defaultValue: 'Valeur totale du matériel : {{total}}.', total: money(totalMaterialValue(materials)) })}` : "")
                           : dash}
                       </SummaryRow>
                     )}
-                    {has("expertise") && <SummaryRow label={t('pf.sum_expertise', 'Expertise')}>{(form.expertise_domains||[]).join(", ") || dash}</SummaryRow>}
+                    {has("expertise") && (
+                      <SummaryRow label={t('pf.sum_expertise', 'Expertise')}>
+                        {[(form.expertise_domains||[]).join(", "), expertise.question?.trim(), labelOf(expertiseFormatChoices(t), expertise.format), labelOf(expertisePayChoices(t), expertise.pay)].filter(Boolean).join("\n") || dash}
+                      </SummaryRow>
+                    )}
+                    {has("network") && (
+                      <SummaryRow label={t('need.sum_network', 'Réseau')}>
+                        {[(network.targets || []).map(v => labelOf(networkTargetChoices(t), v)).filter(Boolean).join(", "), labelOf(networkScopeChoices(t), network.scope), network.note?.trim()].filter(Boolean).join("\n") || dash}
+                      </SummaryRow>
+                    )}
                   </SummaryBlock>
                 </motion.div>
               )}

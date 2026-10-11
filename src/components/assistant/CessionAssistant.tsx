@@ -286,7 +286,7 @@ export function CessionAssistant() {
             exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.8 }}
             transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 17, stiffness: 210, mass: 0.9 }}
             className="fixed z-[90] flex flex-col-reverse items-start gap-2.5 pointer-events-none"
-            style={{ left: 'calc(var(--safe-left) + 1rem)', bottom: `calc(var(--safe-bottom) + ${launcherLift ? '6.5rem' : '1rem'})`, maxWidth: 'calc(100vw - 2rem)' }}
+            style={{ left: 'calc(var(--safe-left) + 1rem)', bottom: `calc(var(--safe-bottom) + var(--banner-stack, 0px) + ${launcherLift ? '6.5rem' : '1rem'})`, maxWidth: 'calc(100vw - 2rem)' }}
             aria-hidden={stowed}
           >
             <div className="relative shrink-0 group/launcher">
@@ -363,7 +363,7 @@ export function CessionAssistant() {
             // Petite poignée discrète collée au bord : la zone cliquable est plus
             // large que ce qui se voit, pour rester facile à toucher sur mobile.
             className={`fixed z-[90] left-0 h-14 w-9 flex items-center justify-start group/tab ${focusRing}`}
-            style={{ bottom: `calc(var(--safe-bottom) + ${launcherLift ? '6.75rem' : '1.25rem'})` }}
+            style={{ bottom: `calc(var(--safe-bottom) + var(--banner-stack, 0px) + ${launcherLift ? '6.75rem' : '1.25rem'})` }}
           >
             <span
               aria-hidden="true"

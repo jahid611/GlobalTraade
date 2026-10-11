@@ -1,6 +1,6 @@
 # Emails Globly (Resend + Edge Functions)
 
-Trois fonctions envoient des emails. Toutes passent par **Resend**
+Quatre fonctions envoient des emails. Toutes passent par **Resend**
 (`RESEND_API_KEY`) et n'envoient rien tant que la clé n'est pas posée.
 
 | Fonction | Déclencheur | À qui | Quoi |
@@ -8,6 +8,7 @@ Trois fonctions envoient des emails. Toutes passent par **Resend**
 | `renewal-reminder` | cron quotidien | vendeur | « Votre annonce est-elle toujours en vente ? » (cycle de vie 90/10/30 j) |
 | `match-digest` | cron quotidien | acheteur | les nouvelles annonces qui collent à ses critères de reprise |
 | `send-prospect-email` | action du membre | dirigeant prospecté | l'email de prise de contact du CRM (formule Business) |
+| `notify-decision` | décision d'un administrateur | membre concerné | identité ou projet validé / refusé (avec le motif), compte suspendu ou réactivé |
 
 ## Secrets à poser
 
@@ -75,3 +76,12 @@ pour ne pas devenir un relais à spam.
 - le quota mensuel s'applique (20 inclus, puis 2 € par contact **payé d'avance**) ;
 - la mention de désinscription (« répondez STOP ») est ajoutée **côté serveur** ;
 - `reply_to` = l'email du membre : les réponses lui arrivent directement.
+
+## Décisions de l'administration
+
+`notify-decision` est déjà déployée. Chaque décision écrit un avis dans
+`member_notices` (voir `_claude_admin_decisions.sql`) : le membre le lit tout de
+suite dans son espace, et l'email part dès que `RESEND_API_KEY` est posée (les
+avis des dernières 48 h encore `pending` sont envoyés au premier appel).
+L'expéditeur est `DECISION_FROM`, sinon `PROSPECT_FROM`. Seuls un administrateur
+ou la clé service role peuvent appeler la fonction.

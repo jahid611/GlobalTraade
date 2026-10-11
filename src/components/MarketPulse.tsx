@@ -43,8 +43,11 @@ export function MarketPulse({ listings }: MarketPulseProps) {
     const thisWeek = weeks[7] || 0;
     const lastWeek = weeks[6] || 0;
     const trend = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0;
+    // Une tendance n'a de sens qu'avec assez d'annonces : comparer 1 annonce à 0
+    // ne dit rien. En dessous de 5 annonces sur les deux semaines, on le dit.
+    const enough = lastWeek > 0 && thisWeek + lastWeek >= 5;
 
-    return { sparkData, topSectors, totalListings, avgPrice, thisWeek, trend };
+    return { sparkData, topSectors, totalListings, avgPrice, thisWeek, lastWeek, trend, enough };
   }, [listings]);
 
   if (!stats) return null;
@@ -68,9 +71,11 @@ export function MarketPulse({ listings }: MarketPulseProps) {
           <span className="text-[clamp(10px,1vw,12px)] uppercase tracking-[0.2em] text-white dark:text-white/80 font-medium">{t('pulse.title')}</span>
         </div>
         <div className="flex items-center gap-2 bg-emerald-500/20 dark:bg-emerald-500/10 border border-emerald-500/40 dark:border-emerald-500/20 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)] dark:shadow-none">
-          <div className={`w-2 h-2 rounded-full animate-pulse ${stats.trend >= 10 ? 'bg-emerald-400' : stats.trend >= -5 ? 'bg-blue-400' : 'bg-amber-400'}`} />
-          <span className="text-[10px] uppercase tracking-widest text-white font-medium">
-            {stats.trend >= 10 ? t('pulse.sentiment_high') : stats.trend >= -5 ? t('pulse.sentiment_mid') : t('pulse.sentiment_low')}
+          <div className={`w-2 h-2 rounded-full ${stats.enough ? 'animate-pulse' : ''} ${!stats.enough ? 'bg-white/40' : stats.trend >= 10 ? 'bg-emerald-400' : stats.trend >= -5 ? 'bg-blue-400' : 'bg-amber-400'}`} />
+          <span className="text-[11px] uppercase tracking-widest text-white font-medium">
+            {!stats.enough
+              ? t('pulse.sentiment_none', 'Trop peu de données')
+              : stats.trend >= 10 ? t('pulse.sentiment_high') : stats.trend >= -5 ? t('pulse.sentiment_mid') : t('pulse.sentiment_low')}
           </span>
         </div>
       </div>
@@ -96,21 +101,28 @@ export function MarketPulse({ listings }: MarketPulseProps) {
             </div>
           </div>
 
+          {/* D'où vient l'étiquette « dynamique / stable / calme » */}
+          <p className="text-[13px] text-white/70 font-light leading-relaxed">
+            {stats.enough
+              ? t('pulse.basis', { defaultValue: 'Calculé sur les annonces publiées sur Globly : {{a}} cette semaine, {{b}} la semaine dernière.', a: stats.thisWeek, b: stats.lastWeek })
+              : t('pulse.basis_none', { defaultValue: "Il n'y a pas encore assez d'annonces publiées pour dégager une tendance ({{a}} cette semaine, {{b}} la semaine dernière).", a: stats.thisWeek, b: stats.lastWeek })}
+          </p>
+
           {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
-              <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.thisWeek}</p>
-              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.new_this_week')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] px-4 py-3 sm:p-4 border-white/30 dark:border-white/5 flex flex-row-reverse sm:block items-center justify-between gap-3">
+              <p className="text-xl sm:text-3xl font-light text-white tabular-nums sm:mb-1 shrink-0">{stats.thisWeek}</p>
+              <p className="text-[13px] sm:text-[10px] text-white dark:text-white/70 sm:dark:text-white/60 normal-case sm:uppercase tracking-normal sm:tracking-widest font-normal sm:font-medium leading-tight">{t('pulse.new_this_week')}</p>
             </div>
-            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
-              <p className="text-2xl sm:text-3xl font-light text-white tabular-nums mb-1">{stats.totalListings}</p>
-              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.total')}</p>
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] px-4 py-3 sm:p-4 border-white/30 dark:border-white/5 flex flex-row-reverse sm:block items-center justify-between gap-3">
+              <p className="text-xl sm:text-3xl font-light text-white tabular-nums sm:mb-1 shrink-0">{stats.totalListings}</p>
+              <p className="text-[13px] sm:text-[10px] text-white dark:text-white/70 sm:dark:text-white/60 normal-case sm:uppercase tracking-normal sm:tracking-widest font-normal sm:font-medium leading-tight">{t('pulse.total')}</p>
             </div>
-            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] p-3 sm:p-4 border-white/30 dark:border-white/5">
-              <p className={`text-2xl sm:text-3xl font-light tabular-nums mb-1 ${stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {stats.trend >= 0 ? '+' : ''}{stats.trend.toFixed(0)}%
+            <div className="liquid-glass dark:bg-white/[0.02] rounded-[1.25rem] px-4 py-3 sm:p-4 border-white/30 dark:border-white/5 flex flex-row-reverse sm:block items-center justify-between gap-3">
+              <p className={`text-xl sm:text-3xl font-light tabular-nums sm:mb-1 shrink-0 ${!stats.enough ? 'text-white/60' : stats.trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.enough ? `${stats.trend >= 0 ? '+' : ''}${stats.trend.toFixed(0)}%` : '—'}
               </p>
-              <p className="text-[9px] sm:text-[10px] text-white dark:text-white/60 uppercase tracking-widest font-medium leading-tight">{t('pulse.trend')}</p>
+              <p className="text-[13px] sm:text-[10px] text-white dark:text-white/70 sm:dark:text-white/60 normal-case sm:uppercase tracking-normal sm:tracking-widest font-normal sm:font-medium leading-tight">{t('pulse.trend')}</p>
             </div>
           </div>
 

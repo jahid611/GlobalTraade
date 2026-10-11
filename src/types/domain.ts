@@ -74,6 +74,8 @@ export interface SearchAd {
   revenue_range: string | null;
   budget: string | null;
   apport_available: boolean | null;
+  /** montant de l'apport en euros (null sur les anciennes recherches) */
+  apport_amount?: number | null;
   bank_financing: boolean | null;
   description: string | null;
   status: string | null;

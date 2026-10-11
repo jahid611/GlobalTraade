@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { RefusalReason } from '@/components/MemberNotices';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle as SealCheck, LockSimple, LockSimpleOpen, FilePlus, FileText, Check, X, DownloadSimple, Clock, XCircle, Circle, Eye, Info } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -187,7 +188,10 @@ export function ProjectAccessSection({ project, userId }: { project: Project; us
           <StatusNote tone={TONE_WARNING} icon={Clock}>{t('pp.verif_pending', 'Vérification en cours par notre équipe.')}</StatusNote>
         )}
         {isOwner && verificationStatus === 'rejete' && (
-          <StatusNote tone={TONE_DANGER} icon={XCircle}>{t('pd.verif_rejected', 'Votre dossier n\'a pas été validé. Complétez-le, puis envoyez-le de nouveau.')}</StatusNote>
+          <>
+            <StatusNote tone={TONE_DANGER} icon={XCircle}>{t('pd.verif_rejected', 'Votre dossier n\'a pas été validé. Complétez-le, puis envoyez-le de nouveau.')}</StatusNote>
+            <RefusalReason kind="project_rejected" targetId={project.id} />
+          </>
         )}
         {isOwner && canSubmitVerification && verificationStatus !== 'rejete' && (
           <p className="flex items-start gap-2 text-xs text-white/50 font-light leading-relaxed">

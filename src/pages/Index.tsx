@@ -79,12 +79,12 @@ export default function Index() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[15vh] pb-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
+      <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[calc(var(--nav-clearance)+1.25rem)] md:pt-[15vh] pb-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-6px] right-[5%] md:top-0 md:right-[5%] lg:top-[5%] lg:right-[3%] w-[112px] md:w-[150px] lg:w-[21vw] lg:max-w-[400px] z-[110] pointer-events-none opacity-100"
+          className="relative order-2 md:order-none mx-auto mb-8 -mt-2 w-[200px] min-[420px]:w-[230px] md:absolute md:mx-0 md:mb-0 md:mt-0 md:top-0 md:right-[5%] md:w-[150px] lg:top-[5%] lg:right-[3%] lg:w-[21vw] lg:max-w-[400px] z-[110] pointer-events-none opacity-100"
         >
           {/* Globi, la mascotte du site, à la place de l'ancien astronaute (même emplacement) */}
           <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
@@ -92,7 +92,7 @@ export default function Index() {
 
         {/* Ordinateur : le texte se centre dans la partie gauche et laisse la droite
             à Globi, en grand, sans jamais passer devant le titre. */}
-        <div className="relative z-10 w-full flex flex-col items-center lg:pr-[24vw]">
+        <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:pr-[24vw]">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
@@ -108,7 +108,7 @@ export default function Index() {
           </motion.p>
         </div>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 order-3 md:order-none grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
           {[
             { to: "/marketplace", icon: Storefront, color: "text-primary", title: t('index.cards.market.title'), desc: t('index.cards.market.desc') },
             { to: "/app", icon: MapTrifold, color: "text-blue-400", title: t('index.cards.map.title'), desc: t('index.cards.map.desc') },

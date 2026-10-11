@@ -760,7 +760,22 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       />
 
       {/* Interface Stripe (déblocage 5 €) affichée directement sur la fiche */}
-      {unlockCS && <StripeCheckoutModal clientSecret={unlockCS} onClose={() => setUnlockCS(null)} />}
+      {unlockCS && (
+        <StripeCheckoutModal
+          clientSecret={unlockCS}
+          onClose={() => setUnlockCS(null)}
+          summary={{
+            title: t('pay.unlock_title', 'Débloquer cette annonce'),
+            subject: listing?.name ? `« ${listing.name} »` : undefined,
+            lines: [
+              t('pay.b_unlock_listing_1', "Le dossier complet de l'entreprise : description, chiffre d'affaires, résultat, bail."),
+              t('pay.b_unlock_listing_2', 'La messagerie pour écrire directement au vendeur.'),
+              t('pay.b_unlock_listing_3', 'Le simulateur de financement et la note sur 100 de cette annonce.'),
+            ],
+            note: t('pay.one_time', 'Paiement unique, sans abonnement : rien ne sera prélevé ensuite.'),
+          }}
+        />
+      )}
 
       {/* Report Modal */}
       <AnimatePresence>

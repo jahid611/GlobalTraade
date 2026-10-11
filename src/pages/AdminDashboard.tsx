@@ -1,708 +1,151 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Navbar } from '@/components/Navbar';
-import { SolarSystem } from '@/components/SolarSystem';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, MessageSquare, Eye, Trash2, ShieldCheck, Loader2, Search, ExternalLink, Calendar, Mail, BadgeCheck, Check, X, AlertTriangle, AlertOctagon, Radar, Star, Briefcase } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { showSuccess, showError } from '@/utils/toast';
-import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
-import { ConfirmDialog } from '@/components/PickerKit';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ChartLineUp, Users, Storefront, RocketLaunch, Binoculars, IdentificationCard, Flag, Star, EnvelopeSimple,
+  CreditCard, Megaphone, ClockCounterClockwise, ShieldCheck, ShieldWarning, ArrowSquareOut,
+} from "phosphor-react";
+import { Navbar } from "@/components/Navbar";
+import { SolarSystem } from "@/components/SolarSystem";
+import { getOverview, isTwoFactorSession } from "@/services/adminService";
+import { Loading, TONE } from "@/components/admin/ui";
 
-type TabType = 'overview' | 'listings' | 'users' | 'kyc' | 'reports' | 'ratings' | 'projets';
+/**
+ * Administration — la tour de contrôle.
+ *
+ * Cette page n'est qu'un écran : chaque lecture et chaque action passe par la
+ * base, qui vérifie elle-même que l'appelant est administrateur et qui écrit
+ * l'action dans un journal (supabase/_claude_admin_tour.sql). Masquer un bouton
+ * ici n'est jamais ce qui protège quelque chose.
+ *
+ * Une rubrique = un fichier dans src/components/admin/sections/.
+ */
+const SECTIONS = [
+  { group: "Piloter", items: [
+    { id: "overview", label: "Vue d'ensemble", Icon: ChartLineUp, load: () => import("@/components/admin/sections/Overview") },
+  ] },
+  { group: "Membres et publications", items: [
+    { id: "members", label: "Membres", Icon: Users, load: () => import("@/components/admin/sections/Members") },
+    { id: "listings", label: "Annonces", Icon: Storefront, load: () => import("@/components/admin/sections/Listings") },
+    { id: "projects", label: "Projets", Icon: RocketLaunch, todo: "projects", load: () => import("@/components/admin/sections/Projects") },
+    { id: "searchads", label: "Recherches de repreneurs", Icon: Binoculars, load: () => import("@/components/admin/sections/SearchAds") },
+  ] },
+  { group: "À traiter", items: [
+    { id: "kyc", label: "Vérifications d'identité", Icon: IdentificationCard, todo: "kyc", load: () => import("@/components/admin/sections/Kyc") },
+    { id: "reports", label: "Signalements", Icon: Flag, todo: "reports", load: () => import("@/components/admin/sections/Reports") },
+    { id: "ratings", label: "Avis", Icon: Star, todo: "ratings", load: () => import("@/components/admin/sections/Ratings") },
+    { id: "contact", label: "Messages de contact", Icon: EnvelopeSimple, todo: "contact", load: () => import("@/components/admin/sections/ContactInbox") },
+  ] },
+  { group: "Site", items: [
+    { id: "purchases", label: "Paiements", Icon: CreditCard, load: () => import("@/components/admin/sections/Purchases") },
+    { id: "announcement", label: "Bandeau d'annonce", Icon: Megaphone, load: () => import("@/components/admin/sections/Announcement") },
+    { id: "audit", label: "Journal des actions", Icon: ClockCounterClockwise, load: () => import("@/components/admin/sections/AuditLog") },
+  ] },
+] as const;
 
-// Défini hors du rendu : sinon React recrée (démonte/remonte) chaque bouton à
-// chaque rendu de la console.
-const TabButton = ({ label, icon: Icon, active, onSelect }: { label: string; icon: React.ElementType; active: boolean; onSelect: () => void }) => (
-  <button
-    onClick={onSelect}
-    className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all text-sm font-medium ${
-      active
-        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-        : 'text-white/40 hover:text-white hover:bg-white/5'
-    }`}
-  >
-    <Icon size={16} /> {label}
-  </button>
-);
-
-// Résultat d'une écriture Supabase terminée par `.select('id')`.
-type WriteResult = PromiseLike<{ data: unknown[] | null; error: unknown }>;
+type SectionId = (typeof SECTIONS)[number]["items"][number]["id"];
+const ALL = SECTIONS.flatMap((g) => g.items as readonly { id: string; label: string; Icon: React.ElementType; todo?: string; load: () => Promise<{ default: React.ComponentType }> }[]);
+const LAZY = Object.fromEntries(ALL.map((s) => [s.id, lazy(s.load)])) as Record<string, React.LazyExoticComponent<React.ComponentType>>;
 
 export default function AdminDashboard() {
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useTranslation();
-  // Confirmation d'une action destructrice (remplace `window.confirm`).
-  const [confirmAction, setConfirmAction] = useState<{ title: string; message?: string; confirmLabel: string; run: () => void } | null>(null);
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("section");
+  const section: SectionId = (ALL.some((s) => s.id === requested) ? requested : "overview") as SectionId;
+  const go = (id: string) => { const next = new URLSearchParams(params); next.set("section", id); setParams(next); window.scrollTo({ top: 0 }); };
 
-  // Exécute une écriture d'administration et n'annonce le succès que si elle a
-  // VRAIMENT eu lieu : on lit `error`, et comme la RLS peut faire qu'une
-  // écriture ne touche aucune ligne sans erreur, « 0 ligne » est un échec.
-  const adminWrite = async (write: WriteResult, successMsg: string | null, errorMsg: string): Promise<boolean> => {
-    let failed = false;
-    try {
-      const { data, error } = await write;
-      failed = !!error || !data || data.length === 0;
-    } catch {
-      failed = true;
-    }
-    if (failed) {
-      showError(errorMsg);
-      return false;
-    }
-    if (successMsg) showSuccess(successMsg);
-    queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-    return true;
-  };
+  // Ce qui attend une décision : les pastilles du menu.
+  const { data: overview } = useQuery({ queryKey: ["admin", "overview"], queryFn: getOverview, refetchInterval: 60_000 });
+  const todo = overview?.todo as Record<string, number> | undefined;
+  const todoTotal = useMemo(() => (todo ? Object.values(todo).reduce((a, b) => a + b, 0) : 0), [todo]);
 
-  const { data: adminData, isLoading } = useQuery({
-    queryKey: ['admin-data'],
-    queryFn: async () => {
-      const [
-        { data: profiles },
-        { data: listings },
-        { count: messagesCount },
-        { count: viewsCount },
-        { count: favoritesCount },
-        { data: reports },
-        { data: pendingRatings },
-        { data: buyerBadges },
-        { data: pendingProjects }
-      ] = await Promise.all([
-        supabase.from('safe_profiles').select('*').order('updated_at', { ascending: false }),
-        supabase.from('listings_secure').select('*').order('created_at', { ascending: false }),
-        supabase.from('messages').select('id', { count: 'exact', head: true }),
-        supabase.from('listing_views').select('id', { count: 'exact', head: true }),
-        supabase.from('favorites').select('id', { count: 'exact', head: true }),
-        supabase.from('reports').select('*, listings(id, name)').order('created_at', { ascending: false }),
-        supabase.from('ratings').select('*').eq('status', 'under_review').order('created_at', { ascending: false }),
-        supabase.from('buyer_badges').select('id, buyer_type, buyer_level'),
-        supabase.from('projects').select('id, title, owner_id, verification_status, apport_personnel, revenue_current, revenue_forecast, funds_usage, financing_types, budget_min, budget_max').eq('verification_status', 'en_attente').order('updated_at', { ascending: false })
-      ]);
+  // La double authentification protège-t-elle cette session ?
+  const [twoFactor, setTwoFactor] = useState<boolean | null>(null);
+  useEffect(() => { isTwoFactorSession().then(setTwoFactor).catch(() => setTwoFactor(false)); }, []);
 
-      const badgesMap = new Map((buyerBadges || []).map((b: any) => [b.id, b]));
-      const enrichedProfiles = (profiles || []).map((p: any) => ({ ...p, ...badgesMap.get(p.id) }));
-      const profilesMap = new Map(enrichedProfiles.map(p => [p.id, p]));
-
-      return {
-        profiles: enrichedProfiles,
-        listings: listings?.map(l => ({ 
-          ...l, 
-          owner: profilesMap.get(l.owner_id),
-          views: l.view_count || 0,
-          favorites: l.favorites_count || 0
-        })) || [],
-        reports: reports?.map(r => ({
-          ...r,
-          reporter: profilesMap.get(r.reporter_id)
-        })) || [],
-        pendingRatings: pendingRatings?.map(r => ({
-          ...r,
-          rater: profilesMap.get(r.rater_id),
-          rated: profilesMap.get(r.rated_id)
-        })) || [],
-        pendingProjects: pendingProjects?.map(p => ({
-          ...p,
-          owner: profilesMap.get(p.owner_id)
-        })) || [],
-        stats: {
-          usersCount: profiles?.length || 0,
-          listingsCount: listings?.length || 0,
-          messagesCount: messagesCount || 0,
-          viewsCount: viewsCount || 0,
-          favoritesCount: favoritesCount || 0
-        }
-      };
-    }
-  });
-
-  const handleDeleteListing = (id: string, name?: string | null) => {
-    setConfirmAction({
-      title: t('admin.confirm_delete_listing_title', 'Supprimer cette annonce ?'),
-      message: name
-        ? t('admin.confirm_delete_listing_msg', { name, defaultValue: '« {{name}} » sera définitivement supprimée.' })
-        : t('admin.confirm_delete_irreversible', 'Cette action est définitive.'),
-      confirmLabel: t('admin.delete', 'Supprimer'),
-      run: () => {
-        adminWrite(
-          supabase.from('listings').delete().eq('id', id).select('id'),
-          t('admin.listing_deleted', 'Annonce supprimée'),
-          t('admin.listing_delete_error', "L'annonce n'a pas pu être supprimée."),
-        );
-      },
-    });
-  };
-
-  if (isLoading) return (
-    <div className="min-h-screen bg-[#2b2a2f] flex items-center justify-center text-white">
-      <SolarSystem />
-      <div className="z-10 flex flex-col items-center gap-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-white/40 animate-pulse text-xs uppercase tracking-widest">Initialisation de la console...</p>
-      </div>
-    </div>
-  );
-
-  const filteredListings = adminData?.listings.filter(l => 
-    (l.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (l.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
-
-  const filteredUsers = adminData?.profiles.filter(p => 
-    p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
-
-  const tabProps = (id: TabType) => ({
-    active: activeTab === id,
-    onSelect: () => { setActiveTab(id); setSearchQuery(""); },
-  });
+  const Current = LAZY[section];
+  const currentLabel = ALL.find((s) => s.id === section)?.label ?? "";
 
   return (
-    <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30">
+    <div className="min-h-screen bg-[#2b2a2f] text-white selection:bg-primary/30 [text-shadow:none]">
       <SolarSystem />
       <Navbar />
-      
-      <main className="relative z-10 pt-[20vh] pb-20 px-[6vw] max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
-          <div>
-            <h1 className="text-4xl font-light mb-2 tracking-tight">Console Maître</h1>
-            <p className="text-white/40 font-light italic">Flux global et modération temps-réel.</p>
-            <Link to="/radar" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-full bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-sm font-medium transition-all">
-              <Radar size={16} /> Prospection
-            </Link>
-          </div>
 
-          <div className="flex bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
-            <TabButton {...tabProps("overview")} label={t('admin.tab_overview') || 'Aperçu'} icon={Eye} />
-            <TabButton {...tabProps("listings")} label={t('admin.tab_listings') || 'Annonces'} icon={Store} />
-            <TabButton {...tabProps("users")} label={t('admin.tab_users') || 'Membres'} icon={Users} />
-            <TabButton {...tabProps("kyc")} label="KYC" icon={BadgeCheck} />
-            <TabButton {...tabProps("reports")} label="Signalements" icon={AlertOctagon} />
-            <TabButton {...tabProps("ratings")} label="Notes" icon={Star} />
-            <TabButton {...tabProps("projets")} label="Projets" icon={Briefcase} />
+      <main className="relative z-10 pt-[calc(var(--nav-clearance)+2rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-light tracking-tight">Administration <span className="text-primary font-medium">Globly</span></h1>
+            <p className="text-white/65 font-light mt-1.5">
+              {todoTotal > 0
+                ? `${todoTotal} élément${todoTotal > 1 ? "s" : ""} attend${todoTotal > 1 ? "ent" : ""} votre décision.`
+                : "Rien n'attend votre décision pour le moment."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/radar" className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/10 text-sm font-medium text-white transition-colors">
+              <Binoculars size={18} /> Prospection <ArrowSquareOut size={14} className="text-white/50" />
+            </Link>
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {activeTab === 'overview' && (
-            <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
-                {[
-                  { label: 'Utilisateurs', val: adminData?.stats.usersCount, icon: Users, color: 'text-blue-400' },
-                  { label: 'Annonces', val: adminData?.stats.listingsCount, icon: Store, color: 'text-primary' },
-                  { label: 'Messages', val: adminData?.stats.messagesCount, icon: MessageSquare, color: 'text-emerald-400' },
-                  { label: 'Vues totales', val: adminData?.stats.viewsCount, icon: Eye, color: 'text-amber-400' },
-                  { label: 'Favoris globaux', val: adminData?.stats.favoritesCount, icon: ShieldCheck, color: 'text-rose-400' },
-                ].map((s, i) => (
-                  <div key={i} className="liquid-glass p-6 rounded-3xl border-white/10">
-                    <div className={`p-3 rounded-2xl bg-white/5 w-fit mb-4 ${s.color}`}><s.icon size={24} /></div>
-                    <p className="text-3xl font-light mb-1">{s.val}</p>
-                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="liquid-glass p-8 rounded-[2.5rem] border-white/10">
-                  <h3 className="text-lg font-light mb-6 flex items-center gap-2"><Calendar className="text-primary" size={20}/> Membres récents</h3>
-                  <div className="space-y-4">
-                    {adminData?.profiles.slice(0, 5).map(p => (
-                      <div key={p.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">{p.full_name?.[0]}</div>
-                          <div>
-                            <p className="text-sm font-medium">{p.full_name}</p>
-                            <p className="text-[10px] text-white/40">{p.updated_at ? format(new Date(p.updated_at), 'dd MMMM yyyy', { locale: fr }) : '-'}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-8 rounded-full text-[10px] uppercase tracking-wider" onClick={() => window.open(`/profile/${p.id}`, '_blank')}>Voir</Button>
-                      </div>
-                    ))}
-                  </div>
+        {/* Sécurité de la session */}
+        {twoFactor !== null && (
+          <div className="mb-6 rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3" style={twoFactor ? TONE.green : TONE.amber}>
+            {twoFactor ? <ShieldCheck size={22} weight="fill" className="shrink-0" /> : <ShieldWarning size={22} weight="fill" className="shrink-0" />}
+            <p className="text-sm leading-relaxed flex-1" style={{ color: "#ffffff" }}>
+              {twoFactor
+                ? "Session protégée par la double authentification. Chaque action faite ici est enregistrée dans le journal."
+                : "Votre compte administrateur n'est protégé que par un mot de passe. Activez la double authentification (code à 6 chiffres) : un mot de passe volé ne suffira plus pour entrer ici."}
+            </p>
+            {!twoFactor && (
+              <Link to="/settings" className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-full bg-white text-black text-sm font-semibold shrink-0 hover:bg-white/90">
+                Activer maintenant
+              </Link>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+          {/* Menu : une colonne sur ordinateur, une liste déroulante sur téléphone */}
+          <nav aria-label="Rubriques de l'administration" className="w-full lg:w-[280px] shrink-0 lg:sticky lg:top-[calc(var(--nav-clearance)+1rem)]">
+            <label htmlFor="admin-section" className="sr-only">Rubrique</label>
+            <select id="admin-section" value={section} onChange={(e) => go(e.target.value)}
+              className="lg:hidden w-full min-h-[48px] rounded-2xl bg-[#232229] border border-white/15 px-4 text-[15px] text-white outline-none focus:border-primary/60">
+              {SECTIONS.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((s: any) => <option key={s.id} value={s.id}>{s.label}{s.todo && todo?.[s.todo] ? ` (${todo[s.todo]})` : ""}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <div className="hidden lg:block rounded-3xl border border-white/10 bg-[#232229]/95 p-3">
+              {SECTIONS.map((g) => (
+                <div key={g.group} className="mb-2 last:mb-0">
+                  <p className="px-3 pt-2 pb-1.5 text-xs font-semibold uppercase tracking-widest text-white/45">{g.group}</p>
+                  {g.items.map((s: any) => {
+                    const active = s.id === section;
+                    const n = s.todo ? todo?.[s.todo] ?? 0 : 0;
+                    return (
+                      <button key={s.id} type="button" onClick={() => go(s.id)} aria-current={active ? "page" : undefined}
+                        className={`w-full flex items-center gap-3 min-h-[44px] px-3 rounded-xl text-left text-[15px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${active ? "bg-primary text-white font-medium" : "text-white/80 hover:bg-white/5 hover:text-white"}`}>
+                        <s.Icon size={19} weight={active ? "fill" : "regular"} className="shrink-0" />
+                        <span className="flex-1 min-w-0 truncate">{s.label}</span>
+                        {n > 0 && <span className="min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-xs font-bold text-center" style={{ background: active ? "rgba(255,255,255,0.25)" : "#dc2626", color: "#ffffff" }}>{n}</span>}
+                      </button>
+                    );
+                  })}
                 </div>
-                
-                <div className="liquid-glass p-8 rounded-[2.5rem] border-white/10">
-                  <h3 className="text-lg font-light mb-6 flex items-center gap-2"><Store className="text-primary" size={20}/> Dernières annonces</h3>
-                  <div className="space-y-4">
-                    {adminData?.listings.slice(0, 5).map(l => (
-                      <div key={l.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                        <div className="flex items-center gap-3">
-                          {l.logo_url ? <img src={l.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" /> : <div className="w-8 h-8 rounded-lg bg-white/10" />}
-                          <div>
-                            <p className="text-sm font-medium">{l.name}</p>
-                            <p className="text-[10px] text-white/40">{l.industry}</p>
-                          </div>
-                        </div>
-                        <p className="text-xs font-light">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(l.price)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+              ))}
+            </div>
+          </nav>
 
-          {(activeTab === 'listings' || activeTab === 'users') && (
-            <motion.div key="list-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              <div className="relative max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
-                <input 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={activeTab === 'listings' ? "Rechercher une entreprise..." : "Rechercher un membre..."}
-                  className="w-full bg-white/5 border border-white/10 rounded-full py-3 pl-12 pr-6 text-sm focus:outline-none focus:border-primary transition-all backdrop-blur-md"
-                />
-              </div>
-
-              <div className="liquid-glass rounded-[2rem] border-white/10 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-white/5 text-[10px] uppercase tracking-widest text-white/40">
-                        <th className="px-6 py-5 font-medium">Entité</th>
-                        <th className="px-6 py-5 font-medium">{activeTab === 'listings' ? 'Détails Financiers' : 'Coordonnées'}</th>
-                        <th className="px-6 py-5 font-medium">{activeTab === 'listings' ? 'Métriques' : 'Statut'}</th>
-                        <th className="px-6 py-5 font-medium text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {activeTab === 'listings' ? (
-                        filteredListings.map(l => (
-                          <tr key={l.id} className="hover:bg-white/[0.02] transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                {l.logo_url && <img src={l.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />}
-                                <div>
-                                  <p className="text-sm font-medium">{l.name}</p>
-                                  <p className="text-[10px] text-white/30 uppercase tracking-tighter">{l.industry}</p>
-                                  <p className="text-[10px] text-white/40 mt-1">Cédant: <span className="text-white/60">{l.owner?.full_name || 'Anonyme'}</span></p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col gap-1 text-xs text-white/60">
-                                <span className="text-white font-medium">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(l.price)}</span>
-                                <span className="text-[10px]">CA: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(l.revenue_n1 || 0)}</span>
-                                <span className="text-[10px]">EBITDA: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(l.ebitda || 0)}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col gap-1 text-[10px] text-white/40">
-                                <span>{l.views} Vues • {l.favorites} Favoris</span>
-                                <span>{l.surface ? `${l.surface} m²` : '-'} • {l.employees ? `${l.employees} employés` : '-'}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => window.open(`/app?focus=${l.id}`, '_blank')} className="p-2 text-white/20 hover:text-primary transition-colors"><ExternalLink size={16} /></button>
-                                <button onClick={() => handleDeleteListing(l.id, l.name)} className="p-2 text-white/20 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        filteredUsers.map(u => (
-                          <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-sm font-light border border-white/10">{u.full_name?.[0]}</div>
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-medium">{u.full_name}</span>
-                                  <span className="text-[10px] text-white/40">{u.id.substring(0,8)}...</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col gap-1">
-                                {u.contact_email ? <span className="text-xs text-white/60 flex items-center gap-1.5"><Mail size={12}/> {u.contact_email}</span> : <span className="text-xs text-white/30 italic">Pas d'email</span>}
-                                {u.phone && <span className="text-[10px] text-white/40">{u.phone}</span>}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col gap-1 items-start">
-                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${u.kyc_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' : u.kyc_status === 'pending' ? 'bg-amber-500/20 text-amber-400' : u.kyc_status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/40'}`}>KYC: {u.kyc_status || 'none'}</span>
-                                {u.plan && <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold uppercase tracking-widest">Plan: {u.plan}</span>}
-                                {u.is_admin && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Admin</span>}
-                                <select
-                                  value={u.buyer_level || 'profil_cree'}
-                                  onChange={async (e) => {
-                                    await adminWrite(
-                                      supabase.from('profiles').update({ buyer_level: e.target.value }).eq('id', u.id).select('id'),
-                                      t('admin.buyer_level_updated', 'Niveau repreneur mis à jour'),
-                                      t('admin.buyer_level_error', 'Erreur mise à jour niveau'),
-                                    );
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="mt-1 text-[10px] bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white/70 outline-none cursor-pointer"
-                                >
-                                  <option value="profil_cree" className="bg-[#2b2a2f]">Repreneur : profil créé</option>
-                                  <option value="qualifie" className="bg-[#2b2a2f]">Repreneur : qualifié</option>
-                                  <option value="finance_verifie" className="bg-[#2b2a2f]">Repreneur : financement vérifié</option>
-                                </select>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => window.open(`/profile/${u.id}`, '_blank')} className="p-2 text-white/20 hover:text-white transition-colors"><ExternalLink size={16} /></button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                  {(activeTab === 'listings' ? filteredListings : filteredUsers).length === 0 && (
-                    <div className="py-20 text-center text-white/20 font-light italic">Aucun résultat trouvé pour votre recherche.</div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'kyc' && (
-            <motion.div key="kyc-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              <h2 className="text-lg font-light flex items-center gap-2"><BadgeCheck className="text-blue-500" size={20}/> {t('kyc.admin_pending_title')}</h2>
-              
-              {(() => {
-                const pendingKyc = adminData?.profiles.filter(p => p.kyc_status === 'pending') || [];
-                
-                if (pendingKyc.length === 0) {
-                  return (
-                    <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
-                      <BadgeCheck className="w-12 h-12 text-white/10 mx-auto mb-4" />
-                      <p className="text-white/30 font-light italic">Aucune demande en attente</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {pendingKyc.map(u => (
-                      <div key={u.id} className="liquid-glass rounded-2xl p-6 border border-amber-500/20 flex flex-col gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-lg font-light border border-white/10">{u.full_name?.[0]}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{u.full_name}</p>
-                            {u.contact_email && <p className="text-[10px] text-white/40 flex items-center gap-1"><Mail size={10}/> {u.contact_email}</p>}
-                          </div>
-                          <span className="text-[9px] uppercase tracking-widest text-amber-500 font-bold bg-amber-500/10 px-2 py-1 rounded-full">{t('kyc.status_pending')}</span>
-                        </div>
-                        
-                        {/* Document preview button */}
-                        <button
-                          onClick={async () => {
-                            // On ouvre la fenêtre SYNCHRONEMENT au clic de l'utilisateur pour éviter le blocage
-                            const newWindow = window.open('', '_blank');
-                            if (!newWindow) {
-                              showError('Veuillez autoriser les popups pour ce site');
-                              return;
-                            }
-                            newWindow.document.write('<div style="font-family:sans-serif;padding:20px;">Chargement du document en cours...</div>');
-                            
-                            try {
-                              // Try common extensions
-                              const extensions = ['jpg', 'jpeg', 'png', 'pdf', 'webp'];
-                              let signedUrl = null;
-                              for (const ext of extensions) {
-                                const path = `kyc/${u.id}/document.${ext}`;
-                                const { data } = await supabase.storage.from('documents').createSignedUrl(path, 300);
-                                if (data?.signedUrl) {
-                                  signedUrl = data.signedUrl;
-                                  break;
-                                }
-                              }
-                              if (signedUrl) {
-                                // On redirige la fenêtre déjà ouverte
-                                newWindow.location.href = signedUrl;
-                              } else {
-                                newWindow.close();
-                                showError('Document introuvable ou extension non supportée');
-                              }
-                            } catch (err) {
-                              newWindow.close();
-                              showError('Erreur lors de la récupération du document');
-                            }
-                          }}
-                          className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-all flex items-center justify-center gap-2"
-                        >
-                          <Eye size={14} /> Voir le document d'identité
-                        </button>
-                        
-                        <div className="flex gap-3">
-                          <button
-                            onClick={async () => {
-                              await adminWrite(
-                                supabase.from('profiles').update({ kyc_status: 'verified' }).eq('id', u.id).select('id'),
-                                t('kyc.admin_approved'),
-                                t('admin.kyc_update_error', "Le statut de vérification n'a pas pu être modifié."),
-                              );
-                            }}
-                            className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-all flex items-center justify-center gap-2"
-                          >
-                            <Check size={14} /> {t('kyc.admin_approve')}
-                          </button>
-                          <button
-                            onClick={async () => {
-                              await adminWrite(
-                                supabase.from('profiles').update({ kyc_status: 'rejected' }).eq('id', u.id).select('id'),
-                                t('kyc.admin_rejected'),
-                                t('admin.kyc_update_error', "Le statut de vérification n'a pas pu être modifié."),
-                              );
-                            }}
-                            className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/20 text-white/60 hover:text-red-400 text-xs font-medium transition-all flex items-center justify-center gap-2"
-                          >
-                            <X size={14} /> {t('kyc.admin_reject')}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-
-              {/* Verified users section */}
-              {(() => {
-                const verifiedKyc = adminData?.profiles.filter(p => p.kyc_status === 'verified') || [];
-                if (verifiedKyc.length === 0) return null;
-                return (
-                  <div className="mt-8">
-                    <h3 className="text-sm uppercase tracking-widest text-emerald-500/60 font-medium mb-4 flex items-center gap-2"><BadgeCheck size={16}/> Utilisateurs vérifiés ({verifiedKyc.length})</h3>
-                    <div className="liquid-glass rounded-[2rem] border-white/10 overflow-hidden">
-                      <div className="divide-y divide-white/5">
-                        {verifiedKyc.map(u => (
-                          <div key={u.id} className="flex items-center justify-between px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-xs font-light border border-emerald-500/20 text-emerald-400">{u.full_name?.[0]}</div>
-                              <span className="text-sm font-medium">{u.full_name}</span>
-                            </div>
-                            <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-full">Vérifié</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </motion.div>
-          )}
-
-          {activeTab === 'reports' && (
-            <motion.div key="reports-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              <h2 className="text-lg font-light flex items-center gap-2 text-red-500"><AlertOctagon size={20}/> Signalements ({adminData?.reports.length || 0})</h2>
-              
-              {adminData?.reports.length === 0 ? (
-                <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
-                  <AlertTriangle className="w-12 h-12 text-white/10 mx-auto mb-4" />
-                  <p className="text-white/30 font-light italic">Aucun signalement</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {adminData?.reports.map(r => (
-                    <div key={r.id} className="liquid-glass rounded-[1.5rem] p-6 border border-red-500/10 flex flex-col gap-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs border border-white/10">{r.reporter?.full_name?.[0]}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{r.reporter?.full_name || 'Anonyme'}</p>
-                            <p className="text-[9px] text-white/40">{format(new Date(r.created_at), 'dd/MM/yy HH:mm')}</p>
-                          </div>
-                        </div>
-                        <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${r.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {r.status || 'pending'}
-                        </span>
-                      </div>
-                      
-                      {r.listings && (
-                        <div className="bg-white/5 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors" onClick={() => window.open(`/app?focus=${r.listings.id}`, '_blank')}>
-                          <div>
-                            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Cible</p>
-                            <p className="text-xs font-medium text-white truncate">{r.listings.name}</p>
-                          </div>
-                          <ExternalLink size={14} className="text-white/40" />
-                        </div>
-                      )}
-                      
-                      <div className="bg-red-500/5 rounded-xl p-4 flex-1">
-                        <p className="text-sm text-white/80 whitespace-pre-wrap">{r.content}</p>
-                      </div>
-                      
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={async () => {
-                            await adminWrite(
-                              supabase.from('reports').update({ status: 'resolved' }).eq('id', r.id).select('id'),
-                              t('admin.report_resolved', 'Signalement marqué comme résolu'),
-                              t('admin.report_update_error', "Le signalement n'a pas pu être mis à jour."),
-                            );
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
-                        >
-                          Marquer résolu
-                        </button>
-                        <button
-                          onClick={() => setConfirmAction({
-                            title: t('admin.confirm_delete_report_title', 'Supprimer ce signalement ?'),
-                            message: t('admin.confirm_delete_irreversible', 'Cette action est définitive.'),
-                            confirmLabel: t('admin.delete', 'Supprimer'),
-                            run: () => {
-                              adminWrite(
-                                supabase.from('reports').delete().eq('id', r.id).select('id'),
-                                t('admin.report_deleted', 'Signalement supprimé'),
-                                t('admin.report_delete_error', "Le signalement n'a pas pu être supprimé."),
-                              );
-                            },
-                          })}
-                          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'projets' && (
-            <motion.div key="projets-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              <h2 className="text-lg font-light flex items-center gap-2 text-primary"><Briefcase size={20}/> Projets à vérifier ({adminData?.pendingProjects.length || 0})</h2>
-
-              {adminData?.pendingProjects.length === 0 ? (
-                <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
-                  <Briefcase className="w-12 h-12 text-white/10 mx-auto mb-4" />
-                  <p className="text-white/30 font-light italic">Aucun projet en attente de vérification</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {adminData?.pendingProjects.map(p => (
-                    <div key={p.id} className="liquid-glass rounded-[1.5rem] p-6 border border-white/10 flex flex-col gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-white">{p.title}</p>
-                        <p className="text-[10px] text-white/40">{p.owner?.full_name || 'Porteur inconnu'}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {p.budget_max && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Montant</p><p className="text-white/80">{p.budget_min?.toLocaleString()}–{p.budget_max?.toLocaleString()}€</p></div>}
-                        {p.apport_personnel && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Apport</p><p className="text-white/80">{p.apport_personnel}</p></div>}
-                        {p.revenue_current && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">CA actuel</p><p className="text-white/80">{p.revenue_current}</p></div>}
-                        {p.funds_usage && <div className="bg-white/5 rounded-xl px-3 py-2"><p className="text-white/40 text-[9px] uppercase">Fonds</p><p className="text-white/80">{p.funds_usage}</p></div>}
-                      </div>
-                      <div className="flex gap-2 mt-auto">
-                        <button
-                          onClick={async () => {
-                            await adminWrite(
-                              supabase.from('projects').update({ verification_status: 'verifie' }).eq('id', p.id).select('id'),
-                              t('admin.project_verified', 'Projet vérifié'),
-                              t('admin.project_update_error', "Le projet n'a pas pu être mis à jour."),
-                            );
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
-                        >
-                          Vérifier
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await adminWrite(
-                              supabase.from('projects').update({ verification_status: 'rejete' }).eq('id', p.id).select('id'),
-                              t('admin.project_rejected', 'Projet rejeté'),
-                              t('admin.project_update_error', "Le projet n'a pas pu être mis à jour."),
-                            );
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
-                        >
-                          Rejeter
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'ratings' && (
-            <motion.div key="ratings-view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              <h2 className="text-lg font-light flex items-center gap-2 text-amber-400"><Star size={20}/> Notes à vérifier ({adminData?.pendingRatings.length || 0})</h2>
-
-              {adminData?.pendingRatings.length === 0 ? (
-                <div className="liquid-glass rounded-[2rem] border-white/10 py-20 text-center">
-                  <Star className="w-12 h-12 text-white/10 mx-auto mb-4" />
-                  <p className="text-white/30 font-light italic">Aucune note en attente de vérification</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {adminData?.pendingRatings.map(r => (
-                    <div key={r.id} className="liquid-glass rounded-[1.5rem] p-6 border border-amber-500/10 flex flex-col gap-4">
-                      <div className="flex justify-between items-start">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{r.rater?.full_name || 'Membre'} → {r.rated?.full_name || 'Membre'}</p>
-                          <p className="text-[9px] text-white/40">{format(new Date(r.created_at), 'dd/MM/yy HH:mm')}</p>
-                        </div>
-                        <span className="text-lg font-bold text-amber-400 shrink-0">{r.score}/5</span>
-                      </div>
-
-                      {r.comment && (
-                        <div className="bg-white/5 rounded-xl p-3">
-                          <p className="text-xs text-white/70 whitespace-pre-wrap">{r.comment}</p>
-                        </div>
-                      )}
-
-                      <div className="bg-amber-500/5 rounded-xl p-4 flex-1">
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Justification</p>
-                        <p className="text-sm text-white/80 whitespace-pre-wrap">{r.justification}</p>
-                      </div>
-
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={async () => {
-                            await adminWrite(
-                              supabase.from('ratings').update({ status: 'published' }).eq('id', r.id).select('id'),
-                              t('admin.rating_published', 'Note publiée'),
-                              t('admin.rating_update_error', "La note n'a pas pu être mise à jour."),
-                            );
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition-all"
-                        >
-                          Publier
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await adminWrite(
-                              supabase.from('ratings').update({ status: 'rejected' }).eq('id', r.id).select('id'),
-                              t('admin.rating_rejected', 'Note rejetée'),
-                              t('admin.rating_update_error', "La note n'a pas pu être mise à jour."),
-                            );
-                          }}
-                          className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 text-xs font-medium transition-all"
-                        >
-                          Rejeter
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <section aria-label={currentLabel} className="flex-1 min-w-0 w-full">
+            <Suspense fallback={<Loading />}>
+              <Current />
+            </Suspense>
+          </section>
+        </div>
       </main>
-
-      <ConfirmDialog
-        open={!!confirmAction}
-        title={confirmAction?.title || ''}
-        message={confirmAction?.message}
-        confirmLabel={confirmAction?.confirmLabel}
-        cancelLabel={t('common.cancel', 'Annuler')}
-        onConfirm={() => confirmAction?.run()}
-        onClose={() => setConfirmAction(null)}
-      />
     </div>
   );
 }

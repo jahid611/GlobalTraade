@@ -5,7 +5,7 @@ import type { Listing } from '@/types/domain';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle, ArrowRight } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -32,6 +32,11 @@ import type { MatchCriteria } from '@/components/SmartMatchForm';
 import { rangeBounds } from '@/lib/rangeBounds';
 import { INDUSTRIES } from '@/lib/industries';
 import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
+import { DashboardHero, type DashStat } from '@/components/dashboard/DashboardHero';
+import { DashboardTodo, type TodoItem } from '@/components/dashboard/DashboardTodo';
+import { DashboardTabs, type DashTab, type DashTabDef } from '@/components/dashboard/DashboardTabs';
+import { MyListingCard } from '@/components/dashboard/MyListingCard';
+import { PanelHeader, SubTitle, EmptyState, ShowAllGrid, DASH_GRID, primaryBtn, outlineBtn } from '@/components/dashboard/DashboardBits';
 
 initNativeFeel();
 
@@ -52,6 +57,8 @@ export default function Dashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [listingToEdit, setListingToEdit] = useState<any>(null);
+  // Rubrique choisie par l'utilisateur (null = celle proposée par défaut).
+  const [tab, setTab] = useState<DashTab | null>(null);
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['dashboard', user?.id, JSON.stringify(user?.user_metadata)],
@@ -162,10 +169,10 @@ export default function Dashboard() {
               <WarningCircle className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-light mb-3 text-white">{t('dash.load_error_title', 'Tableau de bord indisponible')}</h1>
-            <p className="text-white dark:text-white/60 font-light mb-8 leading-relaxed text-sm">
+            <p className="text-white dark:text-white/60 font-light mb-8 leading-relaxed text-base">
               {t('dash.load_error_desc', "Vos données n'ont pas pu être chargées. Vérifiez votre connexion puis réessayez.")}
             </p>
-            <Button onClick={() => refetch()} disabled={isFetching} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
+            <Button onClick={() => refetch()} disabled={isFetching} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 outline-none text-sm font-semibold border-none [text-shadow:none]">
               {isFetching ? t('dash.retrying', 'Nouvelle tentative…') : t('common.retry', 'Réessayer')}
             </Button>
           </div>
@@ -183,10 +190,11 @@ export default function Dashboard() {
         </div>
         <SolarSystem />
         <Navbar />
-        <main className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-[6vw] pt-[20vh] pb-20">
-          <Skeleton className="h-10 w-[350px] mb-12 bg-white/5 dark:bg-white/10" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-[380px] rounded-[2rem] bg-white/5 dark:bg-white/10" />)}
+        <main className="relative z-10 flex-1 w-full px-4 sm:px-6 lg:px-10 2xl:px-14 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24">
+          <Skeleton className="h-10 w-full max-w-[350px] mb-6 bg-white/5 dark:bg-white/10" />
+          <Skeleton className="h-[260px] rounded-[2rem] mb-10 bg-white/5 dark:bg-white/10" />
+          <div className={DASH_GRID}>
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[380px] rounded-[2rem] bg-white/5 dark:bg-white/10" />)}
           </div>
         </main>
       </div>
@@ -237,6 +245,104 @@ export default function Dashboard() {
     return d.toLocaleDateString();
   };
 
+  const isPremium = normalizePlan(profile?.plan_type) !== 'free';
+  const isVerified = profile?.kyc_status === 'verified';
+  const openCreate = () => { setListingToEdit(null); setIsEditFormOpen(true); };
+  const openListing = (id: string) => navigate('/app', { state: { focusId: id } });
+  const firstName = String(profile?.full_name || user?.user_metadata?.full_name || '').trim().split(/\s+/)[0] || '';
+
+  // « Où j'en suis » : les quatre chiffres du bandeau.
+  const stats: DashStat[] = [
+    {
+      key: 'listing_views', Icon: Eye,
+      value: myListings.reduce((acc, l) => acc + l.view_count, 0),
+      label: t('dash.global_impact'), desc: t('dash.global_impact_desc'),
+    },
+    {
+      key: 'profile_views', Icon: UserIcon,
+      value: profileViews,
+      label: t('dash.profile_visits'), desc: t('dash.profile_visits_desc'),
+    },
+    {
+      key: 'conversations', Icon: ChatTeardrop,
+      value: conversationsCount,
+      label: t('dash.negotiations'), desc: t('dash.negotiations_desc'),
+      onClick: () => navigate('/messages'),
+      linkLabel: t('dashboard.open_messages', 'Ouvrir mes messages'),
+    },
+    {
+      key: 'network', Icon: Users,
+      value: connectionsCount,
+      label: t('dash.network'), desc: t('dash.network_desc'),
+      onClick: () => navigate('/profile', { state: { activeTab: 'relations' } }),
+      linkLabel: t('dashboard.open_network', 'Voir mes contacts'),
+    },
+  ];
+
+  // « Que dois-je faire maintenant » : d'abord les annonces qui attendent une
+  // réponse, puis la vérification d'identité et la formule.
+  const todoItems: TodoItem[] = [
+    ...listingsToConfirm.map((listing: Listing): TodoItem => ({
+      key: `confirm_${listing.id}`,
+      Icon: ClockCounterClockwise,
+      urgent: true,
+      title: t('lifecycle.confirm_title', { name: listing.name, defaultValue: '« {{name}} » est-elle toujours en vente ?' }),
+      desc: t('lifecycle.confirm_desc', 'Un clic suffit. C\'est gratuit.'),
+      primary: {
+        label: t('lifecycle.confirm_yes', 'Oui, toujours en vente'),
+        onClick: () => handleConfirmActive(listing),
+        disabled: confirmingId === listing.id,
+        Icon: CheckCircle,
+      },
+      secondary: { label: t('lifecycle.delete', 'Supprimer'), onClick: () => setListingToDelete(listing), danger: true },
+    })),
+    ...pausedListings.map((listing: Listing): TodoItem => ({
+      key: `paused_${listing.id}`,
+      Icon: Pause,
+      urgent: true,
+      title: t('lifecycle.paused_title', { name: listing.name, defaultValue: '« {{name}} » est en pause' }),
+      desc: t('lifecycle.paused_desc', { date: deletionDate(listing), defaultValue: 'Réactivez-la gratuitement. Sans action, elle sera supprimée le {{date}}.' }),
+      primary: {
+        label: t('lifecycle.reactivate', 'Réactiver'),
+        onClick: () => handleConfirmActive(listing),
+        disabled: confirmingId === listing.id,
+      },
+      secondary: { label: t('lifecycle.delete', 'Supprimer'), onClick: () => setListingToDelete(listing), danger: true },
+    })),
+    {
+      key: 'kyc',
+      Icon: ShieldCheck,
+      done: isVerified,
+      title: (
+        <>
+          {isVerified ? t('dashboard.kyc_done_title', 'Votre identité est vérifiée') : t('dash.trust_safety')}
+          <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
+        </>
+      ),
+      desc: isVerified ? t('dash.kyc_verified_desc') : t('dash.kyc_unverified_desc'),
+      primary: isVerified ? undefined : { label: t('dash.start_verification'), onClick: () => navigate('/profile') },
+    },
+    {
+      key: 'plan',
+      Icon: Crown,
+      done: isPremium,
+      title: `${t('dash.license_access')} : ${t(`dashboard.plan_${normalizePlan(profile?.plan_type)}`, { defaultValue: normalizePlan(profile?.plan_type) === 'free' ? 'Gratuite' : normalizePlan(profile?.plan_type) === 'pro' ? 'Pro' : 'Business' })}`,
+      desc: isPremium ? t('dash.premium_active_desc') : t('dash.premium_inactive_desc'),
+      primary: isPremium ? undefined : { label: t('dash.unlock_premium'), onClick: () => navigate('/payment') },
+    },
+  ];
+
+  // Rubrique ouverte à l'arrivée : mes annonces, ou mes favoris quand on n'a
+  // rien à vendre mais des annonces mises de côté.
+  const defaultTab: DashTab = myListings.length === 0 && myFavorites.length > 0 ? 'favorites' : 'listings';
+  const activeTab: DashTab = tab ?? defaultTab;
+  const tabs: DashTabDef[] = [
+    { id: 'listings', label: t('dashboard.tab_listings', 'Mes annonces'), Icon: Storefront, count: myListings.length },
+    { id: 'favorites', label: t('dashboard.tab_favorites', 'Mes favoris'), Icon: Heart, count: myFavorites.length },
+    { id: 'suggestions', label: t('dashboard.tab_suggestions', 'Suggestions pour vous'), Icon: Sparkle, count: suggestedDeals.length },
+    { id: 'activity', label: t('dashboard.tab_activity', 'Activité et marché'), Icon: Activity },
+  ];
+
   return (
     <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] flex flex-col text-white font-sans selection:bg-primary/30">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -246,362 +352,254 @@ export default function Dashboard() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-[6vw] pt-[15vh] sm:pt-[20vh] pb-20">
-        
-        <motion.div 
-          animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-4%] md:top-[14vh] md:right-[19%] lg:right-[24%] w-[200px] md:w-[320px] z-[110] pointer-events-none opacity-100"
-        >
-          <img src="/mascot/globi-etoile.png" alt="" className="w-full h-auto drop-shadow-2xl" />
+      {/* Pleine largeur, comme la marketplace. */}
+      <main className="relative z-10 flex-1 w-full px-4 sm:px-6 lg:px-10 2xl:px-14 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24">
+
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
+            {t('dash.cockpit_title1')} <span className="text-primary font-medium">{t('dash.cockpit_title2')}</span>
+          </h1>
+          <p className="text-white/60 font-light text-sm md:text-base mt-2">
+            {t('dash.subtitle')}
+          </p>
         </motion.div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-[4vh] mb-[8vh] border-b border-white/20 pb-[3vh]">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] mb-[1vh]">
-              {t('dash.cockpit_title1')} <span className="text-primary font-medium">{t('dash.cockpit_title2')}</span>
-            </h1>
-            <p className="text-sm md:text-base text-white/50 font-light max-w-2xl leading-relaxed">
-              {t('dash.subtitle')}
-            </p>
-          </div>
-          <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full h-[10vw] sm:h-12 px-[4vw] sm:px-8 bg-white text-black hover:bg-white/90 font-medium w-fit shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all hover:scale-105 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-            <Storefront className="w-4 h-4 mr-2" /> {t('dash.list_company')}
-          </Button>
+        {/* 1. Où j'en suis */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-10">
+          <DashboardHero name={firstName} stats={stats} onSell={openCreate} />
+        </motion.div>
+
+        {/* 2. Que dois-je faire maintenant */}
+        <div className="mb-6">
+          <DashboardTodo items={todoItems} />
         </div>
 
         <HelpBanner
           title={t('help.dash_title', 'Comment fonctionne votre tableau de bord ?') as string}
           desc={t('help.dash_desc', '') as string}
-          className="mb-[6vh] relative z-10"
+          className="mb-10"
         />
 
-        {(listingsToConfirm.length > 0 || pausedListings.length > 0) && (
-          <div className="space-y-4 mb-[6vh] relative z-20">
-            {listingsToConfirm.map((listing: Listing) => (
-              <div key={listing.id} className="liquid-glass border border-primary/50 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
-                <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/40">
-                  <ClockCounterClockwise className="w-7 h-7 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-lg font-light text-white mb-1">
-                    {t('lifecycle.confirm_title', { name: listing.name, defaultValue: '« {{name}} » est-elle toujours en vente ?' })}
-                  </p>
-                  <p className="text-sm text-white/50 font-light">
-                    {t('lifecycle.confirm_desc', 'Un clic suffit. C\'est gratuit.')}
-                  </p>
-                </div>
-                <div className="flex gap-3 shrink-0">
-                  <Button onClick={() => handleConfirmActive(listing)} disabled={confirmingId === listing.id} className="rounded-full h-12 px-6 bg-primary hover:bg-primary/90 text-white font-medium outline-none [text-shadow:none]">
-                    <CheckCircle className="w-4 h-4 mr-2" /> {t('lifecycle.confirm_yes', 'Oui, toujours en vente')}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setListingToDelete(listing)} className="rounded-full h-12 px-5 text-white/60 hover:text-red-400 hover:bg-red-500/10 outline-none [text-shadow:none]">
-                    {t('lifecycle.delete', 'Supprimer')}
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {pausedListings.map((listing: Listing) => (
-              <div key={listing.id} className="liquid-glass border border-white/20 rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
-                <div className="w-14 h-14 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
-                  <Pause className="w-7 h-7 text-white/70" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-lg font-light text-white mb-1">
-                    {t('lifecycle.paused_title', { name: listing.name, defaultValue: '« {{name}} » est en pause' })}
-                  </p>
-                  <p className="text-sm text-white/50 font-light">
-                    {t('lifecycle.paused_desc', { date: deletionDate(listing), defaultValue: 'Réactivez-la gratuitement. Sans action, elle sera supprimée le {{date}}.' })}
-                  </p>
-                </div>
-                <div className="flex gap-3 shrink-0">
-                  <Button onClick={() => handleConfirmActive(listing)} disabled={confirmingId === listing.id} className="rounded-full h-12 px-6 bg-white text-black hover:bg-white/90 font-medium outline-none [text-shadow:none]">
-                    {t('lifecycle.reactivate', 'Réactiver')}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setListingToDelete(listing)} className="rounded-full h-12 px-5 text-white/60 hover:text-red-400 hover:bg-red-500/10 outline-none [text-shadow:none]">
-                    {t('lifecycle.delete', 'Supprimer')}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[4vh] sm:gap-6 mb-[8vh]">
-          {/* Vues Annonces */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">
-            <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/10 flex items-center justify-center mb-6 border border-primary/40 dark:border-primary/20">
-              <Eye className="w-6 h-6 text-primary" />
-            </div>
-            <p className="text-4xl font-light text-white mb-2 tracking-tight">{myListings.reduce((acc, l) => acc + l.view_count, 0)}</p>
-            <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-2">{t('dash.global_impact')}</span>
-            <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/40 font-light leading-relaxed">
-              {t('dash.global_impact_desc')}
-            </p>
-          </div>
-
-          {/* Vues Profil */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/40 dark:border-blue-500/20">
-              <UserIcon className="w-6 h-6 text-blue-400" />
-            </div>
-            <p className="text-4xl font-light text-white mb-2 tracking-tight">{profileViews}</p>
-            <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-2">{t('dash.profile_visits')}</span>
-            <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/40 font-light leading-relaxed">
-              {t('dash.profile_visits_desc')}
-            </p>
-          </div>
-
-          {/* Messages */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500 cursor-pointer" onClick={() => navigate('/messages')} role="button">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/30 dark:border-white/10 group-hover:border-white/50 transition-colors">
-              <ChatTeardrop className="w-6 h-6 text-white" />
-            </div>
-            <p className="text-4xl font-light text-white mb-2 tracking-tight">{conversationsCount}</p>
-            <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-2">{t('dash.negotiations')}</span>
-            <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/40 font-light leading-relaxed">
-              {t('dash.negotiations_desc')}
-            </p>
-          </div>
-
-          {/* Réseau / CRM */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col items-start relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500 cursor-pointer" onClick={() => navigate('/profile', { state: { activeTab: 'relations' } })} role="button">
-            <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/5 flex items-center justify-center mb-6 border border-primary/40 dark:border-primary/20 group-hover:border-primary/60 transition-colors">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <p className="text-4xl font-light text-white mb-2 tracking-tight">{connectionsCount}</p>
-            <span className="text-[10px] uppercase tracking-widest text-white dark:text-white/60 font-medium mb-2">{t('dash.network')}</span>
-            <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/40 font-light leading-relaxed">
-              {t('dash.network_desc')}
-            </p>
-          </div>
+        {/* 3. Le détail : une rubrique à la fois */}
+        <div className="mb-8">
+          <DashboardTabs tabs={tabs} tab={activeTab} onChange={setTab} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-[8vh] relative z-20">
-          {/* Action: KYC */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500 h-full">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 shrink-0 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center border border-blue-500/40 dark:border-blue-500/20">
-                  <ShieldCheck className="w-7 h-7 text-blue-400" />
-                </div>
-                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white flex flex-wrap items-center gap-3">
-                  {t('dash.trust_safety')} <VerifiedBadge kycStatus={profile?.kyc_status} size="sm" />
-                </p>
-              </div>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
-                {profile?.kyc_status === 'verified' 
-                  ? t('dash.kyc_verified_desc') 
-                  : t('dash.kyc_unverified_desc')}
-              </p>
-            </div>
-            {profile?.kyc_status !== 'verified' && (
-              <Button onClick={() => navigate('/profile')} variant="outline" className="w-fit rounded-full liquid-glass border-white/30 dark:border-white/10 text-white hover:bg-white/20 dark:hover:bg-white/10 h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
-                {t('dash.start_verification')}
-              </Button>
-            )}
-          </div>
+        <div id="dash-panel" role="tabpanel" aria-labelledby={`dash-tab-${activeTab}`}>
+          {activeTab === 'listings' && (
+            <div className="space-y-12">
+              <section>
+                <PanelHeader
+                  title={t('dashboard.listings_title', 'Mes annonces')}
+                  desc={t('dashboard.listings_desc', 'Les entreprises que vous avez mises en vente. Sous chaque annonce : son état et les boutons pour la modifier.')}
+                  action={myListings.length > 0 ? (
+                    <button onClick={openCreate} className={`${outlineBtn} w-full sm:w-auto`}>
+                      <Storefront size={18} /> {t('dashboard.add_listing', 'Ajouter une annonce')}
+                    </button>
+                  ) : undefined}
+                />
 
-          {/* Action: Plan */}
-          <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-8 flex flex-col justify-between gap-6 hover:border-white/50 dark:hover:bg-white/[0.03] transition-colors duration-500 h-full">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/20 dark:bg-primary/10 flex items-center justify-center border border-primary/40 dark:border-primary/20">
-                  <Crown className="w-7 h-7 text-primary" />
-                </div>
-                <p className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white">
-                  {t('dash.license_access')}
-                </p>
-              </div>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/50 font-light leading-relaxed">
-                {normalizePlan(profile?.plan_type) !== 'free'
-                  ? t('dash.premium_active_desc')
-                  : t('dash.premium_inactive_desc')}
-              </p>
-            </div>
-            {normalizePlan(profile?.plan_type) === 'free' && (
-              <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
-                {t('dash.unlock_premium')}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Market Pulse — pleine largeur, horizontal */}
-        <div className="mb-[6vh] relative z-20">
-          <MarketPulse listings={allSuggested} />
-        </div>
-        <div className="mb-[8vh] relative z-20">
-          <LiveActivityFeed />
-        </div>
-
-        {/* Score de cession + Qui s'intéresse à vous (premium vendeur) */}
-        {myListings.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-[8vh] relative z-20">
-            <SellabilityScore listing={myListings[0]} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
-            <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: Listing) => l.id)} isPremium={normalizePlan(profile?.plan_type) !== 'free'} />
-          </div>
-        )}
-
-        {/* Offer Comparators for seller's listings */}
-        {myListings.length > 0 && (
-          <div className="space-y-[4vh] mb-[8vh] relative z-20">
-            {myListings.map(listing => (
-              <OfferComparator key={listing.id} listingId={listing.id} listingPrice={listing.price} sellerId={user?.id || ''} />
-            ))}
-          </div>
-        )}
-
-        {/* KILLER FEATURE: AI Deal Radar */}
-        {suggestedDeals.length > 0 && (
-          <div className="mb-[12vh] relative z-20">
-            <div className="flex items-center gap-3 mb-[4vh]">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center border border-primary/50 relative">
-                <Sparkle className="w-6 h-6 text-white" />
-                <span className="absolute top-1 right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                </span>
-              </div>
-              <div>
-                <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none flex items-center gap-3">
-                  {t('dash.radar_title1')} <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-white border border-primary/50 uppercase tracking-widest">{t('dash.radar_title2')}</span>
-                </h2>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light mt-2">
-                  {hasCriteria
-                    ? `${t('dash.radar_based_on')}${criteriaSummary || t('dash.active_search')}`
-                    : t('dash.radar_configure')}
-                </p>
-                <button
-                  onClick={() => navigate('/settings#criteres')}
-                  className="mt-3 inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-colors font-medium uppercase tracking-widest"
-                >
-                  <Target className="w-3.5 h-3.5" /> {hasCriteria
-                    ? t('dash.edit_criteria', { defaultValue: 'Modifier mes critères' })
-                    : t('dash.set_criteria', { defaultValue: 'Renseigner mes critères' })}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-              {suggestedDeals.map((deal) => {
-                return (
-                  <div key={deal.id} className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-500 rounded-[2.5rem] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-                    <div className="relative">
-                      {/* Badge Match Score — uniquement s'il est calculé à partir de vrais critères */}
-                      {deal.matchScore !== null && (
-                        <div className="absolute -top-3 -right-2 z-20 liquid-glass border border-primary/50 text-white px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)] flex items-center gap-2 transform group-hover:scale-105 transition-transform duration-300">
-                          <Activity className="w-3 h-3 text-white animate-pulse" />
-                          <span className="text-sm font-bold text-white">{deal.matchScore}% {t('dash.match')}</span>
-                        </div>
-                      )}
-                      <BusinessCard
-                        listing={deal}
-                        onClick={() => navigate('/app', { state: { focusId: deal.id } })}
-                        variant="dashboard"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-[12vh] relative z-20">
-          <section>
-            <div className="flex items-center justify-between mb-[4vh]">
-              <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none">
-                {t('dash.my_sales')}
-              </h2>
-            </div>
-            
-            {myListings.length === 0 ? (
-              <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-16 text-center max-w-3xl mx-auto flex flex-col items-center hover:border-white/50 transition-colors duration-500">
-                <div className="w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/20 dark:border-white/10">
-                  <Storefront className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-3 text-white">{t('dash.no_sales_title')}</h3>
-                <p className="text-white dark:text-white/60 font-light mb-8 max-w-md leading-relaxed text-[clamp(0.875rem,1vw,1rem)]">
-                  {t('dash.no_sales_desc')}
-                </p>
-                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
-                  {t('dash.create_first')}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-                {myListings.map(listing => (
-                  <div key={listing.id} className="relative">
-                    {listing.status && listing.status !== 'active' && (
-                      <div className={`absolute -top-3 left-6 z-20 liquid-glass px-4 py-1.5 rounded-full flex items-center gap-2 border ${listing.status === 'pending_renewal' ? 'border-primary/50 text-primary' : 'border-white/30 text-white/70'}`}>
-                        {listing.status === 'pending_renewal'
-                          ? <><ClockCounterClockwise className="w-3.5 h-3.5" /><span className="text-xs font-medium">{t('lifecycle.status_pending', 'À confirmer')}</span></>
-                          : <><Pause className="w-3.5 h-3.5" /><span className="text-xs font-medium">{t('lifecycle.status_paused', 'En pause')}</span></>}
-                      </div>
-                    )}
-                  <BusinessCard listing={listing} onClick={() => navigate('/app', { state: { focusId: listing.id } })}
-                    actions={
-                      <div className="flex gap-1">
-                        {!isBoosted(listing) && (
-                          <button className="p-2 rounded-full text-white/60 hover:text-amber-300 hover:bg-amber-500/20 dark:hover:bg-amber-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); navigate(`/payment?boost=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`); }} title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`)}><RocketLaunch className="w-5 h-5" /></button>
-                        )}
-                        {normalizePlan(profile?.plan_type) !== 'free' && (
-                          <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={async (e) => { e.stopPropagation(); await generatePremiumPresentation(listing, t, i18n.language?.startsWith('en') ? 'en' : 'fr'); }} title={t('premium.download_pdf', 'Télécharger la présentation PDF')}><DownloadSimple className="w-5 h-5" /></button>
-                        )}
-                        <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(listing); setIsEditFormOpen(true); }} title={t('dash.edit')}><PencilSimple className="w-5 h-5" /></button>
-                        <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(listing); }} title={t('dash.remove')}><Trash className="w-5 h-5" /></button>
-                      </div>
+                {myListings.length === 0 ? (
+                  <EmptyState
+                    Icon={Storefront}
+                    title={t('dash.no_sales_title')}
+                    desc={t('dashboard.no_listings_desc', "Vous n'avez pas encore mis d'entreprise en vente. Créez votre annonce : c'est guidé, étape par étape.")}
+                    action={
+                      <button onClick={openCreate} className={primaryBtn}>
+                        <Storefront size={18} weight="fill" /> {t('dash.create_first')}
+                      </button>
                     }
                   />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <div className="flex items-center justify-between border-t border-white/20 dark:border-white/5 pt-[8vh] mb-[4vh]">
-              <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white leading-none">
-                 {t('dash.watchlist')}
-              </h2>
-            </div>
-            
-            {myFavorites.length === 0 ? (
-              <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-16 text-center max-w-3xl mx-auto flex flex-col items-center hover:border-white/50 transition-colors duration-500">
-                <div className="w-16 h-16 rounded-full bg-white/10 dark:bg-white/5 flex items-center justify-center mb-6 border border-white/20 dark:border-white/10">
-                  <Heart className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-3 text-white">{t('dash.no_favs_title')}</h3>
-                <p className="text-white dark:text-white/60 font-light mb-8 max-w-md leading-relaxed text-[clamp(0.875rem,1vw,1rem)]">
-                  {t('dash.no_favs_desc')}
-                </p>
-                <Button variant="outline" onClick={() => navigate('/marketplace')} className="rounded-full border-white/30 dark:border-white/10 liquid-glass hover:bg-white/20 text-white px-8 h-12 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                  {t('dash.explore')}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-                {myFavorites.map(listing => (
-                  <BusinessCard 
-                    key={listing.id} 
-                    listing={listing} 
-                    onClick={() => navigate('/app', { state: { focusId: listing.id } })}
-                    onFavoriteToggle={(id, isFav) => {
-                      if (!isFav) {
-                        // La clé réelle est ['dashboard', id, métadonnées] : on cible par préfixe.
-                        queryClient.setQueriesData({ queryKey: ['dashboard', user?.id] }, (old: any) => {
-                          if (!old) return old;
-                          return { ...old, myFavorites: old.myFavorites.filter((f: Listing) => f.id !== id) };
-                        });
-                      }
-                    }}
+                ) : (
+                  <ShowAllGrid
+                    items={myListings as Listing[]}
+                    getKey={(l) => l.id}
+                    showAllLabel={t('dashboard.show_all_listings', { count: myListings.length, defaultValue: 'Voir toutes mes annonces ({{count}})' })}
+                    showLessLabel={t('dashboard.show_less', 'Afficher moins')}
+                    renderItem={(listing) => (
+                      <MyListingCard
+                        listing={listing}
+                        onOpen={() => openListing(listing.id)}
+                        onEdit={() => { setListingToEdit(listing); setIsEditFormOpen(true); }}
+                        onDelete={() => setListingToDelete(listing)}
+                        onBoost={isBoosted(listing) ? undefined : () => navigate(`/payment?boost=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`)}
+                        onDownloadPdf={isPremium ? async () => { await generatePremiumPresentation(listing, t, i18n.language?.startsWith('en') ? 'en' : 'fr'); } : undefined}
+                      />
+                    )}
                   />
-                ))}
-              </div>
-            )}
-          </section>
+                )}
+              </section>
+
+              {/* Comparateur d'offres : n'apparaît que s'il y a des offres à comparer */}
+              {myListings.length > 0 && (
+                <section className="[&:has(>[data-slot]:empty)]:hidden">
+                  <SubTitle
+                    title={t('dashboard.offers_title', 'Les offres reçues')}
+                    desc={t('dashboard.offers_desc', 'Quand plusieurs acheteurs vous font une offre pour la même annonce, elles sont comparées ici.')}
+                  />
+                  <div data-slot className="space-y-6 [&_.text-\[9px\]]:!text-xs [&_.text-\[10px\]]:!text-xs [&_.text-xs]:!text-[13px]">
+                    {myListings.map(listing => (
+                      <OfferComparator key={listing.id} listingId={listing.id} listingPrice={listing.price} sellerId={user?.id || ''} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Score de cession + Qui s'intéresse à vous (premium vendeur) */}
+              {myListings.length > 0 && (
+                <section>
+                  <SubTitle
+                    title={t('dashboard.sell_better_title', 'Pour mieux vendre')}
+                    desc={t('dashboard.sell_better_desc', "Le score de cession note votre annonce sur 100 : plus elle est complète, plus elle inspire confiance. À côté, les personnes qui s'intéressent à vous.")}
+                  />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 [&_button]:min-h-[44px] [&_.text-\[9px\]]:!text-xs [&_.text-\[10px\]]:!text-xs [&_.text-xs]:!text-[13px]">
+                    <SellabilityScore listing={myListings[0]} isPremium={isPremium} />
+                    <ViewersPanel userId={user?.id || ''} listingIds={myListings.map((l: Listing) => l.id)} isPremium={isPremium} />
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'favorites' && (
+            <section>
+              <PanelHeader
+                title={t('dashboard.favorites_title', 'Mes favoris')}
+                desc={t('dashboard.favorites_desc', "Les annonces que vous avez mises de côté avec le cœur. Cliquez de nouveau sur le cœur pour en retirer une.")}
+              />
+              {myFavorites.length === 0 ? (
+                <EmptyState
+                  Icon={Heart}
+                  title={t('dashboard.no_favs_title', 'Aucun favori pour le moment')}
+                  desc={t('dashboard.no_favs_desc', "Quand une annonce vous plaît, cliquez sur le cœur : vous la retrouverez ici.")}
+                  action={
+                    <button onClick={() => navigate('/marketplace')} className={primaryBtn}>
+                      {t('dashboard.browse_market', 'Voir les annonces')} <ArrowRight size={16} weight="bold" />
+                    </button>
+                  }
+                />
+              ) : (
+                <ShowAllGrid
+                  items={myFavorites as Listing[]}
+                  getKey={(l) => l.id}
+                  showAllLabel={t('dashboard.show_all_favorites', { count: myFavorites.length, defaultValue: 'Voir tous mes favoris ({{count}})' })}
+                  showLessLabel={t('dashboard.show_less', 'Afficher moins')}
+                  renderItem={(listing) => (
+                    <BusinessCard
+                      listing={listing}
+                      onClick={() => openListing(listing.id)}
+                      onFavoriteToggle={(id, isFav) => {
+                        if (!isFav) {
+                          // La clé réelle est ['dashboard', id, métadonnées] : on cible par préfixe.
+                          queryClient.setQueriesData({ queryKey: ['dashboard', user?.id] }, (old: any) => {
+                            if (!old) return old;
+                            return { ...old, myFavorites: old.myFavorites.filter((f: Listing) => f.id !== id) };
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                />
+              )}
+            </section>
+          )}
+
+          {activeTab === 'suggestions' && (
+            <section>
+              <PanelHeader
+                title={t('dashboard.suggestions_title', 'Suggestions pour vous')}
+                desc={hasCriteria
+                  ? `${t('dash.radar_based_on')}${criteriaSummary || t('dash.active_search')}`
+                  : t('dashboard.suggestions_no_criteria', "Voici les dernières annonces publiées. Dites-nous ce que vous cherchez (métier, région, budget) : nous vous montrerons d'abord celles qui vous correspondent.")}
+                action={
+                  <button onClick={() => navigate('/settings#criteres')} className={`${hasCriteria ? outlineBtn : primaryBtn} w-full sm:w-auto`}>
+                    <Target size={18} /> {hasCriteria
+                      ? t('dash.edit_criteria', { defaultValue: 'Modifier mes critères' })
+                      : t('dash.set_criteria', { defaultValue: 'Renseigner mes critères' })}
+                  </button>
+                }
+              />
+              {hasCriteria && suggestedDeals.length > 0 && (
+                <p className="text-[13px] text-white/60 font-light -mt-2 mb-5 max-w-3xl leading-relaxed">
+                  {t('dashboard.match_help', 'Le pourcentage affiché sur chaque annonce indique à quel point elle correspond à vos critères : plus il est élevé, mieux c\'est.')}
+                </p>
+              )}
+
+              {suggestedDeals.length === 0 ? (
+                <EmptyState
+                  Icon={Sparkle}
+                  title={t('dashboard.no_suggestions_title', 'Aucune suggestion pour le moment')}
+                  desc={t('dashboard.no_suggestions_desc', "Aucune annonce à vous proposer aujourd'hui. Vous pouvez parcourir toutes les annonces du site.")}
+                  action={
+                    <button onClick={() => navigate('/marketplace')} className={primaryBtn}>
+                      {t('dashboard.browse_market', 'Voir les annonces')} <ArrowRight size={16} weight="bold" />
+                    </button>
+                  }
+                />
+              ) : (
+                <div className={DASH_GRID}>
+                  {suggestedDeals.map((deal) => (
+                    // Note de correspondance — uniquement si elle est calculée à partir de vrais critères
+                    <BusinessCard
+                      key={deal.id}
+                      listing={deal}
+                      onClick={() => openListing(deal.id)}
+                      variant="dashboard"
+                      matchScore={deal.matchScore ?? undefined}
+                    />
+                  ))}
+                  <button
+                    onClick={() => navigate('/marketplace')}
+                    className="group flex flex-col items-center justify-center text-center gap-4 min-h-[12rem] rounded-3xl border border-dashed border-white/25 bg-black/20 hover:bg-white/[0.06] hover:border-white/40 p-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    <span className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center">
+                      <Storefront size={28} className="text-[#a5b4fc]" />
+                    </span>
+                    <span className="text-lg font-medium text-white leading-tight">{t('dashboard.see_market_title', 'Voir toutes les annonces')}</span>
+                    <span className="text-sm text-white/65 font-light leading-relaxed max-w-[16rem]">{t('dashboard.see_market_desc', 'Parcourez toutes les entreprises à vendre et filtrez-les à votre façon.')}</span>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#a5b4fc] group-hover:text-white transition-colors">
+                      {t('dashboard.see_market_cta', 'Ouvrir le marché')} <ArrowRight size={16} weight="bold" className="transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-12">
+              {/* Activité récente : n'apparaît que s'il y a quelque chose à montrer */}
+              <section className="[&:has(>[data-slot]:empty)]:hidden">
+                <SubTitle
+                  title={t('dashboard.activity_title', 'Ce qui s\'est passé récemment')}
+                  desc={t('dashboard.activity_desc', 'Les derniers messages reçus, les offres et les personnes qui ont mis vos annonces en favori.')}
+                />
+                {/* Composants partagés : on agrandit ici leurs petits textes, sans les modifier. */}
+                <div data-slot className="[&_.text-\[9px\]]:!text-xs [&_.text-\[10px\]]:!text-xs [&_.text-xs]:!text-[13px]"><LiveActivityFeed /></div>
+              </section>
+
+              <section>
+                <SubTitle
+                  title={t('dashboard.market_title', 'Les chiffres du marché')}
+                  desc={t('dashboard.market_desc', 'Un aperçu des dernières annonces publiées : nombre, prix moyen et métiers les plus représentés.')}
+                />
+                {allSuggested.length === 0 ? (
+                  <EmptyState
+                    Icon={Activity}
+                    title={t('dashboard.no_market_title', 'Rien à afficher pour le moment')}
+                    desc={t('dashboard.no_market_desc', "Il n'y a pas encore assez d'annonces pour dresser un aperçu du marché.")}
+                    action={
+                      <button onClick={() => navigate('/marketplace')} className={primaryBtn}>
+                        {t('dashboard.browse_market', 'Voir les annonces')} <ArrowRight size={16} weight="bold" />
+                      </button>
+                    }
+                  />
+                ) : (
+                  <div className="[&_.text-\[9px\]]:!text-xs [&_.text-\[10px\]]:!text-xs [&_.text-xs]:!text-[13px]"><MarketPulse listings={allSuggested} /></div>
+                )}
+              </section>
+            </div>
+          )}
         </div>
       </main>
 
@@ -609,13 +607,13 @@ export default function Dashboard() {
         {listingToDelete && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#2b2a2f]/80 backdrop-blur-md" onClick={() => setListingToDelete(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative liquid-glass border border-white/30 dark:border-white/10 rounded-[2rem] p-10 max-w-md w-full text-center shadow-2xl">
+            <motion.div role="dialog" aria-modal="true" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative liquid-glass border border-white/30 dark:border-white/10 rounded-[2rem] p-8 sm:p-10 max-w-md w-full text-center shadow-2xl">
               <h3 className="text-2xl font-light mb-3 text-white">{t('dash.modal_delete_title')}</h3>
-              <p className="text-white dark:text-white/60 mb-8 font-light text-[clamp(0.875rem,1vw,1rem)]">
+              <p className="text-white dark:text-white/70 mb-8 font-light text-base leading-relaxed">
                 {t('dash.modal_delete_desc', { name: listingToDelete.name })}
               </p>
               <div className="flex flex-col gap-3">
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 outline-none font-medium [text-shadow:none]">{t('dash.confirm_delete')}</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-full rounded-full h-12 outline-none font-medium text-white hover:brightness-110 [text-shadow:none]" style={{ background: '#dc2626' }}>{t('dash.confirm_delete')}</Button>
                 <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-full rounded-full h-12 outline-none font-medium text-white hover:bg-white/20 [text-shadow:none]">{t('dash.cancel')}</Button>
               </div>
             </motion.div>

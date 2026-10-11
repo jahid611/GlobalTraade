@@ -171,3 +171,36 @@ export async function searchCompanies(params: SearchParams): Promise<SearchRespo
 }
 
 // La liste des codes APE vit désormais dans src/data/apeCodes.ts
+
+/** Ce que le registre public dit d'un numéro SIRET. */
+export interface SiretLookup {
+  /** found : établissement en activité · closed : fermé · not_found : inconnu du registre */
+  status: 'found' | 'closed' | 'not_found';
+  nom?: string;
+  ville?: string;
+  code_postal?: string;
+  libelle_ape?: string;
+}
+
+/**
+ * Cherche un établissement par son SIRET dans le registre public.
+ * Lève une erreur si le registre ne répond pas (à ne pas confondre avec « inconnu »).
+ */
+export async function lookupSiret(siret: string): Promise<SiretLookup> {
+  const res = await fetch(`${API}?q=${encodeURIComponent(siret)}&per_page=5`);
+  if (!res.ok) throw new Error(`API gouv: ${res.status}`);
+  const data = await res.json();
+  for (const r of data.results || []) {
+    const etabs = [r.siege, ...(r.matching_etablissements || [])].filter(Boolean);
+    const etab = etabs.find((e: any) => e.siret === siret);
+    if (!etab) continue;
+    return {
+      status: etab.etat_administratif === 'A' ? 'found' : 'closed',
+      nom: r.nom_complet || r.nom_raison_sociale || undefined,
+      ville: etab.libelle_commune || undefined,
+      code_postal: etab.code_postal || undefined,
+      libelle_ape: r.libelle_activite_principale || undefined,
+    };
+  }
+  return { status: 'not_found' };
+}

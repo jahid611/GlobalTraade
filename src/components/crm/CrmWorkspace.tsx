@@ -16,7 +16,7 @@ import { startCheckout, openCheckout } from "@/services/stripe";
 import { EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
 import {
   listProspects, buildCampaignCsv, getProspectionQuota, registerProspectionContact, isProspectAlreadyCounted,
-  type Prospect, type ProspectStatus,
+  PROSPECTION_MONTHLY_INCLUDED, type Prospect, type ProspectStatus,
 } from "@/services/prospectService";
 import { changeStatus, deleteProspects, listTasks, patchProspects, type CrmTask, type ProspectPatch } from "@/services/crmService";
 import {
@@ -432,7 +432,21 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
 
-      {prospectCS && <StripeCheckoutModal clientSecret={prospectCS} onClose={() => setProspectCS(null)} />}
+      {prospectCS && (
+        <StripeCheckoutModal
+          clientSecret={prospectCS}
+          onClose={() => setProspectCS(null)}
+          summary={{
+            title: t('pay.contacts_title', 'Contacts de prospection supplémentaires'),
+            lines: [
+              t('pay.b_contacts_1', { defaultValue: 'Votre formule comprend {{n}} contacts par mois : ceux-ci viennent en plus.', n: PROSPECTION_MONTHLY_INCLUDED }),
+              t('pay.b_contacts_2', 'Dès le paiement reçu, ils sont enregistrés dans votre CRM et vous pouvez les exporter.'),
+              t('pay.b_contacts_3', { defaultValue: '{{price}} € par contact, sans engagement.', price: EXTRA_PROSPECT_PRICE }),
+            ],
+            note: t('pay.one_time', 'Paiement unique, sans abonnement : rien ne sera prélevé ensuite.'),
+          }}
+        />
+      )}
     </div>
   );
 }

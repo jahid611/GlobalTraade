@@ -55,6 +55,8 @@ const EMPTY_FORM = {
   revenue_range: '',
   budget: '',
   apport_available: false,
+  /** montant de l'apport, en chiffres (chaîne : c'est un champ de saisie) */
+  apport_amount: '',
   bank_financing: false,
   description: '',
 };
@@ -135,6 +137,7 @@ export function SearchAdsBoard() {
       budget: isAmountRange(profile?.target_budget) ? profile!.target_budget : '',
       revenue_range: isAmountRange(profile?.target_revenue) ? profile!.target_revenue : '',
       apport_available: !!profile?.apport,
+      apport_amount: String(profile?.apport ?? '').replace(/\D/g, '').slice(0, 9),
     });
     setEditingId(null);
     setIsFormOpen(true);
@@ -148,6 +151,7 @@ export function SearchAdsBoard() {
       regions: toList(ad.regions),
       revenue_range: ad.revenue_range || '',
       budget: ad.budget || '',
+      apport_amount: ad.apport_amount != null ? String(Math.round(Number(ad.apport_amount))) : '',
     });
     setEditingId(ad.id);
     setIsFormOpen(true);
@@ -159,6 +163,7 @@ export function SearchAdsBoard() {
     if (!form.buyer_type) { showError(t('searchads.type_required', 'Précisez votre profil de repreneur.')); return; }
     if (!form.sectors.length) { showError(t('searchads.sectors_required', 'Sélectionnez au moins un secteur.')); return; }
     if (!form.regions.length) { showError(t('searchads.regions_required', 'Sélectionnez au moins une zone géographique.')); return; }
+    if (form.apport_available && !(Number(form.apport_amount) > 0)) { showError(t('searchads.apport_required', "Indiquez le montant de votre apport, ou décochez « J'ai un apport personnel ».")); return; }
 
     setSaving(true);
     const payload = {
@@ -169,7 +174,9 @@ export function SearchAdsBoard() {
       regions: form.regions.length ? form.regions.join(',') : null,
       revenue_range: form.revenue_range || null,
       budget: form.budget || null,
-      apport_available: !!form.apport_available,
+      // « Apport » coché : le montant est obligatoire (voir plus haut) ; 0 = pas d'apport
+      apport_available: !!form.apport_available && Number(form.apport_amount) > 0,
+      apport_amount: form.apport_available && form.apport_amount !== '' ? Number(form.apport_amount) : null,
       bank_financing: !!form.bank_financing,
       description: form.description?.trim() || null,
       updated_at: new Date().toISOString(),
@@ -215,11 +222,11 @@ export function SearchAdsBoard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-8">
-        <p className="text-sm text-white/50 font-light max-w-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <p className="text-sm sm:text-sm text-white/70 sm:text-white/50 font-light max-w-xl leading-relaxed">
           {t('searchads.intro', 'Des repreneurs qualifiés cherchent une entreprise. La vôtre, peut-être.')}
         </p>
-        <Button onClick={openCreate} className="rounded-full h-12 px-6 bg-white text-black hover:bg-white/90 font-medium shrink-0 outline-none [text-shadow:none]">
+        <Button onClick={openCreate} className="w-full sm:w-auto rounded-full h-12 px-6 bg-white text-black hover:bg-white/90 font-medium shrink-0 outline-none [text-shadow:none]">
           <Plus className="w-4 h-4 mr-2" /> {t('searchads.publish', 'Publier ma recherche')}
         </Button>
       </div>
@@ -260,9 +267,15 @@ export function SearchAdsBoard() {
                     {(ad.apport_available || ad.bank_financing) && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border"
                         style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.3)' }}>
-                        <Bank size={12} /> {ad.apport_available && ad.bank_financing
-                          ? t('searchads.apport_bank', 'Apport + financement bancaire')
-                          : ad.apport_available ? t('searchads.apport', 'Apport disponible') : t('searchads.bank', 'Financement bancaire')}
+                        <Bank size={12} /> {(() => {
+                          const amount = Number(ad.apport_amount) > 0 ? `${Math.round(Number(ad.apport_amount)).toLocaleString('fr-FR')} €` : null;
+                          // anciennes recherches : l'apport était coché sans montant
+                          const apport = amount
+                            ? t('searchads.apport_value', { defaultValue: 'Apport {{amount}}', amount })
+                            : t('searchads.apport_unknown', 'Apport (montant non précisé)');
+                          if (ad.apport_available && ad.bank_financing) return `${apport} + ${t('searchads.bank_short', 'prêt bancaire')}`;
+                          return ad.apport_available ? apport : t('searchads.bank', 'Financement bancaire');
+                        })()}
                       </span>
                     )}
                   </div>
@@ -400,7 +413,7 @@ export function SearchAdsBoard() {
                       className={`px-4 h-10 rounded-full text-xs font-light transition-all outline-none border ${
                         form.apport_available ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'liquid-glass text-white/60 border-white/15 hover:text-white'
                       }`}>
-                      {t('searchads.apport', 'Apport disponible')}
+                      {t('searchads.apport_toggle', "J'ai un apport personnel")}
                     </button>
                     <button type="button" onClick={() => setForm({ ...form, bank_financing: !form.bank_financing })}
                       className={`px-4 h-10 rounded-full text-xs font-light transition-all outline-none border ${
@@ -409,6 +422,19 @@ export function SearchAdsBoard() {
                       {t('searchads.bank', 'Financement bancaire')}
                     </button>
                   </div>
+                  {form.apport_available && (
+                    <div className="mt-3">
+                      <label htmlFor="searchad-apport" className={labelCls}>{t('searchads.apport_amount', 'Montant de votre apport (€)')}</label>
+                      <input
+                        id="searchad-apport" type="text" inputMode="numeric" autoComplete="off"
+                        value={form.apport_amount ? Number(form.apport_amount).toLocaleString('fr-FR') : ''}
+                        onChange={(e) => setForm({ ...form, apport_amount: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                        placeholder={t('searchads.apport_amount_ph', 'Ex. : 80 000') as string}
+                        className="w-full liquid-glass bg-white/5 border border-white/15 rounded-2xl px-4 h-12 text-white outline-none focus:border-primary/60 placeholder:text-white/30"
+                      />
+                      <p className="text-xs text-white/50 font-light mt-1.5">{t('searchads.apport_amount_hint', "L'argent que vous pouvez mettre vous-même. Les vendeurs le voient : c'est ce qui rend votre recherche sérieuse.")}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description libre */}

@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { countryLabel } from '@/lib/countries';
 import type { Listing } from '@/types/domain';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, Target, Briefcase, MapPin, Coins, GraduationCap, Sparkles, Wallet, UserX } from 'lucide-react';
-import { regionLabel, FR_REGIONS } from '@/lib/geoRegions';
+import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, UserX, MessageCircle, Settings as SettingsIcon } from 'lucide-react';
 import { ROLE_FUNCTION_LABELS } from '@/lib/ranges';
 import { usePlan, normalizePlan, isPaidPlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
@@ -21,11 +20,17 @@ import { Navbar } from '@/components/Navbar';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
+import { RefusalReason } from '@/components/MemberNotices';
 import { useTranslation } from 'react-i18next';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { RatingBadge, RateUserModal } from '@/components/RatingStars';
+import { ReviewsModal } from '@/components/ReviewsModal';
 import { BuyerBadges } from '@/components/BuyerBadges';
 import { initNativeFeel } from '@/utils/nativeFeel';
+import { SURFACE, ShowAllButton, COLOR_INFO, COLOR_WARN, COLOR_BAD } from '@/components/settings/ui';
+import { BuyerProjectCard } from '@/components/profile/BuyerProjectCard';
+import { ProjectFitCard, type FitCardListing } from '@/components/profile/ProjectFitCard';
+import { parseBuyerProject, isEmptyProject } from '@/lib/buyerProject';
 
 initNativeFeel();
 
@@ -43,6 +48,11 @@ const KYC_MAX_BYTES = 10 * 1024 * 1024;
 // Profils déjà comptés comme « vus » pendant cette session de navigation
 // (clé visiteur:profil) : une vue par profil consulté, pas une par montage.
 const countedProfileViews = new Set<string>();
+
+// Pleine largeur, comme la marketplace.
+const PAGE_SHELL = "relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full";
+// Chaque liste montre quelques éléments, puis « Voir tout (N) ».
+const LIST_LIMIT = 6;
 
 export default function Profile() {
   const { id: routeId } = useParams();
@@ -73,6 +83,10 @@ export default function Profile() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [kycUploading, setKycUploading] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [isReviewsOpen, setIsReviewsOpen] = useState(false);
+  // Listes dépliées par « Voir tout »
+  const [showAll, setShowAll] = useState<Record<string, boolean>>({});
+  const toggleAll = (key: string) => setShowAll((s) => ({ ...s, [key]: !s[key] }));
 
   // Vue de profil : une seule fois par profil consulté, jamais sur le sien.
   // (Dépend de l'id, pas de la référence de `currentUser` qui change souvent.)
@@ -171,6 +185,24 @@ export default function Profile() {
       return { targetUser, listings, myFavorites, connectionsList, pendingRequests, connectionStatus, connectionId, profileViewsCount };
     },
     enabled: !!targetId
+  });
+
+  // Projet de reprise du membre affiché, lu par le modèle commun (anciennes
+  // saisies libres comprises) à partir de ce que la vue publique expose déjà.
+  const buyerProject = useMemo(() => parseBuyerProject(data?.targetUser?.user_metadata), [data?.targetUser]);
+
+  // Un vendeur qui regarde un repreneur : ses propres annonces, pour dire en
+  // quoi le projet leur correspond. Rien de plus n'est lu sur le membre affiché.
+  const { data: viewerListings = [] } = useQuery<FitCardListing[]>({
+    queryKey: ['profile-fit-listings', currentUser?.id],
+    queryFn: async () => {
+      const { data: mine } = await supabase.from('listings_secure')
+        .select('id, name, industry, address, price')
+        .eq('owner_id', currentUser!.id)
+        .order('created_at', { ascending: false });
+      return (mine || []) as FitCardListing[];
+    },
+    enabled: !!currentUser?.id && !isOwnProfile && !isEmptyProject(buyerProject),
   });
 
   const connectionError = () => showError(t('profile.connection_error', "L'action n'a pas pu être enregistrée. Réessayez."));
@@ -290,11 +322,11 @@ export default function Profile() {
         </div>
         <SolarSystem />
         <Navbar />
-        <main className="relative z-10 pt-[20vh] pb-20 max-w-6xl mx-auto px-[6vw] sm:px-8 w-full flex-1">
+        <main className={`${PAGE_SHELL} flex-1`}>
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-[8vh]">
             <Skeleton className="w-28 h-28 rounded-full bg-white/10 shrink-0" />
             <div className="flex-1 w-full space-y-6">
-              <Skeleton className="h-12 w-[350px] bg-white/10" />
+              <Skeleton className="h-12 w-[350px] max-w-full bg-white/10" />
               <div className="flex justify-center md:justify-start gap-6">
                 <Skeleton className="h-8 w-[100px] bg-white/5" />
                 <Skeleton className="h-8 w-[100px] bg-white/5" />
@@ -354,6 +386,91 @@ export default function Profile() {
   const displayedItems = activeTab === 'listings' ? listings : myFavorites;
   const listingViewsCount = listings.reduce((acc, l) => acc + (l.view_count || 0), 0);
 
+  const seeAll = (n: number) => t('acc.see_all', { defaultValue: 'Voir tout ({{n}})', n: n }) as string;
+  const seeLess = t('acc.see_less', 'Voir moins') as string;
+  const shownItems = showAll[activeTab] ? displayedItems : displayedItems.slice(0, LIST_LIMIT);
+  const shownRelations = showAll.relations ? connectionsList : connectionsList.slice(0, LIST_LIMIT);
+  const shownPending = showAll.pending ? pendingRequests : pendingRequests.slice(0, LIST_LIMIT);
+
+  const openTab = (tab: 'listings' | 'favorites' | 'relations') => {
+    setActiveTab(tab);
+    document.getElementById('profil-listes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Identité professionnelle — collectée à l'inscription, affichée en une
+  // ligne : qui c'est, pour quelle société, depuis où.
+  const identityBits = [
+    metadata.account_type && (t(`onb.type_${metadata.account_type}`, metadata.account_type) as string),
+    metadata.role_function && (t(`onb.role_${metadata.role_function}`, ROLE_FUNCTION_LABELS[metadata.role_function] || metadata.role_function) as string),
+    metadata.company_name && [metadata.company_name, metadata.legal_form].filter(Boolean).join(' · '),
+    countryLabel(metadata.country, i18n.language),
+  ].filter(Boolean) as string[];
+
+  // Coordonnées publiques : uniquement si le membre est en formule payante
+  const showContact = isPaidPlan(normalizePlan(metadata.plan_type)) &&
+    ((metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone));
+
+  const actionBtn = "inline-flex items-center justify-center gap-2 min-h-[48px] px-5 rounded-full text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50";
+  const ghostBtn = `${actionBtn} bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-white`;
+  const statusPill = "inline-flex items-center gap-2 min-h-[48px] px-4 rounded-full text-sm text-white/85 bg-white/[0.04] border border-white/10";
+
+  const stats = [
+    { icon: Store, value: listings.length, label: t('profile.listings'), onClick: () => openTab('listings') },
+    { icon: Users, value: connectionsList.length, label: t('profile.relations'), onClick: () => openTab('relations') },
+    { icon: Eye, value: listingViewsCount, label: t('acc.stat_listing_views', 'Vues des annonces') },
+    { icon: Eye, value: profileViewsCount || 0, label: t('acc.stat_profile_views', 'Vues du profil') },
+  ];
+
+  const tabs = [
+    { id: 'listings' as const, label: isOwnProfile ? t('acc.tab_my_listings', 'Mes annonces') : t('profile.listings'), count: listings.length },
+    { id: 'relations' as const, label: isOwnProfile ? t('acc.tab_my_relations', 'Mes relations') : t('profile.relations'), count: connectionsList.length, alert: pendingRequests.length },
+    ...(isOwnProfile ? [{ id: 'favorites' as const, label: t('acc.tab_my_favorites', 'Mes favoris'), count: myFavorites.length }] : []),
+  ];
+
+  const kycUploadButton = (primary: boolean) => (
+    <label className="shrink-0 cursor-pointer w-full sm:w-auto">
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        disabled={kycUploading}
+        onChange={handleKycUpload}
+      />
+      <span
+        className={`${actionBtn} w-full cursor-pointer text-white ${primary ? '' : 'bg-white/[0.06] hover:bg-white/[0.12] border border-white/20'}`}
+        style={primary ? { background: '#3b82f6', boxShadow: '0 0 20px rgba(59,130,246,0.4)' } : undefined}
+      >
+        {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+        {t('kyc.request_btn')}
+      </span>
+    </label>
+  );
+
+  const kycBlock = (tone: { rgb: string; text: string }, Icon: React.ElementType, body: React.ReactNode, action?: React.ReactNode) => (
+    <section className={`${SURFACE} p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5`} style={{ borderColor: `rgba(${tone.rgb},0.35)` }}>
+      <span className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border" style={{ background: `rgba(${tone.rgb},0.15)`, borderColor: `rgba(${tone.rgb},0.35)`, color: tone.text }}>
+        <Icon className="w-6 h-6" />
+      </span>
+      <div className="flex-1 min-w-0">{body}</div>
+      {action}
+    </section>
+  );
+
+  const emptyState = (Icon: React.ElementType, title: string, desc?: string, action?: { label: string; onClick: () => void }) => (
+    <div className="py-12 px-5 text-center rounded-2xl bg-white/[0.03] border border-dashed border-white/15">
+      <Icon className="w-11 h-11 text-white/35 mx-auto mb-4" />
+      <p className="text-lg text-white font-light">{title}</p>
+      {desc && <p className="text-sm text-white/60 font-light mt-2 max-w-xl mx-auto leading-relaxed">{desc}</p>}
+      {action && (
+        <button type="button" onClick={action.onClick} className={`${actionBtn} mt-5 bg-primary hover:bg-primary/90 text-white shadow-[0_10px_30px_rgba(89,85,232,0.45)]`}>
+          {action.label}
+        </button>
+      )}
+    </div>
+  );
+
+  const personRow = "flex items-center gap-4 min-h-[72px] rounded-2xl bg-white/[0.04] border border-white/10 p-3 pr-4 transition-colors";
+
   return (
     <div className="min-h-screen bg-transparent dark:bg-[#2b2a2f] text-white transition-colors duration-500 selection:bg-primary/30 overflow-x-hidden">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -362,410 +479,351 @@ export default function Profile() {
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[15vh] sm:pt-[20vh] pb-20 max-w-6xl mx-auto px-[6vw] sm:px-8 w-full">
-        
-        <motion.div 
-          animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-10vw] md:top-[16vh] md:right-[-5%] w-[200px] md:w-[380px] z-0 pointer-events-none opacity-100"
-        >
-          <img src="/saturn.png" alt="Saturn" className="w-full h-auto drop-shadow-2xl" />
-        </motion.div>
-        
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-[4vh] sm:gap-8 mb-[8vh] relative z-10 border-b border-white/20 dark:border-white/5 pb-[4vh]">
-          <Avatar className="w-[25vw] h-[25vw] sm:w-28 sm:h-28 max-w-[120px] max-h-[120px] border-2 border-white/40 dark:border-white/10 shrink-0 shadow-xl">
-            <AvatarImage src={metadata.avatar_url} className="object-cover" />
-            <AvatarFallback className="liquid-glass bg-white/20 dark:bg-white/10 text-white text-[clamp(2rem,3vw,3rem)] font-light">{fullName.charAt(0)}</AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 text-center md:text-left w-full">
-            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 justify-between mb-4">
-              <div className="min-w-0">
-                <h1 className="text-[clamp(2.5rem,4vw,4rem)] font-light leading-[1.1] tracking-tighter truncate text-white flex items-center justify-center md:justify-start gap-3">
-                  {fullName}
-                  <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
-                </h1>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
-                  <RatingBadge userId={targetId} />
-                  <BuyerBadges userId={targetId} />
+      <main className={`${PAGE_SHELL} space-y-6`}>
+
+        {/* ── En-tête : qui est ce membre, en un coup d'œil ── */}
+        <section className={`${SURFACE} relative overflow-hidden p-5 sm:p-8`}>
+          {/* Saturne reste en fond, derrière le contenu : elle ne recouvre jamais le texte. */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-8 -right-10 w-[150px] sm:w-[220px] xl:w-[300px] z-0 pointer-events-none opacity-10"
+          >
+            <img src="/saturn.png" alt="" className="w-full h-auto" />
+          </motion.div>
+
+          <div className="relative z-10 flex flex-col md:flex-row gap-5 md:gap-7">
+            <Avatar className="w-24 h-24 sm:w-28 sm:h-28 border-2 border-white/40 dark:border-white/10 shrink-0 shadow-xl">
+              <AvatarImage src={metadata.avatar_url} className="object-cover" />
+              <AvatarFallback className="liquid-glass bg-white/20 dark:bg-white/10 text-white text-4xl font-light">{fullName.charAt(0)}</AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
+                <div className="min-w-0">
+                  <h1 className="text-3xl md:text-4xl font-light leading-tight tracking-tight text-white flex flex-wrap items-center gap-x-3 gap-y-1 break-words [overflow-wrap:anywhere]">
+                    {fullName}
+                    <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 mt-2.5">
+                    {/* La note ouvre la liste des avis (et, sur son propre profil, permet d'y répondre) */}
+                    <RatingBadge userId={targetId} onOpen={() => setIsReviewsOpen(true)} />
+                    <BuyerBadges userId={targetId} />
+                  </div>
+                  {identityBits.length > 0 && (
+                    <ul className="flex flex-wrap items-center gap-2 mt-3">
+                      {identityBits.map((b, i) => (
+                        <li key={i} className="text-sm text-white/80 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/15">{b}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
-                {/* Identité professionnelle — collectée à l'inscription, affichée
-                    ici en une ligne : qui c'est, pour quelle société, depuis où. */}
-                {(() => {
-                  const bits = [
-                    metadata.account_type && (t(`onb.type_${metadata.account_type}`, metadata.account_type) as string),
-                    metadata.role_function && (t(`onb.role_${metadata.role_function}`, ROLE_FUNCTION_LABELS[metadata.role_function] || metadata.role_function) as string),
-                    metadata.company_name && [metadata.company_name, metadata.legal_form].filter(Boolean).join(' · '),
-                    countryLabel(metadata.country, i18n.language),
-                  ].filter(Boolean) as string[];
-                  if (!bits.length) return null;
-                  return (
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
-                      {bits.map((b, i) => (
-                        <span key={i} className="text-xs text-white/70 font-light px-3 py-1 rounded-full bg-white/5 border border-white/10">{b}</span>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-              
-              <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
-                {isOwnProfile && myPlan === 'free' && (
-                  <button
-                    onClick={handlePremiumClick}
-                    className="px-6 h-[10vw] sm:h-12 max-h-[48px] rounded-full liquid-glass bg-primary/20 border-primary/40 text-white hover:bg-primary/30 hover:border-primary/60 transition-all duration-500 text-[clamp(10px,1vw,12px)] font-medium tracking-wide uppercase outline-none"
-                  >
-                    {t('nav.premium')}
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2.5 xl:justify-end xl:max-w-[52%] shrink-0">
+                  {!isOwnProfile && (
+                    <>
+                      <button onClick={handleContact} className={`${actionBtn} px-7 bg-primary hover:bg-primary/90 text-white shadow-[0_10px_30px_rgba(89,85,232,0.55)]`}>
+                        <MessageCircle className="w-4 h-4 shrink-0" /> {t('profile.contact')}
+                      </button>
+                      {connectionStatus === 'none' && (
+                        <button onClick={handleConnect} className={ghostBtn}>
+                          <UserPlus className="w-4 h-4 shrink-0" /> {t('profile.connect')}
+                        </button>
+                      )}
+                      {connectionStatus === 'pending_sent' && (
+                        <>
+                          <span className={statusPill}><Clock className="w-4 h-4 shrink-0" /> {t('profile.pending')}</span>
+                          <button onClick={() => handleDeclineOrRemove(false, connectionId)} className={ghostBtn}>
+                            <XIcon className="w-4 h-4 shrink-0" /> {t('acc.cancel_request', 'Annuler ma demande')}
+                          </button>
+                        </>
+                      )}
+                      {connectionStatus === 'pending_received' && (
+                        <>
+                          <button onClick={() => handleAccept(connectionId)} className={`${actionBtn} bg-primary hover:bg-primary/90 text-white`}>
+                            <Check className="w-4 h-4 shrink-0" /> {t('acc.accept_request', 'Accepter sa demande')}
+                          </button>
+                          <button onClick={() => handleDeclineOrRemove(true, connectionId)} className={ghostBtn}>
+                            <XIcon className="w-4 h-4 shrink-0" /> {t('profile.decline')}
+                          </button>
+                        </>
+                      )}
+                      {connectionStatus === 'connected' && (
+                        <>
+                          <span className={statusPill} style={{ borderColor: 'rgba(89,85,232,0.6)' }}><UserCheck className="w-4 h-4 shrink-0" /> {t('profile.connected')}</span>
+                          <button onClick={() => handleDeclineOrRemove(false, connectionId)} className={ghostBtn}>
+                            <UserMinus className="w-4 h-4 shrink-0" /> {t('acc.remove_relation', 'Retirer de mes relations')}
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => setIsRatingOpen(true)} className={ghostBtn}>
+                        <StarIcon className="w-4 h-4 shrink-0" /> {t('rating.rate', 'Noter')}
+                      </button>
+                    </>
+                  )}
 
-                <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className="w-[10vw] h-[10vw] sm:w-12 sm:h-12 max-w-[48px] max-h-[48px] rounded-full liquid-glass border border-white/30 dark:border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors outline-none" title="Partager le profil">
-                  <Share className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                
-                {!isOwnProfile && (
+                  {isOwnProfile && (
+                    <button onClick={() => navigate('/settings')} className={ghostBtn}>
+                      <SettingsIcon className="w-4 h-4 shrink-0" /> {t('acc.edit_profile', 'Modifier mon profil')}
+                    </button>
+                  )}
+
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className={ghostBtn}>
+                    <Share className="w-4 h-4 shrink-0" /> {t('acc.share', 'Partager')}
+                  </button>
+
+                  {isOwnProfile && myPlan === 'free' && (
+                    <button onClick={handlePremiumClick} className={`${actionBtn} bg-primary/25 hover:bg-primary/40 border border-primary/50 text-white`}>
+                      {t('nav.premium')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {metadata.bio && <p className="text-base font-light text-white/85 leading-relaxed max-w-3xl mt-5 whitespace-pre-line break-words">{metadata.bio}</p>}
+
+              {showContact ? (
+                <div className="flex flex-wrap gap-3 mt-5">
+                  {metadata.show_email && metadata.contact_email && (
+                    <a href={`mailto:${metadata.contact_email}`} className={`${ghostBtn} font-light break-all`}>
+                      <Mail className="w-4 h-4 text-primary shrink-0" /> {metadata.contact_email}
+                    </a>
+                  )}
+                  {metadata.show_phone && metadata.phone && (
+                    <a href={`tel:${metadata.phone}`} className={`${ghostBtn} font-light`}>
+                      <Phone className="w-4 h-4 shrink-0" style={{ color: COLOR_INFO.text }} /> {metadata.phone}
+                    </a>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Les chiffres du profil */}
+          <dl className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 sm:mt-7">
+            {stats.map((s, i) => {
+              const body = (
+                <>
+                  <dd className="text-3xl font-light text-white leading-none">{s.value}</dd>
+                  <dt className="flex items-center gap-1.5 text-sm text-white/65 mt-2"><s.icon className="w-4 h-4 shrink-0" /> {s.label}</dt>
+                </>
+              );
+              const cls = "flex flex-col text-left rounded-2xl bg-white/[0.04] border border-white/10 px-4 py-3.5 min-h-[84px]";
+              return s.onClick
+                ? <button key={i} type="button" onClick={s.onClick} className={`${cls} hover:bg-white/[0.08] hover:border-white/25 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50`}>{body}</button>
+                : <div key={i} className={cls}>{body}</div>;
+            })}
+          </dl>
+        </section>
+
+        {/* ── Projet de reprise — ce que ce repreneur cherche (utile aux vendeurs) ── */}
+        <BuyerProjectCard
+          project={buyerProject}
+          isOwn={isOwnProfile}
+          onEdit={() => navigate('/settings#criteres')}
+          onSearch={() => navigate('/marketplace?projet=1')}
+        />
+
+        {/* ── Pour un vendeur : ce projet face à ses propres annonces ── */}
+        {!isOwnProfile && !isEmptyProject(buyerProject) && viewerListings.length > 0 && (
+          <ProjectFitCard project={buyerProject} listings={viewerListings} />
+        )}
+
+        {/* ── Vérification d'identité — sur son propre profil uniquement ── */}
+        {isOwnProfile && (
+          <>
+            {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && kycBlock(COLOR_INFO, BadgeCheck, (
+              <>
+                <h2 className="text-xl font-medium text-white leading-tight">{t('kyc.request_title')}</h2>
+                <p className="text-sm sm:text-[0.95rem] text-white/65 font-light leading-relaxed mt-1.5">{t('kyc.request_desc')}</p>
+                <p className="text-sm text-white/50 font-light leading-relaxed mt-1.5">{t('acc.kyc_formats', "Envoyez une photo ou un PDF de votre pièce d'identité (10 Mo maximum).")}</p>
+              </>
+            ), kycUploadButton(true))}
+            {targetUser.kyc_status === 'pending' && kycBlock(COLOR_WARN, Clock, (
+              <p className="text-base font-light" style={{ color: '#fde68a' }}>{t('kyc.pending_msg')}</p>
+            ))}
+            {targetUser.kyc_status === 'verified' && kycBlock(COLOR_INFO, BadgeCheck, (
+              <p className="text-base text-white font-light">{t('kyc.verified_msg')}</p>
+            ))}
+            {targetUser.kyc_status === 'rejected' && kycBlock(COLOR_BAD, XIcon, (
+              <>
+                <p className="text-base text-white font-light">{t('kyc.rejected_msg')}</p>
+                <RefusalReason kind="kyc_rejected" />
+              </>
+            ), kycUploadButton(false))}
+          </>
+        )}
+
+        {/* ── Annonces, relations, favoris ── */}
+        <section id="profil-listes" className={`${SURFACE} p-5 sm:p-8 scroll-mt-[calc(var(--nav-clearance)+1.5rem)]`}>
+          <div role="tablist" aria-label={t('acc.tabs_label', 'Contenu du profil') as string} className="flex flex-wrap gap-2 p-1.5 rounded-3xl sm:rounded-full bg-black/30 border border-white/10 w-full sm:w-fit">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[48px] px-5 rounded-full text-sm sm:text-[0.95rem] font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
+                  activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/65 hover:text-white'
+                }`}
+              >
+                {tab.label} <span className={activeTab === tab.id ? 'text-white/80' : 'text-white/45'}>({tab.count})</span>
+                {!!tab.alert && <span className="text-[13px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#ffffff", color: "#2b2a2f" }} title={t('profile.pending_req') as string}>{tab.alert}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6">
+          {activeTab === 'relations' ? (
+            <div className="space-y-8">
+
+              {isOwnProfile && pendingRequests.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-medium text-white flex items-center gap-2"><Clock className="w-5 h-5 text-[#a5b4fc]" /> {t('profile.pending_req')} ({pendingRequests.length})</h2>
+                  <p className="text-sm text-white/60 font-light mt-1 mb-4">{t('acc.pending_desc', 'Ces membres souhaitent entrer en relation avec vous. Acceptez ou refusez chaque demande.')}</p>
+                  <ul className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {shownPending.map(req => (
+                      <li key={req.id} className={`${personRow} flex-wrap sm:flex-nowrap`} style={{ borderColor: 'rgba(89,85,232,0.5)' }}>
+                        <button type="button" onClick={() => navigate(`/profile/${req.profile?.id}`)} className="flex items-center gap-4 flex-1 min-w-0 text-left outline-none group">
+                          <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 bg-white/10 shrink-0">
+                            <AvatarImage src={req.profile?.avatar_url} className="object-cover" />
+                            <AvatarFallback className="bg-transparent text-white/80 font-light">{req.profile?.full_name?.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0">
+                            <span className="block text-base font-medium truncate text-white group-hover:text-[#a5b4fc] transition-colors">{req.profile?.full_name}</span>
+                            <span className="block text-sm text-white/60 truncate mt-0.5">{req.profile?.bio || t('profile.wants_to_join')}</span>
+                          </span>
+                        </button>
+                        <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+                          <button onClick={() => handleAccept(req.id)} className={`${actionBtn} !min-h-[44px] flex-1 sm:flex-none bg-primary hover:bg-primary/90 text-white`}>
+                            <Check className="w-4 h-4 shrink-0" /> {t('profile.accept')}
+                          </button>
+                          <button onClick={() => handleDeclineOrRemove(true, req.id)} className={`${ghostBtn} !min-h-[44px] flex-1 sm:flex-none`}>
+                            <XIcon className="w-4 h-4 shrink-0" /> {t('profile.decline')}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {pendingRequests.length > LIST_LIMIT && (
+                    <ShowAllButton expanded={!!showAll.pending} onToggle={() => toggleAll('pending')} moreLabel={seeAll(pendingRequests.length)} lessLabel={seeLess} />
+                  )}
+                </div>
+              )}
+
+              <div>
+                <h2 className="text-lg font-medium text-white flex items-center gap-2"><Users className="w-5 h-5 text-[#a5b4fc]" /> {isOwnProfile ? t('profile.network') : t('profile.relations')} ({connectionsList.length})</h2>
+                <p className="text-sm text-white/60 font-light mt-1 mb-4">
+                  {isOwnProfile
+                    ? t('acc.relations_desc_own', 'Les membres avec qui vous êtes en relation. Cliquez sur un nom pour voir son profil.')
+                    : t('acc.relations_desc', 'Les membres en relation avec ce profil.')}
+                </p>
+                {connectionsList.length === 0 ? (
+                  emptyState(
+                    Users,
+                    t('profile.no_relations'),
+                    isOwnProfile ? t('acc.relations_empty_hint', { defaultValue: "Pour ajouter une relation, ouvrez le profil d'un membre puis cliquez sur « {{button}} ».", button: t('profile.connect') }) as string : undefined,
+                  )
+                ) : (
                   <>
-                    {connectionStatus === 'none' && (
-                      <Button onClick={handleConnect} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-white/20 transition-all outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                        <UserPlus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.connect')}</span>
-                      </Button>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {shownRelations.map(profile => (
+                        <li key={profile.id}>
+                          <button type="button" onClick={() => navigate(`/profile/${profile.id}`)} className={`${personRow} w-full text-left hover:bg-white/[0.08] hover:border-white/25 outline-none focus-visible:ring-2 focus-visible:ring-white/50 group`}>
+                            <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 bg-white/10 shrink-0">
+                              <AvatarImage src={profile.avatar_url} className="object-cover" />
+                              <AvatarFallback className="bg-transparent text-white/80 font-light">{profile.full_name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-base font-medium truncate text-white group-hover:text-[#a5b4fc] transition-colors">{profile.full_name}</span>
+                              <span className="block text-sm text-white/60 truncate mt-0.5">{profile.bio || t('profile.member')}</span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {connectionsList.length > LIST_LIMIT && (
+                      <ShowAllButton expanded={!!showAll.relations} onToggle={() => toggleAll('relations')} moreLabel={seeAll(connectionsList.length)} lessLabel={seeLess} />
                     )}
-                    {connectionStatus === 'pending_sent' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all group outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                        <Clock className="w-4 h-4 sm:mr-2 group-hover:hidden" />
-                        <XIcon className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
-                        <span className="hidden sm:inline group-hover:hidden">{t('profile.pending')}</span>
-                        <span className="hidden sm:group-hover:inline">{t('profile.cancel')}</span>
-                      </Button>
-                    )}
-                    {connectionStatus === 'pending_received' && (
-                      <div className="flex gap-2">
-                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                          <Check className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.accept')}</span>
-                        </Button>
-                        <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="w-[10vw] h-[10vw] sm:w-12 sm:h-12 max-w-[48px] max-h-[48px] rounded-full p-0 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all outline-none">
-                          <XIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </Button>
-                      </div>
-                    )}
-                    {connectionStatus === 'connected' && (
-                      <Button onClick={() => handleDeclineOrRemove(false, connectionId)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-primary/50 liquid-glass bg-primary/10 text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all group outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                        <UserCheck className="w-4 h-4 sm:mr-2 group-hover:hidden" />
-                        <UserMinus className="w-4 h-4 sm:mr-2 hidden group-hover:block" />
-                        <span className="hidden sm:inline group-hover:hidden">{t('profile.connected')}</span>
-                        <span className="hidden sm:group-hover:inline">{t('profile.remove')}</span>
-                      </Button>
-                    )}
-                    
-                    <Button onClick={handleContact} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-8 bg-white text-black hover:bg-white/90 border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest shadow-[0_0_30px_rgba(255,255,255,0.2)]">{t('profile.contact')}</Button>
-                    <Button onClick={() => setIsRatingOpen(true)} variant="outline" className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-white/20 transition-all outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
-                      <StarIcon className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('rating.rate', 'Noter')}</span>
-                    </Button>
                   </>
                 )}
               </div>
             </div>
-
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-[4vw] sm:gap-8 mb-6">
-              <div className="flex items-center gap-2">
-                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{listings.length}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60">{t('profile.listings')}</span>
-              </div>
-              <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setActiveTab('relations')}>
-                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white group-hover:text-primary transition-colors">{connectionsList.length}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 group-hover:text-white transition-colors flex items-center gap-1.5"><Users className="w-3 h-3"/> {t('profile.relations')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{listingViewsCount}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 flex items-center gap-1.5"><Store className="w-3 h-3"/> Vues (Annonces)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white">{profileViewsCount || 0}</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium text-white dark:text-white/60 flex items-center gap-1.5"><Eye className="w-3 h-3"/> Vues (Profil)</span>
-              </div>
-            </div>
-
-            {metadata.bio && <p className="text-[clamp(0.875rem,1vw,1rem)] font-light text-white dark:text-white/80 leading-relaxed max-w-2xl mb-6 mx-auto md:mx-0">{metadata.bio}</p>}
-
-            {/* Coordonnées publiques : uniquement si le membre est en formule payante */}
-            {isPaidPlan(normalizePlan(metadata.plan_type)) &&
-             ((metadata.show_email && metadata.contact_email) || (metadata.show_phone && metadata.phone)) ? (
-              <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
-                {metadata.show_email && metadata.contact_email && (
-                  <a href={`mailto:${metadata.contact_email}`} className="flex items-center gap-2 px-5 py-2.5 rounded-full liquid-glass border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 text-xs font-light text-white transition-all w-fit group">
-                    <Mail className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> {metadata.contact_email}
-                  </a>
-                )}
-                {metadata.show_phone && metadata.phone && (
-                  <a href={`tel:${metadata.phone}`} className="flex items-center gap-2 px-5 py-2.5 rounded-full liquid-glass border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 text-xs font-light text-white transition-all w-fit group">
-                    <Phone className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" /> {metadata.phone}
-                  </a>
-                )}
-              </div>
-            ) : null}
-
-          </div>
-        </div>
-
-        {/* Projet de reprise — critères du repreneur (utile aux vendeurs) */}
-        {(() => {
-          const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
-          const toChips = (s: string | null | undefined, isRegion = false) => (typeof s === 'string' ? s.split(',') : []).map((x: string) => x.trim()).filter(Boolean)
-            .map((v: string) => isRegion ? (REGION_KEYS.has(v) ? regionLabel(v) : v) : (t(`industry.${v}`, { defaultValue: v }) as string));
-          const sectors = toChips(metadata.target_sectors);
-          const regions = toChips(metadata.target_geo, true);
-          const expMap: Record<string, string> = {
-            debutant: t('buyer.exp_debutant', 'Premier rachat'),
-            experimente: t('buyer.exp_experimente', 'Repreneur expérimenté'),
-            dirigeant: t('buyer.exp_dirigeant', 'Dirigeant en poste'),
-            serial: t('buyer.exp_serial', 'Serial entrepreneur'),
-          };
-          const rows = [
-            metadata.buyer_type && { icon: Users, label: t('searchads.buyer_type_label', 'Profil'), value: t(`buyer.type_${metadata.buyer_type}`, metadata.buyer_type) },
-            sectors.length && { icon: Briefcase, label: t('searchads.sectors_label', 'Secteurs'), chips: sectors },
-            regions.length && { icon: MapPin, label: t('searchads.regions_label', 'Zones'), chips: regions },
-            metadata.target_budget && { icon: Coins, label: t('searchads.budget_label', "Budget d'acquisition"), value: metadata.target_budget },
-            metadata.target_revenue && { icon: Target, label: t('searchads.revenue_label', "CA visé"), value: metadata.target_revenue },
-            metadata.apport && { icon: Wallet, label: t('buyer.apport', 'Apport disponible'), value: metadata.apport },
-            metadata.experience && { icon: GraduationCap, label: t('buyer.experience', 'Expérience'), value: expMap[metadata.experience] || metadata.experience },
-          ].filter(Boolean) as any[];
-          if (!rows.length && !metadata.ambitions) return null;
-          return (
-            <div className="mb-[8vh] relative z-10">
-              <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-11 h-11 rounded-2xl bg-primary/15 flex items-center justify-center border border-primary/25 shrink-0">
-                    <Target className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-light text-white leading-tight">{t('profile.buyer_project', 'Projet de reprise')}</p>
-                    <p className="text-xs text-white/50 font-light">{t('profile.buyer_project_sub', 'Ce que ce repreneur recherche')}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                  {rows.map((r, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <r.icon className="w-4 h-4 text-white/40 shrink-0 mt-0.5" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1">{r.label}</p>
-                        {r.chips ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {r.chips.map((c: string, j: number) => (
-                              <span key={j} className="text-xs text-white/80 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">{c}</span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-white/85 font-light">{r.value}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {metadata.ambitions && (
-                  <div className="mt-5 pt-5 border-t border-white/10">
-                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-2 flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" /> {t('buyer.ambitions', 'Ambitions')}</p>
-                    <p className="text-sm text-white/75 font-light leading-relaxed">{metadata.ambitions}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* KYC Section — Own Profile Only */}
-        {isOwnProfile && (
-          <div className="mb-[8vh] relative z-10">
-            {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && (
-              <div className="liquid-glass rounded-[2rem] p-6 sm:p-8 border border-white/30 dark:border-white/10 flex flex-col sm:flex-row items-center gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/40 dark:border-blue-500/20">
-                  <BadgeCheck className="w-7 h-7 text-blue-400" />
-                </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-[clamp(1.1rem,1.5vw,1.25rem)] font-light text-white mb-1">{t('kyc.request_title')}</h3>
-                  <p className="text-[clamp(0.875rem,1vw,1rem)] text-white dark:text-white/60 font-light leading-relaxed">{t('kyc.request_desc')}</p>
-                </div>
-                <label className="shrink-0 cursor-pointer w-full sm:w-auto">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    className="hidden"
-                    disabled={kycUploading}
-                    onChange={handleKycUpload}
-                  />
-                  <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-                    {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    {t('kyc.request_btn')}
-                  </span>
-                </label>
-              </div>
-            )}
-            {targetUser.kyc_status === 'pending' && (
-              <div className="liquid-glass rounded-[2rem] p-6 border border-amber-500/40 dark:border-amber-500/20 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 dark:bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/40 dark:border-amber-500/20">
-                  <Clock className="w-6 h-6 text-amber-400" />
-                </div>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-amber-100 font-light">{t('kyc.pending_msg')}</p>
-              </div>
-            )}
-            {targetUser.kyc_status === 'verified' && (
-              <div className="liquid-glass rounded-[2rem] p-6 border border-blue-500/40 dark:border-blue-500/20 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/40 dark:border-blue-500/20">
-                  <BadgeCheck className="w-6 h-6 text-blue-400" />
-                </div>
-                <p className="text-[clamp(0.875rem,1vw,1rem)] text-white font-light">{t('kyc.verified_msg')}</p>
-              </div>
-            )}
-            {targetUser.kyc_status === 'rejected' && (
-              <div className="liquid-glass rounded-[2rem] p-6 border border-red-500/40 dark:border-red-500/20 flex flex-col sm:flex-row items-center gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-red-500/20 dark:bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/40 dark:border-red-500/20">
-                  <XIcon className="w-7 h-7 text-red-400" />
-                </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <p className="text-[clamp(0.875rem,1vw,1rem)] text-white font-light">{t('kyc.rejected_msg')}</p>
-                </div>
-                <label className="shrink-0 cursor-pointer w-full sm:w-auto">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    className="hidden"
-                    disabled={kycUploading}
-                    onChange={handleKycUpload}
-                  />
-                  <span className="flex items-center justify-center gap-2 px-8 h-12 rounded-full liquid-glass border-white/30 dark:border-white/10 bg-transparent hover:bg-white/20 dark:hover:bg-white/10 text-white text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium transition-all cursor-pointer outline-none">
-                    {kycUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    {t('kyc.request_btn')}
-                  </span>
-                </label>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="border-b border-white/20 dark:border-white/10 flex flex-wrap gap-6 sm:gap-8 mb-[6vh] overflow-x-auto custom-scrollbar relative z-10">
-          <button onClick={() => setActiveTab('listings')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'listings' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
-            {t('profile.tab_listings')}
-            {activeTab === 'listings' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
-          </button>
-          <button onClick={() => setActiveTab('relations')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'relations' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
-            {t('profile.tab_relations')} {pendingRequests.length > 0 && <span className="ml-2 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]">{pendingRequests.length}</span>}
-            {activeTab === 'relations' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
-          </button>
-          {isOwnProfile && (
-            <button onClick={() => setActiveTab('favorites')} className={`pb-4 text-[clamp(0.875rem,1vw,1rem)] font-medium tracking-wide transition-colors relative whitespace-nowrap outline-none ${activeTab === 'favorites' ? 'text-white' : 'text-white/60 hover:text-white'}`}>
-              {t('profile.tab_favorites')}
-              {activeTab === 'favorites' && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_10px_rgba(168,85,247,0.8)]" />}
-            </button>
-          )}
-        </div>
-
-        <div className="relative z-10">
-        {activeTab === 'relations' ? (
-          <div className="space-y-[8vh]">
-            
-            {isOwnProfile && pendingRequests.length > 0 && (
-              <section>
-                <h3 className="text-sm uppercase tracking-widest text-primary font-medium mb-6 flex items-center gap-2"><Clock className="w-5 h-5"/> {t('profile.pending_req')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pendingRequests.map(req => (
-                    <div key={req.id} className="liquid-glass dark:bg-white/[0.02] border-primary/40 dark:border-primary/20 rounded-full p-2 pr-6 flex items-center gap-4 hover:border-primary/60 dark:hover:bg-white/[0.04] transition-all cursor-pointer group shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                      <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 bg-white/10 shrink-0" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
-                        <AvatarImage src={req.profile?.avatar_url} className="object-cover" />
-                        <AvatarFallback className="bg-transparent text-white/80 font-light">{req.profile?.full_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0" onClick={() => navigate(`/profile/${req.profile?.id}`)}>
-                        <h4 className="text-sm font-medium truncate text-white group-hover:text-primary transition-colors">{req.profile?.full_name}</h4>
-                        <p className="text-[10px] text-white/60 truncate mt-0.5">{req.profile?.bio || t('profile.wants_to_join')}</p>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleAccept(req.id)} className="w-8 h-8 rounded-full bg-primary/20 text-primary hover:bg-primary hover:text-white flex items-center justify-center transition-all shadow-sm">
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeclineOrRemove(true, req.id)} className="w-8 h-8 rounded-full bg-white/10 text-white/80 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition-all shadow-sm">
-                          <XIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section>
-              {isOwnProfile && pendingRequests.length > 0 && (
-                <h3 className="text-sm uppercase tracking-widest text-white font-medium mb-6 flex items-center gap-2"><Users className="w-5 h-5"/> {t('profile.network')}</h3>
-              )}
-              {connectionsList.length === 0 ? (
-                <div className="py-20 text-center liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem]">
-                  <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                  <p className="font-light text-white dark:text-white/60 text-[clamp(1rem,1.1vw,1.125rem)]">{t('profile.no_relations')}</p>
-                </div>
+          ) : (
+            <div>
+              <h2 className="text-lg font-medium text-white flex flex-wrap items-center gap-2">
+                {activeTab === 'listings' ? <Store className="w-5 h-5 text-[#a5b4fc]" /> : <Heart className="w-5 h-5 text-[#a5b4fc]" />}
+                {activeTab === 'listings'
+                  ? (isOwnProfile ? t('acc.tab_my_listings', 'Mes annonces') : t('acc.listings_of', { defaultValue: 'Les annonces de {{name}}', name: fullName }))
+                  : t('acc.tab_my_favorites', 'Mes favoris')} ({displayedItems.length})
+              </h2>
+              <p className="text-sm text-white/60 font-light mt-1 mb-4">
+                {activeTab === 'favorites'
+                  ? t('acc.favorites_desc', 'Les annonces que vous avez mises de côté avec le cœur.')
+                  : isOwnProfile
+                    ? t('acc.listings_desc_own', 'Les entreprises que vous proposez. Le crayon modifie une annonce, la corbeille la supprime.')
+                    : t('acc.listings_desc', 'Les entreprises proposées par ce membre. Cliquez sur une annonce pour la voir.')}
+              </p>
+              {displayedItems.length === 0 ? (
+                activeTab === 'favorites'
+                  ? emptyState(Heart, t('acc.favorites_empty', "Vous n'avez pas encore de favori."), t('acc.favorites_empty_hint', "Sur une annonce, cliquez sur le cœur pour la retrouver ici.") as string, { label: t('acc.browse_listings', 'Parcourir les annonces'), onClick: () => navigate('/marketplace') })
+                  : isOwnProfile
+                    ? emptyState(Store, t('acc.listings_empty_own', "Vous n'avez pas encore d'annonce."), t('acc.listings_empty_own_hint', "Vous vendez votre entreprise ? Publiez votre annonce depuis la marketplace.") as string, { label: t('acc.go_marketplace', 'Aller à la marketplace'), onClick: () => navigate('/marketplace') })
+                    : emptyState(Store, t('profile.nothing_to_show'), t('acc.listings_empty_hint', "Ce membre n'a pas d'annonce en ligne pour le moment.") as string)
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {connectionsList.map(profile => (
-                    <div key={profile.id} onClick={() => navigate(`/profile/${profile.id}`)} className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-full p-2 pr-6 flex items-center gap-4 hover:border-white/60 dark:hover:bg-white/[0.04] transition-all cursor-pointer group">
-                      <Avatar className="w-12 h-12 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform bg-white/10 shrink-0">
-                        <AvatarImage src={profile.avatar_url} className="object-cover" />
-                        <AvatarFallback className="bg-transparent text-white/80 font-light">{profile.full_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate text-white group-hover:text-primary transition-colors">{profile.full_name}</h4>
-                        <p className="text-[10px] text-white/60 truncate mt-0.5">{profile.bio || t('profile.member')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                    {shownItems.map((item) => (
+                      <BusinessCard
+                        key={item.id}
+                        listing={item}
+                        onClick={() => navigate('/app', { state: { focusId: item.id } })}
+                        onFavoriteToggle={(id, isFav) => {
+                          if (!isFav && activeTab === 'favorites') {
+                            queryClient.setQueryData(['profile', targetId, currentUser?.id], (old: { myFavorites?: { id: string }[] } | undefined) => {
+                              if (!old) return old;
+                              return { ...old, myFavorites: (old.myFavorites || []).filter((f: { id: string }) => f.id !== id) };
+                            });
+                          }
+                        }}
+                        actions={isOwnProfile && activeTab === 'listings' ? (
+                          <div className="flex gap-1.5">
+                            <button aria-label={t('acc.edit_listing', "Modifier l'annonce") as string} title={t('acc.edit_listing', "Modifier l'annonce") as string} className="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white hover:bg-black/65 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-5 h-5" /></button>
+                            <button aria-label={t('acc.delete_listing', "Supprimer l'annonce") as string} title={t('acc.delete_listing', "Supprimer l'annonce") as string} className="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white hover:bg-black/65 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-5 h-5" style={{ color: COLOR_BAD.text }} /></button>
+                          </div>
+                        ) : undefined}
+                      />
+                    ))}
+                  </div>
+                  {displayedItems.length > LIST_LIMIT && (
+                    <ShowAllButton expanded={!!showAll[activeTab]} onToggle={() => toggleAll(activeTab)} moreLabel={seeAll(displayedItems.length)} lessLabel={seeLess} />
+                  )}
+                </>
               )}
-            </section>
+            </div>
+          )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-            {displayedItems.length === 0 ? (
-              <div className="col-span-full py-20 text-center liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem]">
-                <p className="font-light text-white dark:text-white/60 text-[clamp(1rem,1.1vw,1.125rem)]">{t('profile.nothing_to_show')}</p>
-              </div>
-            ) : (
-              displayedItems.map((item) => (
-                <BusinessCard 
-                  key={item.id} 
-                  listing={item} 
-                  onClick={() => navigate('/app', { state: { focusId: item.id } })}
-                  onFavoriteToggle={(id, isFav) => {
-                    if (!isFav && activeTab === 'favorites') {
-                      queryClient.setQueryData(['profile', targetId, currentUser?.id], (old: { myFavorites?: { id: string }[] } | undefined) => {
-                        if (!old) return old;
-                        return { ...old, myFavorites: (old.myFavorites || []).filter((f: { id: string }) => f.id !== id) };
-                      });
-                    }
-                  }}
-                  actions={isOwnProfile && activeTab === 'listings' ? (
-                    <div className="flex gap-1">
-                      <button className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/20 dark:hover:bg-white/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToEdit(item); setIsEditFormOpen(true); }}><Edit className="w-5 h-5" /></button>
-                      <button className="p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-red-500/20 dark:hover:bg-red-500/10 transition-colors outline-none" onClick={(e) => { e.stopPropagation(); setListingToDelete(item); }}><Trash2 className="w-5 h-5" /></button>
-                    </div>
-                  ) : undefined}
-                />
-              ))
-            )}
-          </div>
-        )}
-        </div>
+        </section>
       </main>
 
       <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} listing={chatListing} user={currentUser} />
       {!isOwnProfile && targetId && (
         <RateUserModal ratedId={targetId} ratedName={fullName} isOpen={isRatingOpen} onClose={() => setIsRatingOpen(false)} />
       )}
+      {targetId && <ReviewsModal userId={targetId} userName={fullName} isOpen={isReviewsOpen} onClose={() => setIsReviewsOpen(false)} />}
       <ListingForm isOpen={isEditFormOpen} onClose={() => setIsEditFormOpen(false)} onSuccess={() => refetch()} listingToEdit={listingToEdit} />
 
       <AnimatePresence>
         {listingToDelete && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#2b2a2f]/80 backdrop-blur-md" onClick={() => setListingToDelete(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative liquid-glass border border-white/30 dark:border-white/10 rounded-[2rem] p-10 max-w-md w-full text-center shadow-2xl">
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} role="alertdialog" aria-modal="true" className="relative liquid-glass border border-white/30 dark:border-white/10 rounded-[2rem] p-8 sm:p-10 max-w-md w-full text-center shadow-2xl">
               <h3 className="text-2xl font-light mb-3 text-white">{t('profile.del_title')}</h3>
-              <div className="flex justify-center gap-4 mt-8">
-                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 outline-none font-medium">{t('profile.del_cancel')}</Button>
+              {listingToDelete.name && <p className="text-base text-white/85 font-medium break-words">{listingToDelete.name}</p>}
+              <p className="text-sm text-white/60 font-light mt-2 leading-relaxed">{t('acc.delete_warning', 'Cette annonce sera retirée du site. Cette action est définitive.')}</p>
+              <div className="flex flex-wrap justify-center gap-3 mt-8">
+                <Button variant="ghost" onClick={() => setListingToDelete(null)} className="w-fit px-8 rounded-full h-12 text-white hover:text-white hover:bg-white/20 dark:hover:bg-white/10 outline-none font-medium border border-white/20">{t('profile.del_cancel')}</Button>
                 <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="w-fit px-8 rounded-full h-12 outline-none font-medium">{t('profile.del_confirm')}</Button>
               </div>
             </motion.div>

@@ -108,6 +108,13 @@ export default function Radar() {
   // Retour de paiement Stripe (contacts de prospection supplémentaires) :
   // /radar?success=1 → on rafraîchit, on confirme et on nettoie l'URL.
   const [searchParams, setSearchParams] = useSearchParams();
+  // Arrivée depuis la page Secteur : /radar?ape=10.71C choisit ce code d'emblée
+  // (sauf formule Pro, où la prospection reste limitée à son propre secteur).
+  const apeFromUrl = searchParams.get('ape');
+  useEffect(() => {
+    if (!apeFromUrl || apeLocked) return;
+    if (APE_CODES.some((c) => c.code === apeFromUrl)) setApe(apeFromUrl);
+  }, [apeFromUrl, apeLocked]);
   const paymentReturnSeen = useRef(false);
   useEffect(() => {
     const paid = searchParams.get('success') === '1';

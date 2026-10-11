@@ -19,6 +19,8 @@ import { uploadListingImage, saveListing } from '@/services/listingService';
 import { checkPublicationQuota } from '@/services/planService';
 import { Dropdown } from '@/components/PickerKit';
 import type { TFunction } from 'i18next';
+import { cleanSiret, isValidSiret } from '@/lib/siret';
+import { lookupSiret, type SiretLookup } from '@/services/sireneService';
 import { FormGuide } from '@/components/listing/FormGuide';
 import type { Listing } from '@/types/domain';
 
@@ -56,7 +58,9 @@ const getListingSchema = (t: TFunction) => {
     );
   return z.object({
     name: z.string().min(2, t('val.name_req')),
-    siret: z.string().regex(/^[0-9]{14}$/, t('val.siret_req')),
+    siret: z.string().regex(/^[0-9]{14}$/, t('val.siret_req'))
+      // la clé de contrôle écarte un numéro inventé ou mal recopié
+      .refine(isValidSiret, t('val.siret_key', "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture.")),
     hide_siret: z.boolean().default(false),
     share_financials: z.boolean().default(true),
     industry: z.string().min(2, t('val.industry_req')),
@@ -201,6 +205,21 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   
   const selectedIndustry = watch('industry');
   const hideSiret = watch('hide_siret');
+  // Vérification du SIRET en direct : la clé de contrôle d'abord, puis le
+  // registre public dès que les 14 chiffres sont là.
+  const siretValue = (watch('siret') || '') as string;
+  const [siretCheck, setSiretCheck] = useState<{ status: 'idle' | 'checking' | 'unavailable' } | (SiretLookup & { status: SiretLookup['status'] })>({ status: 'idle' });
+  useEffect(() => {
+    if (!isOpen || !isValidSiret(siretValue)) { setSiretCheck({ status: 'idle' }); return; }
+    let cancelled = false;
+    setSiretCheck({ status: 'checking' });
+    const timer = setTimeout(() => {
+      lookupSiret(siretValue)
+        .then((r) => { if (!cancelled) setSiretCheck(r); })
+        .catch(() => { if (!cancelled) setSiretCheck({ status: 'unavailable' }); });
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [siretValue, isOpen]);
   const shareFinancials = watch('share_financials');
 
   useEffect(() => {
@@ -324,6 +343,14 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     else if (step === 4) fields = ['rent', 'surface', 'employees', 'description', 'lease_details'];
     
     const isValid = await trigger(fields);
+    // Étape 1 : le registre doit connaître l'établissement, et il doit être en activité.
+    // (S'il ne répond pas, on laisse passer : l'équipe vérifiera.)
+    if (step === 1 && isValid && (siretCheck.status === 'not_found' || siretCheck.status === 'closed' || siretCheck.status === 'checking')) {
+      if (siretCheck.status !== 'checking') showError(siretCheck.status === 'closed'
+        ? t('siret.closed_short', "Cet établissement est fermé d'après le registre public.")
+        : t('siret.not_found_short', 'Ce numéro SIRET est introuvable dans le registre public.'));
+      return;
+    }
     if (isValid) { setDirection(1); setStep(s => Math.min(5, s + 1)); }
   };
 
@@ -558,9 +585,43 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
                     <div>
                       <label className={labelClass}>{t('form.siret')}</label>
-                      <input {...register('siret')} maxLength={14} className={getInputClass(!!errors.siret)} spellCheck={false} />
+                      <input
+                        {...register('siret')}
+                        // chiffres uniquement, 14 au plus : rien d'autre ne peut être saisi
+                        onChange={(e) => setValue('siret', cleanSiret(e.target.value), { shouldValidate: !!errors.siret, shouldDirty: true })}
+                        maxLength={17} inputMode="numeric" autoComplete="off" pattern="[0-9]*"
+                        aria-describedby="siret-status"
+                        className={getInputClass(!!errors.siret || siretCheck.status === 'not_found' || siretCheck.status === 'closed')} spellCheck={false}
+                      />
+                      {/* Ce que le registre public répond, en direct */}
+                      <div id="siret-status" aria-live="polite" className="mt-2 min-h-[1.25rem] text-sm">
+                        {siretValue.length > 0 && siretValue.length < 14 && (
+                          <span className="text-white/60">{t('siret.count', { defaultValue: '{{n}} chiffres sur 14', n: siretValue.length })}</span>
+                        )}
+                        {siretValue.length === 14 && !isValidSiret(siretValue) && (
+                          <span style={{ color: '#f87171' }}>{t('val.siret_key', "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture.")}</span>
+                        )}
+                        {siretCheck.status === 'checking' && (
+                          <span className="inline-flex items-center gap-2 text-white/70"><Loader2 className="w-4 h-4 animate-spin" /> {t('siret.checking', 'Vérification dans le registre des entreprises…')}</span>
+                        )}
+                        {siretCheck.status === 'found' && (
+                          <span className="inline-flex items-start gap-2" style={{ color: '#6ee7b7' }}>
+                            <Check className="w-4 h-4 mt-0.5 shrink-0" />
+                            <span>{t('siret.found', { defaultValue: 'Entreprise trouvée : {{nom}}{{lieu}}', nom: siretCheck.nom || '', lieu: siretCheck.ville ? ` — ${siretCheck.code_postal || ''} ${siretCheck.ville}`.replace('  ', ' ') : '' })}</span>
+                          </span>
+                        )}
+                        {siretCheck.status === 'closed' && (
+                          <span style={{ color: '#f87171' }}>{t('siret.closed', { defaultValue: "Cet établissement ({{nom}}) est fermé d'après le registre public. Indiquez le SIRET de l'établissement en activité.", nom: siretCheck.nom || '' })}</span>
+                        )}
+                        {siretCheck.status === 'not_found' && (
+                          <span style={{ color: '#f87171' }}>{t('siret.not_found', "Ce numéro est introuvable dans le registre public des entreprises. Vérifiez-le sur votre extrait Kbis ou une facture.")}</span>
+                        )}
+                        {siretCheck.status === 'unavailable' && (
+                          <span style={{ color: '#fcd34d' }}>{t('siret.unavailable', "Le registre public ne répond pas pour le moment. Vous pouvez continuer : votre numéro sera vérifié par notre équipe.")}</span>
+                        )}
+                      </div>
                       <Hint text={t('form.hint_siret')} />
-                      {errors.siret && <span className="text-[#f87171] text-xs mt-2 block">{errors.siret.message}</span>}
+                      {errors.siret && siretValue.length !== 14 && <span className="text-[#f87171] text-xs mt-2 block">{errors.siret.message}</span>}
                       <div className="flex items-center gap-3 mt-4">
                         <div 
                           onClick={() => setValue('hide_siret', !hideSiret)}

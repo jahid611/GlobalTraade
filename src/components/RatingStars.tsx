@@ -50,12 +50,33 @@ export function StarsDisplay({ value, size = 16 }: { value: number; size?: numbe
   );
 }
 
-export function RatingBadge({ userId, className = '' }: { userId?: string; className?: string }) {
+export function RatingBadge({ userId, className = '', onOpen }: {
+  userId?: string; className?: string;
+  /** si fourni, la note devient un bouton « lire les avis » */
+  onOpen?: () => void;
+}) {
   const { t } = useTranslation();
   const { data } = useRatingSummary(userId);
   if (!data || !data.rating_count) return null;
 
   const trusted = Number(data.avg_score) >= TRUSTED_MIN_AVG && Number(data.rating_count) >= TRUSTED_MIN_COUNT;
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(); }}
+        className={`inline-flex items-center gap-2 min-h-[40px] px-3 -mx-1 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${className}`}
+      >
+        <StarsDisplay value={Number(data.avg_score)} size={15} />
+        <span className="text-sm text-white/85">{data.avg_score}</span>
+        <span className="text-sm text-white font-medium underline underline-offset-2 decoration-white/40">
+          {t('reviews.read', { defaultValue: 'Lire les {{count}} avis', count: Number(data.rating_count) })}
+        </span>
+        {trusted && <ShieldCheck size={15} weight="fill" style={{ color: '#6ee7b7' }} aria-label={t('rating.trusted', 'Membre fiable') as string} />}
+      </button>
+    );
+  }
 
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>

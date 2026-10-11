@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { payChoices, placeChoices, startChoices, materialModeChoices, materialConditionChoices, expertiseFormatChoices, expertisePayChoices, networkTargetChoices, networkScopeChoices, labelOf, totalPeople, quantityOf, totalMaterialValue } from './needsMeta';
 import { countryLabel } from "@/lib/countries";
 import { canonicalIndustry } from "@/lib/industries";
 import { motion } from "framer-motion";
-import { X, Money, Users, Package, Brain, MapPin, Calendar, Fire, PencilSimple, Trash, ChatCircle, LockSimple, Crown, Eye, Heart, FileText, Target } from "phosphor-react";
+import { X, Money, Users, Package, Brain, MapPin, Calendar, Fire, PencilSimple, Trash, ChatCircle, LockSimple, Crown, Eye, Heart, FileText, Target, Handshake } from "phosphor-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -267,7 +268,18 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                 <div className="space-y-2">
                   {project.team_roles.map((r: TeamRole, i: number) => (
                     <div key={i} className="flex items-center justify-between gap-3 bg-white/5 rounded-xl px-4 py-3 text-sm">
-                      <div className="min-w-0"><p className="text-white font-medium">{r.title}</p><p className="text-white/50 text-xs">{r.skills}</p></div>
+                      <div className="min-w-0">
+                        <p className="text-white font-medium">{r.title}</p>
+                        {r.mission && <p className="text-white/80 text-[13px] mt-0.5">{r.mission}</p>}
+                        <p className="text-white/50 text-xs">{r.skills}</p>
+                        {(r.pay || r.place || r.start) && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {[labelOf(payChoices(t), r.pay), labelOf(placeChoices(t), r.place), labelOf(startChoices(t), r.start)].filter(Boolean).map((x) => (
+                              <span key={x} className="text-xs px-2.5 py-1 border rounded-full" style={pillStyle(TONES.blue)}>{x}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="text-right shrink-0">
                         <p className="text-xs font-medium" style={{ color: TONES.blue.color }}>{t(`project.form.role_${r.type}`)}</p>
                         <p className="text-white/50 text-xs">{r.count} {r.count > 1 ? t('project.detail.posts') : t('project.detail.post')}</p>
@@ -275,6 +287,11 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                     </div>
                   ))}
                 </div>
+                {project.team_roles.length > 1 && (
+                  <p className="text-[13px] font-medium mt-3" style={{ color: TONES.blue.color }}>
+                    {totalPeople(project.team_roles) === 1 ? t('need.team_total_one', 'Au total : 1 personne recherchée.') : t('need.team_total_many', { defaultValue: 'Au total : {{n}} personnes recherchées.', n: totalPeople(project.team_roles) })}
+                  </p>
+                )}
               </NeedSection>
             )}
 
@@ -284,18 +301,59 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                 <div className="space-y-2">
                   {project.material_items.map((m: MaterialItem, i: number) => (
                     <div key={i} className="flex items-center justify-between gap-3 bg-white/5 rounded-xl px-4 py-3 text-sm">
-                      <div className="min-w-0"><p className="text-white font-medium">{m.name}</p><p className="text-white/50 text-xs">{t('project.form.mat_qty')} : {m.quantity}</p></div>
-                      {m.estimated_value > 0 && <p className="text-sm font-medium shrink-0" style={{ color: TONES.amber.color }}>{m.estimated_value.toLocaleString()}€</p>}
+                      <div className="min-w-0">
+                        <p className="text-white font-medium">{quantityOf(m)} × {m.name}</p>
+                        {m.purpose && <p className="text-white/80 text-[13px] mt-0.5">{m.purpose}</p>}
+                        {(m.mode || m.condition || m.urgent) && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {[labelOf(materialModeChoices(t), m.mode), labelOf(materialConditionChoices(t), m.condition), m.urgent ? t('hub.urgent') : ''].filter(Boolean).map((x) => (
+                              <span key={x} className="text-xs px-2.5 py-1 border rounded-full" style={pillStyle(TONES.amber)}>{x}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {m.estimated_value > 0 && (
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-medium" style={{ color: TONES.amber.color }}>{(quantityOf(m) * m.estimated_value).toLocaleString()} €</p>
+                          {quantityOf(m) > 1 && <p className="text-white/50 text-xs">{m.estimated_value.toLocaleString()} € {t('need.per_unit', "l'unité")}</p>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
+                {totalMaterialValue(project.material_items) > 0 && project.material_items.length > 1 && (
+                  <p className="text-[13px] font-medium mt-3" style={{ color: TONES.amber.color }}>
+                    {t('need.mat_total', { defaultValue: 'Valeur totale du matériel : {{total}}.', total: `${totalMaterialValue(project.material_items).toLocaleString()} €` })}
+                  </p>
+                )}
               </NeedSection>
             )}
 
             {/* Expertise */}
-            {project.expertise_needed && hasFullAccess && project.expertise_domains?.length > 0 && (
+            {project.expertise_needed && hasFullAccess && (project.expertise_domains?.length > 0 || project.expertise_details?.question) && (
               <NeedSection tone={TONES.violet} Icon={Brain} title={t('project.detail.expertise')}>
-                <div className="flex flex-wrap gap-2">{project.expertise_domains.map((d: string) => <span key={d} className="text-xs px-3 py-1.5 border rounded-full" style={pillStyle(TONES.violet)}>{d}</span>)}</div>
+                {project.expertise_details?.question && <p className="text-white/90 text-sm leading-relaxed mb-3">« {project.expertise_details.question} »</p>}
+                <div className="flex flex-wrap gap-2">
+                  {(project.expertise_domains || []).map((d: string) => <span key={d} className="text-xs px-3 py-1.5 border rounded-full" style={pillStyle(TONES.violet)}>{d}</span>)}
+                </div>
+                {(project.expertise_details?.format || project.expertise_details?.pay) && (
+                  <p className="text-white/60 text-[13px] mt-3">
+                    {[labelOf(expertiseFormatChoices(t), project.expertise_details?.format), labelOf(expertisePayChoices(t), project.expertise_details?.pay)].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </NeedSection>
+            )}
+
+            {/* Réseau */}
+            {project.network_needed && hasFullAccess && ((project.network_details?.targets?.length ?? 0) > 0 || project.network_details?.note) && (
+              <NeedSection tone={TONES.pink} Icon={Handshake} title={t('need.detail_network', 'Les contacts recherchés')}>
+                {project.network_details?.note && <p className="text-white/90 text-sm leading-relaxed mb-3">{project.network_details.note}</p>}
+                <div className="flex flex-wrap gap-2">
+                  {(project.network_details?.targets || []).map((v: string) => labelOf(networkTargetChoices(t), v)).filter(Boolean).map((x: string) => (
+                    <span key={x} className="text-xs px-3 py-1.5 border rounded-full" style={pillStyle(TONES.pink)}>{x}</span>
+                  ))}
+                </div>
+                {project.network_details?.scope && <p className="text-white/60 text-[13px] mt-3">{labelOf(networkScopeChoices(t), project.network_details.scope)}</p>}
               </NeedSection>
             )}
 

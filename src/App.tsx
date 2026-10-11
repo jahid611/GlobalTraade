@@ -1,6 +1,8 @@
 "use client";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SiteBanners } from '@/components/SiteBanners';
+import { ScrollMemory } from '@/components/ScrollMemory';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { Toaster as HotToaster } from "react-hot-toast";
@@ -75,6 +77,8 @@ const App = () => (
           <TooltipProvider>
             <Elements stripe={stripePromise}>
               <BrowserRouter>
+                <ScrollMemory />
+                <SiteBanners />
                 <GlobalNotifications />
                 <CessionAssistant />
                 {/* La flèche de retour est désormais intégrée à la Navbar (à droite du logo) */}

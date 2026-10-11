@@ -8,13 +8,50 @@ export interface TeamRole {
   skills: string;
   type: 'full' | 'part' | 'volunteer';
   count: number;
+  // Précisions (facultatives : les anciens projets ne les ont pas)
+  /** ce que la personne fera, en une phrase */
+  mission?: string;
+  /** salary | equity | both | fees | none */
+  pay?: string;
+  /** onsite | remote | hybrid */
+  place?: string;
+  /** now | soon | later */
+  start?: string;
 }
 
 export interface MaterialItem {
   name: string;
   quantity: string;
+  /** valeur À L'UNITÉ, en euros */
   estimated_value: number;
   urgent: boolean;
+  // Précisions (facultatives)
+  /** buy | rent | loan | gift */
+  mode?: string;
+  /** new | used */
+  condition?: string;
+  /** à quoi il servira, en une phrase */
+  purpose?: string;
+}
+
+/** Précisions de l'aide « expertise ». */
+export interface ExpertiseDetails {
+  /** oneoff | regular | mission */
+  format?: string;
+  /** free | paid | open */
+  pay?: string;
+  /** la question à laquelle l'expert doit répondre */
+  question?: string;
+}
+
+/** Précisions de l'aide « réseau ». */
+export interface NetworkDetails {
+  /** banks, investors, suppliers, clients, distributors, partners, advisors, institutions */
+  targets?: string[];
+  /** local | regional | national | international */
+  scope?: string;
+  /** qui exactement, et pourquoi */
+  note?: string;
 }
 
 export interface Project {
@@ -42,7 +79,9 @@ export interface Project {
   material_items: MaterialItem[];
   expertise_needed: boolean;
   expertise_domains: string[];
+  expertise_details?: ExpertiseDetails | null;
   network_needed: boolean;
+  network_details?: NetworkDetails | null;
   view_count: number;
   interest_count: number;
   is_published: boolean;
