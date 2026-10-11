@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Loader2, Sparkles, RotateCcw } from "lucide-react";
+import { Loader2, Sparkles, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { INDUSTRIES } from "@/lib/industries";
 import { FR_REGIONS } from "@/lib/geoRegions";
@@ -22,6 +22,11 @@ interface SmartMatchFormProps {
   onResults: (criteria: MatchCriteria) => void;
   onReset?: () => void;
   availableIndustries?: string[];
+  /**
+   * « card » : carte compacte en colonne. « hero » : grand bandeau horizontal,
+   * pensé pour être l'élément principal de la page (marketplace).
+   */
+  variant?: 'card' | 'hero';
 }
 
 export const BUDGET_MIN = 5000;
@@ -30,7 +35,7 @@ export const BUDGET_MAX = 3000000;
 const fmtEur = (n: number) =>
   n >= 1000000 ? `${(n / 1000000).toFixed(n % 1000000 ? 1 : 0)} M€` : `${Math.round(n / 1000)} k€`;
 
-export function SmartMatchForm({ onResults, onReset, availableIndustries }: SmartMatchFormProps) {
+export function SmartMatchForm({ onResults, onReset, availableIndustries, variant = 'card' }: SmartMatchFormProps) {
   const { t } = useTranslation();
   const [industries, setIndustries] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
@@ -66,6 +71,77 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries }: Smar
   const isDirty = industries.length > 0 || regions.length > 0 || stake[0] !== 0 || stake[1] !== 100 || budget[0] !== BUDGET_MIN || budget[1] !== BUDGET_MAX;
 
   const labelClass = "text-xs font-semibold uppercase tracking-widest text-white/50";
+
+  if (variant === 'hero') {
+    return (
+      <section
+        aria-label={t("smart.panel_tag", { defaultValue: "Recherche intelligente" }) as string}
+        className="relative rounded-[2rem] p-[1.5px] shadow-[0_20px_70px_rgba(89,85,232,0.35)]"
+        style={{ background: 'linear-gradient(135deg, rgba(120,114,251,0.95) 0%, rgba(89,85,232,0.45) 40%, rgba(255,255,255,0.12) 100%)' }}
+      >
+        <div className="rounded-[calc(2rem-1.5px)] bg-[#232229]/95 backdrop-blur-xl p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-7">
+            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-[0_8px_24px_rgba(89,85,232,0.5)]">
+              <Sparkles size={22} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-2xl md:text-[1.7rem] font-medium text-white leading-tight tracking-tight">
+                {t("smart.hero_title", { defaultValue: "Quelle entreprise cherchez-vous ?" }) as string}
+              </h2>
+              <p className="text-sm md:text-base text-white/65 font-light mt-1">
+                {t("smart.hero_desc", { defaultValue: "Indiquez vos critères : la recherche intelligente classe les annonces de la plus adaptée à la moins adaptée." }) as string}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.15fr_1.15fr_1fr_1fr_auto] gap-x-6 gap-y-5 xl:items-end">
+            <div className="space-y-2.5 min-w-0">
+              <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_sectors", { defaultValue: "Secteurs" }) as string}</label>
+              <MultiSelect options={sectorOptions} selected={industries} onChange={setIndustries} placeholder={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} allowSelectAll selectAllLabel={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} />
+            </div>
+
+            <div className="space-y-2.5 min-w-0">
+              <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_regions", { defaultValue: "Régions" }) as string}</label>
+              <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions", { defaultValue: "Toute la France" }) as string} allowSelectAll selectAllLabel={t("smart.all_regions_opt", { defaultValue: "Toutes les régions" }) as string} />
+            </div>
+
+            <div className="space-y-2 min-w-0 xl:pb-1">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_budget", { defaultValue: "Budget" }) as string}</label>
+                <span className="text-[#a5b4fc] text-sm font-semibold whitespace-nowrap">{fmtEur(budget[0])} – {fmtEur(budget[1])}</span>
+              </div>
+              <RangeSlider value={budget} onValueChange={setBudget} min={BUDGET_MIN} max={BUDGET_MAX} step={5000} />
+            </div>
+
+            <div className="space-y-2 min-w-0 xl:pb-1">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_stake", { defaultValue: "Part visée" }) as string}</label>
+                <span className="text-[#a5b4fc] text-sm font-semibold whitespace-nowrap">{stake[0]}% – {stake[1]}%</span>
+              </div>
+              <RangeSlider value={stake} onValueChange={setStake} min={0} max={100} step={5} />
+            </div>
+
+            <div className="flex items-center gap-3 md:col-span-2 xl:col-span-1">
+              {isDirty && (
+                <button
+                  onClick={reset}
+                  className="h-14 px-4 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm flex items-center gap-2 shrink-0 transition-colors"
+                  title={t("smart.reset", { defaultValue: "Réinitialiser" }) as string}
+                  aria-label={t("smart.reset", { defaultValue: "Réinitialiser" }) as string}
+                >
+                  <RotateCcw size={16} />
+                </button>
+              )}
+              <Button onClick={submit} disabled={loading} className="flex-1 xl:flex-none h-14 px-8 rounded-full bg-primary hover:bg-primary/90 text-white text-base font-semibold shadow-[0_10px_30px_rgba(89,85,232,0.55)] whitespace-nowrap">
+                {loading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Search className="w-5 h-5 mr-2" />}
+                {t("smart.see_results", { defaultValue: "Voir les résultats" }) as string}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="liquid-glass rounded-[2rem] p-6 sm:p-7 border border-white/10 space-y-5">

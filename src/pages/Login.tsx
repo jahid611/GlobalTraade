@@ -3,7 +3,7 @@ import { APP_SCHEME } from '@/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { ChevronLeft, Loader2, Sun, Moon } from 'lucide-react';
+import { ChevronLeft, Loader2, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +91,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   // Message d'information (email envoyé, vérifiez votre boîte mail…)
@@ -136,6 +137,7 @@ export default function Login() {
     setInfo("");
     setPassword("");
     setPasswordConfirm("");
+    setShowPassword(false);
     setMode(next);
   };
 
@@ -553,14 +555,25 @@ export default function Login() {
                   </p>
                   <div>
                     <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.new_password', 'Nouveau mot de passe')}</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoFocus autoComplete="new-password" className={inputClass} placeholder="••••••••" />
+                    <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required autoFocus autoComplete="new-password" className={`${inputClass} pr-14`} placeholder="••••••••" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? t('auth.hide_password', 'Masquer le mot de passe') : t('auth.show_password', 'Afficher le mot de passe')}
+                    aria-pressed={showPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                     <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
                       {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}
                     </p>
                   </div>
                   <div>
                     <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.confirm_password', 'Confirmer le mot de passe')}</label>
-                    <input type="password" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} required autoComplete="new-password" className={inputClass} placeholder="••••••••" />
+                    <input type={showPassword ? 'text' : 'password'} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} required autoComplete="new-password" className={inputClass} placeholder="••••••••" />
                   </div>
                   {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
                   <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
@@ -583,7 +596,18 @@ export default function Login() {
               </div>
               <div>
                 <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.password')}</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} className={inputClass} placeholder="••••••••" />
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} className={`${inputClass} pr-14`} placeholder="••••••••" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? t('auth.hide_password', 'Masquer le mot de passe') : t('auth.show_password', 'Afficher le mot de passe')}
+                    aria-pressed={showPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {mode === 'signup' ? (
                   <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
                     {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}

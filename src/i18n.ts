@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { additionsEn, additionsFr } from './i18n.additions';
 import { pagesKeys } from './i18n.pages';
+import { assistantKeys } from './i18n.assistant';
 
 const industriesFr: Record<string, string> = {
   "Automotive Sales / Maintenance": "Vente / Maintenance Automobile",
@@ -1786,7 +1787,8 @@ const resources = {
       ...reverseIndustriesEn,
       ...manualFixesEn,
       ...additionsEn,
-      ...pagesKeys.en
+      ...pagesKeys.en,
+      ...assistantKeys.en
     }
   },
   fr: {
@@ -3199,7 +3201,8 @@ const resources = {
       ...reverseIndustriesFr,
       ...manualFixesFr,
       ...additionsFr,
-      ...pagesKeys.fr
+      ...pagesKeys.fr,
+      ...assistantKeys.fr
     }
   }
 };

@@ -109,13 +109,19 @@ export function SolarSystem() {
         </Suspense>
       </Canvas>
       
-      <div 
+      {/* Voile posé sur la Terre : elle reste un décor, légèrement floutée, pour
+          que le premier plan se lise bien — en sombre comme en clair. */}
+      <div
         className={`absolute inset-0 pointer-events-none transition-all duration-700 ${
-          isDark 
-            ? 'bg-gradient-to-b from-transparent via-transparent to-[#020204] opacity-80'
+          isDark
+            ? 'bg-[#020204]/20 backdrop-blur-[6px]'
             : 'bg-black/45 backdrop-blur-[16px]'
-        }`} 
+        }`}
       />
+      {/* Sombre : fondu vers le noir en bas de l'écran (comme avant) */}
+      {isDark && (
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-[#020204] opacity-80" />
+      )}
     </motion.div>
   );
 }

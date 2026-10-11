@@ -90,7 +90,39 @@ const getListingSchema = (t: TFunction) => {
 
 type ListingData = z.infer<ReturnType<typeof getListingSchema>>;
 
-interface ListingFormProps { isOpen: boolean; onClose: () => void; onSuccess: () => void; listingToEdit?: Partial<Listing>; }
+// Valeurs de départ d'une NOUVELLE annonce (brouillon préparé par l'assistant Globi).
+export type ListingPrefill = Partial<{
+  name: string; industry: string; address: string;
+  price: number; revenue_n1: number; revenue_n2: number; revenue_n3: number; ebitda: number;
+  rent: number; employees: number; surface: number; established_year: number;
+  description: string; reason_for_selling: string; lease_details: string;
+}>;
+
+interface ListingFormProps { isOpen: boolean; onClose: () => void; onSuccess: () => void; listingToEdit?: Partial<Listing>; prefill?: ListingPrefill; }
+
+const PREFILL_TEXT_FIELDS = ['name', 'description', 'reason_for_selling', 'lease_details'] as const;
+const PREFILL_NUMBER_FIELDS = ['price', 'revenue_n1', 'revenue_n2', 'revenue_n3', 'ebitda', 'rent', 'employees', 'surface'] as const;
+
+// Convertit le brouillon dans le format des champs du formulaire : montants en
+// nombres entiers, année en chaîne (comme la liste déroulante), secteur ignoré
+// s'il n'est pas dans INDUSTRIES. L'adresse n'est pas reprise ici : elle va dans
+// le champ de recherche, sans coordonnées, pour que l'utilisateur choisisse une
+// suggestion géocodée.
+const prefillToFormValues = (prefill: ListingPrefill): Record<string, string | number> => {
+  const values: Record<string, string | number> = {};
+  for (const key of PREFILL_TEXT_FIELDS) {
+    const v = prefill[key];
+    if (typeof v === 'string' && v.trim()) values[key] = v.trim();
+  }
+  for (const key of PREFILL_NUMBER_FIELDS) {
+    const v = prefill[key];
+    if (typeof v === 'number' && Number.isFinite(v)) values[key] = Math.round(v);
+  }
+  if (typeof prefill.industry === 'string' && INDUSTRIES.includes(prefill.industry)) values.industry = prefill.industry;
+  const year = Math.round(Number(prefill.established_year));
+  if (prefill.established_year != null && year >= 1700 && year <= new Date().getFullYear()) values.established_year = String(year);
+  return values;
+};
 
 const formatNumber = (val: number | string | null | undefined) => {
   if (val === undefined || val === null || val === '') return '';
@@ -136,8 +168,11 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: ListingFormProps) {
+export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill }: ListingFormProps) {
   useScrollLock(isOpen);
+  // Lu à l'ouverture seulement : un changement de `prefill` ne réinitialise pas un formulaire en cours de saisie.
+  const prefillRef = useRef(prefill);
+  prefillRef.current = prefill;
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   
@@ -190,8 +225,9 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit }: Listi
         setLogoBase64(listingToEdit.logo_url || null);
         setGalleryImages(listingToEdit.image_urls || []);
       } else {
-        reset({ name: "", siret: "", hide_siret: false, share_financials: true, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "" });
-        setAddressQuery(""); setAddressSelected(false); setLogoBase64(null); setGalleryImages([]);
+        const draft = prefillRef.current;
+        reset({ name: "", siret: "", hide_siret: false, share_financials: true, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "", ...(draft ? prefillToFormValues(draft) as any : {}) });
+        setAddressQuery(typeof draft?.address === 'string' ? draft.address.trim() : ""); setAddressSelected(false); setLogoBase64(null); setGalleryImages([]);
       }
     }
   }, [isOpen, listingToEdit, reset]);

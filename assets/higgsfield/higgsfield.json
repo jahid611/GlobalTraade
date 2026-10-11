@@ -1,0 +1,6 @@
+[
+  { "file": "mascotte-bonjour.png", "prompt": "Mascotte Globi : petit astronaute 3D style jouet, combinaison blanche, gants et bottes indigo, visière sombre avec deux yeux lumineux et un sourire, qui salue de la main. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11" },
+  { "file": "mascotte-reflexion.png", "prompt": "La même mascotte Globi, pose de réflexion : main sous le menton, tête penchée, regard vers le haut. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11" },
+  { "file": "mascotte-bravo.png", "prompt": "La même mascotte Globi qui célèbre : bras levés, petit saut, yeux en arcs heureux, confettis étoilés dorés. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11" },
+  { "file": "mascotte-guide.png", "prompt": "La même mascotte Globi en guide : bloc-notes avec liste de cases cochées dans une main, index levé de l'autre. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11" }
+]

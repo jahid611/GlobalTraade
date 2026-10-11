@@ -5,13 +5,14 @@ import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria } from '@/components/SmartMatchForm';
 import { scoreListing, ProfileCriteria } from '@/lib/matching';
-import { matchRegion } from '@/lib/geoRegions';
+import { matchRegion, regionLabel } from '@/lib/geoRegions';
 import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
 import { AdvancedFilters, FilterState } from '@/components/AdvancedFilters';
 import { HelpBanner } from '@/components/HelpBanner';
-import { Store, Filter, Plus, Loader2 } from 'lucide-react';
+import { Dropdown } from '@/components/PickerKit';
+import { Store, Filter, Plus, Loader2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useListings } from '@/hooks/use-listings';
@@ -35,34 +36,36 @@ const DEFAULT_FILTERS: FilterState = {
   sortBy: "recent"
 };
 
+// Même silhouette que BusinessCard : visuel en haut, contenu dessous.
 const SkeletonCard = () => (
-  <div className="liquid-glass rounded-[2rem] p-6 border border-white/5 relative overflow-hidden h-[320px]">
-    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-    <div className="flex gap-4 items-center mb-6">
-      <div className="w-12 h-12 rounded-xl bg-white/5" />
-      <div className="flex-1 space-y-2">
-        <div className="h-4 bg-white/10 rounded w-3/4" />
+  <div className="liquid-glass rounded-3xl border border-white/5 overflow-hidden animate-pulse">
+    <div className="aspect-[16/10] bg-white/5" />
+    <div className="p-5 space-y-4">
+      <div className="space-y-2">
+        <div className="h-5 bg-white/10 rounded w-3/4" />
         <div className="h-3 bg-white/5 rounded w-1/2" />
       </div>
-    </div>
-    <div className="space-y-4">
-      <div className="h-8 bg-white/5 rounded w-1/3" />
-      <div className="flex gap-2">
-        <div className="h-6 bg-white/5 rounded-full w-20" />
-        <div className="h-6 bg-white/5 rounded-full w-24" />
+      <div className="h-7 bg-white/10 rounded w-1/3" />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-14 bg-white/5 rounded-xl" />
+        <div className="h-14 bg-white/5 rounded-xl" />
       </div>
-    </div>
-    <div className="absolute bottom-6 left-6 right-6 border-t border-white/5 pt-4 flex justify-between">
-      <div className="h-4 bg-white/5 rounded w-16" />
-      <div className="h-4 bg-white/5 rounded w-16" />
+      <div className="border-t border-white/5 pt-4 flex justify-between">
+        <div className="h-4 bg-white/5 rounded w-24" />
+        <div className="h-4 bg-white/5 rounded w-10" />
+      </div>
     </div>
   </div>
 );
 
+const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+const RESULTS_GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5";
+
 export default function Marketplace() {
   const queryClient = useQueryClient();
   const { data: listings = [], isLoading } = useListings();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   const [mode, setMode] = useState<'listings' | 'search_ads'>('listings');
@@ -87,6 +90,8 @@ export default function Marketplace() {
   // Changer la clé remonte le formulaire de recherche intelligente : ses champs
   // reviennent à zéro en même temps que les critères appliqués.
   const [smartFormKey, setSmartFormKey] = useState(0);
+  // Recherche par mot : nom, secteur ou ville, au fil de la frappe.
+  const [query, setQuery] = useState("");
 
   const navigate = useNavigate();
 
@@ -117,6 +122,18 @@ export default function Marketplace() {
 
   const displayedListings = useMemo(() => {
     let result = listings.map(l => ({ ...l, _trusted: trustedOwners?.has(l.owner_id) || false }));
+
+    // Recherche par mot : chaque mot doit se trouver dans le nom, le secteur
+    // (dans la langue affichée) ou l'adresse.
+    const words = normalize(query).split(/\s+/).filter(Boolean);
+    if (words.length) {
+      result = result.filter(l => {
+        const haystack = normalize([
+          l.name, l.industry, t(`industry.${l.industry}`, { defaultValue: l.industry || '' }) as string, l.address,
+        ].filter(Boolean).join(' '));
+        return words.every(w => haystack.includes(w));
+      });
+    }
 
     // Filtres manuels (panneau « Ajuster les filtres ») — multi-sélection combinable
     if (filters.industries.length) result = result.filter(l => filters.industries.includes(l.industry));
@@ -159,7 +176,7 @@ export default function Marketplace() {
       || (Number(b._trusted) - Number(a._trusted)));
 
     return result;
-  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners]);
+  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners, query, t]);
 
   const handleSmartMatch = (criteria: MatchCriteria) => {
     setMatchCriteria(criteria);
@@ -179,42 +196,102 @@ export default function Marketplace() {
     return count;
   };
 
+  const resetAll = () => {
+    setFilters(DEFAULT_FILTERS);
+    setMatchCriteria(null);
+    setSmartFormKey(k => k + 1);
+    setQuery("");
+  };
+
+  const sortOptions = [
+    { value: "recent", label: t("filters.sort.recent", "Plus récentes") as string },
+    { value: "roi", label: t("filters.sort.roi", "Meilleure rentabilité") as string },
+    { value: "views", label: t("filters.sort.views", "Plus vues") as string },
+    { value: "price_asc", label: t("filters.sort.price_asc", "Prix croissant") as string },
+    { value: "price_desc", label: t("filters.sort.price_desc", "Prix décroissant") as string },
+  ];
+
+  // Filtres en cours, affichés en pastilles que l'on retire d'un clic.
+  const euros = (v: string) => new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(v));
+  const chips: { key: string; label: string; clear: () => void }[] = [
+    ...(query.trim() ? [{ key: 'q', label: `« ${query.trim()} »`, clear: () => setQuery("") }] : []),
+    ...filters.industries.map(v => ({
+      key: `i-${v}`, label: t(`industry.${v}`, { defaultValue: v }) as string,
+      clear: () => setFilters({ ...filters, industries: filters.industries.filter(x => x !== v) }),
+    })),
+    ...filters.regions.map(v => ({
+      key: `r-${v}`, label: regionLabel(v),
+      clear: () => setFilters({ ...filters, regions: filters.regions.filter(x => x !== v) }),
+    })),
+    ...(filters.priceMin ? [{ key: 'pmin', label: `${t('market.chip_price_min', 'Prix min')} ${euros(filters.priceMin)}`, clear: () => setFilters({ ...filters, priceMin: "" }) }] : []),
+    ...(filters.priceMax ? [{ key: 'pmax', label: `${t('market.chip_price_max', 'Prix max')} ${euros(filters.priceMax)}`, clear: () => setFilters({ ...filters, priceMax: "" }) }] : []),
+    ...(filters.revenueMin ? [{ key: 'rev', label: `${t('market.chip_revenue_min', 'CA min')} ${euros(filters.revenueMin)}`, clear: () => setFilters({ ...filters, revenueMin: "" }) }] : []),
+    ...(filters.ebitdaMin ? [{ key: 'ebe', label: `${t('market.chip_ebitda_min', 'EBE min')} ${euros(filters.ebitdaMin)}`, clear: () => setFilters({ ...filters, ebitdaMin: "" }) }] : []),
+    ...(matchCriteria ? [{ key: 'match', label: t('market.chip_smart', 'Recherche intelligente') as string, clear: () => { setMatchCriteria(null); setSmartFormKey(k => k + 1); } }] : []),
+  ];
+
+  const smartForm = (
+    <SmartMatchForm key={smartFormKey} variant="hero" onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
+  );
+
+  const filtersButton = (
+    <Button
+      variant="ghost"
+      onClick={() => setIsFilterPanelOpen(true)}
+      className="text-white font-medium text-xs uppercase tracking-widest relative bg-white/10 border border-white/20 rounded-full px-5 h-12 hover:bg-white/20 transition-all shrink-0"
+    >
+      <Filter className="w-4 h-4 mr-2"/> {t('market.adjust_filters')}
+      {getActiveFilterCount() > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.5)] border border-white/20">
+          {getActiveFilterCount()}
+        </span>
+      )}
+    </Button>
+  );
+
   return (
     <div className="min-h-screen bg-transparent text-white selection:bg-primary/30 relative flex flex-col">
       <SolarSystem />
       <Navbar />
 
-      <main className="relative z-10 pt-[15vh] pb-[10vh] px-[6vw] max-w-[1400px] mx-auto w-full">
-        <motion.div
-          animate={{ y: [0, -18, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[10%] right-[-9%] md:top-[8%] md:right-[-5%] w-[180px] md:w-[320px] z-0 pointer-events-none opacity-80 hidden lg:block"
-        >
-          <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
-        </motion.div>
-        
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 relative z-10">
-          <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
-            {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
-          </h1>
-          <p className="text-white/50 text-sm md:text-base font-light mt-2">
-            {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
-          </p>
-        </motion.div>
+      {/* Pleine largeur : la page occupe tout l'écran, avec une simple marge. */}
+      <main className="relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full">
+        {/* En-tête : titre à gauche, choix du sens à droite */}
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
+          {/* Mobile et tablette : l'astronaute en fond, derrière le titre, à droite */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="xl:hidden absolute -top-10 right-0 sm:right-6 w-[150px] sm:w-[180px] z-0 pointer-events-none opacity-35"
+          >
+            <img src="/astronaut-canneapeche-star.png" alt="" className="w-full h-auto" />
+          </motion.div>
 
-        <HelpBanner
-          title={t('help.market_title', 'Comment fonctionne la marketplace ?') as string}
-          desc={t('help.market_desc', '') as string}
-          className="max-w-3xl mx-auto mb-8 relative z-10"
-        />
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10">
+            <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
+              {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
+            </h1>
+            <p className="text-white/60 text-sm md:text-base font-light mt-2">
+              {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
+            </p>
+          </motion.div>
 
-        {/* Deux sens : entreprises à vendre / repreneurs en recherche */}
-        <div className="relative z-10 flex justify-center mb-8">
-          <div className="flex gap-1.5 p-1.5 rounded-full bg-black/20 border border-white/10">
+          {/* L'astronaute pêcheur d'étoiles, entre le titre et le choix du sens */}
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="hidden xl:block ml-auto mr-8 -my-14 w-[190px] 2xl:w-[210px] shrink-0 pointer-events-none opacity-95"
+          >
+            <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
+          </motion.div>
+
+          {/* Deux sens : entreprises à vendre / repreneurs en recherche */}
+          <div className="relative z-10 flex gap-1.5 p-1.5 rounded-full bg-black/30 border border-white/10 self-start lg:self-auto backdrop-blur-md">
             <button
               onClick={() => setMode('listings')}
               className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all outline-none ${
-                mode === 'listings' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white'
+                mode === 'listings' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white'
               }`}
             >
               {t('market.mode_listings', 'Entreprises à vendre')}
@@ -222,7 +299,7 @@ export default function Marketplace() {
             <button
               onClick={() => setMode('search_ads')}
               className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all outline-none ${
-                mode === 'search_ads' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white'
+                mode === 'search_ads' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/60 hover:text-white'
               }`}
             >
               {t('market.mode_search_ads', 'Repreneurs en recherche')}
@@ -231,95 +308,150 @@ export default function Marketplace() {
         </div>
 
         {mode === 'search_ads' ? (
-          <div className="relative z-10 max-w-4xl mx-auto">
+          <div className="relative z-10 max-w-5xl mx-auto">
+            <HelpBanner
+              title={t('help.market_title', 'Comment fonctionne la marketplace ?') as string}
+              desc={t('help.market_desc', '') as string}
+              className="mb-8"
+            />
             <SearchAdsBoard />
           </div>
         ) : (
-        <>
-        <div className="relative z-10 max-w-xl mx-auto mb-[10vh]">
-          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
-            <SmartMatchForm key={smartFormKey} onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
+        <div className="relative z-10">
+
+          {/* ── La recherche intelligente : l'élément principal de la page ── */}
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
+            {smartForm}
           </motion.div>
-        </div>
 
-        <div id="results" className="space-y-[6vh] scroll-mt-[15vh]">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-[4vh] sm:gap-6 border-b border-white/20 pb-[3vh]">
-            <div>
-              <h2 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-[0.5vh] text-white">{t('market.portfolios')}</h2>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] text-white/90 font-light">
-                {isLoading
-                  ? t('market.loading', 'Chargement des opportunités…')
-                  : <>{displayedListings.length} {t('market.found')}</>}
-              </p>
-              {matchCriteria && (
-                <button
-                  onClick={() => setMatchCriteria(null)}
-                  className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-colors"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  {t('market.sorted_relevance', 'Trié par pertinence')} · {t('market.clear_match', 'réinitialiser')}
-                </button>
-              )}
-            </div>
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsFilterPanelOpen(true)}
-              className="text-white font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest relative bg-white/10 border border-white/20 rounded-full px-[4vw] sm:px-6 h-[10vw] sm:h-12 hover:bg-white/20 transition-all shadow-md"
-            >
-              <Filter className="w-4 h-4 mr-2"/> {t('market.adjust_filters')}
-              {getActiveFilterCount() > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.5)] border border-white/20">
-                  {getActiveFilterCount()}
-                </span>
-              )}
-            </Button>
-          </div>
+          {/* L'aide passe sous la recherche : elle explique, elle ne doit pas la précéder. */}
+          <HelpBanner
+            title={t('help.market_title', 'Comment fonctionne la marketplace ?') as string}
+            desc={t('help.market_desc', '') as string}
+            className="mb-10"
+          />
 
-          {isMatching ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-[4vh]">
-               <div className="flex items-center justify-center py-[2vh] gap-4">
-                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                 <p className="text-white/60 font-medium tracking-widest uppercase text-sm">{t('smart.analyzing') || 'Analyse algorithmique en cours...'}</p>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-                 {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
-               </div>
-            </motion.div>
-          ) : isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-              {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
-            </div>
-          ) : displayedListings.length === 0 ? (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-[15vh] text-center flex flex-col items-center bg-black/20 border border-white/20 border-dashed rounded-[2rem] backdrop-blur-md">
-              <Store className="w-[10vw] sm:w-12 h-[10vw] sm:h-12 text-white/50 mx-auto mb-[3vh]" strokeWidth={1} />
-              <h3 className="text-xl font-medium text-white mb-2">{t('market.no_match_title')}</h3>
-              <p className="text-white/80 font-light text-[clamp(0.875rem,1vw,1rem)] max-w-md mx-auto mb-6 leading-relaxed">
-                {t('market.no_match_desc')}
-              </p>
-              <Button variant="outline" onClick={() => { setFilters(DEFAULT_FILTERS); setMatchCriteria(null); setSmartFormKey(k => k + 1); }} className="text-white bg-transparent border-white/30 hover:bg-white/10 rounded-full font-medium h-12 px-8 transition-all">
-                {t('market.reset_filters')}
-              </Button>
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[6vw] lg:gap-[3vw]">
-              {displayedListings.map((l, i) => (
-                <motion.div
-                  key={l.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.5) }}
-                >
-                  <BusinessCard
-                    listing={l}
-                    matchScore={l._matchScore}
-                    onClick={() => navigate('/app', { state: { focusId: l.id } })}
+          {/* ── Résultats ── */}
+          <div id="results" className="w-full scroll-mt-[calc(var(--nav-clearance)+1rem)]">
+            <div className="flex flex-col gap-4 border-b border-white/15 pb-5 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                <div>
+                  <h2 className="text-2xl font-light text-white">{t('market.portfolios')}</h2>
+                  <p className="text-sm text-white/70 font-light mt-1">
+                    {isLoading
+                      ? t('market.loading', 'Chargement des opportunités…')
+                      : <><span className="text-white font-medium">{displayedListings.length}</span> {t('market.found')}</>}
+                  </p>
+                </div>
+                {matchCriteria && (
+                  <button
+                    onClick={() => { setMatchCriteria(null); setSmartFormKey(k => k + 1); }}
+                    className="inline-flex items-center gap-2 text-xs text-[#a5b4fc] hover:text-white transition-colors self-start sm:self-auto"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    {t('market.sorted_relevance', 'Trié par pertinence')} · {t('market.clear_match', 'réinitialiser')}
+                  </button>
+                )}
+              </div>
+
+              {/* Barre d'outils : chercher, trier, filtrer */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/45 pointer-events-none" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder={t('market.search_placeholder', 'Chercher un nom, un métier, une ville…') as string}
+                    aria-label={t('market.search_label', 'Chercher une entreprise') as string}
+                    className="w-full h-12 pl-11 pr-11 rounded-full bg-white/5 border border-white/15 text-sm text-white placeholder:text-white/40 outline-none focus:border-primary/70 focus:bg-white/[0.07] transition-colors [&::-webkit-search-cancel-button]:hidden"
                   />
-                </motion.div>
-              ))}
+                  {query && (
+                    <button
+                      onClick={() => setQuery("")}
+                      aria-label={t('market.search_clear', 'Effacer la recherche') as string}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <Dropdown
+                    value={filters.sortBy}
+                    options={sortOptions}
+                    onChange={v => setFilters({ ...filters, sortBy: v as FilterState['sortBy'] })}
+                    className="flex-1 md:flex-none md:w-56"
+                    buttonClassName="w-full flex items-center justify-between gap-2 bg-white/5 border border-white/15 rounded-full px-5 h-12 text-sm text-white outline-none hover:border-white/30 transition-colors"
+                  />
+                  {filtersButton}
+                </div>
+              </div>
+
+              {chips.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {chips.map(chip => (
+                    <button
+                      key={chip.key}
+                      onClick={chip.clear}
+                      className="inline-flex items-center gap-1.5 pl-3 pr-2 h-8 rounded-full bg-primary/20 border border-primary/40 text-xs text-white hover:bg-primary/30 transition-colors"
+                    >
+                      <span className="truncate max-w-[14rem]">{chip.label}</span>
+                      <X className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+                  ))}
+                  <button onClick={resetAll} className="text-xs text-white/60 hover:text-white underline underline-offset-4 ml-1 transition-colors">
+                    {t('market.clear_all', 'Tout effacer')}
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+
+            {isMatching ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                 <div className="flex items-center justify-center py-2 gap-4">
+                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                   <p className="text-white/60 font-medium tracking-widest uppercase text-sm">{t('smart.analyzing') || 'Analyse algorithmique en cours...'}</p>
+                 </div>
+                 <div className={RESULTS_GRID}>
+                   {[1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)}
+                 </div>
+              </motion.div>
+            ) : isLoading ? (
+              <div className={RESULTS_GRID}>
+                {[1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)}
+              </div>
+            ) : displayedListings.length === 0 ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-20 px-6 text-center flex flex-col items-center bg-black/20 border border-white/20 border-dashed rounded-[2rem] backdrop-blur-md">
+                <Store className="w-12 h-12 text-white/50 mx-auto mb-6" strokeWidth={1} />
+                <h3 className="text-xl font-medium text-white mb-2">{t('market.no_match_title')}</h3>
+                <p className="text-white/80 font-light text-sm md:text-base max-w-md mx-auto mb-6 leading-relaxed">
+                  {t('market.no_match_desc')}
+                </p>
+                <Button variant="outline" onClick={resetAll} className="text-white bg-transparent border-white/30 hover:bg-white/10 rounded-full font-medium h-12 px-8 transition-all">
+                  {t('market.reset_filters')}
+                </Button>
+              </motion.div>
+            ) : (
+              <div className={RESULTS_GRID}>
+                {displayedListings.map((l, i) => (
+                  <motion.div
+                    key={l.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.4) }}
+                  >
+                    <BusinessCard
+                      listing={l}
+                      matchScore={l._matchScore}
+                      onClick={() => navigate('/app', { state: { focusId: l.id } })}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        </>
         )}
       </main>
 
@@ -327,6 +459,7 @@ export default function Marketplace() {
         <div className="fixed bottom-[4vh] sm:bottom-8 right-[4vw] sm:right-8 z-[110]">
           <button
             onClick={handleCreateListing}
+            aria-label={t('market.publish', 'Publier une annonce') as string}
             className="w-[14vw] sm:w-16 max-w-[64px] h-[14vw] sm:h-16 max-h-[64px] flex items-center justify-center text-white liquid-glass border border-white/30 rounded-full hover:bg-white/20 transition-all group shadow-[inset_0_4px_20px_rgba(255,255,255,0.3),_0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl hover:scale-105 active:scale-95"
           >
             <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -335,9 +468,9 @@ export default function Marketplace() {
         </div>
       )}
 
-      <AdvancedFilters 
-        isOpen={isFilterPanelOpen} 
-        onClose={() => setIsFilterPanelOpen(false)} 
+      <AdvancedFilters
+        isOpen={isFilterPanelOpen}
+        onClose={() => setIsFilterPanelOpen(false)}
         filters={filters}
         setFilters={setFilters}
         onReset={() => setFilters(DEFAULT_FILTERS)}

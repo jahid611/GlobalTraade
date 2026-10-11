@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown } from 'phosphor-react';
+import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown, LockSimple } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -97,191 +97,233 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
   const hasGallery = gallery.length > 0;
   const isSafeUrl = listing.website_url && (listing.website_url.startsWith('http://') || listing.website_url.startsWith('https://'));
 
+  const boosted = !!listing.boosted_until && new Date(listing.boosted_until).getTime() > Date.now();
+  const sectorLabel = t(`industry.${listing.industry}`, { defaultValue: listing.industry || '' }) as string;
+  // Sans photo : un visuel aux couleurs du site plutôt qu'une case grise vide.
+  const initial = (listing.name || '?').trim().charAt(0).toUpperCase();
+
   return (
-    <motion.div 
+    <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="relative liquid-glass rounded-3xl hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
+      className="relative liquid-glass rounded-3xl hover:border-white/25 hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer flex flex-col h-full border-white/10 overflow-hidden"
     >
-      {listing.boosted_until && new Date(listing.boosted_until).getTime() > Date.now() ? (
-        <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
-          style={{ background: 'rgba(89,85,232,0.25)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.45)' }}>
-          <Crown className="w-3 h-3" weight="fill" /> {t('card.boosted', 'En avant')}
-        </div>
-      ) : listing._trusted ? (
-        <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md flex items-center gap-1.5"
-          style={{ background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.4)' }}>
-          <CheckCircle className="w-3 h-3" weight="fill" /> {t('card.trusted', 'Vendeur fiable')}
-        </div>
-      ) : null}
-      {typeof matchScore === 'number' && (
-        <div
-          className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md"
-          style={
-            matchScore >= 80
-              ? { background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.35)' }
-              : matchScore >= 55
-              ? { background: 'rgba(89,85,232,0.2)', color: '#a5b4fc', borderColor: 'rgba(89,85,232,0.35)' }
-              : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)' }
-          }
-        >
-          {matchScore}% {t('card.match', 'match')}
-        </div>
-      )}
-      <div className="p-5 sm:p-7 flex flex-col flex-1">
-        
-        <div className="flex justify-between items-start mb-6 gap-4">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {listing.logo_url && (
-              <img src={listing.logo_url} alt={listing.name} className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0" />
-            )}
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[1.15rem] font-light text-white truncate leading-tight tracking-wide">{listing.name}</h3>
-              {!listing.logo_url && (
-                <p className="text-[9px] text-white/30 font-light italic mt-1">{t('card.no_logo')}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 opacity-70">
-                <span className="text-[9px] text-primary font-medium uppercase tracking-widest truncate">
-                  {t(`industry.${listing.industry}`, { defaultValue: listing.industry })}
-                </span>
-                <span className="text-white/20 hidden sm:inline">•</span>
-                <span className={`text-[9px] uppercase tracking-widest flex items-center gap-1.5 ${(!listing.hide_siret || isOwner) ? 'text-white/40' : 'text-emerald-400/80 font-medium'}`}>
-                  {(!listing.hide_siret) ? `${t('card.siret_prefix')} ${listing.siret}` : isOwner ? <span className="flex items-center gap-1.5">{t('card.siret_prefix')} {listing.siret}<span className="text-white/40 normal-case tracking-normal italic">{t('card.hidden')}</span></span> : <><CheckCircle className="w-3 h-3" /> {t('card.siret_prefix')} {t('card.verified')}</>}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {!isOwner && (
-              <button onClick={toggleFavorite} className="w-8 h-8 flex items-center justify-center transition-colors text-white/30 hover:text-white">
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} weight={isFavorite ? 'fill' : 'regular'} />
-              </button>
-            )}
-            {actions && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
-          </div>
-        </div>
-
+      {/* ── Visuel : photo pleine largeur, ou visuel de remplacement ── */}
+      <div className="relative w-full aspect-[16/10] shrink-0 overflow-hidden group/carousel bg-white/[0.03]">
         {hasGallery ? (
-          <div className="relative w-full h-32 sm:h-36 shrink-0 group/carousel flex items-center justify-center mb-6">
-            <img 
-              src={gallery[currentImage]} 
-              alt={listing.name} 
-              className="w-full h-full object-contain drop-shadow-lg transition-opacity duration-300 pointer-events-none" 
-            />
-            
-            {gallery.length > 1 && (
-              <>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === 0 ? gallery.length - 1 : i - 1); }}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/10 hover:bg-white/20 hover:scale-110"
-                >
-                  <CaretLeft size={16} className="mr-0.5" />
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === gallery.length - 1 ? 0 : i + 1); }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/10 hover:bg-white/20 hover:scale-110"
-                >
-                  <CaretRight size={16} className="ml-0.5" />
-                </button>
-                
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                  {gallery.map((_, i) => (
-                    <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${currentImage === i ? 'w-3 bg-white' : 'w-1.5 bg-white/30'}`} />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <img
+            src={gallery[currentImage]}
+            alt={listing.name}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03] pointer-events-none"
+          />
         ) : (
-          <div className="relative w-full h-32 sm:h-36 shrink-0 flex items-center justify-center mb-6 bg-white/[0.02] rounded-xl border border-white/5">
-            <span className="text-[10px] uppercase tracking-wider font-light text-white/30 text-center px-4">
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg, rgba(89,85,232,0.35) 0%, rgba(53,51,177,0.18) 55%, rgba(43,42,47,0.6) 100%)' }}
+          >
+            <span className="text-5xl font-light text-white/80 leading-none">{initial}</span>
+            <span className="text-[11px] font-light text-white/50 text-center px-6 leading-snug">
               {t('card.no_image', 'No image provided by the seller')}
             </span>
           </div>
         )}
+        {/* Dégradé bas : garde lisibles les éléments posés sur la photo */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 to-transparent pointer-events-none" />
 
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-5 pb-5 border-b border-white/5">
-          <div className="min-w-fit">
-            <p className="text-[8px] uppercase tracking-[0.2em] text-white/30 font-medium mb-1">{t('card.sale')}</p>
-            <p className="text-xl font-light text-white leading-none whitespace-nowrap">{formatEuro(listing.price)}</p>
-          </div>
-          <div className="text-left min-w-fit">
-            <p className="text-[8px] uppercase tracking-[0.2em] text-white/30 font-medium mb-1">{t('card.revenue')} &bull; {t('card.ebitda')}</p>
-            <p className="text-xs font-medium text-white/80 leading-none whitespace-nowrap">
-              {financialsMasked ? (
-                <span className="text-white/30 tracking-widest">••• <span className="text-white/20 mx-1">/</span> •••</span>
-              ) : (
-                <>{formatEuro(listing.revenue_n1)} <span className="text-white/20 mx-1">/</span> <span className="text-emerald-400/80">{formatEuro(listing.ebitda)}</span></>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center mb-5 px-1 text-white/50">
-          <div className="flex items-center gap-1.5 group-hover:text-white/80 transition-colors">
-            <CornersOut className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-light">{listing.surface ? `${listing.surface} m²` : '-'}</span>
-          </div>
-          <div className="flex items-center gap-1.5 group-hover:text-white/80 transition-colors">
-            <Users className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-light">{listing.employees ? `${listing.employees}` : '-'}</span>
-          </div>
-          <div className="flex items-center gap-1.5 group-hover:text-white/80 transition-colors">
-            <Receipt className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-light">{listing.rent ? `${formatEuro(listing.rent)}` : '-'}</span>
-          </div>
-        </div>
-
-        <div className="mt-auto space-y-3">
-          <div className="flex items-start text-xs text-white/40 font-light">
-            <MapPin className="w-3.5 h-3.5 mr-2 mt-0.5 text-primary/40 shrink-0" />
-            <span className="line-clamp-1">{listing.address || t('card.protected_location')}</span>
-          </div>
-        </div>
-
-        <div className="mt-5 text-[8px] uppercase tracking-widest text-white/30 group-hover:text-primary transition-colors font-medium">
-          {t('card.click_details')}
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between transition-colors">
-          
-          {ownerProfile ? (
-            <div 
-              className="flex items-center gap-2.5 min-w-0 hover:bg-white/5 p-1.5 -ml-1.5 pr-3 rounded-full transition-colors cursor-pointer group/owner"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/profile/${ownerProfile.id}`);
-              }}
+        {hasGallery && gallery.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === 0 ? gallery.length - 1 : i - 1); }}
+              aria-label={t('card.prev_image', 'Photo précédente') as string}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/15 hover:bg-black/65"
             >
-              <Avatar className="w-7 h-7 border border-white/10 shrink-0">
-                <AvatarImage src={ownerProfile.avatar_url} className="object-cover" />
-                <AvatarFallback className="bg-white/10 text-white/50 text-[10px]">{ownerProfile.full_name?.[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col truncate">
-                <span className="text-[8px] uppercase tracking-[0.1em] text-white/40 font-medium mb-0.5 leading-none">{t('card.published_by')}</span>
-                <span className="text-[11px] font-medium text-white/80 group-hover/owner:text-white truncate leading-none transition-colors">{ownerProfile.full_name}</span>
-              </div>
+              <CaretLeft size={16} className="mr-0.5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrentImage(i => i === gallery.length - 1 ? 0 : i + 1); }}
+              aria-label={t('card.next_image', 'Photo suivante') as string}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 backdrop-blur-md text-white flex items-center justify-center opacity-100 sm:opacity-0 group-hover/carousel:opacity-100 transition-all border border-white/15 hover:bg-black/65"
+            >
+              <CaretRight size={16} className="ml-0.5" />
+            </button>
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {gallery.map((_, i) => (
+                <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${currentImage === i ? 'w-3.5 bg-white' : 'w-1.5 bg-white/50'}`} />
+              ))}
             </div>
-          ) : (
-            <div className="w-10 h-8" />
-          )}
+          </>
+        )}
 
-          <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity shrink-0">
-            {isSafeUrl && (
-              <a href={listing.website_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-white transition-colors text-white">
-                <Globe className="w-4 h-4" />
-              </a>
+        {/* Pastilles en haut à gauche : correspondance, mise en avant, vendeur fiable */}
+        <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
+          {typeof matchScore === 'number' && (
+            <div
+              className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md"
+              style={
+                matchScore >= 80
+                  ? { background: 'rgba(6,78,59,0.75)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.5)' }
+                  : matchScore >= 55
+                  ? { background: 'rgba(30,27,75,0.75)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.6)' }
+                  : { background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }
+              }
+            >
+              {matchScore}% {t('card.match', 'match')}
+            </div>
+          )}
+          {boosted ? (
+            <div className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md flex items-center gap-1.5"
+              style={{ background: 'rgba(30,27,75,0.75)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.6)' }}>
+              <Crown className="w-3 h-3" weight="fill" /> {t('card.boosted', 'En avant')}
+            </div>
+          ) : listing._trusted ? (
+            <div className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md flex items-center gap-1.5"
+              style={{ background: 'rgba(6,78,59,0.75)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.5)' }}>
+              <CheckCircle className="w-3 h-3" weight="fill" /> {t('card.trusted', 'Vendeur fiable')}
+            </div>
+          ) : null}
+        </div>
+
+        {/* En haut à droite : favori et actions du propriétaire */}
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          {!isOwner && (
+            <button
+              onClick={toggleFavorite}
+              aria-label={(isFavorite ? t('card.unfavorite', 'Retirer des favoris') : t('card.favorite', 'Ajouter aux favoris')) as string}
+              aria-pressed={isFavorite}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white hover:bg-black/65 transition-colors"
+            >
+              <Heart className={`w-[18px] h-[18px] ${isFavorite ? 'text-primary' : ''}`} weight={isFavorite ? 'fill' : 'regular'} />
+            </button>
+          )}
+          {actions && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
+        </div>
+
+        {listing.logo_url && (
+          <img
+            src={listing.logo_url}
+            alt=""
+            className="absolute bottom-3 left-3 z-10 w-11 h-11 rounded-xl object-cover border border-white/25 shadow-lg bg-[#2b2a2f]"
+          />
+        )}
+      </div>
+
+      {/* ── Contenu ── */}
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="text-lg font-medium text-white truncate leading-tight">{listing.name}</h3>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+          {sectorLabel && (
+            <span className="text-[11px] text-[#a5b4fc] font-semibold uppercase tracking-wider truncate max-w-full">{sectorLabel}</span>
+          )}
+          {!listing.logo_url && (
+            <span className="text-[11px] text-white/35 font-light italic">{t('card.no_logo')}</span>
+          )}
+        </div>
+
+        <div className="flex items-start text-[13px] text-white/60 font-light mt-2.5">
+          <MapPin className="w-4 h-4 mr-1.5 mt-px text-primary shrink-0" />
+          <span className="line-clamp-1">{listing.address || t('card.protected_location')}</span>
+        </div>
+
+        {/* Prix, puis chiffres clés */}
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <p className="text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1">{t('card.sale')}</p>
+          <p className="text-2xl font-medium text-white leading-none whitespace-nowrap">{formatEuro(listing.price)}</p>
+        </div>
+
+        {financialsMasked ? (
+          // Chiffres réservés : une seule ligne claire plutôt que deux cases de points.
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-white/[0.04] border border-white/5 px-3 py-2.5 text-xs text-white/60 font-light">
+            <LockSimple className="w-4 h-4 text-white/45 shrink-0" />
+            <span className="leading-snug">{t('card.financials_locked', "Chiffre d'affaires et résultat : visibles sur la fiche débloquée")}</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="rounded-xl bg-white/[0.04] border border-white/5 px-3 py-2.5 min-w-0">
+              <p className="text-[11px] text-white/50 font-medium mb-1 truncate" title={t('card.revenue_full', "Chiffre d'affaires annuel") as string}>{t('card.revenue')}</p>
+              <p className="text-sm font-medium text-white/90 truncate">{formatEuro(listing.revenue_n1)}</p>
+            </div>
+            <div className="rounded-xl bg-white/[0.04] border border-white/5 px-3 py-2.5 min-w-0">
+              <p className="text-[11px] text-white/50 font-medium mb-1 truncate" title={t('card.ebitda_full', "Résultat d'exploitation (EBE)") as string}>{t('card.ebitda')}</p>
+              <p className="text-sm font-medium truncate" style={{ color: '#6ee7b7' }}>{formatEuro(listing.ebitda)}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-white/60">
+          {listing.surface ? (
+            <span className="flex items-center gap-1.5 text-xs font-light" title={t('card.surface', 'Surface') as string}>
+              <CornersOut className="w-4 h-4 text-white/40" /> {listing.surface} m²
+            </span>
+          ) : null}
+          {listing.employees ? (
+            <span className="flex items-center gap-1.5 text-xs font-light" title={t('card.employees', 'Salariés') as string}>
+              <Users className="w-4 h-4 text-white/40" /> {listing.employees}
+            </span>
+          ) : null}
+          {listing.rent ? (
+            <span className="flex items-center gap-1.5 text-xs font-light" title={t('card.rent', 'Loyer') as string}>
+              <Receipt className="w-4 h-4 text-white/40" /> {formatEuro(listing.rent)}
+            </span>
+          ) : null}
+          {/* SIRET : affiché s'il est public ; « vérifié » s'il est masqué ; rien s'il est inconnu */}
+          {listing.hide_siret && !isOwner ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider" style={{ color: '#6ee7b7' }}>
+              <CheckCircle className="w-3.5 h-3.5" /> {t('card.siret_prefix')} {t('card.verified')}
+            </span>
+          ) : listing.siret ? (
+            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/40">
+              {t('card.siret_prefix')} {listing.siret}
+              {listing.hide_siret && isOwner && <span className="normal-case tracking-normal italic">{t('card.hidden')}</span>}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-auto pt-4">
+          <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+            {ownerProfile ? (
+              <div
+                className="flex items-center gap-2.5 min-w-0 hover:bg-white/5 p-1.5 -ml-1.5 pr-3 rounded-full transition-colors cursor-pointer group/owner"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile/${ownerProfile.id}`);
+                }}
+              >
+                <Avatar className="w-8 h-8 border border-white/10 shrink-0">
+                  <AvatarImage src={ownerProfile.avatar_url} className="object-cover" />
+                  <AvatarFallback className="bg-white/10 text-white/60 text-[11px]">{ownerProfile.full_name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col truncate">
+                  <span className="text-[11px] text-white/45 font-light mb-0.5 leading-none">{t('card.published_by')}</span>
+                  <span className="text-xs font-medium text-white/85 group-hover/owner:text-white truncate leading-none transition-colors">{ownerProfile.full_name}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-10 h-8" />
             )}
-            {listing.view_count !== undefined && (
-              <span className="text-[11px] font-medium text-white flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5" /> {listing.view_count}
-              </span>
-            )}
+
+            <div className="flex items-center gap-3 text-white/55 shrink-0">
+              {isSafeUrl && (
+                <a href={listing.website_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  aria-label={t('card.website', 'Site web') as string}
+                  className="flex items-center gap-1 hover:text-white transition-colors">
+                  <Globe className="w-4 h-4" />
+                </a>
+              )}
+              {listing.view_count !== undefined && (
+                <span className="text-xs font-medium flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" /> {listing.view_count}
+                </span>
+              )}
+            </div>
           </div>
 
+          <div className="mt-3 flex items-center justify-between text-xs font-medium text-white/50 group-hover:text-[#a5b4fc] transition-colors">
+            <span>{t('card.click_details')}</span>
+            <CaretRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          </div>
         </div>
       </div>
     </motion.div>

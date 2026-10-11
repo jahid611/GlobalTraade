@@ -5,6 +5,8 @@ export const pagesKeys = {
   fr: {
     // ── Login.tsx ───────────────────────────────────────────────────────
     "auth.forgot_link": "Mot de passe oublié ?",
+    "auth.show_password": "Afficher le mot de passe",
+    "auth.hide_password": "Masquer le mot de passe",
     "auth.forgot_title": "Mot de passe oublié",
     "auth.forgot_desc": "Indiquez votre adresse email : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
     "auth.forgot_submit": "Envoyer le lien",
@@ -161,6 +163,8 @@ export const pagesKeys = {
   en: {
     // ── Login.tsx ───────────────────────────────────────────────────────
     "auth.forgot_link": "Forgot your password?",
+    "auth.show_password": "Show password",
+    "auth.hide_password": "Hide password",
     "auth.forgot_title": "Forgot password",
     "auth.forgot_desc": "Enter your email address and we will send you a link to choose a new password.",
     "auth.forgot_submit": "Send the link",
