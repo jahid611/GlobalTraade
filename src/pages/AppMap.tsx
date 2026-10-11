@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { industryOptions } from '@/lib/industries';
 import type { Listing } from '@/types/domain';
 import { WorldGlobe, ListingNode } from '@/components/Globe';
 import { BusinessModal } from '@/components/BusinessModal';
@@ -53,6 +54,7 @@ export default function AppMap() {
   const [isSidebarMessagingOpen, setIsSidebarMessagingOpen] = useState(false);
 
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [industrySearch, setIndustrySearch] = useState('');
   const [celebrateUnlock, setCelebrateUnlock] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -199,8 +201,12 @@ export default function AppMap() {
     }
   };
 
-  const availableIndustries = Array.from(new Set(listings.map(l => l.industry))).sort((a, b) => {
-    return t(`industry.${a}`, { defaultValue: a }).localeCompare(t(`industry.${b}`, { defaultValue: b }));
+  // La même liste de secteurs que partout sur le site, filtrable par mot
+  // (elle compte plusieurs centaines d'entrées).
+  const industrySearchWords = industrySearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean);
+  const availableIndustries = industryOptions(t, i18n.language).filter(o => {
+    const label = o.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return industrySearchWords.every(w => label.includes(w));
   });
   
   const displayListings = selectedIndustries.length === 0 
@@ -349,7 +355,22 @@ export default function AppMap() {
                 {t('smart.all_sectors', 'Tous les secteurs')}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/20" />
-              {availableIndustries.map(ind => {
+              <div className="px-2 pb-2 sticky top-0 z-10">
+                <input
+                  type="search"
+                  value={industrySearch}
+                  onChange={e => setIndustrySearch(e.target.value)}
+                  // le menu intercepte les touches pour sa navigation au clavier
+                  onKeyDown={e => e.stopPropagation()}
+                  placeholder={t('filters.search_sector', 'Chercher un secteur…') as string}
+                  aria-label={t('filters.search_sector', 'Chercher un secteur…') as string}
+                  className="w-full h-9 px-3 rounded-lg bg-black/60 border border-white/20 text-xs text-white placeholder:text-white/45 outline-none focus:border-primary/70 [&::-webkit-search-cancel-button]:hidden"
+                />
+              </div>
+              {availableIndustries.length === 0 && (
+                <p className="px-3 py-3 text-xs text-white/50 font-light">{t('filters.no_results', 'Aucun résultat.')}</p>
+              )}
+              {availableIndustries.map(({ value: ind, label: indLabel }) => {
                 const isSelected = selectedIndustries.includes(ind);
                 return (
                   <DropdownMenuItem 
@@ -363,7 +384,7 @@ export default function AppMap() {
                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isSelected ? 'bg-primary border-primary' : 'border-white/40'}`}>
                       {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                     </div>
-                    <span className="truncate">{t(`industry.${ind}`, { defaultValue: ind })}</span>
+                    <span className="truncate">{indLabel}</span>
                   </DropdownMenuItem>
                 );
               })}

@@ -19,7 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePlan } from '@/services/planService';
 import { MultiSelect } from '@/components/MultiSelect';
 import { Dropdown } from '@/components/PickerKit';
-import { INDUSTRIES } from '@/lib/industries';
+import { industryOptions } from '@/lib/industries';
 import { FR_REGIONS } from '@/lib/geoRegions';
 import { AMOUNT_RANGE_OPTIONS } from '@/lib/ranges';
 
@@ -50,7 +50,7 @@ export default function Settings() {
   // Formule gratuite CONFIRMÉE (pas pendant le chargement, où `plan` vaut
   // 'free' par défaut) : les coordonnées publiques ne peuvent pas rester actives.
   const contactLocked = !planLoading && plan === 'free';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -94,7 +94,7 @@ export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Options encadrées (cohérentes avec le reste de Globly)
-  const sectorOptions = useMemo(() => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })), [t]);
+  const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
   const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
   const expOptions = useMemo(() => [
     { value: 'debutant', label: t('buyer.exp_debutant', 'Premier rachat') as string },
@@ -466,7 +466,7 @@ export default function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[4vh] sm:gap-6">
                   <div>
                     <label className={labelClass}>{t('settings.phone')}</label>
-                    <input value={phone} placeholder="+33 6 12 34 56 78" spellCheck={false} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={phone} placeholder="+33 6 12 34 56 78" spellCheck={false} onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ().-]/g, "").slice(0, 20))} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>{t('settings.email')}</label>

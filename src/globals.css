@@ -177,3 +177,9 @@ input, textarea, select {
 :root:not(.dark) .text-white\/70 { color: hsl(var(--ink) / 0.88) !important; }
 :root:not(.dark) .text-white\/80 { color: hsl(var(--ink) / 0.94) !important; }
 :root:not(.dark) .text-white\/90 { color: hsl(var(--ink) / 0.97) !important; }
+
+/* Formulaire d'annonce : Globi se pose à un endroit différent à chaque étape (ordinateur) */
+@media (min-width: 1024px) {
+  .guide-pose { transform: translate(var(--guide-x, 0), var(--guide-y, 0)) rotate(var(--guide-r, 0deg)); transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+@media (prefers-reduced-motion: reduce) { .guide-pose { transition: none; } }

@@ -37,6 +37,16 @@ export default defineConfig(() => {
     server: {
       host: "::",
       port: 8080,
+      // En production, /api/recherche-entreprises est une fonction Vercel
+      // (api/recherche-entreprises.js). En local elle n'existe pas : on relaie
+      // vers la même API publique pour que la page Prospection fonctionne.
+      proxy: {
+        "/api/recherche-entreprises": {
+          target: "https://recherche-entreprises.api.gouv.fr",
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/recherche-entreprises/, "/search"),
+        },
+      },
     },
     build: {
       // Découpage des grosses dépendances en chunks séparés : chargement initial

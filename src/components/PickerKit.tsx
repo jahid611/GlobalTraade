@@ -140,13 +140,20 @@ export function Dropdown({
 // ---------------------------------------------------------------------------
 export function SearchableSelect({
   value, options, onChange, className = "", placeholder = "Rechercher un secteur…",
+  searchPlaceholder = "Filtrer par nom ou code APE…", emptyLabel = "Aucun secteur trouvé",
 }: {
   value: string;
   options: Option[];
   onChange: (v: string) => void;
   className?: string;
   placeholder?: string;
+  /** texte de la barre de recherche du panneau */
+  searchPlaceholder?: string;
+  /** texte affiché quand la recherche ne donne rien */
+  emptyLabel?: string;
 }) {
+  // Une liste sans groupes (pays…) n'affiche pas de titre de groupe.
+  const grouped = options.some((o) => !!o.group);
   const { open, setOpen, triggerRef, panelRef, coords } = usePopover();
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -164,9 +171,11 @@ export function SearchableSelect({
   }, [open]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    // Sans accents ni majuscules : « rhone » trouve « Rhône », « herault » trouve « Hérault ».
+    const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const q = fold(query.trim());
     const list = q
-      ? options.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q) || (o.group || "").toLowerCase().includes(q))
+      ? options.filter((o) => fold(o.label).includes(q) || fold(o.value).includes(q) || fold(o.group || "").includes(q))
       : options;
     const groups: { group: string; items: Option[] }[] = [];
     for (const o of list) {
@@ -191,7 +200,7 @@ export function SearchableSelect({
             // Le préfixe ne sert qu'aux listes codées (code APE + libellé) :
             // sur une liste où la valeur EST le libellé, il afficherait « France France ».
             <>
-              {current.value !== current.label && <span className="text-white/40 mr-2">{current.value}</span>}
+              {current.value && current.value !== current.label && <span className="text-white/40 mr-2">{current.value}</span>}
               {current.label}
             </>
           ) : (
@@ -218,7 +227,7 @@ export function SearchableSelect({
                     ref={searchRef}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Filtrer par nom ou code APE…"
+                    placeholder={searchPlaceholder}
                     type="text"
                     inputMode="search"
                     enterKeyHint="search"
@@ -232,11 +241,11 @@ export function SearchableSelect({
               </div>
               <div style={{ maxHeight: coords.maxHeight - 60, WebkitOverflowScrolling: "touch" }} className="overflow-y-auto overscroll-contain p-1.5 no-scrollbar">
                 {filtered.length === 0 && (
-                  <div className="px-3 py-6 text-center text-white/30 text-sm">Aucun secteur trouvé</div>
+                  <div className="px-3 py-6 text-center text-white/30 text-sm">{emptyLabel}</div>
                 )}
                 {filtered.map((g) => (
                   <div key={g.group} className="mb-1">
-                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/30">{g.group}</div>
+                    {grouped && <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/30">{g.group}</div>}
                     {g.items.map((o) => (
                       <button
                         key={o.value}

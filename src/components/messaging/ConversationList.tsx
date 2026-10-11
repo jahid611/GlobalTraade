@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageCircle, Trash2 } from 'lucide-react';
+import { Search, MessageCircle, Trash2, Handshake } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
@@ -10,6 +10,25 @@ import type { TFunction } from 'i18next';
 import type { Conversation } from '@/types/domain';
 
 
+/**
+ * Aperçu d'une offre dans la liste : « OFFRE: 700000€ » devient « Offre · 700 000 € ».
+ * Renvoie null pour un message ordinaire (y compris un texte libre qui commence
+ * par « OFFRE: »).
+ */
+function offerPreview(message: string | null | undefined, language: string, t: TFunction): { label: string; value: string } | null {
+  const text = (message || '').trim();
+  const offer = /^OFFRE:\s*(\d+(?:[.,]\d+)?)\s*€?$/.exec(text);
+  if (offer) {
+    const amount = Number(offer[1].replace(',', '.'));
+    return {
+      label: t('msg.preview_offer', 'Offre') as string,
+      value: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount),
+    };
+  }
+  const help = /^PROPOSITION AIDE:\s*(.{1,60})$/.exec(text);
+  if (help) return { label: t('msg.preview_help', "Proposition d'aide") as string, value: help[1] };
+  return null;
+}
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -52,7 +71,7 @@ export function ConversationList({
   return (
     <div className="flex flex-col h-full bg-transparent text-white">
       {/* Search Bar - Liquid Glass Style */}
-      <div className="px-4 pb-3 pt-2 shrink-0 border-b border-white/5">
+      <div className="px-4 pb-3 pt-2 sm:pt-1 shrink-0 border-b border-white/5">
         <div className="relative flex items-center">
           <Search className="absolute left-3 w-4 h-4 text-white/30" />
           <input 
@@ -105,9 +124,29 @@ export function ConversationList({
                       {formatMsgDate(conv.date)}
                     </span>
                   </div>
-                  <p className={`text-[13px] truncate ${conv.unread ? 'text-white font-medium' : 'text-white/50 font-light'}`}>
-                    {conv.last_message}
-                  </p>
+                  {(() => {
+                    // Une offre est enregistrée sous un texte technique (« OFFRE: 700000€ ») :
+                    // on l'affiche comme une offre, montant mis en forme.
+                    const offer = offerPreview(conv.last_message, language, t);
+                    if (!offer) {
+                      return (
+                        <p className={`text-[13px] truncate ${conv.unread ? 'text-white font-medium' : 'text-white/50 font-light'}`}>
+                          {conv.last_message}
+                        </p>
+                      );
+                    }
+                    return (
+                      <p className="flex items-center gap-1.5 min-w-0 text-[13px]">
+                        <span
+                          className="inline-flex items-center gap-1 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+                          style={{ background: 'rgba(120,114,251,0.16)', border: '1px solid rgba(120,114,251,0.35)', color: '#c7c4ff' }}
+                        >
+                          <Handshake className="w-3 h-3" /> {offer.label}
+                        </span>
+                        <span className={`truncate ${conv.unread ? 'text-white font-semibold' : 'text-white/85 font-medium'}`}>{offer.value}</span>
+                      </p>
+                    );
+                  })()}
                   <div className="text-[10px] text-white/30 uppercase tracking-widest font-medium truncate mt-1">
                     {conv.listing_name}
                   </div>

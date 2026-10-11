@@ -1,0 +1,74 @@
+// Les langues du site.
+//
+// Le français et l'anglais sont dans le paquet principal (src/i18n.ts). Les
+// autres langues vivent chacune dans son dossier (src/locales/<code>/) et ne
+// sont téléchargées que lorsqu'un visiteur les choisit.
+
+export const LANGUAGES = [
+  { code: 'fr', label: 'Français' },
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'pt', label: 'Português' },
+  { code: 'de', label: 'Deutsch' },
+] as const;
+
+export type LanguageCode = (typeof LANGUAGES)[number]['code'];
+
+/** Langues chargées à la demande. */
+export const LAZY_LANGUAGES: LanguageCode[] = ['es', 'it', 'pt', 'de'];
+
+export function isLanguage(code: string | null | undefined): code is LanguageCode {
+  return !!code && LANGUAGES.some((l) => l.code === code);
+}
+
+type Parts = {
+  core: Record<string, string>; additions: Record<string, string>; pages: Record<string, string>;
+  assistant: Record<string, string>; projects: Record<string, string>; projectform: Record<string, string>;
+  radar: Record<string, string>; crm: Record<string, string>; industries: Record<string, string>;
+};
+
+async function loadParts(code: LanguageCode): Promise<Parts> {
+  // Chemins écrits en toutes lettres : c'est ce qui permet au compilateur de
+  // faire un fichier séparé par langue.
+  const pick = async (m: Promise<Record<string, unknown>>, name: string) => (await m)[name] as Record<string, string>;
+  switch (code) {
+    case 'es': return {
+      core: await pick(import('./es/core'), 'core'), additions: await pick(import('./es/additions'), 'additions'), pages: await pick(import('./es/pages'), 'pages'),
+      assistant: await pick(import('./es/assistant'), 'assistant'), projects: await pick(import('./es/projects'), 'projects'), projectform: await pick(import('./es/projectform'), 'projectform'),
+      radar: await pick(import('./es/radar'), 'radar'), crm: await pick(import('./es/crm'), 'crm'), industries: await pick(import('./es/industries'), 'industries'),
+    };
+    case 'it': return {
+      core: await pick(import('./it/core'), 'core'), additions: await pick(import('./it/additions'), 'additions'), pages: await pick(import('./it/pages'), 'pages'),
+      assistant: await pick(import('./it/assistant'), 'assistant'), projects: await pick(import('./it/projects'), 'projects'), projectform: await pick(import('./it/projectform'), 'projectform'),
+      radar: await pick(import('./it/radar'), 'radar'), crm: await pick(import('./it/crm'), 'crm'), industries: await pick(import('./it/industries'), 'industries'),
+    };
+    case 'pt': return {
+      core: await pick(import('./pt/core'), 'core'), additions: await pick(import('./pt/additions'), 'additions'), pages: await pick(import('./pt/pages'), 'pages'),
+      assistant: await pick(import('./pt/assistant'), 'assistant'), projects: await pick(import('./pt/projects'), 'projects'), projectform: await pick(import('./pt/projectform'), 'projectform'),
+      radar: await pick(import('./pt/radar'), 'radar'), crm: await pick(import('./pt/crm'), 'crm'), industries: await pick(import('./pt/industries'), 'industries'),
+    };
+    case 'de': return {
+      core: await pick(import('./de/core'), 'core'), additions: await pick(import('./de/additions'), 'additions'), pages: await pick(import('./de/pages'), 'pages'),
+      assistant: await pick(import('./de/assistant'), 'assistant'), projects: await pick(import('./de/projects'), 'projects'), projectform: await pick(import('./de/projectform'), 'projectform'),
+      radar: await pick(import('./de/radar'), 'radar'), crm: await pick(import('./de/crm'), 'crm'), industries: await pick(import('./de/industries'), 'industries'),
+    };
+    default: throw new Error(`Langue non prise en charge : ${code}`);
+  }
+}
+
+/**
+ * Tous les textes d'une langue, à plat, prêts pour i18next.
+ * `industriesFr` (nom anglais → libellé français) sert à retrouver aussi un
+ * secteur enregistré sous son ancien libellé français.
+ */
+export async function loadLanguageBundle(code: LanguageCode, industriesFr: Record<string, string>): Promise<Record<string, string>> {
+  const p = await loadParts(code);
+  const sectors: Record<string, string> = {};
+  for (const [english, french] of Object.entries(industriesFr)) {
+    const label = p.industries[english] ?? english;
+    sectors[`industry.${english}`] = label;
+    sectors[`industry.${french}`] = label;
+  }
+  return { ...p.core, ...sectors, ...p.additions, ...p.pages, ...p.assistant, ...p.projects, ...p.projectform, ...p.radar, ...p.crm };
+}

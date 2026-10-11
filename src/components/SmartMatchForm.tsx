@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Loader2, Sparkles, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { INDUSTRIES } from "@/lib/industries";
+import { industryOptions } from "@/lib/industries";
 import { FR_REGIONS } from "@/lib/geoRegions";
 import { MultiSelect } from "@/components/MultiSelect";
 import { RangeSlider } from "@/components/RangeSlider";
@@ -12,8 +12,6 @@ import { useTranslation } from "react-i18next";
 export interface MatchCriteria {
   industries: string[];
   regions: string[];      // clés de région (geoRegions)
-  stakeMin: number;       // 0-100 %
-  stakeMax: number;       // 0-100 %
   budgetMin: number;      // €
   budgetMax: number;      // €
 }
@@ -21,6 +19,7 @@ export interface MatchCriteria {
 interface SmartMatchFormProps {
   onResults: (criteria: MatchCriteria) => void;
   onReset?: () => void;
+  /** @deprecated la liste est désormais toujours la liste maîtresse complète */
   availableIndustries?: string[];
   /**
    * « card » : carte compacte en colonne. « hero » : grand bandeau horizontal,
@@ -35,18 +34,15 @@ export const BUDGET_MAX = 3000000;
 const fmtEur = (n: number) =>
   n >= 1000000 ? `${(n / 1000000).toFixed(n % 1000000 ? 1 : 0)} M€` : `${Math.round(n / 1000)} k€`;
 
-export function SmartMatchForm({ onResults, onReset, availableIndustries, variant = 'card' }: SmartMatchFormProps) {
-  const { t } = useTranslation();
+export function SmartMatchForm({ onResults, onReset, variant = 'card' }: SmartMatchFormProps) {
+  const { t, i18n } = useTranslation();
   const [industries, setIndustries] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
-  const [stake, setStake] = useState<[number, number]>([0, 100]);
   const [budget, setBudget] = useState<[number, number]>([BUDGET_MIN, BUDGET_MAX]);
   const [loading, setLoading] = useState(false);
 
-  const sectorOptions = useMemo(() => {
-    const base = availableIndustries && availableIndustries.length ? availableIndustries : INDUSTRIES;
-    return base.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string }));
-  }, [availableIndustries, t]);
+  // Toujours la liste maîtresse complète — la même que partout sur le site.
+  const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
 
   const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
 
@@ -54,7 +50,6 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries, varian
     setLoading(true);
     const c: MatchCriteria = {
       industries, regions,
-      stakeMin: stake[0], stakeMax: stake[1],
       budgetMin: budget[0], budgetMax: budget[1],
     };
     setTimeout(() => { onResults(c); setLoading(false); }, 350);
@@ -63,12 +58,11 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries, varian
   const reset = () => {
     setIndustries([]);
     setRegions([]);
-    setStake([0, 100]);
     setBudget([BUDGET_MIN, BUDGET_MAX]);
     onReset?.();
   };
 
-  const isDirty = industries.length > 0 || regions.length > 0 || stake[0] !== 0 || stake[1] !== 100 || budget[0] !== BUDGET_MIN || budget[1] !== BUDGET_MAX;
+  const isDirty = industries.length > 0 || regions.length > 0 || budget[0] !== BUDGET_MIN || budget[1] !== BUDGET_MAX;
 
   const labelClass = "text-xs font-semibold uppercase tracking-widest text-white/50";
 
@@ -94,7 +88,7 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries, varian
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.15fr_1.15fr_1fr_1fr_auto] gap-x-6 gap-y-5 xl:items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.2fr_1.2fr_1.1fr_auto] gap-x-6 gap-y-5 xl:items-end">
             <div className="space-y-2.5 min-w-0">
               <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_sectors", { defaultValue: "Secteurs" }) as string}</label>
               <MultiSelect options={sectorOptions} selected={industries} onChange={setIndustries} placeholder={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} allowSelectAll selectAllLabel={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} />
@@ -113,15 +107,7 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries, varian
               <RangeSlider value={budget} onValueChange={setBudget} min={BUDGET_MIN} max={BUDGET_MAX} step={5000} />
             </div>
 
-            <div className="space-y-2 min-w-0 xl:pb-1">
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_stake", { defaultValue: "Part visée" }) as string}</label>
-                <span className="text-[#a5b4fc] text-sm font-semibold whitespace-nowrap">{stake[0]}% – {stake[1]}%</span>
-              </div>
-              <RangeSlider value={stake} onValueChange={setStake} min={0} max={100} step={5} />
-            </div>
-
-            <div className="flex items-center gap-3 md:col-span-2 xl:col-span-1">
+            <div className="flex items-center gap-3 xl:col-span-1">
               {isDirty && (
                 <button
                   onClick={reset}
@@ -158,14 +144,6 @@ export function SmartMatchForm({ onResults, onReset, availableIndustries, varian
       <div className="space-y-2">
         <label className={labelClass}>{t("smart.f_regions", { defaultValue: "Régions" }) as string}</label>
         <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions", { defaultValue: "Toute la France" }) as string} allowSelectAll selectAllLabel={t("smart.all_regions_opt", { defaultValue: "Toutes les régions" }) as string} />
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <label className={labelClass}>{t("smart.f_stake", { defaultValue: "Part visée" }) as string}</label>
-          <span className="text-primary text-sm font-medium">{stake[0]}% – {stake[1]}%</span>
-        </div>
-        <RangeSlider value={stake} onValueChange={setStake} min={0} max={100} step={5} />
       </div>
 
       <div className="space-y-1">

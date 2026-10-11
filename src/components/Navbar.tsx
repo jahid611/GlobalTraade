@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { LanguageMenu, LanguageFlag } from "@/components/LanguageMenu";
+import { LANGUAGES } from "@/locales";
+import { setLanguage } from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -31,6 +34,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnreadMessages } from "@/hooks/use-unread-messages";
@@ -95,12 +101,6 @@ export function Navbar() {
     navigate("/");
   };
 
-  const toggleLanguage = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const newLang = i18n.language === "fr" ? "en" : "fr";
-    i18n.changeLanguage(newLang);
-    localStorage.setItem("language", newLang);
-  };
 
   const toggleTheme = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -146,22 +146,31 @@ export function Navbar() {
       )}
       <DropdownMenuSeparator className="bg-white/10 my-1" />
 
-      <DropdownMenuItem
-        onClick={toggleLanguage}
-        className="rounded-xl px-4 py-3 cursor-pointer hover:bg-white/10 flex items-center justify-between transition-all text-sm font-light"
-      >
-        <div className="flex items-center">
-          <Translate className="mr-3 h-4 w-4 text-blue-400" />
-          {t("lang.switch")}
-        </div>
-        <img
-          src={i18n.language === "fr" ? "/france.png" : "/royaume-uni.png"}
-          alt={i18n.language === "fr" ? "French Flag" : "English Flag"}
-          className="w-5 h-5 object-contain"
-          loading="lazy"
-          decoding="async"
-        />
-      </DropdownMenuItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="rounded-xl px-4 py-3 cursor-pointer flex items-center justify-between transition-all text-sm font-light">
+          <div className="flex items-center">
+            <Translate className="mr-3 h-4 w-4 text-blue-400" />
+            {t("lang.switch")}
+          </div>
+          <span className="ml-auto mr-2"><LanguageFlag code={i18n.language} size={20} /></span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent
+          className="w-52 p-1.5 rounded-2xl text-white"
+          style={{ background: "#211f25", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 50px rgba(0,0,0,0.55)" }}
+        >
+          {LANGUAGES.map((l) => (
+            <DropdownMenuItem
+              key={l.code}
+              onClick={() => { void setLanguage(l.code); }}
+              className="rounded-xl px-3 py-2.5 cursor-pointer flex items-center gap-3 text-sm font-light"
+            >
+              <LanguageFlag code={l.code} size={20} />
+              <span className="flex-1">{l.label}</span>
+              {(i18n.language || "fr").slice(0, 2) === l.code && <span aria-hidden="true" style={{ color: "#a5b4fc" }}>✓</span>}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
 
       <DropdownMenuItem
         onClick={toggleTheme}
@@ -248,23 +257,7 @@ export function Navbar() {
               </div>
 
               <div className="hidden md:flex items-center gap-1 ml-1 sm:ml-2 border-l border-white/20 pl-2 sm:pl-3">
-                <button
-                  onClick={toggleLanguage}
-                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-transparent transition-all text-xl"
-                  title={t("lang.switch")}
-                >
-                  <img
-                    src={
-                      i18n.language === "fr"
-                        ? "/france.png"
-                        : "/royaume-uni.png"
-                    }
-                    alt={
-                      i18n.language === "fr" ? "French Flag" : "English Flag"
-                    }
-                    className="w-6 h-6 object-contain"
-                  />
-                </button>
+                <LanguageMenu />
                 <button
                   onClick={toggleTheme}
                   className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-transparent text-white/70 hover:text-white transition-all"
@@ -518,17 +511,7 @@ export function Navbar() {
                   {t("nav.explore")}
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={toggleLanguage}
-                    variant="ghost"
-                    className="w-12 h-12 rounded-full bg-transparent border-none p-0 text-white shadow-none hover:bg-transparent"
-                  >
-                    <img
-                      src={i18n.language === "fr" ? "/france.png" : "/royaume-uni.png"}
-                      alt="Flag"
-                      className="w-6 h-6 object-contain"
-                    />
-                  </Button>
+                  <LanguageMenu placement="top" className="w-12 h-12 flex items-center justify-center rounded-full outline-none" />
                   <Button
                     onClick={toggleTheme}
                     variant="ghost"

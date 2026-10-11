@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { AgreementReminder } from '@/components/AgreementReminder';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -645,6 +646,10 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                   </div>
                 </>
               )}
+
+              {/* Ce que l'annonce ne dit pas se règle par la messagerie : un bloc
+                  à part, sur toute la largeur, au-dessus de la barre d'actions. */}
+              {!isOwner && <AgreementReminder className="w-full mb-8" />}
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 sm:gap-8 pt-8 border-t border-white/10 mt-auto">
                 {ownerProfile ? (

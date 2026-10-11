@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { SquarePen, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SquarePen, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/components/AuthProvider';
@@ -17,7 +17,7 @@ import { respond, welcome, type EngineInput } from './engine/engine';
 import type { BotReply, Lang, QuickReply } from './engine/types';
 import { LISTING_STEP_ID, type JourneyStep } from './journeySteps';
 import {
-  EMPTY_JOURNEY, EMPTY_SESSION, TEASER_KEY, adoptAnonymousSession, chatKey, journeyKey, newId, readFlag, writeFlag,
+  EMPTY_JOURNEY, EMPTY_SESSION, STOWED_KEY, TEASER_KEY, adoptAnonymousSession, chatKey, clearFlag, journeyKey, newId, readFlag, writeFlag,
   sanitizeJourney, sanitizeSession, trimMessages, trimSession, useStored,
   type ChatMsg, type ChatSession, type JourneyState, type StepStatus,
 } from './assistantStorage';
@@ -46,6 +46,8 @@ export function CessionAssistant() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('chat');
   const [teaser, setTeaser] = useState(false);
+  // Globi rangé : il glisse hors de l'écran à gauche, une languette reste pour le rappeler.
+  const [stowed, setStowed] = useState(() => readFlag(STOWED_KEY));
   const [input, setInput] = useState('');
   // Globi « réfléchit » un court instant avant d'afficher sa réponse (calculée sur place, sans réseau).
   const [thinking, setThinking] = useState(false);
@@ -105,6 +107,17 @@ export function CessionAssistant() {
   const dismissTeaser = useCallback(() => {
     setTeaser(false);
     writeFlag(TEASER_KEY);
+  }, []);
+
+  const stow = useCallback(() => {
+    dismissTeaser();
+    setStowed(true);
+    writeFlag(STOWED_KEY);
+  }, [dismissTeaser]);
+
+  const unstow = useCallback(() => {
+    setStowed(false);
+    clearFlag(STOWED_KEY);
   }, []);
 
   const openPanel = useCallback(() => {
@@ -247,6 +260,9 @@ export function CessionAssistant() {
 
   if (hidden) return <>{listingForm}</>;
 
+  // Sur le globe, le coin bas-gauche porte déjà le bouton « + » (publier une
+  // annonce) : Globi se place au-dessus pour ne pas le recouvrir.
+  const launcherLift = location.pathname === '/app';
   const fade = reduceMotion ? { duration: 0 } : { duration: 0.2 };
   const spring = reduceMotion ? { duration: 0 } : { type: 'spring' as const, damping: 28, stiffness: 320 };
   const offset = reduceMotion ? 0 : 24;
@@ -263,17 +279,25 @@ export function CessionAssistant() {
       <AnimatePresence>
         {!open && (
           <motion.div
-            initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.8 }}
-            transition={fade}
+            initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.8 }}
+            animate={stowed
+              ? { opacity: 0, scale: reduceMotion ? 1 : 0.85, x: reduceMotion ? 0 : -140, rotate: reduceMotion ? 0 : -18 }
+              : { opacity: 1, scale: 1, x: 0, rotate: 0 }}
+            exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.8 }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 17, stiffness: 210, mass: 0.9 }}
             className="fixed z-[90] flex flex-col-reverse items-start gap-2.5 pointer-events-none"
-            style={{ left: 'calc(var(--safe-left) + 1rem)', bottom: 'calc(var(--safe-bottom) + 1rem)', maxWidth: 'calc(100vw - 2rem)' }}
+            style={{ left: 'calc(var(--safe-left) + 1rem)', bottom: `calc(var(--safe-bottom) + ${launcherLift ? '6.5rem' : '1rem'})`, maxWidth: 'calc(100vw - 2rem)' }}
+            aria-hidden={stowed}
           >
+            <div className="relative shrink-0 group/launcher">
             <button
               ref={launcherRef}
               type="button"
               onClick={openPanel}
               aria-label={t('globi.open', 'Ouvrir Globi, votre assistant pour vendre votre entreprise')}
               aria-haspopup="dialog"
+              tabIndex={stowed ? -1 : 0}
+              disabled={stowed}
               title={t('globi.name', 'Globi')}
               className={`pointer-events-auto relative shrink-0 w-16 h-16 rounded-full bg-[#2b2a2f] border border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.5),0_0_24px_rgba(89,85,232,0.45)] flex items-center justify-center overflow-hidden hover:scale-105 active:scale-95 motion-reduce:transform-none transition-transform ${focusRing}`}
             >
@@ -281,8 +305,22 @@ export function CessionAssistant() {
               <Mascot pose="bonjour" className="relative w-16 h-16 origin-top scale-[1.6]" />
             </button>
 
+              {/* Ranger Globi sur le bord de l'écran */}
+              <button
+                type="button"
+                onClick={stow}
+                tabIndex={stowed ? -1 : 0}
+                disabled={stowed}
+                aria-label={t('globi.stow', 'Ranger Globi sur le côté')}
+                title={t('globi.stow', 'Ranger Globi sur le côté')}
+                className={`pointer-events-auto absolute -top-1.5 -left-1.5 w-7 h-7 rounded-full bg-[#2b2a2f] border border-white/25 text-white/80 hover:text-white hover:bg-[#3a3940] shadow-[0_4px_14px_rgba(0,0,0,0.45)] flex items-center justify-center transition-all hover:scale-110 active:scale-95 motion-reduce:transform-none ${focusRing}`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+
             <AnimatePresence>
-              {teaser && (
+              {teaser && !stowed && (
                 <motion.div
                   initial={{ opacity: 0, y: offset / 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: offset / 2 }}
                   transition={fade}
@@ -305,6 +343,35 @@ export function CessionAssistant() {
               )}
             </AnimatePresence>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+
+      {/* Languette : Globi est rangé, un clic le fait revenir */}
+      <AnimatePresence>
+        {!open && stowed && (
+          <motion.button
+            type="button"
+            onClick={unstow}
+            initial={{ x: reduceMotion ? 0 : -60, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: reduceMotion ? 0 : -60, opacity: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 20, stiffness: 260, delay: 0.12 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+            aria-label={t('globi.unstow', 'Faire revenir Globi')}
+            title={t('globi.unstow', 'Faire revenir Globi')}
+            // Petite poignée discrète collée au bord : la zone cliquable est plus
+            // large que ce qui se voit, pour rester facile à toucher sur mobile.
+            className={`fixed z-[90] left-0 h-14 w-9 flex items-center justify-start group/tab ${focusRing}`}
+            style={{ bottom: `calc(var(--safe-bottom) + ${launcherLift ? '6.75rem' : '1.25rem'})` }}
+          >
+            <span
+              aria-hidden="true"
+              className="h-11 w-[18px] rounded-r-xl bg-[#2b2a2f]/90 backdrop-blur-md border border-l-0 border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.45)] flex items-center justify-center text-white/60 group-hover/tab:text-white group-hover/tab:w-[22px] group-hover/tab:border-primary/60 transition-all"
+            >
+              <ChevronRight className="w-3.5 h-3.5 -ml-0.5" strokeWidth={2.25} />
+            </span>
+          </motion.button>
         )}
       </AnimatePresence>
 

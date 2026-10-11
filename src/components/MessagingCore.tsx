@@ -439,7 +439,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   return (
     <div className={`flex flex-1 h-full w-full ${activeTab === 'workflow' ? 'max-w-full' : 'max-w-[1400px]'} mx-auto overflow-hidden bg-transparent pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 text-white`}>
       <div className={`${(!isMobileListOpen || activeTab === 'workflow') ? 'hidden md:flex' : 'flex'} ${activeTab === 'workflow' ? 'md:hidden' : ''} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-black/40 sm:border-white/20 sm:rounded-3xl shadow-2xl text-white`}>
-        <div className="hidden sm:block mb-4 px-6 pt-6 text-white">
+        <div className="hidden sm:block mb-1 px-6 pt-5 text-white">
           <h1 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none mb-1">
             {t('msg.title', 'Messagerie')} <span className="text-primary font-medium">{t('msg.title_private', 'Privée')}</span>
           </h1>
@@ -492,7 +492,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="relative z-10 flex flex-col items-center">
               <div className="w-[200px] mb-6 opacity-90 group-hover:opacity-100 transition-opacity duration-500">
-                <img src="/astronaut-bouee.png" alt="Astronaut on a buoy" className="w-full h-auto drop-shadow-2xl" />
+                <img src="/mascot/globi-bouee.png" alt="" className="w-full h-auto drop-shadow-2xl" />
               </div>
               <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-2 text-white tracking-tight">{t('msg.negotiation_space', 'Espace de Négociation')}</h3>
               <p className="text-[clamp(0.875rem,1vw,1rem)] font-light max-w-[250px] text-white/60 leading-relaxed">{t('msg.select_conv', 'Sélectionnez une conversation pour démarrer la transaction.')}</p>
@@ -510,7 +510,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         <AnimatePresence>
           {convToDelete && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
-              <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl">
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} style={{ background: "rgba(34,33,39,0.98)" }} className="liquid-glass-heavy border border-white/20 p-8 rounded-[2rem] max-w-sm w-full text-center shadow-2xl">
                 <div className="w-14 h-14 mx-auto bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-500/40">
                   <Archive className="w-6 h-6" />
                 </div>
@@ -528,7 +528,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
         <AnimatePresence>
           {isOfferModalOpen && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm text-white">
-              <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="liquid-glass-heavy bg-[#2b2a2f]/90 border border-white/20 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl">
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} style={{ background: "rgba(34,33,39,0.98)" }} className="liquid-glass-heavy border border-white/20 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shadow-inner border border-primary/40">
                     <Handshake className="w-6 h-6" />
@@ -577,9 +577,10 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
                   {!activeConv.project_id && (
                     <div>
-                      <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">
+                      <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/60 font-medium mb-1.5 pl-1">
                         <span>{t('msg.financing_type', 'Répartition du financement')}</span>
                       </label>
+                      <p className="text-xs text-white/55 font-light leading-relaxed mb-3 pl-1">{t('msg.financing_hint', "D'où vient l'argent de votre offre : la part financée par un prêt bancaire et la part que vous apportez vous-même. Le vendeur le voit dans l'offre, et c'est repris dans la lettre d'intention.")}</p>
                       {/* Barre équilibrée emprunt / fonds propres */}
                       <div className="h-3 w-full rounded-full overflow-hidden flex border border-white/10 mb-3">
                         <div className="h-full bg-primary transition-all" style={{ width: `${loanPct}%` }} />
@@ -598,7 +599,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                   )}
 
                   <div className="flex flex-col gap-3 pt-2">
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] border-none outline-none [text-shadow:none]">
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-14 text-sm font-medium transition-all border-none outline-none [text-shadow:none]">
                       {activeConv.project_id ? "Envoyer la proposition" : t('msg.send_offer', "Envoyer l'offre")}
                     </Button>
                     <Button type="button" variant="ghost" onClick={() => setIsOfferModalOpen(false)} className="text-white hover:text-white hover:bg-white/20 rounded-full h-12 transition-colors font-medium w-full outline-none [text-shadow:none]">{t('settings.cancel', 'Annuler')}</Button>

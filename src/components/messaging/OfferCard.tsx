@@ -62,13 +62,20 @@ export function OfferCard({ msg, isMine, contactName, loi, onOfferAction, pendin
       <div className="mb-5 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center">
         <div className="text-2xl font-light text-white tracking-tight mb-2 text-center break-words">{formattedAmount}</div>
         {!isNeedOffer && (
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-white/30 uppercase tracking-widest font-medium">{t('msg.offer_financing', 'Financement')} :</span>
-            <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider">
-              {financing && typeof financing === 'object'
-                ? `${t('msg.loan', 'Emprunt')} ${financing.loan}% · ${t('msg.equity', 'Fonds propres')} ${financing.equity}%`
-                : (financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt'))}
-            </span>
+          // Le libellé sur sa ligne, les parts en dessous : rien ne se coupe au
+          // milieu, quelle que soit la longueur du texte.
+          <div className="w-full flex flex-col items-center gap-2">
+            <span className="text-[11px] text-white/50 uppercase tracking-widest font-medium text-center">{t('msg.offer_financing', 'Financement')}</span>
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {(financing && typeof financing === 'object'
+                ? [`${t('msg.loan', 'Emprunt')} ${financing.loan} %`, `${t('msg.equity', 'Fonds propres')} ${financing.equity} %`]
+                : [financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')]
+              ).map((label) => (
+                <span key={label} className="text-[11px] text-primary font-medium px-2.5 py-1 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider whitespace-nowrap">
+                  {label}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

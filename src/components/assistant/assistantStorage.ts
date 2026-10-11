@@ -142,6 +142,12 @@ export const readFlag = (key: string): boolean => {
 export const writeFlag = (key: string) => {
   try { localStorage.setItem(key, '1'); } catch { /* stockage indisponible */ }
 };
+export const clearFlag = (key: string) => {
+  try { localStorage.removeItem(key); } catch { /* stockage indisponible */ }
+};
+
+/** Globi rangé sur le bord gauche de l'écran (choix gardé d'une visite à l'autre). */
+export const STOWED_KEY = 'globi.stowed';
 
 function load<T>(key: string | null, fallback: T, sanitize: (raw: unknown) => T): T {
   if (!key) return fallback;

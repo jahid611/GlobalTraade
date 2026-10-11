@@ -4,7 +4,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { INDUSTRIES } from "@/lib/industries";
+import { industryOptions } from "@/lib/industries";
 import { FR_REGIONS } from "@/lib/geoRegions";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -38,14 +38,14 @@ const parseFilterNumber = (val: string) => val.replace(/[^\d]/g, "");
 
 export function AdvancedFilters({ isOpen, onClose, filters, setFilters, onReset }: AdvancedFiltersProps) {
   useScrollLock(isOpen);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const set = <K extends keyof FilterState>(key: K, value: FilterState[K]) => setFilters({ ...filters, [key]: value });
 
   const inputClass = "w-full bg-white/5 border border-white/10 text-base font-light text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/30 rounded-xl px-4 py-3";
   const labelClass = "text-xs font-semibold uppercase tracking-widest text-white/50 mb-2 block mt-6";
 
-  const sectorOptions = INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string }));
+  const sectorOptions = industryOptions(t, i18n.language);
   const regionOptions = FR_REGIONS.map((r) => ({ value: r.key, label: r.label }));
 
   const sortOptions = [

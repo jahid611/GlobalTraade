@@ -3,7 +3,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, Html, useTexture, Cloud } from '@react-three/drei';
 import * as THREE from 'three';
 import Supercluster from 'supercluster';
-import { Play, Pause, Image as ImageIcon, ImageOff, Sun, Moon } from 'lucide-react';
+import { Play, Pause, Image as ImageIcon, ImageOff, Sun, Moon, MapPin, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { latLngToVector3 } from '../lib/geo';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from 'next-themes';
@@ -22,6 +23,11 @@ export interface ListingNode {
   owner_id?: string;
   listingId?: string;
   view_count?: number;
+  // Ce que la fiche de survol affiche, quand l'annonce le donne.
+  address?: string | null;
+  employees?: number | null;
+  established_year?: number | null;
+  revenue_n1?: number | null;
 }
 
 interface GlobeProps {
@@ -56,23 +62,190 @@ const DaySky = React.memo(function DaySky() {
   );
 });
 
-function Pin({ listing, onSelectListing, zoom, showLogos, isMine }: { listing: ListingNode; onSelectListing: (id: string) => void; zoom: number; showLogos: boolean; isMine: boolean }) {
+/** Une fonction dont l'identité ne change jamais, mais qui appelle toujours la dernière version. */
+function useEvent<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  const ref = useRef(fn);
+  ref.current = fn;
+  return useRef((...args: A) => ref.current(...args)).current;
+}
+
+// ── Points collés ───────────────────────────────────────────────────────────
+// Deux entreprises de la même rue se superposent à l'écran. Plutôt que de
+// déplacer les points (ce qui saccadait), le point survolé affiche la liste des
+// entreprises qui se trouvent au même endroit : on choisit dans la liste.
+/** deux points plus proches que ça à l'écran (px) se gênent */
+const NEAR_PX = 22;
+/** au-delà, la liste serait trop longue : on garde les plus proches */
+const NEAR_MAX = 7;
+
+// Fiche de survol d'une cession (ordinateur uniquement : il n'y a pas de survol
+// au doigt). L'essentiel pour décider de cliquer : quoi, où, combien.
+function PinHoverCard({ listing, isMine }: { listing: ListingNode; isMine: boolean }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+  const money = (v: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const sector = listing.industry ? (t(`industry.${listing.industry}`, { defaultValue: listing.industry }) as string) : '';
+  const facts: { label: string; value: string }[] = [];
+  if (listing.revenue_n1) facts.push({ label: t('globe.hover_revenue', "Chiffre d'affaires") as string, value: money(listing.revenue_n1) });
+  if (listing.employees) facts.push({ label: t('globe.hover_employees', 'Salariés') as string, value: String(listing.employees) });
+  if (listing.established_year) facts.push({ label: t('globe.hover_since', 'Créée en') as string, value: String(listing.established_year) });
+
+  return (
+    <div style={{ marginTop: 8 }} className="absolute top-full hidden lg:block opacity-0 peer-hover:opacity-100 translate-y-1 peer-hover:translate-y-0 transition-all duration-200 pointer-events-none z-50">
+      <div
+        className="w-[272px] rounded-2xl p-4 text-left backdrop-blur-xl"
+        style={{ background: 'rgba(28,27,33,0.94)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 18px 50px rgba(0,0,0,0.55)' }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-11 h-11 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-base font-semibold"
+            style={{ background: 'rgba(120,114,251,0.18)', border: '1px solid rgba(120,114,251,0.4)', color: '#c7c4ff' }}
+          >
+            {listing.logo_url
+              ? <img src={listing.logo_url} alt="" className="w-full h-full object-cover" />
+              : (listing.name || '?').trim().charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            {isMine && (
+              <span className="block text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#a5b4fc' }}>
+                {t('globe.hover_mine', 'Ma cession')}
+              </span>
+            )}
+            <p className="text-sm font-semibold leading-snug truncate" style={{ color: '#ffffff' }}>{listing.name}</p>
+            {sector && <p className="text-xs leading-snug truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{sector}</p>}
+          </div>
+        </div>
+
+        {listing.address && (
+          <p className="mt-3 flex items-start gap-1.5 text-xs leading-snug" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            <MapPin className="w-3.5 h-3.5 shrink-0 mt-px" style={{ color: '#a5b4fc' }} />
+            <span className="line-clamp-2">{listing.address}</span>
+          </p>
+        )}
+
+        <div className="mt-3 pt-3 flex items-end justify-between gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="min-w-0">
+            <span className="block text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {t('globe.hover_price', 'Prix demandé')}
+            </span>
+            <span className="block text-lg font-semibold leading-tight" style={{ color: '#ffffff' }}>
+              {listing.price ? money(listing.price) : t('globe.hover_price_none', 'Sur demande')}
+            </span>
+          </div>
+          {listing.view_count !== undefined && (
+            <span className="flex items-center gap-1 text-xs shrink-0 pb-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <Eye className="w-3.5 h-3.5" /> {listing.view_count}
+            </span>
+          )}
+        </div>
+
+        {/* Une ligne par information : libellé à gauche, valeur à droite, tout aligné. */}
+        {facts.length > 0 && (
+          <dl className="mt-3 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            {facts.map((f) => (
+              <div key={f.label} className="flex items-baseline justify-between gap-4 py-1.5">
+                <dt className="text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.55)' }}>{f.label}</dt>
+                <dd className="text-[13px] font-medium whitespace-nowrap tabular-nums" style={{ color: '#ffffff' }}>{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        <p className="mt-2 pt-3 text-xs text-center" style={{ color: '#a5b4fc', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          {t('globe.hover_cta', 'Cliquez pour ouvrir la fiche')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Liste des entreprises situées au même endroit que le point survolé.
+function NearbyList({ items, onSelect }: { items: ListingNode[]; onSelect: (id: string) => void }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+  const money = (v: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  return (
+    // collée au point (pas d'espace vide) : le curseur passe du point à la liste sans la refermer
+    <div className="absolute top-full hidden lg:block z-50" style={{ paddingTop: 6 }}>
+      <div
+        className="w-[292px] rounded-2xl p-2 text-left"
+        style={{ background: 'rgba(28,27,33,0.97)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 18px 50px rgba(0,0,0,0.55)' }}
+      >
+        <p className="px-2.5 pt-1.5 pb-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
+          {t('globe.near_title', { defaultValue: '{{count}} entreprises à cet endroit', count: items.length })}
+        </p>
+        <ul>
+          {items.map((it) => {
+            const sector = it.industry ? (t(`industry.${it.industry}`, { defaultValue: it.industry }) as string) : '';
+            return (
+              <li key={it.listingId || it.id}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onSelect(it.listingId || it.id); }}
+                  className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left transition-colors hover:bg-white/10 outline-none focus-visible:bg-white/10"
+                >
+                  <span
+                    className="w-9 h-9 rounded-lg overflow-hidden shrink-0 flex items-center justify-center text-sm font-semibold"
+                    style={{ background: 'rgba(120,114,251,0.18)', border: '1px solid rgba(120,114,251,0.4)', color: '#c7c4ff' }}
+                  >
+                    {it.logo_url ? <img src={it.logo_url} alt="" className="w-full h-full object-cover" /> : (it.name || '?').trim().charAt(0).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold leading-snug truncate" style={{ color: '#ffffff' }}>{it.name}</span>
+                    <span className="block text-xs leading-snug truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{sector}</span>
+                  </span>
+                  <span className="text-[13px] font-semibold shrink-0 tabular-nums" style={{ color: '#ffffff' }}>
+                    {it.price ? money(it.price) : '—'}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+const Pin = React.memo(function Pin({ listing, onSelectListing, zoom, showLogos, isMine, getNearby }: {
+  listing: ListingNode; onSelectListing: (id: string) => void; zoom: number; showLogos: boolean; isMine: boolean;
+  /** les entreprises affichées au même endroit que ce point (lui compris), au moment du survol */
+  getNearby: (id: string) => ListingNode[];
+}) {
   const pos = useMemo(
     () => latLngToVector3(listing.lat, listing.lng, GLOBE_RADIUS),
     [listing.lat, listing.lng]
   );
   const showDetails = zoom >= 7;
+  const innerRef = useRef<HTMLDivElement>(null);
+  // Calculée une seule fois, à l'entrée du curseur : rien ne bouge ensuite.
+  const [nearby, setNearby] = useState<ListingNode[] | null>(null);
+  const id = listing.listingId || listing.id;
 
   return (
     <mesh position={pos}>
       <Html center occlude zIndexRange={[10, 0]}>
-        <div 
+        <div
+          ref={innerRef}
           className="relative group cursor-pointer flex flex-col items-center justify-center select-none"
+          onMouseEnter={() => {
+            // le point survolé passe devant les autres : sa fiche ne doit pas être recouverte
+            const wrapper = innerRef.current?.parentElement?.parentElement;
+            if (wrapper) wrapper.style.zIndex = '60';
+            const around = getNearby(id);
+            setNearby(around.length > 1 ? around : null);
+          }}
+          onMouseLeave={() => {
+            const wrapper = innerRef.current?.parentElement?.parentElement;
+            if (wrapper) wrapper.style.zIndex = '5';
+            setNearby(null);
+          }}
           onClick={(e) => {
             e.stopPropagation();
-            onSelectListing(listing.listingId || listing.id);
+            onSelectListing(id);
           }}
         >
+          <div className="peer relative p-1.5">
           {showDetails ? (
             listing.logo_url && showLogos ? (
               <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${isMine ? 'border-primary border-2 scale-110 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : 'border-white/40'} overflow-hidden transition-transform duration-300 hover:scale-[1.8] bg-black`}>
@@ -84,23 +257,16 @@ function Pin({ listing, onSelectListing, zoom, showLogos, isMine }: { listing: L
           ) : (
             <div className={`w-1 h-1 rounded-full bg-primary ${isMine ? 'shadow-[0_0_10px_rgba(168,85,247,0.8)] scale-150' : 'shadow-[0_0_5px_rgba(168,85,247,0.4)]'} transition-transform duration-300 hover:scale-[3]`} />
           )}
-          
-          <div className="absolute top-full mt-2 hidden sm:block opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0 pointer-events-none z-50">
-            <div className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-[10px] font-medium text-white/90 shadow-2xl whitespace-nowrap flex items-center">
-              {isMine ? <span className="text-primary mr-1">Ma cession :</span> : ""}{listing.name}
-              {listing.view_count !== undefined && (
-                <>
-                  <span className="mx-1.5 text-white/20">•</span>
-                  <span className="text-white/50 font-bold">{listing.view_count} vues</span>
-                </>
-              )}
-            </div>
           </div>
+
+          {nearby
+            ? <NearbyList items={nearby} onSelect={onSelectListing} />
+            : <PinHoverCard listing={listing} isMine={isMine} />}
         </div>
       </Html>
     </mesh>
   );
-}
+});
 
 function ClusterPin({ lat, lng, count }: { lat: number, lng: number, count: number }) {
   const pos = useMemo(() => latLngToVector3(lat, lng, GLOBE_RADIUS), [lat, lng]);
@@ -123,6 +289,28 @@ function Earth({ listings, onSelectListing, maxZoomDistance, showLogos, currentU
   ]);
 
   const [zoom, setZoom] = useState(1);
+  const { camera, size } = useThree();
+
+  // Les points affichés (hors grappes), pour retrouver ceux qui se superposent.
+  const pinsRef = useRef<{ node: ListingNode; pos: THREE.Vector3 }[]>([]);
+  const getNearby = useEvent((id: string): ListingNode[] => {
+    const all = pinsRef.current;
+    const me = all.find((p) => (p.node.listingId || p.node.id) === id);
+    if (!me) return [];
+    const toScreen = (pos: THREE.Vector3) => { const v = pos.clone().project(camera); return { x: (v.x * 0.5 + 0.5) * size.width, y: (-v.y * 0.5 + 0.5) * size.height }; };
+    const c = toScreen(me.pos);
+    const eye = camera.position.clone().normalize();
+    const near: { node: ListingNode; d: number }[] = [];
+    for (const p of all) {
+      if (p === me) continue;
+      if (p.pos.clone().normalize().dot(eye) < 0.15) continue; // face cachée du globe
+      const q = toScreen(p.pos);
+      const d = Math.hypot(q.x - c.x, q.y - c.y);
+      if (d <= NEAR_PX) near.push({ node: p.node, d });
+    }
+    near.sort((a, b) => a.d - b.d);
+    return [me.node, ...near.slice(0, NEAR_MAX - 1).map((n) => n.node)];
+  });
 
   useFrame((state) => {
     const dist = state.camera.position.length();
@@ -156,6 +344,13 @@ function Earth({ listings, onSelectListing, maxZoomDistance, showLogos, currentU
     return supercluster.getClusters([-180, -90, 180, 90], zoom);
   }, [supercluster, zoom, listings]);
 
+  pinsRef.current = useMemo(() => clusters
+    .filter((c) => !(c.properties as any).cluster)
+    .map((c) => ({
+      node: c.properties as unknown as ListingNode,
+      pos: latLngToVector3(c.geometry.coordinates[1], c.geometry.coordinates[0], GLOBE_RADIUS),
+    })), [clusters]);
+
   return (
     <group>
       <mesh>
@@ -180,6 +375,7 @@ function Earth({ listings, onSelectListing, maxZoomDistance, showLogos, currentU
             zoom={zoom}
             showLogos={showLogos}
             isMine={properties.owner_id === currentUserId}
+            getNearby={getNearby}
           />
         );
       })}

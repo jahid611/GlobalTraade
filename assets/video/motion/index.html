@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Globly — film de présentation (motion design)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300..700&display=swap" rel="stylesheet">
+<style>
+  /* Film de présentation Globly, entièrement dessiné en code.
+     L'image est une fonction pure du temps : window.seek(t) pose chaque élément
+     à sa place pour l'instant t. Rendu image par image par render.mjs.
+     ?format=portrait pour la version téléphone. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #05050a; overflow: hidden; }
+  #stage { position: relative; overflow: hidden; font-family: "Sora", "Segoe UI", sans-serif; color: #fff; background: #05050a; }
+  .abs { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(110px); }
+  .scene { position: absolute; inset: 0; perspective: 1400px; }
+  .word { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+  .title { position: absolute; font-weight: 600; letter-spacing: -0.04em; line-height: 1.06; }
+  .accent { color: #8f8aff; }
+  .pill { position: absolute; background: #5955e8; border-radius: 999px; font-weight: 700; white-space: nowrap; box-shadow: 0 14px 40px rgba(89,85,232,.55); }
+  .card { position: absolute; border-radius: 20px; overflow: hidden; background: #17161f; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 30px 70px rgba(0,0,0,.55); transform-style: preserve-3d; }
+  .card .ph { width: 100%; background-size: cover; background-position: center; }
+  .card .bd { padding: 5.5% 6.5% 0; }
+  .card .nm { font-weight: 600; white-space: nowrap; overflow: hidden; }
+  .card .sc { color: #8f8aff; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: 3%; white-space: nowrap; }
+  .card .ct { color: rgba(255,255,255,.6); margin-top: 3%; }
+  .card .pl { color: rgba(255,255,255,.5); letter-spacing: .1em; text-transform: uppercase; margin-top: 7%; }
+  .card .pr { font-weight: 700; letter-spacing: -0.02em; }
+  .tag { position: absolute; left: 5%; top: 4%; background: #5955e8; border-radius: 999px; font-weight: 700; padding: 2.5% 5%; }
+  .win { position: absolute; border-radius: 18px; overflow: hidden; border: 2px solid rgba(143,138,255,.9); box-shadow: 0 40px 110px rgba(0,0,0,.65), 0 0 90px rgba(89,85,232,.45); background-size: cover; }
+  .ring { position: absolute; border-radius: 50%; border: 3px solid #8f8aff; }
+  .dot { position: absolute; border-radius: 50%; background: #8f8aff; box-shadow: 0 0 18px #8f8aff; }
+  .bubble { position: absolute; background: #1c1b27; border: 1.5px solid rgba(143,138,255,.6); border-radius: 22px; border-bottom-left-radius: 6px; line-height: 1.3; font-weight: 500; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .step { position: absolute; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; }
+  .step i { position: absolute; inset: 0; background: #8f8aff; transform-origin: left; display: block; }
+  .confetti { position: absolute; border-radius: 3px; }
+  .wipe { position: absolute; border-radius: 50%; background: #05050a; box-shadow: 0 0 0 2px rgba(143,138,255,.55), 0 0 80px rgba(89,85,232,.5); }
+  .bar { position: absolute; background: #fff; box-shadow: 0 0 40px 10px rgba(143,138,255,.7); }
+  .cursor { position: absolute; width: 0; height: 0; }
+  .hc { position: absolute; width: 300px; border-radius: 18px; padding: 18px; background: rgba(24,23,31,.96); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 0 60px rgba(89,85,232,.35); transform-origin: 0 0; }
+  .hc .row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 14px; }
+  .hc .row span { color: rgba(255,255,255,.55); } .hc .row b { font-weight: 600; }
+  canvas.globe { position: absolute; left: 0; top: 0; }
+  img { display: block; user-select: none; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+import * as THREE from '/node_modules/three/build/three.module.js';
+const QS = new URLSearchParams(location.search);
+const P = QS.get('format') === 'portrait';
+// Paysage : exactement les proportions de l'écran de l'ordinateur affiché sur
+// le site (1,39:1), pour que rien ne soit rogné. La mise en page est pensée sur
+// 720 px de haut (LH) et centrée dans l'image (VY).
+const W = P ? 540 : 1280, H = P ? 1264 : 920;
+const LH = P ? H : 720, VY = (H - LH) / 2;
+
+// ── les textes du film, en français et en anglais (?lang=en) ───────────────
+const EN = QS.get('lang') === 'en';
+const TX = EN ? {
+  tag1: 'Sell or take over', tag2: 'a business, simply.',
+  m1: 'Businesses for sale,', m2: 'all across France.', top: 'Featured', price: 'Asking price',
+  g1: 'Explore the 3D map.', gpill: 'Every dot is a business', gprice: 'ASKING PRICE', grev: 'Revenue', gemp: 'Employees', gyear: 'Founded', gsector: 'Brasserie · Paris',
+  f1: 'Globi guides you,', f2: 'step by step.', bubble: "Don't worry: I explain every word.",
+  zero: 'commission', end: 'The right buyer, the right business.',
+  sectors: ['Bakery & pastry', 'Brasserie', 'Car garage', 'Boutique hotel', 'Florist', 'Hair salon'],
+} : {
+  tag1: 'Cédez ou reprenez', tag2: 'une entreprise, simplement.',
+  m1: 'Des entreprises à vendre,', m2: 'partout en France.', top: 'En avant', price: 'Prix de vente',
+  g1: 'Explorez la carte 3D.', gpill: 'Chaque point, une entreprise', gprice: 'PRIX DEMANDÉ', grev: "Chiffre d'affaires", gemp: 'Salariés', gyear: 'Créée en', gsector: 'Brasserie · Paris 1er',
+  f1: 'Globi vous guide,', f2: 'pas à pas.', bubble: 'Pas de panique : je vous explique chaque mot.',
+  zero: 'de commission', end: 'Le bon repreneur, la bonne affaire.',
+  sectors: ['Boulangerie-pâtisserie', 'Brasserie', 'Garage auto', 'Hôtel de charme', 'Fleuriste', 'Salon de coiffure'],
+};
+const DUR = 19.4; window.DUR = DUR;
+const stage = document.getElementById('stage');
+stage.style.width = W + 'px'; stage.style.height = H + 'px';
+
+// ── petits outils ─────────────────────────────────────────────────────────
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const pr = (t, s, d) => clamp((t - s) / d);
+const lerp = (a, b, k) => a + (b - a) * k;
+const outCubic = (k) => 1 - Math.pow(1 - k, 3);
+const outExpo = (k) => (k >= 1 ? 1 : 1 - Math.pow(2, -10 * k));
+const inCubic = (k) => k * k * k;
+const inOut = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const outBack = (k) => { const c = 1.70158 * 1.35; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+const el = (cls, parent = stage, html = '') => { const e = document.createElement('div'); e.className = cls; e.innerHTML = html; parent.appendChild(e); return e; };
+const img = (src, parent, w) => { const i = document.createElement('img'); i.src = src; i.className = 'abs'; i.style.width = w + 'px'; parent.appendChild(i); return i; };
+const tf = (e, { x = 0, y = 0, s = 1, r = 0, rx = 0, ry = 0, o = 1, blur = 0 } = {}) => {
+  e.style.transform = `translate3d(${x}px,${y}px,0) rotateX(${rx}deg) rotateY(${ry}deg) rotate(${r}deg) scale(${s})`;
+  e.style.opacity = o; e.style.filter = blur > 0.05 ? `blur(${blur}px)` : '';
+};
+const fmt = (n) => { const d = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, EN ? ',' : '\u202f'); return EN ? '€' + d : d + ' €'; };
+// seeded random, pour que chaque rendu soit identique
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// texte découpé en mots, chaque mot entre à son tour
+function words(parent, text, size, cls = '') {
+  const box = el('title ' + cls, parent); box.style.fontSize = size + 'px';
+  box._w = text.split(' ').map((w, i, a) => { const s = document.createElement('span'); s.className = 'word'; s.textContent = w + (i < a.length - 1 ? ' ' : ''); box.appendChild(s); return s; });
+  return box;
+}
+function wordsIn(box, t, start, { gap = .07, dur = .55, dy = 60, out = null, outDur = .3 } = {}) {
+  box._w.forEach((w, i) => {
+    const k = outBack(pr(t, start + i * gap, dur));
+    const kin = pr(t, start + i * gap, dur * .6);
+    let o = kin, y = (1 - k) * dy, b = (1 - kin) * 10;
+    if (out !== null) { const q = inCubic(pr(t, out + i * .03, outDur)); o *= 1 - q; y -= q * dy * .8; b += q * 8; }
+    w.style.transform = `translate3d(0,${y}px,0)`; w.style.opacity = o; w.style.filter = b > 0.05 ? `blur(${b}px)` : '';
+  });
+}
+
+// ── décor permanent ───────────────────────────────────────────────────────
+const bg = el('abs'); bg.style.inset = 0; bg.style.width = W + 'px'; bg.style.height = H + 'px';
+const blobs = [['#27248f', .5, -.2, -.3], ['#34206f', .42, .72, .5]].map(([c, s, x, y]) => {
+  const b = el('blob', bg); const d = Math.max(W, H) * s; b.style.width = b.style.height = d + 'px'; b.style.background = c; b._x = x * W; b._y = y * H; return b; });
+const stars = Array.from({ length: 150 }, () => { const s = el('dot', bg); const d = .8 + rnd() * rnd() * 2.2; s._d = .3 + rnd(); s.style.width = s.style.height = d + 'px'; s._x = rnd() * W; s._y = rnd() * H; s._p = rnd() * 6; s.style.background = '#fff'; s.style.boxShadow = d > 2 ? '0 0 6px rgba(255,255,255,.8)' : 'none'; return s; });
+
+// ── scène 1 : la marque ───────────────────────────────────────────────────
+const s1 = el('scene');
+const logoSize = P ? 190 : 170;
+const rings1 = [0, 1, 2].map(() => { const r = el('ring', s1); r.style.width = r.style.height = logoSize + 'px'; return r; });
+const logo1 = img('../el/logo.png', s1, logoSize);
+const brand1 = words(s1, 'Globly', P ? 104 : 120);
+const tag1a = words(s1, TX.tag1, P ? 38 : 46);
+const tag1b = words(s1, TX.tag2, P ? 29 : 36, 'accent');
+
+// ── scène 2 : le marketplace ──────────────────────────────────────────────
+const s2 = el('scene');
+const t2 = words(s2, TX.m1, P ? 40 : 42);
+const t2b = words(s2, TX.m2, P ? 40 : 42, 'accent');
+const LIST = [
+  ['boulangerie', 'Boulangerie du Parc', TX.sectors[0], 'Lyon', 280000, 1],
+  ['bistrot', 'Bistrot des Halles', TX.sectors[1], 'Paris', 520000, 0],
+  ['garage', 'Garage Part-Dieu', TX.sectors[2], 'Lyon', 198000, 0],
+  ['hotel', 'Hôtel du Lac', TX.sectors[3], 'Annecy', 1450000, 0],
+  ['fleuriste', 'Les Fleurs de Margot', TX.sectors[4], 'Nantes', 120000, 0],
+  ['coiffure', 'Salon Lumière', TX.sectors[5], 'Bordeaux', 95000, 0],
+];
+const CW = P ? 228 : 248, CH = P ? 268 : 292;
+const deck = el('abs', s2); deck.style.transformStyle = 'preserve-3d';
+const cards = LIST.map(([ph, nm, sc, ct, price, top], i) => {
+  const c = el('card', deck); c.style.width = CW + 'px'; c.style.height = CH + 'px';
+  c.innerHTML = `<div class="ph" style="height:${CH * .47}px;background-image:url(../demo/${ph}.jpg)"></div>${top ? `<div class="tag" style="font-size:${CW * .048}px">★ ${TX.top}</div>` : ''}
+    <div class="bd"><div class="nm" style="font-size:${CW * .074}px">${nm}</div><div class="sc" style="font-size:${CW * .041}px">${sc}</div>
+    <div class="ct" style="font-size:${CW * .052}px">◎ ${ct}</div><div class="pl" style="font-size:${CW * .038}px">${TX.price}</div><div class="pr" style="font-size:${CW * .1}px"></div></div>`;
+  c._price = price; c._pr = c.querySelector('.pr'); c._i = i; return c;
+});
+const cur = el('cursor', s2, `<svg width="34" height="34" viewBox="0 0 24 24" style="position:absolute;left:-4px;top:-3px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))"><path d="M4 2l15 9-6.5 1.6L9.6 19z" fill="#fff" stroke="#0b0a12" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+const clickRing = el('ring', s2); clickRing.style.width = clickRing.style.height = '60px';
+const peche = img('../el/globi-peche.png', s2, P ? 190 : 230);
+
+// ── scène 3 : la carte 3D — un vrai globe, la caméra plonge vers une cession ──
+const s3 = el('scene');
+const glCanvas = document.createElement('canvas'); glCanvas.className = 'globe'; bg.appendChild(glCanvas);
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false); glCanvas.style.width = W + 'px'; glCanvas.style.height = H + 'px';
+const scene3d = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(P ? 46 : 38, W / H, 0.01, 50);
+scene3d.add(new THREE.AmbientLight(0xffffff, 1.15));
+const sun = new THREE.DirectionalLight(0xcfd3ff, 2.2); scene3d.add(sun);
+const loader = new THREE.TextureLoader();
+const earthMat = new THREE.MeshStandardMaterial({ color: 0x9d9dba, roughness: .75, metalness: .08, bumpScale: 0.02 });
+const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 96), earthMat); scene3d.add(earth);
+const halo = new THREE.Mesh(new THREE.SphereGeometry(1.045, 64, 64), new THREE.ShaderMaterial({
+  transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+  vertexShader: 'varying vec3 n; void main(){ n = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'varying vec3 n; void main(){ float k = pow(0.72 - dot(n, vec3(0.0, 0.0, 1.0)), 3.0); gl_FragColor = vec4(0.47, 0.45, 1.0, 1.0) * k; }',
+})); scene3d.add(halo);
+const texReady = Promise.all([
+  new Promise((r) => loader.load('../el/earth.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; earthMat.map = t; earthMat.needsUpdate = true; r(); })),
+  new Promise((r) => loader.load('../el/earth-topology.png', (t) => { earthMat.bumpMap = t; earthMat.needsUpdate = true; r(); })),
+]);
+// même repère que l'application (src/lib/geo.ts)
+const ll = (lat, lng, r = 1) => { const phi = (90 - lat) * Math.PI / 180, th = (lng + 180) * Math.PI / 180; return new THREE.Vector3(-(r * Math.sin(phi) * Math.cos(th)), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); };
+const PLACES = [[48.8625, 2.3442], [45.7712, 4.8527], [45.7605, 4.8590], [44.8412, -0.5740], [47.2139, -1.5560], [45.8992, 6.1294], [43.6007, 1.4422], [48.5790, 7.7460],
+  [50.63, 3.06], [43.3, 5.37], [49.44, 1.1], [47.32, 5.04], [48.11, -1.68], [45.19, 5.72], [43.7, 7.26], [46.58, 0.34], [49.26, 4.03], [47.9, 1.9]];
+const pins = PLACES.map((pl, i) => { const d = el('dot', s3); const z = i === 0 ? 12 : 7; d.style.width = d.style.height = z + 'px'; d._v = ll(pl[0], pl[1], 1.004); d._z = z; return d; });
+const pinRings = [0, 1].map(() => { const r = el('ring', s3); r.style.width = r.style.height = '44px'; r.style.borderWidth = '2px'; return r; });
+const t3 = words(s3, TX.g1, P ? 34 : 50);
+const pill3 = el('pill', s3, TX.gpill);
+const card3 = el('hc', s3, `
+  <div style="display:flex;gap:12px;align-items:center">
+    <div style="width:46px;height:46px;border-radius:13px;background-image:url(../demo/bistrot.jpg);background-size:cover;background-position:center;border:1px solid rgba(143,138,255,.5)"></div>
+    <div><div style="font-size:17px;font-weight:600">Bistrot des Halles</div><div style="font-size:13px;color:rgba(255,255,255,.6)">${TX.gsector}</div></div>
+  </div>
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)">${TX.gprice}</div>
+    <div class="hcp" style="font-size:26px;font-weight:700;letter-spacing:-.02em"></div>
+  </div>
+  <div style="margin-top:10px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1)">
+    <div class="row"><span>${TX.grev}</span><b>${fmt(780000)}</b></div>
+    <div class="row"><span>${TX.gemp}</span><b>8</b></div>
+    <div class="row"><span>${TX.gyear}</span><b>2011</b></div>
+  </div>`);
+const card3price = card3.querySelector('.hcp');
+const tmpV = new THREE.Vector3();
+// La Terre vue de près, cadrée très bas : seul le haut du globe dépasse.
+const horizonPose = (t) => ({ lat: 38, lng: -30 + t * 2.2, dist: P ? 2.5 : 1.95, off: -H * (P ? .83 : 1.1) });
+
+// ── scène 4 : Globi guide ─────────────────────────────────────────────────
+const s4 = el('scene');
+const t4 = words(s4, TX.f1, P ? 44 : 46);
+const t4b = words(s4, TX.f2, P ? 44 : 46, 'accent');
+const WW4 = P ? 470 : 700, WH4 = WW4 * .625;
+const win4 = el('win', s4); win4.style.width = WW4 + 'px'; win4.style.height = WH4 + 'px'; win4.style.backgroundImage = `url(../src/pc-form3-${EN ? 'en' : 'fr'}.png)`;
+const globi4 = img('../el/globi-chiffres.png', s4, P ? 200 : 250);
+const bubble = el('bubble', s4); const BUB = TX.bubble;
+const steps = [0, 1, 2, 3, 4].map(() => { const s = el('step', s4); s._i = el('', s); s.innerHTML = '<i></i>'; s._f = s.firstChild; return s; });
+
+// ── scène 5 : zéro commission ─────────────────────────────────────────────
+const s5 = el('scene');
+const zero = el('title accent', s5); zero.style.fontSize = (P ? 250 : 300) + 'px'; zero.style.whiteSpace = 'nowrap';
+const t5 = words(s5, TX.zero, P ? 52 : 72);
+const strike = el('bar', s5);
+const conf = Array.from({ length: 70 }, (_, i) => { const c = el('confetti', s5); const w = 8 + rnd() * 10; c.style.width = w + 'px'; c.style.height = w * (.4 + rnd() * .6) + 'px'; c.style.background = ['#8f8aff', '#ffffff', '#c7c4ff', '#fde68a'][i % 4]; c.style.borderRadius = '50%'; c._a = rnd() * Math.PI * 2; c._v = 380 + rnd() * 620; c._r = rnd() * 720 - 360; return c; });
+const bravo = img('../el/globi-bravo.png', s5, P ? 300 : 340);
+
+// ── scène 6 : la fin ──────────────────────────────────────────────────────
+const s6 = el('scene');
+const vente = img('../el/globi-vente.png', s6, P ? 430 : 440);
+const logo6 = img('../el/logo.png', s6, P ? 110 : 110);
+const brand6 = words(s6, 'Globly', P ? 92 : 106);
+const t6 = words(s6, TX.end, P ? 26 : 30, 'accent');
+
+// ── transitions ───────────────────────────────────────────────────────────
+[s1, s2, s4, s5, s6].forEach((sc) => { sc.style.top = VY + 'px'; sc.style.bottom = 'auto'; sc.style.height = LH + 'px'; });
+// Téléphone : le cadre du téléphone affiché sur le site recouvre le bord droit
+// de l'écran. Tout le contenu tient donc dans une zone sûre (86 % de la largeur,
+// calée à gauche) pour que rien ne soit coupé.
+const SAFE = P ? .84 : 1;
+if (P) [s1, s2, s4, s5, s6].forEach((sc) => { sc.style.transform = `scale(${SAFE})`; sc.style.transformOrigin = '0 50%'; });
+const wipe = el('wipe'); const WD = Math.hypot(W, H) * 1.15; wipe.style.width = wipe.style.height = WD + 'px';
+const bars = [0, 1, 2].map(() => el('bar'));
+const CUTS = [2.9, 6.7, 11.5, 14.9, 16.8];
+
+
+const vis = (s, t, a, b) => { s.style.display = t >= a && t < b ? 'block' : 'none'; };
+
+window.seek = (t) => {
+  t = Math.max(0, Math.min(DUR - 1e-4, t));
+  // décor
+  blobs.forEach((b, i) => tf(b, { x: b._x + Math.sin(t * .5 + i * 2) * W * .08, y: b._y + Math.cos(t * .4 + i) * H * .08, s: 1 + Math.sin(t * .7 + i) * .08, o: .4 }));
+  stars.forEach((s) => tf(s, { x: ((s._x - t * 9 * s._d) % W + W) % W, y: s._y, o: .2 + .6 * Math.abs(Math.sin(t * 1.3 + s._p)) }));
+
+  // 1 · la marque (0 → 2.9)
+  vis(s1, t, 0, CUTS[0]);
+  {
+    const cx = W / 2 - logoSize / 2, cy = P ? H * .27 : LH * .17;
+    const k = outBack(pr(t, .1, .7)), drift = Math.sin(t * 2) * 5;
+    tf(logo1, { x: cx, y: cy + drift, s: k, r: (1 - outExpo(pr(t, .1, .9))) * -220 });
+    rings1.forEach((r, i) => { const q = pr(t, .45 + i * .16, 1.1); tf(r, { x: cx, y: cy, s: 1 + outCubic(q) * (2.4 + i * .9), o: (1 - q) * .7 * (q > 0 ? 1 : 0) }); });
+    const by = cy + logoSize + (P ? 34 : 18);
+    brand1.style.cssText += `;left:0;width:${W}px;text-align:center;top:${by}px`;
+    wordsIn(brand1, t, .55, { dy: 90, dur: .6 });
+    brand1.style.transform = `scale(${1 + pr(t, .55, 2.4) * .05})`;
+    tag1a.style.cssText += `;left:0;width:${W}px;text-align:center;top:${by + (P ? 150 : 158)}px`;
+    tag1b.style.cssText += `;left:0;width:${W}px;text-align:center;top:${by + (P ? 208 : 222)}px`;
+    wordsIn(tag1a, t, 1.0, { gap: .09 }); wordsIn(tag1b, t, 1.35, { gap: .08 });
+  }
+
+  // 2 · le marketplace (2.9 → 6.7)
+  vis(s2, t, CUTS[0], CUTS[1]);
+  {
+    const u = t - CUTS[0];
+    const tx = P ? 34 : 64, ty = P ? 88 : 250;
+    t2.style.cssText += `;left:${tx}px;top:${ty}px;width:${P ? W - 60 : 420}px`;
+    t2b.style.cssText += `;left:${tx}px;top:${ty + (P ? 96 : 100)}px;width:${P ? W - 60 : 420}px`;
+    wordsIn(t2, t, CUTS[0] + .15, { gap: .08 }); wordsIn(t2b, t, CUTS[0] + .55, { gap: .08 });
+    const cols = P ? 2 : 3, gx = CW + (P ? 18 : 22), gy = CH + (P ? 18 : 22);
+    const ox = P ? (W - (cols * gx - 18)) / 2 : 548, oy = P ? 372 : 76;
+    // le paquet de cartes penche et dérive lentement
+    deck.style.transform = `translate3d(${P ? 0 : -u * 16}px,${-u * (P ? 24 : 14)}px,0) rotateX(${P ? 10 : 8}deg) rotateY(${P ? -6 : -14 + u * 1.2}deg) rotate(${P ? -2 : -3}deg)`;
+    deck.style.transformOrigin = `${ox + gx}px ${oy + gy}px`;
+    const pick = 1; // la carte que le curseur vient chercher
+    const hover = outCubic(pr(u, 1.95, .35));
+    cards.forEach((c) => {
+      const i = c._i, col = i % cols, row = Math.floor(i / cols);
+      const k = outBack(pr(u, .25 + i * .09, .6)), kin = pr(u, .25 + i * .09, .3);
+      const lift = i === pick ? hover : 0;
+      c.style.transform = `translate3d(${ox + col * gx}px,${oy + row * gy + (1 - k) * 420}px,${lift * 90}px) rotate(${(1 - k) * (col - 1) * 14}deg) scale(${.7 + .3 * k + lift * .06})`;
+      c.style.opacity = kin; c.style.zIndex = i === pick ? 5 : 1;
+      c.style.borderColor = i === pick && lift > .1 ? `rgba(143,138,255,${lift})` : 'rgba(255,255,255,.14)';
+      c.style.boxShadow = `0 ${30 + lift * 40}px ${70 + lift * 60}px rgba(0,0,0,.55)${lift > .1 ? `, 0 0 ${lift * 70}px rgba(89,85,232,${lift * .8})` : ''}`;
+      c._pr.textContent = fmt(c._price * outExpo(pr(u, .5 + i * .09, .9)));
+    });
+    // le curseur traverse l'écran et clique
+    const target = { x: ox + (pick % cols) * gx + CW * .62, y: oy + Math.floor(pick / cols) * gy + CH * .6 };
+    const from = { x: P ? W * .9 : 360, y: P ? H * .96 : 660 };
+    const m = inOut(pr(u, 1.15, .8));
+    tf(cur, { x: lerp(from.x, target.x, m) + (P ? 0 : -u * 10), y: lerp(from.y, target.y, m) - Math.sin(m * Math.PI) * 60, o: pr(u, 1.1, .15), s: 1 - .18 * Math.sin(pr(u, 1.95, .25) * Math.PI) });
+    const cq = pr(u, 2.0, .5); tf(clickRing, { x: target.x - 30, y: target.y - 30, s: .3 + cq * 1.8, o: cq > 0 && cq < 1 ? 1 - cq : 0 });
+    const pk = outBack(pr(u, 1.5, .55));
+    tf(peche, { x: P ? W - 190 : 60, y: (P ? H - 210 : 480) + Math.sin(t * 2.2) * 7, s: pk, r: (1 - pk) * 25 + Math.sin(t * 1.5) * 2, o: pr(u, 1.5, .2) });
+  }
+
+  // Hors de la scène du globe, la Terre reste en bas de l'image : on n'en voit
+  // que l'horizon, qui tourne lentement.
+  if (!(t >= CUTS[1] && t < CUTS[2])) {
+    const h = horizonPose(t);
+    camera.position.copy(ll(h.lat, h.lng, h.dist)); camera.lookAt(0, 0, 0);
+    camera.setViewOffset(W, H, 0, h.off, W, H);
+    sun.position.copy(camera.position).add(new THREE.Vector3(1.2, 1.6, .2));
+    renderer.render(scene3d, camera);
+  }
+  // 3 · la carte (6.7 → 11.5) : le globe tourne, puis la caméra plonge vers Paris
+  vis(s3, t, CUTS[1], CUTS[2]);
+  if (t >= CUTS[1] && t < CUTS[2]) {
+    const u = t - CUTS[1];
+    t3.style.cssText += `;left:0;width:${W * (P ? .88 : 1)}px;text-align:center;top:${P ? 110 : 56}px`;
+    wordsIn(t3, t, CUTS[1] + .15, { gap: .09, out: CUTS[1] + 2.5 });
+    // trajet de la caméra : (latitude, longitude, distance) du point survolé
+    const a = inOut(pr(u, 0, 2.3)), b = inOut(pr(u, 2.1, 1.3)), drift = pr(u, 3.4, 1.5);
+    const far = P ? 5.4 : 3.5, mid = P ? 3.9 : 2.5, near = P ? 1.62 : 1.34;
+    const lat = lerp(lerp(8, 44, a), 47.6, b) - drift * .5;
+    const lng = lerp(lerp(-62, 1, a), 2.8, b) + drift * 1.2;
+    const dist = lerp(lerp(far, mid, a), near, b) - drift * .03;
+    // départ depuis la vue « horizon » du reste du film, puis le vol
+    const h = horizonPose(t), k = inOut(pr(u, 0, .9));
+    camera.position.copy(ll(lerp(h.lat, lat, k), lerp(h.lng, lng, k), lerp(h.dist, dist, k))); camera.lookAt(0, 0, 0);
+    // la caméra regarde un peu au-dessus de la cible : la fiche a la place de s'afficher
+    camera.setViewOffset(W, H, (P ? 0 : -W * .1 * b), lerp(h.off, (P ? -H * .1 : H * .02) * b, k), W, H);
+    sun.position.copy(camera.position).add(new THREE.Vector3(1.5, 1.2, .4));
+    renderer.render(scene3d, camera);
+    // les points des entreprises, posés sur le globe
+    const eye = camera.position.clone().normalize();
+    let main = null;
+    pins.forEach((d, i) => {
+      const facing = d._v.clone().normalize().dot(eye);
+      tmpV.copy(d._v).project(camera);
+      const x = (tmpV.x * .5 + .5) * W, y = (-tmpV.y * .5 + .5) * H;
+      const on = pr(u, .9 + i * .05, .3) * clamp((facing - .15) * 6);
+      const grow = i === 0 ? 1 + b * 1.1 : 1 + b * .5;
+      tf(d, { x: x - d._z / 2, y: y - d._z / 2, s: outBack(clamp(on)) * grow, o: on });
+      if (i === 0) main = { x, y, on };
+    });
+    pinRings.forEach((r, i) => { const q = ((u * 1.1 + i * .5) % 1); tf(r, { x: main.x - 22, y: main.y - 22, s: .3 + q * (1.4 + b * 1.6), o: (1 - q) * main.on * pr(u, 1.6, .4) }); });
+    // la fiche de l'entreprise sort du point
+    const ck = outBack(pr(u, 3.25, .5));
+    card3price.textContent = fmt(520000 * outExpo(pr(u, 3.4, .8)));
+    const cs = P ? 1.05 : 1.12;
+    tf(card3, { x: P ? main.x - 170 * cs : main.x + 38, y: P ? main.y + 34 : main.y - 70, s: ck * cs, o: pr(u, 3.25, .2) });
+    card3.style.transformOrigin = P ? '50% 0' : '0 25%';
+    const pk = outBack(pr(u, 1.5, .5)), pout = inCubic(pr(u, 2.7, .3));
+    pill3.style.cssText += `;font-size:${P ? 22 : 26}px;padding:${P ? '12px 22px' : '14px 28px'}`;
+    tf(pill3, { x: P ? 60 : 70, y: P ? H - 230 : H - 130, s: pk * (1 - pout), r: (1 - pk) * -8 - 3, o: pr(u, 1.5, .2) * (1 - pout) });
+  }
+
+  // 4 · Globi guide (10.1 → 13.5)
+  vis(s4, t, CUTS[2], CUTS[3]);
+  {
+    const u = t - CUTS[2];
+    const tx = P ? 34 : 64, ty = P ? 88 : 96;
+    t4.style.cssText += `;left:${tx}px;top:${ty}px`; t4b.style.cssText += `;left:${tx}px;top:${ty + (P ? 54 : 56)}px`;
+    wordsIn(t4, t, CUTS[2] + .15, { gap: .09 }); wordsIn(t4b, t, CUTS[2] + .5, { gap: .09 });
+    const wx = P ? (W - WW4) / 2 : W - WW4 - 56, wy = P ? 300 : 150;
+    const k = outExpo(pr(u, .15, .9));
+    win4.style.transform = `translate3d(${wx + (1 - k) * 700}px,${wy}px,0) rotateY(${(1 - k) * -50 - 9 + u * 1.6}deg) rotateX(${5 - u}deg) scale(${.82 + .18 * k + u * .012})`;
+    win4.style.opacity = pr(u, .15, .25);
+    // les cinq étapes se remplissent une à une
+    const sw = P ? 70 : 84, sx0 = P ? (W - (5 * sw + 4 * 12)) / 2 : wx + 40, sy = P ? wy + WH4 + 46 : wy + WH4 + 34;
+    steps.forEach((s, i) => { s.style.width = sw + 'px'; s.style.height = '10px'; tf(s, { x: sx0 + i * (sw + 12), y: sy, o: pr(u, .7 + i * .06, .25) }); s._f.style.transform = `scaleX(${outCubic(pr(u, 1.0 + i * .38, .34))})`; });
+    const gk = outBack(pr(u, .55, .6)), hop = Math.abs(Math.sin(pr(u, .55, 2.6) * Math.PI * 3)) * 16;
+    const gx = P ? 20 : 70, gy = P ? H - 330 : 350;
+    tf(globi4, { x: gx, y: gy - hop, s: gk, r: (1 - gk) * -30 + Math.sin(t * 2) * 2.5, o: pr(u, .55, .2) });
+    const bk = outBack(pr(u, 1.05, .45));
+    bubble.style.cssText += `;font-size:${P ? 21 : 24}px;padding:${P ? '16px 20px' : '18px 24px'};width:${P ? 290 : 330}px`;
+    bubble.textContent = BUB.slice(0, Math.round(pr(u, 1.2, 1.3) * BUB.length));
+    tf(bubble, { x: gx + (P ? 190 : 235), y: gy - (P ? 20 : 26), s: bk, o: pr(u, 1.05, .2) }); bubble.style.transformOrigin = '0 100%';
+  }
+
+  // 5 · zéro commission (13.5 → 15.4)
+  vis(s5, t, CUTS[3], CUTS[4]);
+  {
+    const u = t - CUTS[3];
+    const n = Math.round(lerp(8, 0, outExpo(pr(u, .1, .75))));
+    zero.textContent = EN ? n + '%' : n + ' %';
+    const land = pr(u, .78, .3), punch = 1 + Math.sin(land * Math.PI) * .18;
+    const zx = P ? 0 : 70, zy = P ? 190 : 130;
+    zero.style.cssText += `;left:${zx}px;top:${zy}px;width:${P ? W + 'px' : 'auto'};text-align:${P ? 'center' : 'left'}`;
+    zero.style.transform = `scale(${outBack(pr(u, .05, .5)) * punch})`; zero.style.opacity = pr(u, .05, .15); zero.style.transformOrigin = P ? '50% 60%' : '20% 60%';
+    t5.style.cssText += `;left:${P ? 0 : 84}px;top:${zy + (P ? 290 : 330)}px;width:${P ? W + 'px' : 'auto'};text-align:${P ? 'center' : 'left'}`;
+    wordsIn(t5, t, CUTS[3] + .85, { gap: .1 });
+    const cx = P ? W / 2 : 330, cy = zy + (P ? 150 : 180);
+    conf.forEach((c) => { const q = pr(u, .82, 1.1), d = outCubic(q) * c._v * (P ? .75 : 1); tf(c, { x: cx + Math.cos(c._a) * d, y: cy + Math.sin(c._a) * d + q * q * 260, r: c._r * q, o: q > 0 ? 1 - inCubic(q) : 0 }); });
+    const bk = outBack(pr(u, .7, .5));
+    tf(bravo, { x: P ? (W - 300) / 2 : W - 440, y: (P ? H - 480 : 170) - Math.abs(Math.sin(pr(u, .7, 1.2) * Math.PI * 2)) * 30, s: bk, r: (1 - bk) * 30 + Math.sin(t * 4) * 3, o: pr(u, .7, .15) });
+    strike.style.display = 'none';
+  }
+
+  // 6 · la fin (15.4 → 18)
+  vis(s6, t, CUTS[4], DUR + 1);
+  {
+    const u = t - CUTS[4];
+    const vk = outBack(pr(u, .1, .6));
+    const vx = P ? (W - 430) / 2 : 90, vy = P ? 150 : 150;
+    tf(vente, { x: vx, y: vy + Math.sin(t * 2) * 6, s: vk, r: (1 - vk) * -12, o: pr(u, .1, .2) });
+    const lx = P ? W / 2 - 55 : 700, ly = P ? 640 : 196;
+    const lk = outBack(pr(u, .4, .6));
+    tf(logo6, { x: P ? lx : lx + 190 - 55, y: ly, s: lk, r: (1 - outExpo(pr(u, .4, .8))) * 200 });
+    brand6.style.cssText += `;left:${P ? 0 : lx}px;top:${ly + 118}px;width:${P ? W : 380}px;text-align:center`;
+    t6.style.cssText += `;left:${P ? 30 : lx - 110}px;top:${ly + (P ? 250 : 262)}px;width:${P ? W - 60 : 600}px;text-align:center;line-height:1.2`;
+    wordsIn(brand6, t, CUTS[4] + .6, { dy: 80 }); wordsIn(t6, t, CUTS[4] + .95, { gap: .07 });
+    // fondu final vers le noir du début : la boucle repart sans à-coup
+    s6.style.opacity = 1 - inCubic(pr(u, 2.25, .35));
+  }
+
+  // transitions : un disque violet avale l'écran, des barres claires le suivent
+  let wo = 0, ws = 0, wx = W / 2, wy = H / 2;
+  CUTS.forEach((c, i) => {
+    const a = pr(t, c - .3, .3), b = pr(t, c, .38);
+    if (a > 0 && b < 1) {
+      const origin = [[.5, .3], [.85, .5], [.5, .5], [.2, .4], [.5, .5]][i];
+      wx = W * origin[0]; wy = H * origin[1];
+      ws = b > 0 ? 1 + b * .2 : inCubic(a); wo = b > 0 ? 1 - outCubic(b) : 1;
+    }
+  });
+  tf(wipe, { x: wx - WD / 2, y: wy - WD / 2, s: ws * 2.2, o: wo });
+  bars.forEach((b, i) => {
+    let o = 0, x = -W * 2;
+    CUTS.forEach((c) => { const q = pr(t, c - .12 + i * .05, .5); if (q > 0 && q < 1) { o = 1; x = lerp(-W * 1.2, W * 1.2, inOut(q)); } });
+    b.style.width = '3px'; b.style.height = H * 1.6 + 'px'; b.style.top = -H * .3 + 'px';
+    // un seul trait de lumière traverse l'image à chaque changement de plan
+    tf(b, { x, y: 0, r: 16, o: i === 1 ? o * .9 : 0 });
+  });
+  // ouverture et fermeture au noir
+  stage.style.opacity = Math.min(outCubic(pr(t, 0, .25)), 1);
+};
+
+Promise.all([document.fonts.ready, texReady]).then(() => { window.seek(0); window.ready = true; });
+// aperçu en direct dans un navigateur : ?play
+if (new URLSearchParams(location.search).has('play')) { const t0 = performance.now(); const loop = () => { window.seek(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); }; Promise.all([document.fonts.ready, texReady]).then(loop); }
+</script>
+</body>
+</html>

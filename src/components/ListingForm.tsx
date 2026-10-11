@@ -9,7 +9,7 @@ import { X, ChevronRight, ChevronLeft, Loader2, ImageIcon, ChevronDown, Check, U
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
-import { INDUSTRIES } from '@/lib/industries';
+import { INDUSTRIES, industryOptions } from '@/lib/industries';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
@@ -19,6 +19,7 @@ import { uploadListingImage, saveListing } from '@/services/listingService';
 import { checkPublicationQuota } from '@/services/planService';
 import { Dropdown } from '@/components/PickerKit';
 import type { TFunction } from 'i18next';
+import { FormGuide } from '@/components/listing/FormGuide';
 import type { Listing } from '@/types/domain';
 
 // Réponse de l'API adresse (data.gouv / Nominatim)
@@ -183,6 +184,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSelected, setAddressSelected] = useState(false);
+  const [addressNotFound, setAddressNotFound] = useState(false);
   const [isIndustryOpen, setIsIndustryOpen] = useState(false);
   
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
@@ -232,16 +234,40 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     }
   }, [isOpen, listingToEdit, reset]);
 
+  // Recherche d'adresse.
+  // 1) La Base Adresse Nationale (service public français) : elle connaît les
+  //    numéros de rue un par un, là où OpenStreetMap n'en a souvent aucun.
+  // 2) OpenStreetMap ensuite, pour les adresses hors de France.
   useEffect(() => {
-    if (!addressQuery || addressSelected) { setSuggestions([]); return; }
+    if (!addressQuery || addressSelected) { setSuggestions([]); setAddressNotFound(false); return; }
+    const query = addressQuery.trim();
+    if (query.length < 3) { setSuggestions([]); setAddressNotFound(false); return; }
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setIsSearchingAddress(true);
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=5`);
-        const data = await res.json(); setSuggestions(data);
-      } catch (err) {} finally { setIsSearchingAddress(false); }
-    }, 500);
-    return () => clearTimeout(timer);
+      const q = encodeURIComponent(query);
+      const french = fetch(`https://data.geopf.fr/geocodage/search?q=${q}&limit=5&autocomplete=1`)
+        .then((r) => (r.ok ? r.json() : { features: [] }))
+        .then((d) => (d.features || []).map((f: any) => ({
+          display_name: `${f.properties.label}, France`,
+          lat: String(f.geometry.coordinates[1]),
+          lon: String(f.geometry.coordinates[0]),
+        })))
+        .catch(() => []);
+      const world = fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []);
+      const [fr, osm] = await Promise.all([french, world]);
+      if (cancelled) return;
+      // Les adresses françaises précises d'abord ; d'OpenStreetMap on ne garde
+      // que ce qui n'est pas en France (sinon la même rue reviendrait en double, sans numéro).
+      const abroad = (osm as any[]).filter((o) => !/,\s*France$/i.test(o.display_name || ''));
+      const merged = [...fr, ...(fr.length ? abroad : (osm as any[]))].slice(0, 7);
+      setSuggestions(merged);
+      setAddressNotFound(merged.length === 0);
+      setIsSearchingAddress(false);
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [addressQuery, addressSelected]);
 
   const selectAddress = (suggestion: AddressSuggestion) => {
@@ -391,7 +417,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     `w-full bg-transparent border-b pb-2 pt-4 text-lg font-light focus:outline-none transition-colors rounded-none resize-none ` + 
     (hasError ? 'border-[#ef4444] text-[#fca5a5] focus:border-[#f87171] placeholder:text-[#ef4444]/40' : 'border-white/20 text-white focus:border-primary placeholder:text-white/20');
   
-  const labelClass = "text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/70 block";
+  const labelClass = "text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-white/80 block";
 
   // Années : de l'année en cours jusqu'à 1700 (décroissant) -> plus de "3012".
   // NB: simple constante (pas de useMemo) car on est APRÈS le `return null` plus
@@ -429,8 +455,8 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   const eliteBtnClass = "w-full flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 h-14 text-white text-sm sm:text-base font-light text-left hover:border-white/30 transition-colors";
 
   const Hint = ({ text }: { text: string }) => (
-    <span className="text-[11px] text-white/50 font-light mt-2 leading-relaxed flex items-start gap-1.5">
-      <Info className="w-3.5 h-3.5 shrink-0 mt-[1px] text-blue-400/80" />
+    <span className="text-sm text-white/65 font-light mt-2 leading-relaxed flex items-start gap-2">
+      <Info className="w-4 h-4 shrink-0 mt-[3px] text-blue-400/80" />
       {text}
     </span>
   );
@@ -450,14 +476,29 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
       </button>
 
       <div className="absolute inset-0 overflow-y-auto custom-scrollbar flex z-10">
-        <div className="w-full max-w-4xl m-auto px-6 sm:px-12 pt-32 pb-56">
+        {/* Pleine largeur. Sur ordinateur, Globi occupe une colonne à côté du
+            formulaire et change de côté à chaque étape ; sur téléphone et
+            tablette il se pose au-dessus, en petit. */}
+        <div className="w-full m-auto px-5 sm:px-10 lg:px-16 2xl:px-24 pt-20 lg:pt-28 pb-56 flex flex-col lg:flex-row lg:items-start gap-7 lg:gap-14 2xl:gap-20">
+          <motion.div
+            layout="position"
+            transition={{ type: 'spring', damping: 24, stiffness: 190 }}
+            className={`w-full lg:w-[360px] xl:w-[420px] shrink-0 lg:sticky lg:top-28 ${step % 2 === 0 ? 'lg:order-2' : 'lg:order-1'}`}
+          >
+            <FormGuide step={step} t={t} />
+          </motion.div>
+          <motion.div
+            layout="position"
+            transition={{ type: 'spring', damping: 24, stiffness: 190 }}
+            className={`w-full min-w-0 flex-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}
+          >
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div key={step} custom={direction} initial={{ x: direction > 0 ? 40 : -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: direction < 0 ? 40 : -40, opacity: 0 }} className="w-full flex flex-col text-left">
               
               {step === 1 && (
-                <div className="w-full space-y-12">
-                  <div className="mb-8">
-                    <h2 className="text-3xl sm:text-5xl font-light text-white mb-4 tracking-tight">{t('form.visual_identity')}</h2>
+                <div className="w-full space-y-9 sm:space-y-12">
+                  <div className="mb-5 sm:mb-8">
+                    <h2 className="text-[1.7rem] sm:text-5xl font-light text-white mb-3 sm:mb-4 tracking-tight leading-tight">{t('form.visual_identity')}</h2>
                     <p className="text-base text-white/50 font-light">{t('form.visual_desc')}</p>
                   </div>
 
@@ -563,10 +604,10 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                             <CommandList className="max-h-[30vh] custom-scrollbar p-1">
                               <CommandEmpty className="py-4 text-center text-sm text-white/50 font-light">{t('filters.no_results', 'Aucun résultat.')}</CommandEmpty>
                               <CommandGroup>
-                                {INDUSTRIES.map((ind) => (
-                                  <CommandItem 
-                                    key={ind} 
-                                    value={t(`industry.${ind}`, { defaultValue: ind })}
+                                {industryOptions(t).map(({ value: ind, label }) => (
+                                  <CommandItem
+                                    key={ind}
+                                    value={label}
                                     onSelect={() => { setValue('industry', ind, { shouldValidate: true }); setIsIndustryOpen(false); }} 
                                     className="cursor-pointer aria-selected:bg-white/20 aria-selected:text-white data-[selected=true]:bg-white/20 data-[selected=true]:text-white rounded-xl text-sm font-light py-3 px-4 text-white"
                                   >
@@ -594,9 +635,9 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
               )}
 
               {step === 2 && (
-                <div className="w-full space-y-12">
-                  <div className="mb-8">
-                    <h2 className="text-3xl sm:text-5xl font-light text-white mb-4 tracking-tight">{t('form.location')}</h2>
+                <div className="w-full space-y-9 sm:space-y-12">
+                  <div className="mb-5 sm:mb-8">
+                    <h2 className="text-[1.7rem] sm:text-5xl font-light text-white mb-3 sm:mb-4 tracking-tight leading-tight">{t('form.location')}</h2>
                   </div>
                   
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6 flex items-start gap-4">
@@ -612,6 +653,11 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                     <div className="relative w-full mt-2">
                       <input value={addressQuery} onChange={(e) => { setAddressQuery(e.target.value); setAddressSelected(false); }} className={getInputClass(!!errors.address || !!errors.lat)} spellCheck={false} />
                       <Hint text={t('form.hint_address')} />
+                      {addressNotFound && !addressSelected && (
+                        <span className="text-sm mt-2 block" style={{ color: '#fcd34d' }}>
+                          {t('form.address_none', "Aucune adresse trouvée. Vérifiez l'orthographe, ou essayez sans le numéro puis avec la ville (ex. : « rue Garibaldi Lyon »).")}
+                        </span>
+                      )}
                       {errors.address && <span className="text-[#f87171] text-xs mt-2 block">{errors.address.message}</span>}
                       {errors.lat && !errors.address && <span className="text-[#f87171] text-xs mt-2 block">{errors.lat.message}</span>}
                       <AnimatePresence>
@@ -631,9 +677,9 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
               )}
 
               {step === 3 && (
-                <div className="w-full space-y-12">
-                  <div className="mb-8">
-                    <h2 className="text-3xl sm:text-5xl font-light text-white mb-4 tracking-tight">{t('form.financial_data')}</h2>
+                <div className="w-full space-y-9 sm:space-y-12">
+                  <div className="mb-5 sm:mb-8">
+                    <h2 className="text-[1.7rem] sm:text-5xl font-light text-white mb-3 sm:mb-4 tracking-tight leading-tight">{t('form.financial_data')}</h2>
                   </div>
                   <div>
                     <label className={labelClass}>{t('form.price')}</label>
@@ -686,9 +732,9 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
               )}
 
               {step === 4 && (
-                <div className="w-full space-y-12">
-                  <div className="mb-8">
-                    <h2 className="text-3xl sm:text-5xl font-light text-white mb-4 tracking-tight">{t('form.operations')}</h2>
+                <div className="w-full space-y-9 sm:space-y-12">
+                  <div className="mb-5 sm:mb-8">
+                    <h2 className="text-[1.7rem] sm:text-5xl font-light text-white mb-3 sm:mb-4 tracking-tight leading-tight">{t('form.operations')}</h2>
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
@@ -738,6 +784,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                     <label className={labelClass}>{t('form.description')}</label>
                     <textarea {...register('description')} rows={5} className={getTextareaClass(!!errors.description)} />
                     <Hint text={t('form.hint_desc')} />
+                    <Hint text={t('agree.seller_hint', "Précisez ce que vous cédez : 100 % de l'entreprise ou une partie, et ce que le prix comprend (stock, matériel, bail ou murs). Le reste se règle ensuite par la messagerie avec le repreneur.")} />
                     {errors.description && <span className="text-[#f87171] text-xs mt-2 block">{errors.description.message}</span>}
                   </div>
 
@@ -758,7 +805,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
 
               {/* ETAPE 5: Capital Immatériel / Critères Elite */}
               {step === 5 && (
-                <div className="w-full space-y-12">
+                <div className="w-full space-y-9 sm:space-y-12">
                   <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center border border-purple-500/30 shadow-inner">
@@ -816,30 +863,32 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
               )}
             </motion.div>
           </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
       <div className="absolute bottom-0 left-0 w-full pt-32 pb-8 px-6 bg-gradient-to-t from-[#2b2a2f] via-[#2b2a2f]/90 to-transparent flex flex-col items-center gap-4 z-[210] pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
           {step > 1 && (
-            <Button variant="ghost" onClick={handlePrevStep} className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all liquid-glass p-0">
-              <ChevronLeft className="w-5 h-5" />
+            <Button variant="ghost" onClick={handlePrevStep} className="h-14 px-5 sm:px-6 rounded-full border border-white/25 flex items-center justify-center gap-1.5 text-white/85 hover:text-white transition-all liquid-glass text-base">
+              <ChevronLeft className="w-5 h-5" /> {t('form.back', 'Retour')}
             </Button>
           )}
           {step < 5 ? (
-            <Button onClick={handleNextStep} className="w-fit h-12 px-6 sm:px-8 rounded-full liquid-glass border border-white/20 text-white font-light hover:border-white/40 transition-all flex items-center gap-2 text-sm">
-              {t('form.next')} <ChevronRight className="w-4 h-4 ml-1" />
+            <Button onClick={handleNextStep} className="w-fit h-14 px-8 sm:px-10 rounded-full bg-primary hover:bg-primary/90 border border-white/20 text-white font-medium transition-all flex items-center gap-2 text-base [text-shadow:none]">
+              {t('form.next')} <ChevronRight className="w-5 h-5 ml-1" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit(onSubmit, onInvalid)} disabled={isSubmitting} className="w-fit h-12 px-6 sm:px-10 rounded-full liquid-glass bg-primary/10 border border-primary/40 text-white font-medium hover:bg-primary/20 transition-all flex items-center gap-2 text-sm">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{t('form.validate')} <Check className="w-4 h-4 ml-1" /></>}
+            <Button onClick={handleSubmit(onSubmit, onInvalid)} disabled={isSubmitting} className="w-fit h-14 px-8 sm:px-10 rounded-full bg-primary hover:bg-primary/90 border border-white/20 text-white font-medium transition-all flex items-center gap-2 text-base [text-shadow:none]">
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t('form.validate')} <Check className="w-5 h-5 ml-1" /></>}
             </Button>
           )}
         </div>
-        <div className="flex gap-3 pointer-events-auto mt-2">
+        <div className="flex items-center gap-3 pointer-events-auto mt-2" role="img" aria-label={t('guide.step_of', { defaultValue: 'Étape {{n}} sur {{total}}', n: step, total: 5 }) as string}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className={`h-1 transition-all duration-500 rounded-full ${step === i ? 'w-8 bg-primary' : 'w-2 bg-white/20'}`} />
+            <div key={i} className={`h-1.5 transition-all duration-500 rounded-full ${step === i ? 'w-10 bg-primary' : i < step ? 'w-3 bg-primary/60' : 'w-3 bg-white/25'}`} />
           ))}
+          <span className="text-sm text-white/70 ml-1 tabular-nums">{step} / 5</span>
         </div>
       </div>
     </div>

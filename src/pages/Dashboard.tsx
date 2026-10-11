@@ -208,8 +208,6 @@ export default function Dashboard() {
   const matchCriteria: MatchCriteria = {
     industries: criteriaSectors,
     regions: criteriaRegions,
-    stakeMin: 0,
-    stakeMax: 100,
     budgetMin: budgetBounds?.min ?? 0,
     budgetMax: budgetBounds?.max ?? 0, // 0 = pas de plafond pour le moteur
   };
@@ -253,9 +251,9 @@ export default function Dashboard() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[12vh] right-[-4%] md:top-[14vh] md:right-[19%] lg:right-[24%] w-[200px] md:w-[320px] z-[100] pointer-events-none opacity-100"
+          className="absolute top-[12vh] right-[-4%] md:top-[14vh] md:right-[19%] lg:right-[24%] w-[200px] md:w-[320px] z-[110] pointer-events-none opacity-100"
         >
-          <img src="/astronaut-star.png" alt="Astronaut Star" className="w-full h-auto drop-shadow-2xl" />
+          <img src="/mascot/globi-etoile.png" alt="" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-[4vh] mb-[8vh] border-b border-white/20 pb-[3vh]">
@@ -422,7 +420,7 @@ export default function Dashboard() {
               </p>
             </div>
             {normalizePlan(profile?.plan_type) === 'free' && (
-              <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
+              <Button onClick={() => navigate('/payment')} className="w-fit rounded-full bg-primary hover:bg-primary/90 text-white h-12 px-8 text-[clamp(10px,1vw,12px)] uppercase tracking-widest font-medium outline-none mt-auto">
                 {t('dash.unlock_premium')}
               </Button>
             )}
@@ -528,7 +526,7 @@ export default function Dashboard() {
                 <p className="text-white dark:text-white/60 font-light mb-8 max-w-md leading-relaxed text-[clamp(0.875rem,1vw,1rem)]">
                   {t('dash.no_sales_desc')}
                 </p>
-                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 shadow-[0_0_20px_rgba(168,85,247,0.3)] outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
+                <Button onClick={() => { setListingToEdit(null); setIsEditFormOpen(true); }} className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 h-12 outline-none text-[clamp(10px,1vw,12px)] uppercase tracking-widest border-none [text-shadow:none]">
                   {t('dash.create_first')}
                 </Button>
               </div>

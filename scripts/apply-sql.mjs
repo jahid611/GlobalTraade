@@ -27,6 +27,8 @@ const EN_ATTENTE = [
   'supabase/_claude_sec_durcissement_2.sql',
   'supabase/_claude_sec_quotas.sql',
   'supabase/_claude_messagerie.sql',
+  'supabase/_claude_secteurs.sql',
+  'supabase/_claude_pays.sql',
 ];
 
 function jeton() {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
+import { AgreementReminder } from '@/components/AgreementReminder';
 import { Send, Handshake, ChevronLeft, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -152,7 +153,7 @@ export function ChatWindow({
             </Button>
           </Link>
           
-          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all border-none">
+          <Button onClick={onOpenOffer} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] sm:text-[11px] h-8 px-3 sm:px-4 transition-all border-none">
             <Handshake className="w-3 h-3 sm:mr-2" /> 
             <span className="hidden sm:inline">
               {activeConv.project_id ? "Valider collaboration" : (t('msg.make_offer', 'Faire une offre'))}
@@ -205,6 +206,7 @@ export function ChatWindow({
                 WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15px, black calc(100% - 15px), transparent 100%)'
               }}
             >
+              {!activeConv.project_id && <AgreementReminder variant="banner" className="mb-4 mt-2" />}
               <div className="mb-6 pt-2">
                 <DealTimeline 
                   listingId={activeConv.listing_id}
@@ -321,7 +323,7 @@ export function ChatWindow({
             <button 
               type="submit" 
               disabled={!input.trim()}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 hover:scale-105 active:scale-95 transition-all shrink-0"
             >
               <Send className="w-4 h-4 ml-0.5" />
             </button>

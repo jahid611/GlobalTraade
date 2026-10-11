@@ -1,9 +1,11 @@
 import { Capacitor } from '@capacitor/core';
+import { LanguageMenu } from '@/components/LanguageMenu';
+import { filmSrc } from '@/lib/film';
 import { APP_SCHEME } from '@/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { ChevronLeft, Loader2, Sun, Moon, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Loader2, Sun, Moon, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +13,42 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/components/AuthProvider';
 import { showSuccess } from '@/utils/toast';
 
-const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
+// Globi, au premier plan de la page (au-dessus du texte et du formulaire, sans
+// jamais bloquer un clic).
+const LoginMascot = ({ carouselIndex, signup }: { carouselIndex: number; signup: boolean }) => (
+  // Sous 1024 px la page défile en une colonne : un Globi fixe passerait sur le
+  // texte, il n'est donc affiché que sur grand écran.
+  <div className="hidden lg:block fixed inset-0 z-[110] overflow-hidden pointer-events-none">
+    <AnimatePresence>
+      {carouselIndex === 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: -60, scale: 0.95 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -60, scale: 0.95 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className={`absolute bottom-[-6%] ${signup ? "right-[-1%] flex justify-end" : "left-[-1%]"} w-[50vw] min-w-[400px] max-w-[700px] pointer-events-none z-0`}
+        >
+          {/* Écran peu haut (portable) : Globi descend et ne laisse dépasser que
+              le haut du casque, pour ne jamais passer sur le texte. */}
+          <div className="[@media(max-height:900px)]:translate-y-[60%] [@media(max-height:760px)]:translate-y-[66%]">
+          <motion.img 
+            // une pose pour la connexion, une autre pour l'inscription
+            key={signup ? "signup" : "signin"}
+            src={signup ? "/mascot/globi-inscription.png" : "/mascot/globi-connexion.png"}
+            alt="" 
+            animate={{ y: [0, -14, 0], rotate: [-2, 2, -2] }} 
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
+            className="w-auto"
+            style={{ willChange: 'transform', height: 'min(30vh, 380px)' }}
+          />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
+const DynamicBackground = ({ carouselIndex, signup }: { carouselIndex: number; signup: boolean }) => (
   <div className="fixed inset-0 z-0 overflow-hidden bg-gradient-to-br from-slate-300 via-slate-200 to-blue-200/70 dark:from-[#2b2a2f] dark:via-[#2b2a2f] dark:to-[#2b2a2f] transition-colors duration-700">
     {/* Orbes floues optimisées */}
     <motion.div 
@@ -27,27 +64,6 @@ const DynamicBackground = ({ carouselIndex }: { carouselIndex: number }) => (
       style={{ willChange: 'transform, opacity' }}
     />
     
-    {/* Astronaute animé (sans aucun filtre, 100% opaque et net) */}
-    <AnimatePresence>
-      {carouselIndex === 0 && (
-        <motion.div
-          initial={{ opacity: 0, x: -60, scale: 0.95 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: -60, scale: 0.95 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="absolute bottom-[-5%] left-[-5%] w-[50vw] min-w-[400px] max-w-[700px] pointer-events-none z-0"
-        >
-          <motion.img 
-            src="/astronaut-login.png" 
-            alt="Astronaut" 
-            animate={{ y: [0, -30, 0], rotate: [-2, 2, -2] }} 
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} 
-            className="w-full h-auto"
-            style={{ willChange: 'transform' }}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
   </div>
 );
 
@@ -347,17 +363,13 @@ export default function Login() {
     setLoading(false);
   };
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'fr' ? 'en' : 'fr';
-    i18n.changeLanguage(newLang);
-    localStorage.setItem('language', newLang);
-  };
 
   const inputClass = "w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full px-5 py-4 text-black dark:text-white font-light outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500 dark:placeholder:text-white/40 shadow-sm dark:shadow-none";
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <DynamicBackground carouselIndex={carouselIndex} />
+      <DynamicBackground carouselIndex={carouselIndex} signup={mode === 'signup'} />
+      <LoginMascot carouselIndex={carouselIndex} signup={mode === 'signup'} />
 
       <div className="absolute top-6 left-6 z-[100] flex items-center gap-4">
         <Link to="/">
@@ -369,19 +381,7 @@ export default function Login() {
       </div>
 
       <div className="absolute top-6 right-6 z-[100] flex gap-3">
-        <Button
-          variant="ghost"
-          onClick={toggleLanguage}
-          className="w-12 h-12 p-0 flex items-center justify-center rounded-full bg-transparent border-0 hover:bg-transparent transition-all shadow-none text-slate-900 dark:text-white"
-        >
-          <img
-            src={i18n.language === "fr" ? "/france.png" : "/royaume-uni.png"}
-            alt={i18n.language === "fr" ? "French Flag" : "English Flag"}
-            className="w-6 h-6 object-contain"
-            loading="lazy"
-            decoding="async"
-          />
-        </Button>
+        <LanguageMenu className="w-12 h-12 flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/70" />
         {mounted && (
           <Button
             variant="ghost"
@@ -447,8 +447,9 @@ export default function Login() {
                       }}
                     >
                       <video
-                        ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
-                        src="/demo-mobile.mp4"
+                        ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
+                        key={filmSrc('mobile', i18n.language)}
+                src={filmSrc('mobile', i18n.language)}
                         preload="metadata" autoPlay loop muted playsInline
                         className="w-full h-full object-cover"
                       />
@@ -519,7 +520,19 @@ export default function Login() {
                   <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.email')}</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus autoComplete="email" className={inputClass} placeholder="jean@entreprise.com" />
                 </div>
-                {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
+                {error && (
+                <motion.p
+                  role="alert"
+                  initial={{ opacity: 0, x: 0 }}
+                  animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                  transition={{ duration: 0.4 }}
+                  className="flex items-center gap-3 text-[15px] font-semibold py-3.5 px-4 rounded-2xl leading-snug text-left"
+                  style={{ background: '#dc2626', color: '#ffffff', border: '1px solid #fca5a5', boxShadow: '0 8px 24px rgba(220,38,38,0.35)' }}
+                >
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{error}</span>
+                </motion.p>
+              )}
                 {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
                 <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.forgot_submit', 'Envoyer le lien')}
@@ -575,7 +588,19 @@ export default function Login() {
                     <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.confirm_password', 'Confirmer le mot de passe')}</label>
                     <input type={showPassword ? 'text' : 'password'} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} required autoComplete="new-password" className={inputClass} placeholder="••••••••" />
                   </div>
-                  {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
+                  {error && (
+                <motion.p
+                  role="alert"
+                  initial={{ opacity: 0, x: 0 }}
+                  animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                  transition={{ duration: 0.4 }}
+                  className="flex items-center gap-3 text-[15px] font-semibold py-3.5 px-4 rounded-2xl leading-snug text-left"
+                  style={{ background: '#dc2626', color: '#ffffff', border: '1px solid #fca5a5', boxShadow: '0 8px 24px rgba(220,38,38,0.35)' }}
+                >
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{error}</span>
+                </motion.p>
+              )}
                   <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.reset_submit', 'Enregistrer le mot de passe')}
                   </Button>
@@ -621,7 +646,19 @@ export default function Login() {
                 )}
               </div>
               {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
-              {error && <p className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-100 dark:bg-red-500/10 py-2 rounded-lg">{error}</p>}
+              {error && (
+                <motion.p
+                  role="alert"
+                  initial={{ opacity: 0, x: 0 }}
+                  animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                  transition={{ duration: 0.4 }}
+                  className="flex items-center gap-3 text-[15px] font-semibold py-3.5 px-4 rounded-2xl leading-snug text-left"
+                  style={{ background: '#dc2626', color: '#ffffff', border: '1px solid #fca5a5', boxShadow: '0 8px 24px rgba(220,38,38,0.35)' }}
+                >
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{error}</span>
+                </motion.p>
+              )}
               <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'signin' ? t('auth.signin') : t('auth.submit'))}
               </Button>

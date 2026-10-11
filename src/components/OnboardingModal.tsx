@@ -4,11 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ChevronRight, ChevronLeft, Check, Building2, Target, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dropdown, SearchableSelect } from "@/components/PickerKit";
+import { Dropdown } from "@/components/PickerKit";
 import { MultiSelect } from "@/components/MultiSelect";
-import { INDUSTRIES } from "@/lib/industries";
+import { industryOptions } from '@/lib/industries';
 import { FR_REGIONS } from "@/lib/geoRegions";
-import { AMOUNT_RANGE_OPTIONS, COUNTRIES, LEGAL_FORMS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
+import { AMOUNT_RANGE_OPTIONS, LEGAL_FORMS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
+import { CountrySelect } from "@/components/CountrySelect";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -48,7 +50,7 @@ export function OnboardingGate() {
 
 // Onboarding légal (inspiré du parcours Bpifrance) : profil → entité → objectifs → légal.
 export function OnboardingModal({ onDone }: { onDone: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -58,7 +60,7 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
   const [accountType, setAccountType] = useState<string>("");
   const [fullName, setFullName] = useState<string>(user?.user_metadata?.full_name || "");
   const [phone, setPhone] = useState("");
-  const [country, setCountry] = useState("France");
+  const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
 
   const [companyName, setCompanyName] = useState("");
   const [siren, setSiren] = useState("");
@@ -83,15 +85,11 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
   // (hors nom, téléphone et raison sociale), pour que les données restent
   // filtrables et comparables d'un formulaire à l'autre.
   const legalForms = useMemo(() => LEGAL_FORMS.map((v) => ({ value: v, label: v })), []);
-  const countryOptions = useMemo(() => COUNTRIES.map((v) => ({ value: v, label: v })), []);
   const roleOptions = useMemo(
     () => ROLE_FUNCTIONS.map((v) => ({ value: v, label: t(`onb.role_${v}`, ROLE_FUNCTION_LABELS[v]) as string })),
     [t]
   );
-  const sectorOptions = useMemo(
-    () => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })),
-    [t]
-  );
+  const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
   const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
   const listVal = (v: string) => (v ? v.split(",").map((x) => x.trim()).filter(Boolean) : []);
 
@@ -226,11 +224,11 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.phone", "Téléphone")}</label>
-                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="+33 6 12 34 56 78" />
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ().-]/g, "").slice(0, 20))} className={inputClass} placeholder="+33 6 12 34 56 78" />
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.country", "Pays")} *</label>
-                    <SearchableSelect value={country} onChange={setCountry} options={countryOptions}
+                    <CountrySelect value={country} onChange={setCountry}
                       placeholder={t("onb.select", "Sélectionnez…") as string} className={btnDropdown} />
                   </div>
                 </div>

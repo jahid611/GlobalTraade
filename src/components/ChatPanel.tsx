@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { AgreementReminder } from '@/components/AgreementReminder';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, MessageCircle, Handshake, Check, XCircle, Trash2, Download } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -458,6 +459,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                 </div>
               ) : (
                 <>
+                  {listing && <AgreementReminder variant="banner" defaultOpen={messages.length === 0} className="mb-3" />}
                   {messages.length > 0 && listing && (
                     <div className="mb-2">
                       <DealTimeline
@@ -540,7 +542,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                   <button 
                     type="submit" 
                     disabled={!newMessage.trim()} 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 transition-all hover:scale-105 active:scale-95"
                   >
                     <Send className="w-4 h-4 ml-0.5" />
                   </button>
@@ -646,7 +648,8 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                 </>
               ) : (
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">{t('msg.financing_type', 'Répartition du financement')}</label>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/50 mb-1.5 font-medium">{t('msg.financing_type', 'Répartition du financement')}</label>
+                  <p className="text-xs text-white/55 font-light leading-relaxed mb-3">{t('msg.financing_hint', "D'où vient l'argent de votre offre : la part financée par un prêt bancaire et la part que vous apportez vous-même. Le vendeur le voit dans l'offre, et c'est repris dans la lettre d'intention.")}</p>
                   <div className="h-3 w-full rounded-full overflow-hidden flex border border-white/10 mb-3">
                     <div className="h-full bg-primary transition-all" style={{ width: `${loanPct}%` }} />
                     <div className="h-full bg-emerald-400 transition-all" style={{ width: `${100 - loanPct}%` }} />
@@ -664,7 +667,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
               )}
 
               <div className="pt-4 flex flex-col gap-3">
-                <Button type="submit" disabled={!offerAmount || isSendingOffer} className="w-full rounded-xl h-14 bg-primary hover:bg-primary/90 text-white text-[15px] font-medium transition-all shadow-[0_0_25px_rgba(168,85,247,0.4)] border-none">
+                <Button type="submit" disabled={!offerAmount || isSendingOffer} className="w-full rounded-xl h-14 bg-primary hover:bg-primary/90 text-white text-[15px] font-medium transition-all border-none">
                   {offerToEdit ? t('msg.offer_modify') : t('msg.offer_submit')}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => { setIsOfferModalOpen(false); setOfferToEdit(null); setOfferAmount(""); setOfferConditions(""); setOfferMessage(""); }} className="w-full rounded-xl h-12 text-white/50 hover:text-white hover:bg-white/5 transition-colors border-none">

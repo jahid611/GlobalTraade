@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { countryLabel } from '@/lib/countries';
 import type { Listing } from '@/types/domain';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,7 +51,7 @@ export default function Profile() {
   const { user: currentUser, loading: authLoading } = useAuth();
   const { plan: myPlan } = usePlan(currentUser?.id);
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const targetId = routeId || currentUser?.id;
   const isOwnProfile = !routeId || routeId === currentUser?.id;
@@ -396,7 +397,7 @@ export default function Profile() {
                     metadata.account_type && (t(`onb.type_${metadata.account_type}`, metadata.account_type) as string),
                     metadata.role_function && (t(`onb.role_${metadata.role_function}`, ROLE_FUNCTION_LABELS[metadata.role_function] || metadata.role_function) as string),
                     metadata.company_name && [metadata.company_name, metadata.legal_form].filter(Boolean).join(' · '),
-                    metadata.country,
+                    countryLabel(metadata.country, i18n.language),
                   ].filter(Boolean) as string[];
                   if (!bits.length) return null;
                   return (
@@ -440,7 +441,7 @@ export default function Profile() {
                     )}
                     {connectionStatus === 'pending_received' && (
                       <div className="flex gap-2">
-                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+                        <Button onClick={() => handleAccept(connectionId)} className="rounded-full h-[10vw] sm:h-12 max-h-[48px] px-6 bg-primary text-white hover:bg-primary/90 transition-all border-none outline-none font-medium text-[clamp(10px,1vw,12px)] uppercase tracking-widest">
                           <Check className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('profile.accept')}</span>
                         </Button>
                         <Button onClick={() => handleDeclineOrRemove(true, connectionId)} variant="outline" className="w-[10vw] h-[10vw] sm:w-12 sm:h-12 max-w-[48px] max-h-[48px] rounded-full p-0 border-white/30 dark:border-white/10 liquid-glass bg-transparent text-white hover:bg-red-500/20 hover:text-white hover:border-red-500/50 transition-all outline-none">

@@ -16,7 +16,7 @@ import { usePlan, hasContentAccess, checkPublicationQuota, UNLOCK_PRICE, BOOST_P
 import type { SearchAd } from '@/types/domain';
 import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
-import { INDUSTRIES } from '@/lib/industries';
+import { INDUSTRIES, industryOptions } from '@/lib/industries';
 import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
 import { AMOUNT_RANGE_OPTIONS as RANGE_OPTIONS, isAmountRange } from '@/lib/ranges';
 import { MultiSelect } from '@/components/MultiSelect';
@@ -65,7 +65,7 @@ const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
 const INDUSTRY_SET = new Set(INDUSTRIES);
 
 export function SearchAdsBoard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -77,7 +77,7 @@ export function SearchAdsBoard() {
   const [saving, setSaving] = useState(false);
   const [adToDelete, setAdToDelete] = useState<SearchAd | null>(null);
 
-  const sectorOptions = useMemo(() => INDUSTRIES.map((i) => ({ value: i, label: t(`industry.${i}`, { defaultValue: i }) as string })), [t]);
+  const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
   const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
 
   // Libellés d'affichage

@@ -1,10 +1,15 @@
 import i18n from 'i18next';
+import { LAZY_LANGUAGES, isLanguage, loadLanguageBundle, type LanguageCode } from './locales';
 import { initReactI18next } from 'react-i18next';
 import { additionsEn, additionsFr } from './i18n.additions';
 import { pagesKeys } from './i18n.pages';
 import { assistantKeys } from './i18n.assistant';
+import { projectsKeys } from './i18n.projects';
+import { projectFormKeys } from './i18n.projectform';
+import { radarKeys } from './i18n.radar';
+import { crmKeys } from './i18n.crm';
 
-const industriesFr: Record<string, string> = {
+export const industriesFr: Record<string, string> = {
   "Automotive Sales / Maintenance": "Vente / Maintenance Automobile",
   "Web Agency / SEO": "Agence Web / SEO",
   "Staffing Agency": "Agence d'Intérim",
@@ -344,7 +349,28 @@ const industriesFr: Record<string, string> = {
   "Glassware": "Verrerie",
   "Poultry Dealer": "Volailler",
   "Webdesign": "Webdesign",
-  "Yoga": "Yoga"
+  "Yoga": "Yoga",
+  "Tech / AI": "Tech & IA",
+  "Agriculture": "Agriculture",
+  "Healthcare": "Santé",
+  "Education": "Éducation",
+  "Finance": "Finance",
+  "Industry / Manufacturing": "Industrie",
+  "Retail": "Commerce",
+  "Fashion / Textile": "Mode & Textile",
+  "Beauty / Wellness": "Beauté & Bien-être",
+  "Sport / Leisure": "Sport & Loisirs",
+  "Tourism / Hospitality": "Tourisme & Hôtellerie",
+  "Culture / Art": "Culture & Art",
+  "Media / Communication": "Médias & Communication",
+  "Real Estate": "Immobilier",
+  "Transport": "Transport",
+  "Energy": "Énergie",
+  "Environment": "Environnement",
+  "Services": "Services",
+  "Automotive": "Automobile",
+  "Other": "Autre",
+  "Fast Food Restaurant": "Restaurant de Restauration Rapide"
 };
 
 const flatIndustriesFr = Object.fromEntries(
@@ -1788,7 +1814,11 @@ const resources = {
       ...manualFixesEn,
       ...additionsEn,
       ...pagesKeys.en,
-      ...assistantKeys.en
+      ...assistantKeys.en,
+      ...projectsKeys.en,
+      ...projectFormKeys.en,
+      ...radarKeys.en,
+      ...crmKeys.en
     }
   },
   fr: {
@@ -3202,18 +3232,46 @@ const resources = {
       ...manualFixesFr,
       ...additionsFr,
       ...pagesKeys.fr,
-      ...assistantKeys.fr
+      ...assistantKeys.fr,
+      ...projectsKeys.fr,
+      ...projectFormKeys.fr,
+      ...radarKeys.fr,
+      ...crmKeys.fr
     }
   }
 };
+
+// Langue enregistrée. Le français et l'anglais démarrent tout de suite ; une
+// autre langue démarre en français, le temps de télécharger ses textes.
+const storedLanguage = localStorage.getItem('language');
+const startLanguage = storedLanguage === 'en' || storedLanguage === 'fr' ? storedLanguage : 'fr';
 
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: localStorage.getItem('language') || 'fr',
+    lng: startLanguage,
     fallbackLng: 'en',
     interpolation: { escapeValue: false }
   });
+
+/**
+ * Change la langue du site. Les langues autres que le français et l'anglais
+ * sont téléchargées au premier usage (src/locales/<code>/).
+ */
+export async function setLanguage(code: string): Promise<void> {
+  const language: LanguageCode = isLanguage(code) ? code : 'fr';
+  if (LAZY_LANGUAGES.includes(language) && !i18n.hasResourceBundle(language, 'translation')) {
+    const bundle = await loadLanguageBundle(language, industriesFr);
+    i18n.addResourceBundle(language, 'translation', bundle, true, true);
+  }
+  await i18n.changeLanguage(language);
+  localStorage.setItem('language', language);
+  document.documentElement.lang = language;
+}
+
+if (isLanguage(storedLanguage) && storedLanguage !== startLanguage) {
+  void setLanguage(storedLanguage).catch(() => { /* on reste en français */ });
+}
 
 export default i18n;

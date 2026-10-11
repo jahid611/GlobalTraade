@@ -42,9 +42,4 @@ export const ROLE_FUNCTION_LABELS: Record<string, string> = {
 // Formes juridiques (France)
 export const LEGAL_FORMS = ['SAS', 'SASU', 'SARL', 'EURL', 'SA', 'SNC', 'EI', 'Micro-entreprise', 'Autre'] as const;
 
-// Pays : la plateforme est centrée sur la France, sans s'y enfermer.
-export const COUNTRIES = [
-  'France', 'Belgique', 'Suisse', 'Luxembourg', 'Monaco',
-  'Allemagne', 'Espagne', 'Italie', 'Portugal', 'Pays-Bas',
-  'Royaume-Uni', 'Irlande', 'Canada', 'Maroc', 'Tunisie', 'Autre',
-] as const;
+// Les pays ont leur propre liste maîtresse : src/lib/countries.ts.

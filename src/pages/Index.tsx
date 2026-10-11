@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useRef } from 'react';
+import { filmSrc } from '@/lib/film';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SolarSystem } from '@/components/SolarSystem';
+import RocketTakeoff from '@/components/RocketLaunch';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { INDUSTRIES } from '@/lib/industries';
@@ -31,7 +33,7 @@ const staggerContainer = {
 export default function Index() {
   const containerRef = useRef(null);
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,9 +84,10 @@ export default function Index() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[8%] right-[-10%] md:top-[5%] md:right-[5%] w-[220px] md:w-[35vw] max-w-[500px] z-0 pointer-events-none opacity-100"
+          className="absolute top-[-6px] right-[5%] md:top-0 lg:top-[6px] md:right-[5%] min-[1700px]:top-[6%] min-[1700px]:right-[2%] w-[112px] md:w-[150px] lg:w-[110px] min-[1700px]:w-[340px] z-[110] pointer-events-none opacity-100"
         >
-          <img src="/astronaut-monster.png" alt="Astronaut and Monster" className="w-full h-auto drop-shadow-2xl" />
+          {/* Globi, la mascotte du site, à la place de l'ancien astronaute (même emplacement) */}
+          <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
         <motion.h1 
@@ -150,8 +153,9 @@ export default function Index() {
             />
             <div className="absolute z-0 overflow-hidden rounded-[3px]" style={{ top: '2.2%', left: '10.8%', right: '11%', bottom: '0.8%' }}>
               <video
-                ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
-                src="/demo-desktop.mp4"
+                ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
+                key={filmSrc('desktop', i18n.language)}
+                src={filmSrc('desktop', i18n.language)}
                 preload="metadata" autoPlay loop muted playsInline
                 className="w-full h-full object-cover"
               />
@@ -191,13 +195,7 @@ export default function Index() {
             transition={{ duration: 0.8 }}
             className="relative w-full max-w-[500px]"
           >
-            <Link to="/app" className="block group cursor-pointer" title="Accéder au globe interactif">
-              <img 
-                src="/rocket.png" 
-                alt="Fusée de lancement Globly" 
-                className="relative z-10 w-full h-auto transition-transform duration-500 group-hover:-translate-y-4" 
-              />
-            </Link>
+            <RocketTakeoff />
           </motion.div>
         </div>
       </section>
@@ -294,8 +292,9 @@ export default function Index() {
                    }}
                  >
                    <video
-                     ref={(el) => { if (el) { el.playbackRate = 1.2; el.muted = true; el.play?.().catch(() => {}); } }}
-                     src="/demo-mobile.mp4"
+                     ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
+                     key={filmSrc('mobile', i18n.language)}
+                src={filmSrc('mobile', i18n.language)}
                      preload="metadata" autoPlay loop muted playsInline
                      className="w-full h-full object-cover"
                    />

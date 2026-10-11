@@ -102,10 +102,6 @@ export default function Marketplace() {
     target_geo: user?.user_metadata?.target_geo,
   }), [user]);
 
-  const availableIndustries = useMemo(() => {
-    return Array.from(new Set(listings.map(l => l.industry))).sort();
-  }, [listings]);
-
   // Vendeurs les mieux notés : leurs annonces sont mises en avant gratuitement
   const { data: trustedOwners } = useQuery({
     queryKey: ['trusted-owners'],
@@ -231,7 +227,7 @@ export default function Marketplace() {
   ];
 
   const smartForm = (
-    <SmartMatchForm key={smartFormKey} variant="hero" onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} availableIndustries={availableIndustries} />
+    <SmartMatchForm key={smartFormKey} variant="hero" onResults={handleSmartMatch} onReset={() => setMatchCriteria(null)} />
   );
 
   const filtersButton = (
@@ -257,15 +253,15 @@ export default function Marketplace() {
       {/* Pleine largeur : la page occupe tout l'écran, avec une simple marge. */}
       <main className="relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full">
         {/* En-tête : titre à gauche, choix du sens à droite */}
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
+        <div className="relative z-[110] pointer-events-none [&>*]:pointer-events-auto flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
           {/* Mobile et tablette : l'astronaute en fond, derrière le titre, à droite */}
           <motion.div
             aria-hidden="true"
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="xl:hidden absolute -top-10 right-0 sm:right-6 w-[150px] sm:w-[180px] z-0 pointer-events-none opacity-35"
+            className="xl:hidden absolute -top-10 right-0 sm:right-6 w-[150px] sm:w-[180px] z-0 !pointer-events-none opacity-35"
           >
-            <img src="/astronaut-canneapeche-star.png" alt="" className="w-full h-auto" />
+            <img src="/mascot/globi-peche.png" alt="" className="w-full h-auto" />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10">
@@ -281,9 +277,9 @@ export default function Marketplace() {
           <motion.div
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="hidden xl:block ml-auto mr-8 -my-14 w-[190px] 2xl:w-[210px] shrink-0 pointer-events-none opacity-95"
+            className="hidden xl:block relative z-[110] ml-auto mr-8 -my-14 w-[190px] 2xl:w-[210px] shrink-0 !pointer-events-none opacity-95"
           >
-            <img src="/astronaut-canneapeche-star.png" alt="Astronaut Fishing for Stars" className="w-full h-auto drop-shadow-2xl" />
+            <img src="/mascot/globi-peche.png" alt="" className="w-full h-auto drop-shadow-2xl" />
           </motion.div>
 
           {/* Deux sens : entreprises à vendre / repreneurs en recherche */}
