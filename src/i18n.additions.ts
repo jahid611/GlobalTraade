@@ -29,6 +29,9 @@ export const additionsFr: Record<string, string> = {
   "searchads.delete_title": "Supprimer cette recherche ?",
   "searchads.delete_confirm": "Supprimer",
   "common.cancel": "Annuler",
+  // Messagerie
+  "msg.delete_refused": "Ce message ne peut pas être supprimé (une offre acceptée reste dans la conversation).",
+  "msg.deleted": "Conversation retirée de votre boîte. Votre interlocuteur garde son historique.",
   // Marketplace (refonte pleine largeur)
   "market.portfolios": "Entreprises à vendre",
   "market.found": "annonce(s) correspondent à votre recherche.",
@@ -90,6 +93,8 @@ export const additionsEn: Record<string, string> = {
   "searchads.delete_title": "Delete this search?",
   "searchads.delete_confirm": "Delete",
   "common.cancel": "Cancel",
+  "msg.delete_refused": "This message cannot be deleted (an accepted offer stays in the conversation).",
+  "msg.deleted": "Conversation removed from your inbox. The other person keeps their history.",
   "market.portfolios": "Businesses for sale",
   "market.found": "listing(s) match your search.",
   "market.adjust_filters": "Filters",

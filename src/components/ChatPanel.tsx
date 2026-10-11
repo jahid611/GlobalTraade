@@ -224,11 +224,17 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     }
   };
 
+  // Son propre message : réellement retiré. Un message reçu : masqué pour soi.
   const handleDeleteMessage = async (msgId: string) => {
+    const target = messages.find(m => m.id === msgId);
     setMessages(prev => prev.filter(m => m.id !== msgId));
-    const { error } = await supabase.from('messages').delete().eq('id', msgId);
-    if (error) {
-      showError(t('msg.error'));
+    const mine = !target || target.sender_id === user?.id;
+    const { data, error } = mine
+      ? await supabase.from('messages').delete().eq('id', msgId).select('id')
+      : await supabase.rpc('hide_message', { p_id: msgId });
+    const nothingDone = mine ? !data || (data as unknown[]).length === 0 : false;
+    if (error || nothingDone) {
+      showError(nothingDone ? t('msg.delete_refused', 'Ce message ne peut pas être supprimé (une offre acceptée reste dans la conversation).') : t('msg.error'));
       fetchRef.current();
     }
   };

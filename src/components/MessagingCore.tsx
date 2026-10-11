@@ -215,11 +215,19 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     }
   };
 
+  // Son propre message : il est réellement retiré (sauf une offre acceptée, que
+  // la base refuse de supprimer). Un message reçu : il est seulement masqué
+  // pour soi — l'autre garde son historique.
   const handleDeleteMessage = async (msgId: string) => {
+    const target = allMessages.find(m => m.id === msgId);
     setAllMessages(prev => prev.filter(m => m.id !== msgId));
-    const { error } = await supabase.from('messages').delete().eq('id', msgId);
-    if (error) {
-      showError(t('msg.error'));
+    const mine = !target || target.sender_id === user?.id;
+    const { data, error } = mine
+      ? await supabase.from('messages').delete().eq('id', msgId).select('id')
+      : await supabase.rpc('hide_message', { p_id: msgId });
+    const nothingDone = mine ? !data || (data as unknown[]).length === 0 : false;
+    if (error || nothingDone) {
+      showError(nothingDone ? t('msg.delete_refused', 'Ce message ne peut pas être supprimé (une offre acceptée reste dans la conversation).') : t('msg.error'));
       fetchAllData(false);
     }
   };
@@ -338,16 +346,12 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     if (activeConv?.id === convToDelete.id) setActiveConv(null);
 
     try {
-      let query = supabase.from('messages').delete();
-      
-      if (convToDelete.project_id) {
-        query = query.eq('project_id', convToDelete.project_id);
-      } else {
-        query = query.eq('listing_id', convToDelete.listing_id);
-      }
-
-      // Supprimer tous les messages échangés avec cet utilisateur précis pour cette référence
-      const { error } = await query.or(`sender_id.eq.${convToDelete.other_user_id},receiver_id.eq.${convToDelete.other_user_id}`);
+      // Masquée pour moi seulement : l'autre garde la conversation et ses offres.
+      const { error } = await supabase.rpc('hide_conversation', {
+        p_other: convToDelete.other_user_id,
+        p_listing: convToDelete.project_id ? null : (convToDelete.listing_id ?? null),
+        p_project: convToDelete.project_id ?? null,
+      });
 
       if (error) throw error;
       showSuccess(t('msg.deleted', 'Conversation supprimée.'));

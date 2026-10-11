@@ -26,6 +26,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EN_ATTENTE = [
   'supabase/_claude_sec_durcissement_2.sql',
   'supabase/_claude_sec_quotas.sql',
+  'supabase/_claude_messagerie.sql',
 ];
 
 function jeton() {

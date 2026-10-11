@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageCircle, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,6 +30,18 @@ export function ConversationList({
 }: ConversationListProps) {
   const dateLocale = language === 'fr' ? fr : enUS;
 
+  // Recherche : nom de l'interlocuteur, annonce ou dernier message.
+  const [query, setQuery] = useState('');
+  const visible = useMemo(() => {
+    const clean = (v: string) => v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const words = clean(query).split(/\s+/).filter(Boolean);
+    if (!words.length) return conversations;
+    return conversations.filter(conv => {
+      const haystack = clean([conv.contact_name, conv.listing_name, conv.last_message].filter(Boolean).join(' '));
+      return words.every(w => haystack.includes(w));
+    });
+  }, [conversations, query]);
+
   const formatMsgDate = (dateStr: string) => {
     const d = new Date(dateStr);
     if (isToday(d)) return format(d, 'HH:mm');
@@ -45,6 +57,9 @@ export function ConversationList({
           <Search className="absolute left-3 w-4 h-4 text-white/30" />
           <input 
             type="text" 
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            aria-label={t('msg.search_placeholder', 'Rechercher') as string}
             placeholder={t('msg.search_placeholder', 'Rechercher')}
             className="w-full liquid-glass bg-[#2b2a2f] sm:bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
           />
@@ -52,9 +67,9 @@ export function ConversationList({
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-        {conversations.length > 0 ? (
+        {visible.length > 0 ? (
           <AnimatePresence initial={false}>
-            {conversations.map(conv => (
+            {visible.map(conv => (
               <motion.div
                 key={conv.id}
                 initial={{ opacity: 0, scale: 0.98 }}
