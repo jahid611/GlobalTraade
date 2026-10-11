@@ -52,7 +52,15 @@ supabase link --project-ref uspqseorjkaqxcmliamg
 supabase functions deploy create-checkout-session
 supabase functions deploy stripe-webhook --no-verify-jwt     # important : --no-verify-jwt
 supabase functions deploy reconcile-stripe --no-verify-jwt
+supabase functions deploy create-portal-session
 ```
+
+Sans Docker, ajouter `--use-api` à chaque commande.
+
+**Portail de facturation** (résiliation, factures, carte) : à activer une fois
+dans **Stripe → Settings → Billing → Customer portal**, en autorisant
+l'annulation des abonnements. Tant que ce n'est pas fait, le bouton « Gérer mon
+abonnement » de la page Formules renvoie une erreur Stripe.
 
 Puis dans **Stripe → Developers → Webhooks → Add endpoint** :
 - URL : `https://uspqseorjkaqxcmliamg.supabase.co/functions/v1/stripe-webhook`

@@ -96,9 +96,14 @@ serve(async (req) => {
 
     // Réutilise le client Stripe rattaché à l'utilisateur s'il existe
     let customerId: string | undefined;
+    let currentPlan = "free";
+    let hasSubscription = false;
     {
-      const { data: prof } = await supabase.from("profiles").select("stripe_customer_id").eq("id", user.id).single();
+      const { data: prof } = await supabase.from("profiles")
+        .select("stripe_customer_id, stripe_subscription_id, plan_type").eq("id", user.id).single();
       customerId = prof?.stripe_customer_id || undefined;
+      currentPlan = prof?.plan_type || "free";
+      hasSubscription = !!prof?.stripe_subscription_id;
     }
 
     const baseMeta: Record<string, string> = { user_id: user.id, kind: String(kind) };
@@ -106,6 +111,18 @@ serve(async (req) => {
 
     if (kind === "subscription") {
       if (plan !== "pro" && plan !== "business") return json({ error: "Formule invalide." }, 400);
+      // Pas de second abonnement pour la même formule ni pour une formule
+      // inférieure : le membre paierait deux fois. Monter en gamme reste permis
+      // (l'ancien abonnement est résilié par le webhook après paiement).
+      const rank: Record<string, number> = { free: 0, pro: 1, business: 2 };
+      if (hasSubscription && (rank[plan] ?? 0) <= (rank[currentPlan] ?? 0)) {
+        return json({
+          error: plan === currentPlan
+            ? "Vous avez déjà cette formule."
+            : "Votre formule actuelle inclut déjà celle-ci. Pour en changer, gérez votre abonnement.",
+          alreadySubscribed: true,
+        }, 409);
+      }
       session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: customerId,

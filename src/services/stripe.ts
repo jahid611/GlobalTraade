@@ -65,3 +65,29 @@ export async function openCheckout(url: string) {
   const { Browser } = await import('@capacitor/browser');
   await Browser.open({ url, presentationStyle: 'popover' });
 }
+
+/**
+ * Ouvre le portail de facturation Stripe du membre (factures, moyen de paiement,
+ * résiliation). La résiliation est appliquée en base par le webhook Stripe.
+ */
+export async function openBillingPortal(): Promise<{ ok: boolean; error?: string; notConfigured?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('create-portal-session', { body: {} });
+
+  if (error) {
+    let msg = error.message;
+    let status = 0;
+    try {
+      const resp = (error as { context?: Response }).context;
+      status = resp?.status || 0;
+      const body = resp ? await resp.clone().json() : null;
+      if (body?.error) msg = body.error;
+    } catch { /* noop */ }
+    return { ok: false, error: msg, notConfigured: status === 503 || status === 0 };
+  }
+
+  const url = (data as { url?: string } | null)?.url;
+  if (!url) return { ok: false, error: (data as { error?: string } | null)?.error };
+  if (isNativeApp()) await openCheckout(url);
+  else window.location.assign(url);
+  return { ok: true };
+}

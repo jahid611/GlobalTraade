@@ -25,6 +25,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // durcissement 2.
 const EN_ATTENTE = [
   'supabase/_claude_sec_durcissement_2.sql',
+  'supabase/_claude_sec_quotas.sql',
 ];
 
 function jeton() {

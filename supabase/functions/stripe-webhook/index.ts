@@ -38,16 +38,31 @@ serve(async (req) => {
   try {
     if (event.type === "checkout.session.completed") {
       const s = event.data.object as Stripe.Checkout.Session;
-      await fulfillSession(admin, {
+      const { replacedSubscriptionId } = await fulfillSession(admin, {
         id: s.id,
         customer: s.customer as string | null,
         subscription: s.subscription as string | null,
         metadata: s.metadata as Record<string, string> | null,
       });
+      // Changement de formule : on résilie l'ancien abonnement, sinon le membre
+      // paierait les deux. Un échec ici ne doit pas annuler le fulfillment (le
+      // nouveau plan est acquis) : on le journalise pour le traiter à la main.
+      if (replacedSubscriptionId) {
+        try {
+          await stripe.subscriptions.cancel(replacedSubscriptionId, { prorate: true });
+        } catch (e) {
+          console.error("[stripe-webhook] ancien abonnement non résilié", replacedSubscriptionId, (e as Error).message);
+        }
+      }
     } else if (event.type === "customer.subscription.deleted") {
+      // On ne repasse en gratuit que si c'est bien l'abonnement EN COURS du
+      // membre qui s'arrête — pas l'ancien, résilié lors d'un changement de formule.
       const sub = event.data.object as Stripe.Subscription;
       const userId = (sub.metadata as Record<string, string>)?.user_id;
-      if (userId) await admin.from("profiles").update({ plan_type: "free", stripe_subscription_id: null }).eq("id", userId);
+      if (userId) {
+        await admin.from("profiles").update({ plan_type: "free", stripe_subscription_id: null })
+          .eq("id", userId).eq("stripe_subscription_id", sub.id);
+      }
     } else if (event.type === "customer.subscription.updated") {
       // Changement de formule, impayé, résiliation immédiate… On aligne le plan
       // sur l'état réel de l'abonnement plutôt que de le laisser figé.
@@ -56,10 +71,15 @@ serve(async (req) => {
       const userId = meta.user_id;
       if (userId) {
         const active = sub.status === "active" || sub.status === "trialing";
-        await admin.from("profiles").update({
-          plan_type: active ? (meta.plan || "pro") : "free",
-          stripe_subscription_id: active ? sub.id : null,
-        }).eq("id", userId);
+        // Même garde : un événement sur un ancien abonnement ne touche pas au plan.
+        const { data: prof } = await admin.from("profiles").select("stripe_subscription_id").eq("id", userId).maybeSingle();
+        const current = (prof?.stripe_subscription_id as string | null) || null;
+        if (!current || current === sub.id) {
+          await admin.from("profiles").update({
+            plan_type: active ? (meta.plan || "pro") : "free",
+            stripe_subscription_id: active ? sub.id : null,
+          }).eq("id", userId);
+        }
       }
     }
   } catch (e: any) {

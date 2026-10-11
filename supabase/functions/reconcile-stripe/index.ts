@@ -63,12 +63,16 @@ serve(async (req) => {
       if (await alreadyApplied(admin, s)) continue;
 
       try {
-        await fulfillSession(admin, {
+        const { replacedSubscriptionId } = await fulfillSession(admin, {
           id: s.id,
           customer: s.customer as string | null,
           subscription: s.subscription as string | null,
           metadata: s.metadata as Record<string, string> | null,
         });
+        if (replacedSubscriptionId) {
+          try { await stripe.subscriptions.cancel(replacedSubscriptionId, { prorate: true }); }
+          catch (e) { console.error("[reconcile-stripe] ancien abonnement non résilié", replacedSubscriptionId, (e as Error).message); }
+        }
         repaired.push(s.id);
       } catch (e) {
         await admin.from("stripe_events").delete().eq("id", marker);

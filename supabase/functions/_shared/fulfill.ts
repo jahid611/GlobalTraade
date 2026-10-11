@@ -31,13 +31,25 @@ export type SessionLike = {
   metadata?: Record<string, string> | null;
 };
 
+export type FulfillResult = {
+  /** abonnement précédent du membre, remplacé par celui de cette session : à
+   *  résilier côté Stripe pour ne pas le facturer deux fois (changement de formule) */
+  replacedSubscriptionId?: string;
+};
+
 /** Applique en base l'effet d'une session Checkout payée. */
-export async function fulfillSession(admin: SupabaseClient, s: SessionLike): Promise<void> {
+export async function fulfillSession(admin: SupabaseClient, s: SessionLike): Promise<FulfillResult> {
   const m = (s.metadata || {}) as Record<string, string>;
   const userId = m.user_id;
-  if (!userId) return;
+  const result: FulfillResult = {};
+  if (!userId) return result;
 
   if (m.kind === "subscription") {
+    // Passage de Pro à Business : l'ancien abonnement existe encore chez Stripe.
+    const { data: before } = await admin.from("profiles").select("stripe_subscription_id").eq("id", userId).maybeSingle();
+    const previous = (before?.stripe_subscription_id as string | null) || null;
+    if (previous && s.subscription && previous !== s.subscription) result.replacedSubscriptionId = previous;
+
     await admin.from("profiles").update({
       plan_type: m.plan,
       stripe_customer_id: (s.customer as string) || null,
@@ -80,4 +92,5 @@ export async function fulfillSession(admin: SupabaseClient, s: SessionLike): Pro
   if (s.customer && m.kind !== "subscription") {
     await admin.from("profiles").update({ stripe_customer_id: s.customer as string }).eq("id", userId).then(must("client Stripe"));
   }
+  return result;
 }

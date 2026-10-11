@@ -19,7 +19,7 @@ import {
 } from '@/services/planService';
 import { UnlockTargetType, isUnlocked } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
-import { startCheckout, openCheckout } from '@/services/stripe';
+import { startCheckout, openCheckout, openBillingPortal } from '@/services/stripe';
 import { StripeCheckoutModal } from '@/components/StripeCheckoutModal';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -217,6 +217,19 @@ export default function Payment() {
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [pendingReturn, authLoading, user?.id]);
 
+  // Gestion de l'abonnement (factures, carte, résiliation) dans le portail Stripe
+  const [portalLoading, setPortalLoading] = useState(false);
+  const manageSubscription = async () => {
+    setPortalLoading(true);
+    const r = await openBillingPortal();
+    setPortalLoading(false);
+    if (!r.ok) {
+      showError(r.notConfigured
+        ? t('pay.portal_unavailable', "La gestion de l'abonnement en ligne n'est pas encore disponible. Écrivez-nous depuis la page Contact pour toute demande.")
+        : (r.error || t('pay.portal_error', "Impossible d'ouvrir la gestion de l'abonnement.")));
+    }
+  };
+
   const pay = async (payload: Parameters<typeof startCheckout>[0], loadingId: string) => {
     // Anonyme : connexion d'abord, puis retour sur cette page (avec sa cible).
     if (!user) return navigate('/login', { state: { from: location } });
@@ -380,8 +393,20 @@ export default function Payment() {
           </div>
         </motion.div>
 
+        {!!user && !planLoading && currentPlan !== 'free' && (
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <Button onClick={manageSubscription} disabled={portalLoading} variant="outline"
+              className="rounded-full h-11 px-6 bg-white/5 border-white/15 text-white hover:bg-white/10 text-xs uppercase tracking-widest font-medium outline-none">
+              {portalLoading ? t('pay.portal_opening', 'Ouverture…') : t('pay.manage_subscription', 'Gérer mon abonnement')}
+            </Button>
+            <p className="text-xs text-white/40 font-light text-center max-w-md">
+              {t('pay.manage_subscription_hint', 'Factures, moyen de paiement et résiliation : tout se fait en quelques clics sur la page sécurisée de Stripe.')}
+            </p>
+          </div>
+        )}
+
         <p className="text-[10px] text-white/30 uppercase tracking-widest font-light flex items-center justify-center gap-2">
-          <ShieldCheck className="w-3 h-3" /> {t('pay.secured_footer', 'Paiements sécurisés par Stripe · Sans engagement')}
+          <ShieldCheck className="w-3 h-3" /> {t('pay.secured_footer', 'Paiements sécurisés par Stripe · Sans engagement, résiliable à tout moment')}
         </p>
         </>
         )}

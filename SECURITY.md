@@ -149,12 +149,32 @@ room acceptaient n'importe quel `viewer_id`. Un admin, à l'inverse, ne pouvait
 ni valider un KYC ni vérifier un projet (aucune règle ne lui laissait lire la
 ligne) : c'est réparé.
 
+**Quotas imposés par la base** (`supabase/_claude_sec_quotas.sql`, appliqué le
+11/10/2026) : la messagerie (gratuit : uniquement vers l'auteur d'un contenu
+débloqué ; Pro : 20 nouvelles conversations par mois ; réponse toujours
+permise) et la publication (gratuit 1, Pro 5 annonces actives) sont vérifiées
+par des triggers. La base tient elle-même le compteur de conversations.
+Rejoué en production avec un compte gratuit : message à un inconnu refusé,
+deuxième publication refusée, réponse à une conversation reçue acceptée.
+
+**Stockage** (relevé le 11/10/2026, corrigé dans le même patch) : le bucket
+public `listings` acceptait un dépôt sans compte ; il exige maintenant d'être
+connecté et d'écrire dans son dossier. Les justificatifs KYC ne se déposent
+que dans `kyc/<uid>/`. Aucun trigger d'auto-confirmation sur `auth.users`.
+
+**Abonnements** : un second abonnement pour la même formule ou une formule
+inférieure est refusé par `create-checkout-session` ; lors d'une montée en
+gamme, l'ancien abonnement est résilié par le webhook, et la fin d'un ancien
+abonnement ne fait plus repasser le membre en gratuit. La résiliation passe
+par le portail Stripe (`create-portal-session`).
+
 **Reste ouvert, connu :**
-- Les quotas de messagerie (gratuit : pas de nouveau contact ; Pro : 20 par
-  mois) et de publication ne sont vérifiés que par l'application. Un appel
-  direct à l'API les contourne.
-- Les règles du stockage (`storage.objects`) et les triggers sur `auth.users`
-  ne figurent dans aucun fichier fiable : à relever avec les deux requêtes en
-  fin de patch.
-- Le test `scripts/test-sql.sh` ne pouvait pas échouer (`|| true`) : corrigé,
-  mais il ne couvre que le correctif du 22/09, pas celui-ci.
+- La confirmation d'email est désactivée dans Supabase Auth
+  (`mailer_autoconfirm`) : on peut s'inscrire avec l'adresse d'un tiers. À
+  activer dès que l'envoi d'emails est configuré.
+- Le verrou du code APE en prospection (Pro) n'existe que dans l'interface.
+- Le test `scripts/test-sql.sh` ne couvre que le correctif du 22/09 ; les
+  durcissements d'octobre ont été vérifiés à la main contre la production,
+  pas par un test automatique.
+- Le changement de formule (résiliation de l'ancien abonnement) n'a pas pu
+  être testé avec un vrai paiement.
