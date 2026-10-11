@@ -62,6 +62,7 @@ export function Navbar() {
 
   const [profile, setProfile] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const hasUnread = useUnreadMessages(user?.id);
@@ -146,31 +147,36 @@ export function Navbar() {
       )}
       <DropdownMenuSeparator className="bg-white/10 my-1" />
 
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="rounded-xl px-4 py-3 cursor-pointer flex items-center justify-between transition-all text-sm font-light">
-          <div className="flex items-center">
-            <Translate className="mr-3 h-4 w-4 text-blue-400" />
-            {t("lang.switch")}
-          </div>
-          <span className="ml-auto mr-2"><LanguageFlag code={i18n.language} size={20} /></span>
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent
-          className="w-52 p-1.5 rounded-2xl text-white"
-          style={{ background: "#211f25", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 50px rgba(0,0,0,0.55)" }}
-        >
+      <DropdownMenuItem
+        // on garde le menu ouvert : la liste des langues se déplie juste dessous
+        onSelect={(e) => { e.preventDefault(); setLangOpen((v) => !v); }}
+        aria-expanded={langOpen}
+        className="rounded-xl px-4 py-3 cursor-pointer flex items-center justify-between transition-all text-sm font-light"
+      >
+        <div className="flex items-center">
+          <Translate className="mr-3 h-4 w-4 text-blue-400" />
+          {t("lang.switch")}
+        </div>
+        <span className="flex items-center gap-2">
+          <LanguageFlag code={i18n.language} size={20} />
+          <span aria-hidden="true" className={`text-white/50 text-xs transition-transform ${langOpen ? "rotate-180" : ""}`}>▾</span>
+        </span>
+      </DropdownMenuItem>
+      {langOpen && (
+        <div className="mx-2 mb-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.05)" }}>
           {LANGUAGES.map((l) => (
             <DropdownMenuItem
               key={l.code}
-              onClick={() => { void setLanguage(l.code); }}
-              className="rounded-xl px-3 py-2.5 cursor-pointer flex items-center gap-3 text-sm font-light"
+              onSelect={(e) => { e.preventDefault(); void setLanguage(l.code); }}
+              className="rounded-lg px-3 py-2.5 cursor-pointer flex items-center gap-3 text-sm font-light"
             >
               <LanguageFlag code={l.code} size={20} />
               <span className="flex-1">{l.label}</span>
               {(i18n.language || "fr").slice(0, 2) === l.code && <span aria-hidden="true" style={{ color: "#a5b4fc" }}>✓</span>}
             </DropdownMenuItem>
           ))}
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
+        </div>
+      )}
 
       <DropdownMenuItem
         onClick={toggleTheme}

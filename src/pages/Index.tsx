@@ -84,25 +84,29 @@ export default function Index() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-6px] right-[5%] md:top-0 lg:top-[6px] md:right-[5%] min-[1700px]:top-[6%] min-[1700px]:right-[2%] w-[112px] md:w-[150px] lg:w-[110px] min-[1700px]:w-[340px] z-[110] pointer-events-none opacity-100"
+          className="absolute top-[-6px] right-[5%] md:top-0 md:right-[5%] lg:top-[5%] lg:right-[3%] w-[112px] md:w-[150px] lg:w-[21vw] lg:max-w-[400px] z-[110] pointer-events-none opacity-100"
         >
           {/* Globi, la mascotte du site, à la place de l'ancien astronaute (même emplacement) */}
           <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.1, duration: 0.6 }} 
-          className="relative z-10 text-[clamp(2.5rem,4.5vw,4.5rem)] font-light leading-[1.1] tracking-tighter text-white mb-[4vh] drop-shadow-2xl max-w-5xl mx-auto"
-        >
-          {t('index.hero.title1')} <br />
-          <span className="font-medium text-blue-600 dark:text-primary">{t('index.hero.title2')}</span>
-        </motion.h1>
+        {/* Ordinateur : le texte se centre dans la partie gauche et laisse la droite
+            à Globi, en grand, sans jamais passer devant le titre. */}
+        <div className="relative z-10 w-full flex flex-col items-center lg:pr-[24vw]">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.1, duration: 0.6 }} 
+            className="relative z-10 text-[clamp(2.5rem,4.5vw,4.5rem)] font-light leading-[1.1] tracking-tighter text-white mb-[4vh] drop-shadow-2xl max-w-5xl mx-auto"
+          >
+            {t('index.hero.title1')} <br />
+            <span className="font-medium text-blue-600 dark:text-primary">{t('index.hero.title2')}</span>
+          </motion.h1>
 
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} className="relative z-10 text-[clamp(1rem,1.1vw,1.25rem)] text-white/90 mb-[6vh] max-w-3xl font-light px-[2vw] leading-relaxed">
-          {t('index.hero.desc')}
-        </motion.p>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} className="relative z-10 text-[clamp(1rem,1.1vw,1.25rem)] text-white/90 mb-[6vh] max-w-3xl font-light px-[2vw] leading-relaxed">
+            {t('index.hero.desc')}
+          </motion.p>
+        </div>
 
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
           {[
