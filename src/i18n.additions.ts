@@ -591,6 +591,8 @@ export const additionsEn: Record<string, string> = {
   "account.suspended_text": "You can no longer publish or send messages for the moment.",
   "account.suspended_reason": "Reason given:",
   "account.suspended_contact": "Contact us",
+  "mfa.state_on": "On",
+  "mfa.state_off": "Off",
   "notice.kyc_verified_title": "Your identity is verified",
   "notice.kyc_verified_text": "The “Verified” badge now shows on your profile.",
   "notice.kyc_rejected_title": "Your identity check was not approved",
