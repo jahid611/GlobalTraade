@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
@@ -43,9 +43,9 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     if (user) {
       fetchAllData();
       const channel = supabase.channel('messaging-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchAllData(false))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => refreshSoon())
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      return () => { supabase.removeChannel(channel); if (refreshTimer.current) clearTimeout(refreshTimer.current); };
     }
   }, [user]);
 
@@ -93,6 +93,24 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     } else {
       setContactStatus('none');
     }
+  };
+
+  // Un envoi déclenche plusieurs signaux à la suite (insertion, lecture…) :
+  // on les regroupe en un seul rechargement discret, sans écran de chargement.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshSoon = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => { refreshTimer.current = null; fetchAllData(false); }, 350);
+  };
+
+  // Le message provisoire devient le message enregistré, à la même place et
+  // avec la même clé d'affichage : rien ne clignote. La liste des conversations
+  // se met à jour juste après, en arrière-plan.
+  const confirmSent = (tempId: string, saved: ChatMessage | null) => {
+    if (saved) {
+      setAllMessages(prev => prev.map(m => (m.id === tempId ? { ...m, ...saved, client_key: tempId } : m)));
+    }
+    refreshSoon();
   };
 
   const fetchAllData = async (showLoading = true) => {
@@ -172,9 +190,24 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       });
 
       setAllMessages(prev => {
+        // Un message déjà affiché garde sa clé d'affichage ; un envoi en cours
+        // (provisoire) passe la sienne au message enregistré qui lui correspond.
+        // Sans cela, React le redessine et son animation d'entrée rejoue.
+        const known = new Map(prev.map(m => [String(m.id), m.client_key]));
         const optimistic = prev.filter(m => String(m.id).startsWith('temp-'));
-        const stillOptimistic = optimistic.filter(om => !enrichedMessages.some(em => em.content === om.content && em.sender_id === om.sender_id));
-        return [...enrichedMessages, ...stillOptimistic].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const matched = new Set<string>();
+        const merged = enrichedMessages.map(em => {
+          if (known.has(String(em.id))) {
+            const key = known.get(String(em.id));
+            return key ? { ...em, client_key: key } : em;
+          }
+          const om = optimistic.find(o => !matched.has(String(o.id)) && o.content === em.content && o.sender_id === em.sender_id);
+          if (!om) return em;
+          matched.add(String(om.id));
+          return { ...em, client_key: om.client_key || String(om.id) };
+        });
+        const stillOptimistic = optimistic.filter(o => !matched.has(String(o.id)));
+        return [...merged, ...stillOptimistic].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       });
       setConversations(Array.from(convMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } else {
@@ -189,8 +222,10 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
   const handleSendMessage = async (content: string) => {
     if (!activeConv || !user) return;
     
+    const tempId = `temp-${Date.now()}`;
     const tempMsg = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
+      client_key: tempId,
       listing_id: activeConv.listing_id,
       project_id: activeConv.project_id,
       sender_id: user.id,
@@ -201,19 +236,19 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     
     setAllMessages(prev => [...prev, tempMsg]);
 
-    const { error } = await supabase.from('messages').insert([{
+    const { data: saved, error } = await supabase.from('messages').insert([{
       listing_id: activeConv.listing_id,
       project_id: activeConv.project_id,
       sender_id: user.id,
       receiver_id: activeConv.other_user_id,
       content
-    }]);
+    }]).select().single();
     
     if (error) {
       showError(t('msg.error'));
-      setAllMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      setAllMessages(prev => prev.filter(m => m.id !== tempId));
     } else {
-      fetchAllData(false);
+      confirmSent(tempId, saved);
     }
   };
 
@@ -277,8 +312,10 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     const financing = activeConv.project_id ? null : { loan: loanPct, equity: 100 - loanPct };
     const meta = { amount, financing, status: 'pending' };
 
+    const tempId = `temp-${Date.now()}`;
     const tempMsg = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
+      client_key: tempId,
       listing_id: activeConv.listing_id,
       project_id: activeConv.project_id,
       sender_id: user.id,
@@ -291,7 +328,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
 
     setAllMessages(prev => [...prev, tempMsg]);
 
-    const { error } = await supabase.from('messages').insert([{
+    const { data: saved, error } = await supabase.from('messages').insert([{
       listing_id: activeConv.listing_id,
       project_id: activeConv.project_id,
       sender_id: user.id,
@@ -299,16 +336,16 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
       content: `OFFRE: ${amount}€`,
       type: 'offer',
       metadata: meta
-    }]);
+    }]).select().single();
     
     if (error) {
       showError(t('msg.error'));
-      setAllMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      setAllMessages(prev => prev.filter(m => m.id !== tempId));
     } else {
       showSuccess(t('msg.offer_sent_success'));
       setIsOfferModalOpen(false);
       setOfferAmount("");
-      fetchAllData(false);
+      confirmSent(tempId, saved);
     }
   };
 

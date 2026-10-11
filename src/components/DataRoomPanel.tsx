@@ -82,8 +82,9 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
     }
   }, [isOpen, user, listing]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    // Après une action (signature, envoi, suppression), la liste se met à jour sans repasser par l'écran de chargement.
+    if (!silent) setLoading(true);
     try {
       if (!isOwner) {
         const { data: nda, error: ndaError } = await supabase
@@ -198,7 +199,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (error) throw error;
       showSuccess(t('vdr.toast_nda_signed'));
-      fetchData();
+      fetchData(true);
     } catch (err) {
       showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
     }
@@ -238,7 +239,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (error) throw error;
       showSuccess(newStatus === 'revoked' ? t('vdr.toast_revoked') : t('vdr.toast_restored'));
-      fetchData();
+      fetchData(true);
     } catch (err) {
       showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
     }
@@ -266,7 +267,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
 
       if (dbError) throw dbError;
       showSuccess(t('vdr.toast_doc_success'));
-      fetchData();
+      fetchData(true);
     } catch (err) {
       showError(`${t('vdr.toast_upload_error')}${errorMessage(err, '')}`);
     } finally {

@@ -52,7 +52,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages.length, isLoading]);
 
   useEffect(() => {
     if (isOpen && initialNeed) {
@@ -60,9 +60,13 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     }
   }, [isOpen, initialNeed]);
 
+  const loadedFor = useRef<string | null>(null);
   const fetchMessages = React.useCallback(async () => {
     if (!listing?.id || !user?.id) return;
-    setIsLoading(true);
+    // Squelette de chargement à la première ouverture du fil seulement : les
+    // rechargements suivants (message reçu, envoyé) se font sans rien masquer.
+    const firstLoad = loadedFor.current !== listing.id;
+    if (firstLoad) setIsLoading(true);
     
     const { data, error } = await supabase
       .from('messages')
@@ -97,15 +101,27 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       }
 
       setMessages(prev => {
-        const optimisticMessages = prev.filter(m => String(m.id).startsWith('temp-'));
-        const stillOptimistic = optimisticMessages.filter(om => !data.some(dm => dm.content === om.content && String(dm.sender_id) === String(om.sender_id)));
-        
-        return [...filtered, ...stillOptimistic].sort((a, b) => 
+        // Un message déjà affiché garde sa clé d'affichage ; un envoi en cours
+        // passe la sienne au message enregistré : pas de ré-animation.
+        const known = new Map(prev.map(m => [String(m.id), m.client_key]));
+        const optimistic = prev.filter(m => String(m.id).startsWith('temp-'));
+        const matched = new Set<string>();
+        const merged = filtered.map(dm => {
+          if (known.has(String(dm.id))) {
+            const key = known.get(String(dm.id));
+            return key ? { ...dm, client_key: key } : dm;
+          }
+          const om = optimistic.find(o => !matched.has(String(o.id)) && o.content === dm.content && String(o.sender_id) === String(dm.sender_id));
+          if (!om) return dm;
+          matched.add(String(om.id));
+          return { ...dm, client_key: om.client_key || String(om.id) };
+        });
+        const stillOptimistic = optimistic.filter(o => !matched.has(String(o.id)));
+        return [...merged, ...stillOptimistic].sort((a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       });
-      
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      loadedFor.current = listing.id;
     }
     setIsLoading(false);
   }, [listing?.id, listing?.owner_id, user?.id]);
@@ -200,6 +216,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     const tempId = `temp-${Date.now()}`;
     const tempMsg = {
       id: tempId,
+      client_key: tempId,
       listing_id: listing.id,
       sender_id: user.id,
       receiver_id: listing.owner_id,
@@ -208,7 +225,6 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     };
     
     setMessages(prev => [...prev, tempMsg]);
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
     const { data, error } = await supabase.from('messages')
       .insert([{ listing_id: listing.id, sender_id: user.id, receiver_id: listing.owner_id, content }])
@@ -219,7 +235,9 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       showError(t('msg.error'));
       setMessages(prev => prev.filter(m => m.id !== tempId));
     } else if (data) {
-      setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+      setMessages(prev => prev.some(m => m.id === data.id)
+        ? prev.filter(m => m.id !== tempId)
+        : prev.map(m => m.id === tempId ? { ...data, client_key: tempId } : m));
     }
   };
 
@@ -311,8 +329,10 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       return;
     }
 
+    const offerTempId = `temp-${Date.now()}`;
     const tempMsg = {
-      id: `temp-${Date.now()}`,
+      id: offerTempId,
+      client_key: offerTempId,
       listing_id: listing.id,
       sender_id: user.id,
       receiver_id: listing.owner_id,
@@ -340,7 +360,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
 
     setMessages(prev => prev.some(m => m.id === data.id)
       ? prev.filter(m => m.id !== tempMsg.id)
-      : prev.map(m => m.id === tempMsg.id ? data : m));
+      : prev.map(m => m.id === tempMsg.id ? { ...data, client_key: offerTempId } : m));
     setIsOfferModalOpen(false);
     setOfferAmount("");
     setOfferConditions("");
@@ -471,7 +491,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                     const showDate = i === 0 || formatMessageDate(msg.created_at) !== formatMessageDate(messages[i-1].created_at);
                     
                     return (
-                      <React.Fragment key={msg.id}>
+                      <React.Fragment key={msg.client_key || msg.id}>
                         {showDate && (
                           <div className="text-center my-[3vh]">
                             <span className="text-[9px] uppercase tracking-[0.2em] text-white/80 font-light liquid-glass bg-white/10 border-none px-3 py-1 rounded-full">{formatMessageDate(msg.created_at)}</span>

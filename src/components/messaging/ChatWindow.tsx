@@ -67,11 +67,18 @@ export function ChatWindow({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // On ne descend en bas que lorsqu'un message arrive réellement (ou qu'on
+  // change de conversation), pas à chaque rechargement silencieux de la liste.
+  // À l'ouverture : saut direct ; ensuite : défilement doux.
+  const lastMessage = messages[messages.length - 1];
+  const lastKey = lastMessage ? lastMessage.client_key || lastMessage.id : '';
+  const openedConv = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (activeTab === 'messages') {
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, activeTab]);
+    if (activeTab !== 'messages') return;
+    const first = openedConv.current !== activeConv?.id;
+    openedConv.current = activeConv?.id;
+    scrollRef.current?.scrollIntoView({ behavior: first ? 'auto' : 'smooth', block: 'end' });
+  }, [messages.length, lastKey, activeTab, activeConv?.id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +232,7 @@ export function ChatWindow({
                 if (isOffer) {
                   return (
                     <motion.div 
-                      key={msg.id}
+                      key={msg.client_key || msg.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="w-full py-2 flex"
@@ -237,7 +244,7 @@ export function ChatWindow({
 
                 return (
                   <motion.div 
-                    key={msg.id}
+                    key={msg.client_key || msg.id}
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}

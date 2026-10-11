@@ -158,6 +158,8 @@ export interface ChatMessage {
   metadata?: OfferMetadata | null;
   is_read?: boolean | null;
   created_at: string;
+  /** Clé d'affichage stable : un message envoyé garde la même entre sa version provisoire et sa version enregistrée (pas de ré-animation). */
+  client_key?: string;
 }
 
 /** Fil de discussion reconstitué côté client à partir des messages. */
