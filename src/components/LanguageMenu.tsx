@@ -5,15 +5,24 @@ import { useTranslation } from "react-i18next";
 import { Check, Loader2 } from "lucide-react";
 import { LANGUAGES, type LanguageCode } from "@/locales";
 import { setLanguage } from "@/i18n";
+import flagFr from "@/assets/flags/fr.svg";
+import flagGb from "@/assets/flags/gb.svg";
+import flagEs from "@/assets/flags/es.svg";
+import flagIt from "@/assets/flags/it.svg";
+import flagPt from "@/assets/flags/pt.svg";
+import flagDe from "@/assets/flags/de.svg";
 
-/** Drapeau rond d'une langue : les vrais drapeaux (public/flags, jeu libre « flag-icons »). */
+// Les vrais drapeaux (jeu libre « flag-icons »), embarqués avec le site : ils
+// s'affichent partout, sans dépendre d'un fichier servi à part.
+const FLAGS: Record<string, string> = { fr: flagFr, en: flagGb, es: flagEs, it: flagIt, pt: flagPt, de: flagDe };
+
+/** Drapeau rond d'une langue. */
 export function LanguageFlag({ code, size = 24 }: { code: string; size?: number }) {
   const lang = (code || "fr").slice(0, 2);
-  const file = lang === "en" ? "gb" : ["fr", "es", "it", "pt", "de"].includes(lang) ? lang : "fr";
   return (
     <img
-      src={`/flags/${file}.svg`} alt="" width={size} height={size} draggable={false}
-      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", boxShadow: "0 0 0 1px rgba(255,255,255,0.25)" }}
+      src={FLAGS[lang] ?? FLAGS.fr} alt="" width={size} height={size} draggable={false}
+      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", flexShrink: 0, boxShadow: "0 0 0 1px rgba(255,255,255,0.25)" }}
     />
   );
 }
