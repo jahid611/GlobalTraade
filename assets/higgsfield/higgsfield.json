@@ -1,26 +1,198 @@
 [
-  {"file": "mascotte-bonjour.png", "prompt": "Mascotte Globi : petit astronaute 3D style jouet, combinaison blanche, gants et bottes indigo, visière sombre avec deux yeux lumineux et un sourire, qui salue de la main. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-reflexion.png", "prompt": "La même mascotte Globi, pose de réflexion : main sous le menton, tête penchée, regard vers le haut. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-bravo.png", "prompt": "La même mascotte Globi qui célèbre : bras levés, petit saut, yeux en arcs heureux, confettis étoilés dorés. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-guide.png", "prompt": "La même mascotte Globi en guide : bloc-notes avec liste de cases cochées dans une main, index levé de l'autre. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etape-1-photo.png", "prompt": "La même mascotte Globi qui prend une photo avec un petit appareil, clin d'œil. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etape-2-carte.png", "prompt": "La même mascotte Globi qui tient un grand repère de carte indigo et le pose. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etape-3-chiffres.png", "prompt": "La même mascotte Globi avec une calculatrice, des pièces d'or à ses pieds, pouce levé. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etape-4-boutique.png", "prompt": "La même mascotte Globi qui brandit une clé de boutique dorée à côté d'une petite devanture. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etape-5-loupe.png", "prompt": "La même mascotte Globi qui regarde à travers une grande loupe, une étoile dorée à côté. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-vente-cle.png", "prompt": "La mascotte Globi remet une grande clé dorée à un second astronaute (le repreneur) devant une petite boutique. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-vente-accord.png", "prompt": "La mascotte Globi serre la main d'un second astronaute (le repreneur) et lui tend la clé de la boutique. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-connexion.png", "prompt": "La mascotte Globi flotte bras grands ouverts, une carte-clé lumineuse à la main (page de connexion). Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-inscription.png", "prompt": "La mascotte Globi chevauche une petite fusée, bras levé vers l'avant (page d'inscription). Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-bouee.png", "prompt": "La mascotte Globi allongée dans une bouée jaune, un verre à la main, qui salue. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-etoile.png", "prompt": "La mascotte Globi qui marche en portant une grande étoile jaune contre elle. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "mascotte-peche.png", "prompt": "La mascotte Globi qui pêche une étoile jaune avec une canne à pêche. Fond transparent.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-boulangerie.png", "prompt": "Photo d'illustration pour une annonce de démonstration (boulangerie), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-garage.png", "prompt": "Photo d'illustration pour une annonce de démonstration (garage), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-bistrot.png", "prompt": "Photo d'illustration pour une annonce de démonstration (bistrot), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-coiffure.png", "prompt": "Photo d'illustration pour une annonce de démonstration (coiffure), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-fleuriste.png", "prompt": "Photo d'illustration pour une annonce de démonstration (fleuriste), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-hotel.png", "prompt": "Photo d'illustration pour une annonce de démonstration (hotel), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-librairie.png", "prompt": "Photo d'illustration pour une annonce de démonstration (librairie), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"},
-  {"file": "annonce-menuiserie.png", "prompt": "Photo d'illustration pour une annonce de démonstration (menuiserie), sans texte ni personne.", "type": "image", "model": "gpt_image_2_5", "date": "2026-10-11"}
+ {
+  "file": "mascotte-bonjour.png",
+  "prompt": "Mascotte Globi : petit astronaute 3D style jouet, combinaison blanche, gants et bottes indigo, visière sombre avec deux yeux lumineux et un sourire, qui salue de la main. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-reflexion.png",
+  "prompt": "La même mascotte Globi, pose de réflexion : main sous le menton, tête penchée, regard vers le haut. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-bravo.png",
+  "prompt": "La même mascotte Globi qui célèbre : bras levés, petit saut, yeux en arcs heureux, confettis étoilés dorés. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-guide.png",
+  "prompt": "La même mascotte Globi en guide : bloc-notes avec liste de cases cochées dans une main, index levé de l'autre. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etape-1-photo.png",
+  "prompt": "La même mascotte Globi qui prend une photo avec un petit appareil, clin d'œil. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etape-2-carte.png",
+  "prompt": "La même mascotte Globi qui tient un grand repère de carte indigo et le pose. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etape-3-chiffres.png",
+  "prompt": "La même mascotte Globi avec une calculatrice, des pièces d'or à ses pieds, pouce levé. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etape-4-boutique.png",
+  "prompt": "La même mascotte Globi qui brandit une clé de boutique dorée à côté d'une petite devanture. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etape-5-loupe.png",
+  "prompt": "La même mascotte Globi qui regarde à travers une grande loupe, une étoile dorée à côté. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-vente-cle.png",
+  "prompt": "La mascotte Globi remet une grande clé dorée à un second astronaute (le repreneur) devant une petite boutique. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-vente-accord.png",
+  "prompt": "La mascotte Globi serre la main d'un second astronaute (le repreneur) et lui tend la clé de la boutique. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-connexion.png",
+  "prompt": "La mascotte Globi flotte bras grands ouverts, une carte-clé lumineuse à la main (page de connexion). Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-inscription.png",
+  "prompt": "La mascotte Globi chevauche une petite fusée, bras levé vers l'avant (page d'inscription). Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-bouee.png",
+  "prompt": "La mascotte Globi allongée dans une bouée jaune, un verre à la main, qui salue. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-etoile.png",
+  "prompt": "La mascotte Globi qui marche en portant une grande étoile jaune contre elle. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "mascotte-peche.png",
+  "prompt": "La mascotte Globi qui pêche une étoile jaune avec une canne à pêche. Fond transparent.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-boulangerie.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (boulangerie), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-garage.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (garage), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-bistrot.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (bistrot), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-coiffure.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (coiffure), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-fleuriste.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (fleuriste), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-hotel.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (hotel), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-librairie.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (librairie), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "annonce-menuiserie.png",
+  "prompt": "Photo d'illustration pour une annonce de démonstration (menuiserie), sans texte ni personne.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-11"
+ },
+ {
+  "file": "lune.png",
+  "prompt": "Pleine lune photoréaliste, surface détaillée (cratères, mers), éclairée depuis le haut à gauche, seule sur fond noir uni, sans étoiles ni texte.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
+ },
+ {
+  "file": "lune-detouree.png",
+  "prompt": "Pleine lune photoréaliste, surface détaillée (cratères, mers), éclairée depuis le haut à gauche, seule sur fond noir uni, sans étoiles ni texte. (version détourée, fond transparent, utilisée sur la page d'accueil)",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
+ },
+ {
+  "file": "terre.png",
+  "prompt": "Planète Terre vue de l'espace, photoréaliste, disque entier éclairé, Europe et Afrique au centre, seule sur fond noir uni, sans étoiles ni texte.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
+ },
+ {
+  "file": "terre-detouree.png",
+  "prompt": "Planète Terre vue de l'espace, photoréaliste, disque entier éclairé, Europe et Afrique au centre, seule sur fond noir uni, sans étoiles ni texte. (version détourée, fond transparent, icône du bouton de la carte)",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
+ }
 ]

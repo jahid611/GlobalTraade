@@ -92,7 +92,7 @@ export default function Index() {
 
         {/* Ordinateur : le texte se centre dans la partie gauche et laisse la droite
             à Globi, en grand, sans jamais passer devant le titre. */}
-        <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:pr-[24vw]">
+        <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:pr-[24vw] 2xl:pr-[15vw]">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
@@ -330,10 +330,10 @@ export default function Index() {
           ].map((f, i) => {
             const Icon = f.icon;
             return (
-              <div key={i} className="bg-white/[0.02] border border-white/10 p-8 rounded-[2rem] flex flex-col items-start text-left hover:-translate-y-1 hover:border-white/20 transition-all duration-300">
-                <div className={`p-3 rounded-2xl bg-white/5 mb-5 ${f.color}`}><Icon size={26} weight="duotone" /></div>
+              <div key={i} className="liquid-glass dark:bg-white/[0.02] border border-white/30 dark:border-white/10 p-8 rounded-[2rem] flex flex-col items-start text-left hover:-translate-y-1 hover:border-white/50 dark:hover:border-white/20 transition-all duration-300">
+                <div className={`p-3 rounded-2xl bg-white/15 dark:bg-white/5 mb-5 ${f.color}`}><Icon size={26} weight="duotone" /></div>
                 <h3 className="text-xl font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-white/50 font-light text-sm leading-relaxed">{f.desc}</p>
+                <p className="text-white/80 dark:text-white/50 font-light text-sm leading-relaxed">{f.desc}</p>
               </div>
             );
           })}
