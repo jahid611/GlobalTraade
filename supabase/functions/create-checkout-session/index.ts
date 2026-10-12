@@ -80,7 +80,11 @@ serve(async (req) => {
     }
 
     // returnPath peut déjà contenir des query params -> on ajoute session_id proprement.
-    const rp = returnPath || "/payment?success=1";
+    // Chemin interne uniquement : un seul « / » en tête. Sans ce contrôle,
+    // « @autre-site.tld/… » collé à l'origine changerait de domaine.
+    const rp = typeof returnPath === "string" && /^\/(?![\/\\])[A-Za-z0-9\-._~\/?=&%:]{0,300}$/.test(returnPath)
+      ? returnPath
+      : "/payment?success=1";
     const sep = rp.includes("?") ? "&" : "?";
     const returnUrl = `${origin}${rp}${sep}session_id={CHECKOUT_SESSION_ID}`;
 
@@ -152,9 +156,15 @@ serve(async (req) => {
       // Prospection : on peut régler plusieurs contacts supplémentaires d'un coup
       // (campagne). Les SIREN concernés voyagent dans les métadonnées — Stripe
       // limite chaque valeur à 500 caractères, soit ~45 SIREN.
+      // Chaque élément doit être UN SIREN : une chaîne « a,b,c » compterait
+      // pour un seul contact payé, puis serait redécoupée à la livraison.
+      const SIREN = /^\d{9}$/;
       const ids: string[] = Array.isArray(target?.ids)
-        ? target.ids.map((x: unknown) => String(x)).filter(Boolean).slice(0, 40)
+        ? [...new Set<string>(target.ids.map((x: unknown) => String(x).trim()))].filter((x) => SIREN.test(x)).slice(0, 40)
         : [];
+      if (kind === "prospection" && !ids.length && !SIREN.test(String(target?.id || "").trim())) {
+        return json({ error: "Numéro SIREN invalide." }, 400);
+      }
       const quantity = kind === "prospection" && ids.length > 0 ? ids.length : 1;
 
       const meta = {
@@ -177,6 +187,9 @@ serve(async (req) => {
             product_data: { name: `Globly — ${labels[kind]}${target?.name ? " · " + target.name : ""}` },
           },
         }],
+        // Carte uniquement : pas de moyen de paiement différé, donc rien n'est
+        // livré avant l'encaissement.
+        payment_method_types: ["card"],
         payment_intent_data: { metadata: meta },
         metadata: meta,
         ...completion,
@@ -190,6 +203,7 @@ serve(async (req) => {
       ? json({ url: session.url })
       : json({ clientSecret: session.client_secret });
   } catch (e: any) {
-    return json({ error: e?.message || "Erreur Stripe." }, 400);
+    console.error("[create-checkout-session]", e?.message);
+    return json({ error: "Le paiement n'a pas pu être préparé. Réessayez dans un instant." }, 400);
   }
 });

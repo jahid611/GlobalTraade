@@ -61,7 +61,7 @@ export const assistantKeys = {
     "globi.step4_title": "Créer mon annonce",
     "globi.step4_desc": "Globi rédige avec vous une annonce claire qui donne envie aux repreneurs.",
     "globi.step5_title": "Préparer mes documents",
-    "globi.step5_desc": "Bail, bilans, contrats : le dossier que les repreneurs demandent (la « data room »).",
+    "globi.step5_desc": "Baux, bilans, contrats : le dossier que les repreneurs demandent (la « data room »).",
     "globi.step6_title": "Répondre aux repreneurs et recevoir des offres",
     "globi.step6_desc": "Quoi répondre, quoi montrer, et comment réagir quand une offre arrive.",
     "globi.step7_title": "Négocier, lettre d'intention et signature",

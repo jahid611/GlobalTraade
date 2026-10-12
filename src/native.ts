@@ -46,7 +46,7 @@ export async function initNative() {
     // `com.globly.app://auth-callback?code=…`. On échange le code contre une
     // session (PKCE), on referme le navigateur et on entre dans l'app.
     App.addListener('appUrlOpen', async ({ url }) => {
-      if (!url?.startsWith(`${APP_SCHEME}://`)) return;
+      if (!url?.startsWith(`${APP_SCHEME}://auth-callback`)) return;
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.close().catch(() => {});
@@ -64,14 +64,11 @@ export async function initNative() {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!error) { window.location.replace('/'); return; }
         console.error('[native] échange du code OAuth impossible', error.message);
-      } else if (hash.get('access_token') && hash.get('refresh_token')) {
-        // Repli : flux implicite (jetons dans le fragment)
-        const { error } = await supabase.auth.setSession({
-          access_token: hash.get('access_token')!,
-          refresh_token: hash.get('refresh_token')!,
-        });
-        if (!error) { window.location.replace('/'); return; }
       }
+      // Pas de repli sur des jetons passés dans le lien : n'importe quelle page
+      // ou application peut ouvrir ce schéma, et y glisser les jetons d'un autre
+      // compte ferait basculer l'utilisateur dessus à son insu. Seul le code
+      // PKCE, inutilisable sans le secret gardé dans l'app, est accepté.
       if (errorDescription) console.error('[native] connexion refusée :', errorDescription);
       window.location.replace('/login');
     });

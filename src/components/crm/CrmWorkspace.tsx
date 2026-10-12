@@ -270,7 +270,13 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
         return;
       }
 
-      await Promise.all(included.map((p) => registerProspectionContact(userId, p.siren, p.nom)));
+      try {
+        await Promise.all(included.map((p) => registerProspectionContact(userId, p.siren, p.nom)));
+      } catch {
+        queryClient.invalidateQueries({ queryKey: ["prospection-quota"] });
+        showError(t("msg.error", "Une erreur est survenue."));
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["prospection-quota"] });
     }
 

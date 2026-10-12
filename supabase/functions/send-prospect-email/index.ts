@@ -28,6 +28,11 @@ const corsHeaders = {
 const MONTHLY_INCLUDED = 20;   // aligné sur PROSPECTION_MONTHLY_INCLUDED
 const MAX_SUBJECT = 200;
 const MAX_BODY = 5000;
+// Limites d'envoi : sans elles, un seul contact compté suffirait à écrire sans fin.
+const MAX_SENDS_PER_CONTACT = 3;        // par entreprise et par mois (premier envoi + relances)
+const MIN_HOURS_BETWEEN_SENDS = 12;     // entre deux envois à la même entreprise
+const MAX_SENDS_PER_DAY = 100;          // par membre, sur 24 h glissantes
+const EMAIL_RE = /^[^\s@<>,;"']+@[^\s@<>,;"']+\.[a-z]{2,}$/i;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
@@ -77,12 +82,18 @@ serve(async (req) => {
       .single();
     if (!prospect) return json({ error: "Prospect introuvable." }, 404);
     if (!prospect.email) return json({ error: "Aucun email renseigné pour ce prospect." }, 400);
+    const recipient = String(prospect.email).trim().toLowerCase();
+    if (recipient.length > 254 || !EMAIL_RE.test(recipient)) {
+      return json({ error: "L'adresse email de ce prospect n'est pas valide." }, 400);
+    }
 
     // Quota : contact déjà comptabilisé ce mois-ci, ou place dans le forfait,
     // ou contact supplémentaire déjà payé. Sinon : paiement requis.
     const yearMonth = new Date().toISOString().slice(0, 7);
     const { data: existing } = await admin.from("prospection_contacts")
-      .select("id, billed, paid").eq("user_id", user.id).eq("siren", prospect.siren).eq("year_month", yearMonth).maybeSingle();
+      .select("id, billed, paid, sent_to, sent_count, last_sent_at")
+      .eq("user_id", user.id).eq("siren", prospect.siren).eq("year_month", yearMonth).maybeSingle();
+    let contact = existing;
 
     if (!existing) {
       const { count } = await admin.from("prospection_contacts")
@@ -90,12 +101,33 @@ serve(async (req) => {
       if ((count || 0) >= MONTHLY_INCLUDED) {
         return json({ error: "Forfait mensuel atteint : réglez ce contact supplémentaire (2 €) avant l'envoi.", paymentRequired: true }, 402);
       }
-      await admin.from("prospection_contacts").insert({
+      const { data: created } = await admin.from("prospection_contacts").insert({
         user_id: user.id, siren: prospect.siren, company_name: prospect.nom,
         year_month: yearMonth, billed: false, paid: false, amount_cents: 0,
-      });
+      }).select("id, billed, paid, sent_to, sent_count, last_sent_at").single();
+      contact = created;
     } else if (existing.billed && !existing.paid) {
       return json({ error: "Ce contact supplémentaire n'a pas encore été réglé.", paymentRequired: true }, 402);
+    }
+    if (!contact) return json({ error: "Contact introuvable." }, 409);
+
+    // Un contact = une entreprise = une adresse : changer l'email du prospect ne
+    // permet pas d'écrire à quelqu'un d'autre avec le même contact.
+    if (contact.sent_to && contact.sent_to !== recipient) {
+      return json({ error: "Ce contact a déjà été utilisé pour une autre adresse ce mois-ci." }, 409);
+    }
+    const sentCount = contact.sent_count || 0;
+    if (sentCount >= MAX_SENDS_PER_CONTACT) {
+      return json({ error: "Nombre maximal d'envois atteint pour cette entreprise ce mois-ci." }, 429);
+    }
+    if (contact.last_sent_at && Date.now() - new Date(contact.last_sent_at).getTime() < MIN_HOURS_BETWEEN_SENDS * 36e5) {
+      return json({ error: "Un email vient déjà d'être envoyé à cette entreprise. Réessayez plus tard." }, 429);
+    }
+    const { count: sentToday } = await admin.from("prospection_contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).gte("last_sent_at", new Date(Date.now() - 864e5).toISOString());
+    if ((sentToday || 0) >= MAX_SENDS_PER_DAY) {
+      return json({ error: "Limite d'envois quotidienne atteinte. Réessayez demain." }, 429);
     }
 
     const l = lang === "en" ? "en" : "fr";
@@ -108,12 +140,18 @@ serve(async (req) => {
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
       <p style="font-family:sans-serif;font-size:12px;color:#9ca3af;">${OPT_OUT[l]}</p>`;
 
+    // L'envoi est réservé AVANT de partir : deux appels simultanés ne passent pas tous les deux.
+    const { data: reserved } = await admin.from("prospection_contacts")
+      .update({ sent_to: recipient, sent_count: sentCount + 1, last_sent_at: new Date().toISOString() })
+      .eq("id", contact.id).eq("sent_count", sentCount).select("id");
+    if (!reserved?.length) return json({ error: "Envoi déjà en cours pour cette entreprise." }, 429);
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
       body: JSON.stringify({
         from: FROM,
-        to: prospect.email,
+        to: recipient,
         reply_to: user.email,          // les réponses vont au membre, pas à Globly
         subject: cleanSubject,
         html: htmlBody,
@@ -121,16 +159,21 @@ serve(async (req) => {
     });
 
     if (!res.ok) {
-      const detail = await res.text();
-      return json({ error: `Envoi refusé par le relais email : ${detail.slice(0, 200)}` }, 502);
+      console.error("[send-prospect-email] relais", res.status, (await res.text()).slice(0, 300));
+      // L'email n'est pas parti : on rend l'envoi réservé.
+      await admin.from("prospection_contacts")
+        .update({ sent_count: sentCount, last_sent_at: contact.last_sent_at })
+        .eq("id", contact.id);
+      return json({ error: "Envoi refusé par le relais email." }, 502);
     }
 
     // Suivi CRM : le prospect passe en « Contacté » (sans reculer un statut avancé)
     const nextStatus = prospect.status === "a_qualifier" || prospect.status === "email_trouve" ? "contacte" : prospect.status;
     await admin.from("prospects").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", prospect.id);
 
-    return json({ sent: true, to: prospect.email, status: nextStatus });
+    return json({ sent: true, to: recipient, status: nextStatus });
   } catch (e) {
-    return json({ error: (e as Error).message || "Erreur d'envoi." }, 400);
+    console.error("[send-prospect-email]", (e as Error).message);
+    return json({ error: "Erreur d'envoi." }, 400);
   }
 });

@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Tout texte saisi par un membre est échappé avant d'entrer dans le HTML d'un e-mail.
+const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const SITE_URL = Deno.env.get('SITE_URL') || 'https://globly.fr';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -97,12 +102,12 @@ serve(async (req) => {
         subject: `Nouveau message pour ${listingName}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
-            <h2 style="color: #111827;">Nouveau message de ${senderName}</h2>
-            <p style="color: #4b5563; font-size: 16px;">Vous avez reçu une réponse concernant votre annonce <strong>${listingName}</strong>.</p>
+            <h2 style="color: #111827;">Nouveau message de ${esc(senderName)}</h2>
+            <p style="color: #4b5563; font-size: 16px;">Vous avez reçu une réponse concernant votre annonce <strong>${esc(listingName)}</strong>.</p>
             <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin: 24px 0;">
-              <p style="color: #1f2937; margin: 0; font-style: italic;">"${messageContent}"</p>
+              <p style="color: #1f2937; margin: 0; font-style: italic;">"${esc(messageContent)}"</p>
             </div>
-            <a href="https://ton-site.com/app" style="display: inline-block; background-color: #A855F7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 99px; font-weight: bold;">Répondre au message</a>
+            <a href="${SITE_URL}/messages" style="display: inline-block; background-color: #A855F7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 99px; font-weight: bold;">Répondre au message</a>
           </div>
         `
       })

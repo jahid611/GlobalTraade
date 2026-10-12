@@ -16,7 +16,7 @@ import { ProjectAccessSection, VerificationBadge } from "@/components/ProjectDos
 import { usePlan, hasContentAccess, UNLOCK_PRICE } from "@/services/planService";
 import { useIsUnlocked } from "@/services/unlockService";
 import { isBoosted } from "@/services/boostService";
-import { checkContactQuota, registerContactInitiation } from "@/services/quotaService";
+import { checkContactQuota } from "@/services/quotaService";
 import { HELP_META, TONES, coverGradient, pillStyle, stageMeta, type Tone } from "./projectMeta";
 
 const sectionTitle = "flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/70 mb-3";
@@ -93,7 +93,6 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
         defaultMsg: t('hub.msg_default'),
         helpValue: t(HELP_META[help].key + "_full") // use the _full version for the message
       });
-      registerContactInitiation(userId, project.owner_id).catch(() => {});
       showSuccess(t('hub.interest_sent'));
       onClose();
     } catch { showError(t('hub.interest_error')); }

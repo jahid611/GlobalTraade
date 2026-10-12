@@ -186,7 +186,12 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
           }
           return;
         }
-        await registerProspectionContact(userId, prospect.siren, prospect.nom);
+        try {
+          await registerProspectionContact(userId, prospect.siren, prospect.nom);
+        } catch {
+          showError(extraOne);
+          return;
+        }
       }
 
       window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

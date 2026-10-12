@@ -559,7 +559,7 @@ export const START = {
     en: "Then let's move forward. The most useful thing now: estimate your price (step 3), then create your listing (step 4). I'll guide you through both.",
   },
   haveListing: {
-    fr: "Très bien, le plus dur est lancé. Préparez maintenant vos documents (étape 5) : bail, bilans, contrats. Les repreneurs sérieux les demandent très vite.",
+    fr: "Très bien, le plus dur est lancé. Préparez maintenant vos documents (étape 5) : baux, bilans, contrats. Les repreneurs sérieux les demandent très vite.",
     en: 'Very good, the hardest part is under way. Now prepare your documents (step 5): lease, accounts, contracts. Serious buyers ask for them very quickly.',
   },
   buyer: {

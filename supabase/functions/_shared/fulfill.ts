@@ -29,6 +29,8 @@ export type SessionLike = {
   customer?: string | null;
   subscription?: string | null;
   metadata?: Record<string, string> | null;
+  /** montant réglé, en centimes (sert à vérifier le nombre de contacts payés) */
+  amount_total?: number | null;
 };
 
 export type FulfillResult = {
@@ -71,7 +73,12 @@ export async function fulfillSession(admin: SupabaseClient, s: SessionLike): Pro
     // débloque le contact, il n'est donc enregistré qu'ici (jamais par le client).
     // `target_id` porte le SIREN de l'entreprise contactée.
     const yearMonth = new Date().toISOString().slice(0, 7);
-    const sirens = (m.target_ids ? m.target_ids.split(",") : [m.target_id]).map((x) => x.trim()).filter(Boolean);
+    const sirens = [...new Set((m.target_ids ? m.target_ids.split(",") : [m.target_id]).map((x) => (x || "").trim()))]
+      .filter((x) => /^\d{9}$/.test(x));
+    // Un contact = 2 € : on ne livre jamais plus de contacts que ce qui a été payé.
+    if (s.amount_total != null && sirens.length * 200 > s.amount_total) {
+      throw new Error(`contact de prospection: ${sirens.length} contacts pour ${s.amount_total} centimes`);
+    }
     if (sirens.length) {
       await admin.from("prospection_contacts").upsert(
         sirens.map((siren) => ({

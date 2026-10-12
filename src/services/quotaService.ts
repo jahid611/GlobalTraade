@@ -108,14 +108,6 @@ export async function checkContactQuota(userId: string, otherUserId: string, tar
   });
 }
 
-// À appeler après l'envoi réussi du premier message : enregistre
-// l'initiation (idempotent grâce à l'unicité initiator/other).
-export async function registerContactInitiation(userId: string, otherUserId: string, listingId?: string | null) {
-  const yearMonth = new Date().toISOString().slice(0, 7);
-  await supabase.from('conversation_initiations').upsert({
-    initiator_id: userId,
-    other_user_id: otherUserId,
-    listing_id: listingId || null,
-    year_month: yearMonth,
-  }, { onConflict: 'initiator_id,other_user_id', ignoreDuplicates: true });
-}
+// L'initiation d'une conversation est enregistrée par la base elle-même, à
+// l'insertion du premier message (trigger `enforce_contact_quota`) : le site
+// ne l'écrit plus.

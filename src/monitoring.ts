@@ -15,6 +15,20 @@ export function initMonitoring() {
     // Erreurs uniquement (pas de replay ni de tracing : léger et sans
     // données de navigation utilisateur).
     sampleRate: 1.0,
+    sendDefaultPii: false,
+    // Les adresses portent des identifiants (filtres Supabase) et, au retour
+    // d'une connexion, des jetons : on ne garde que le chemin.
+    beforeSend(event) {
+      if (event.request?.url) event.request.url = event.request.url.split(/[?#]/)[0];
+      return event;
+    },
+    beforeBreadcrumb(crumb) {
+      if (crumb.category === 'console') return null;
+      if (crumb.data?.url) crumb.data.url = String(crumb.data.url).split(/[?#]/)[0];
+      if (crumb.data?.from) crumb.data.from = String(crumb.data.from).split(/[?#]/)[0];
+      if (crumb.data?.to) crumb.data.to = String(crumb.data.to).split(/[?#]/)[0];
+      return crumb;
+    },
     // Bruit connu sans valeur d'action
     ignoreErrors: [
       'ResizeObserver loop',

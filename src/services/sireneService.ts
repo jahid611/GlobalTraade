@@ -3,6 +3,7 @@
 // On récupère les entreprises par code APE / département, on calcule un score de cession.
 
 import { Capacitor } from "@capacitor/core";
+import { supabase } from "@/integrations/supabase/client";
 
 // Web : proxy serverless (api/recherche-entreprises.js) plutôt que l'appel
 // direct — évite les ERR_SSL_PROTOCOL_ERROR derrière les proxys d'entreprise
@@ -148,6 +149,16 @@ function normalizeApe(code: string): string {
   return c.length >= 4 ? `${c.slice(0, 2)}.${c.slice(2)}` : c;
 }
 
+// Le relais /api/recherche-entreprises est réservé aux membres connectés : on lui
+// présente le jeton de session. Dans l'app native on appelle l'API de l'État en
+// direct, et on ne lui envoie surtout pas ce jeton.
+async function proxyHeaders(): Promise<Record<string, string>> {
+  if (Capacitor.isNativePlatform()) return {};
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function searchCompanies(params: SearchParams): Promise<SearchResponse> {
   const qs = new URLSearchParams();
   if (params.codeApe) qs.set("activite_principale", normalizeApe(params.codeApe));
@@ -157,7 +168,7 @@ export async function searchCompanies(params: SearchParams): Promise<SearchRespo
   qs.set("per_page", "25");
   qs.set("page", String(params.page || 1));
 
-  const res = await fetch(`${API}?${qs.toString()}`);
+  const res = await fetch(`${API}?${qs.toString()}`, { headers: await proxyHeaders() });
   if (!res.ok) throw new Error(`API gouv: ${res.status}`);
   const data = await res.json();
 
@@ -187,7 +198,7 @@ export interface SiretLookup {
  * Lève une erreur si le registre ne répond pas (à ne pas confondre avec « inconnu »).
  */
 export async function lookupSiret(siret: string): Promise<SiretLookup> {
-  const res = await fetch(`${API}?q=${encodeURIComponent(siret)}&per_page=5`);
+  const res = await fetch(`${API}?q=${encodeURIComponent(siret)}&per_page=5`, { headers: await proxyHeaders() });
   if (!res.ok) throw new Error(`API gouv: ${res.status}`);
   const data = await res.json();
   for (const r of data.results || []) {

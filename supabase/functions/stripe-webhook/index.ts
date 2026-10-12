@@ -26,7 +26,8 @@ serve(async (req) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig!, whSecret);
   } catch (e: any) {
-    return new Response(`Signature invalide: ${e.message}`, { status: 400 });
+    console.error("[stripe-webhook] signature invalide", e?.message);
+    return new Response("Signature invalide", { status: 400 });
   }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -36,10 +37,16 @@ serve(async (req) => {
   if (dupErr) return new Response("déjà traité", { status: 200 });
 
   try {
-    if (event.type === "checkout.session.completed") {
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const s = event.data.object as Stripe.Checkout.Session;
+      // Session terminée mais pas encore encaissée (paiement différé) : on attend
+      // l'événement async_payment_succeeded avant de livrer quoi que ce soit.
+      if (s.payment_status === "unpaid") {
+        return new Response(JSON.stringify({ received: true, waiting: true }), { headers: { "Content-Type": "application/json" }, status: 200 });
+      }
       const { replacedSubscriptionId } = await fulfillSession(admin, {
         id: s.id,
+        amount_total: s.amount_total,
         customer: s.customer as string | null,
         subscription: s.subscription as string | null,
         metadata: s.metadata as Record<string, string> | null,

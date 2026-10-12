@@ -39,7 +39,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: '5',
     titleKey: 'globi.step5_title', title: 'Préparer mes documents',
-    descKey: 'globi.step5_desc', desc: 'Bail, bilans, contrats : le dossier que les repreneurs demandent (la « data room »).',
+    descKey: 'globi.step5_desc', desc: 'Baux, bilans, contrats : le dossier que les repreneurs demandent (la « data room »).',
     action: { type: 'topic', id: 'etape-5' },
   },
   {

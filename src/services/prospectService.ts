@@ -203,10 +203,11 @@ export async function getProspectionQuota(userId: string): Promise<ProspectionQu
 // Enregistre un contact de prospection INCLUS dans le forfait (idempotent par
 // entreprise/mois). Les contacts au-delà du forfait (2 €) ne passent jamais par
 // ici : ils sont créés par le webhook Stripe après paiement — la RLS interdit
-// d'ailleurs au client d'écrire une ligne `billed = true`.
+// d'ailleurs au client d'écrire une ligne `billed = true`. Le forfait est aussi
+// vérifié par la base : au-delà, l'enregistrement est refusé et on le signale.
 export async function registerProspectionContact(userId: string, siren: string, companyName: string) {
   const yearMonth = new Date().toISOString().slice(0, 7);
-  await supabase.from('prospection_contacts').upsert({
+  const { error } = await supabase.from('prospection_contacts').upsert({
     user_id: userId,
     siren,
     company_name: companyName,
@@ -214,6 +215,7 @@ export async function registerProspectionContact(userId: string, siren: string, 
     billed: false,
     amount_cents: 0,
   }, { onConflict: 'user_id,siren,year_month', ignoreDuplicates: true });
+  if (error) throw error;
 }
 
 // Une entreprise déjà contactée ce mois-ci ne recompte pas.

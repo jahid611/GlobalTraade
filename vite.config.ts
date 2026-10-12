@@ -45,6 +45,11 @@ export default defineConfig(() => {
           target: "https://recherche-entreprises.api.gouv.fr",
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/recherche-entreprises/, "/search"),
+          // Le front joint le jeton de session pour le relais de production :
+          // en local on ne le fait pas suivre à l'API de l'État.
+          configure: (proxy: any) => {
+            proxy.on("proxyReq", (proxyReq: any) => proxyReq.removeHeader("authorization"));
+          },
         },
       },
     },

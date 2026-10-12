@@ -13,6 +13,9 @@ const corsHeaders = {
 
 const SITE_URL = Deno.env.get('SITE_URL') || 'https://globly.fr';
 
+// Tout texte saisi par un membre est échappé avant d'entrer dans le HTML d'un e-mail.
+const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -64,8 +67,8 @@ serve(async (req) => {
           subject: `Votre annonce « ${listing.name} » est-elle toujours en vente ?`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
-              <h2 style="color: #111827;">${firstName}, votre annonce est-elle toujours en vente ?</h2>
-              <p style="color: #4b5563; font-size: 16px;">Un clic suffit pour garder <strong>${listing.name}</strong> en ligne gratuitement.</p>
+              <h2 style="color: #111827;">${esc(firstName)}, votre annonce est-elle toujours en vente ?</h2>
+              <p style="color: #4b5563; font-size: 16px;">Un clic suffit pour garder <strong>${esc(listing.name)}</strong> en ligne gratuitement.</p>
               <a href="${SITE_URL}/dashboard" style="display: inline-block; background-color: #A855F7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 99px; font-weight: bold; margin: 24px 0;">Oui, toujours en vente</a>
               <p style="color: #9ca3af; font-size: 13px;">Sans réponse sous 10 jours, votre annonce sera mise en pause. Vous pourrez la réactiver à tout moment depuis votre tableau de bord.</p>
             </div>

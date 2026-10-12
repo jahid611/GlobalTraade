@@ -65,6 +65,7 @@ serve(async (req) => {
       try {
         const { replacedSubscriptionId } = await fulfillSession(admin, {
           id: s.id,
+          amount_total: s.amount_total,
           customer: s.customer as string | null,
           subscription: s.subscription as string | null,
           metadata: s.metadata as Record<string, string> | null,

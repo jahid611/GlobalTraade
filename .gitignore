@@ -59,3 +59,5 @@ playwright-report/
 
 # Le film de présentation du site est petit (4 à 6 Mo) et doit être en ligne
 !public/globly-film-*.mp4
+.vercel
+.env*

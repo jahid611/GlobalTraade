@@ -650,6 +650,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
               src={previewDoc.url} 
               className="w-full h-full max-w-5xl border border-white/10 bg-white rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] relative z-40"
               title={previewDoc.name}
+              referrerPolicy="no-referrer"
             />
           </div>
         </div>

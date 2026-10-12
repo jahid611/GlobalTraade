@@ -46,6 +46,8 @@ async function openIdentityDocument(userId: string) {
   const tab = window.open("", "_blank");
   if (!tab) { showError("Autorisez les fenêtres surgissantes pour ce site, puis réessayez."); return; }
   tab.document.write('<div style="font-family:sans-serif;padding:20px;">Chargement du document en cours…</div>');
+  // Le fichier vient d'un membre : l'onglet ne doit pas pouvoir piloter la console admin.
+  tab.opener = null;
   try {
     let signedUrl: string | null = null;
     for (const ext of ["jpg", "jpeg", "png", "pdf", "webp"]) {

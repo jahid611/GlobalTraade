@@ -82,7 +82,7 @@ function score(l: Listing, p: Profile): number {
 
   const sectors = tokens(p.target_sectors);
   if (sectors.length) {
-    if (sectors.some((w) => industry.includes(w) || w.includes(industry))) s += 35;
+    if (industry && sectors.some((w) => industry.includes(w) || w.includes(industry))) s += 35;
     else if (sectors.some((w) => desc.includes(w))) s += 18;
   } else s += 20;
 
@@ -104,18 +104,21 @@ function score(l: Listing, p: Profile): number {
   return Math.min(99, s);
 }
 
+// Tout texte saisi par un membre est échappé avant d'entrer dans le HTML d'un e-mail.
+const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 function html(firstName: string, matches: { l: Listing; s: number }[]) {
   const rows = matches.map(({ l, s }) => `
     <a href="${SITE_URL}/app?focus=${l.id}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
       <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#A855F7;font-weight:700;">${s}% de correspondance</div>
-      <div style="font-size:17px;color:#111827;font-weight:600;margin:6px 0 2px;">${l.name}</div>
-      <div style="font-size:14px;color:#6b7280;">${[l.industry, l.address].filter(Boolean).join(" · ") || "—"}</div>
+      <div style="font-size:17px;color:#111827;font-weight:600;margin:6px 0 2px;">${esc(l.name).slice(0, 160)}</div>
+      <div style="font-size:14px;color:#6b7280;">${esc([l.industry, l.address].filter(Boolean).join(" · ")).slice(0, 240) || "—"}</div>
       <div style="font-size:15px;color:#111827;margin-top:8px;">${money(l.price)}</div>
     </a>`).join("");
 
   return `
   <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:32px;border-radius:16px;">
-    <h2 style="color:#111827;margin:0 0 4px;">${firstName}, ${matches.length} nouvelle${matches.length > 1 ? "s" : ""} entreprise${matches.length > 1 ? "s" : ""} pour vous</h2>
+    <h2 style="color:#111827;margin:0 0 4px;">${esc(firstName)}, ${matches.length} nouvelle${matches.length > 1 ? "s" : ""} entreprise${matches.length > 1 ? "s" : ""} pour vous</h2>
     <p style="color:#6b7280;font-size:15px;margin:0 0 20px;">D'après vos critères de reprise.</p>
     ${rows}
     <a href="${SITE_URL}/marketplace" style="display:inline-block;background:#A855F7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:99px;font-weight:bold;margin:12px 0;">Voir toutes les annonces</a>

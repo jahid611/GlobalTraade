@@ -16,7 +16,7 @@ import { fr, enUS } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { checkContactQuota, registerContactInitiation } from '@/services/quotaService';
+import { checkContactQuota } from '@/services/quotaService';
 import { DealTimeline } from '@/components/DealTimeline';
 import type { ChatMessage, OfferMetadata } from '@/types/domain';
 import { OfferCard } from '@/components/messaging/OfferCard';
@@ -219,9 +219,6 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       setMessages(prev => prev.filter(m => m.id !== tempId));
     } else if (data) {
       setMessages(prev => prev.map(m => m.id === tempId ? data : m));
-      if (isFirstMessage) {
-        registerContactInitiation(user.id, String(listing.owner_id), listing.id).catch(() => {});
-      }
     }
   };
 
@@ -348,9 +345,6 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     setOfferConditions("");
     setOfferMessage("");
     showSuccess(t('needs.toast_sent', 'Proposition envoyée avec succès.'));
-    if (isFirstMessage) {
-      registerContactInitiation(user.id, String(listing.owner_id), listing.id).catch(() => {});
-    }
   };
 
   const handleDeleteOffer = async (msg: Record<string, any>) => {
