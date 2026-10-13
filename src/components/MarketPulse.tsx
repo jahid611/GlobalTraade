@@ -63,14 +63,15 @@ export function MarketPulse({ listings }: MarketPulseProps) {
       {/* Background Glow */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 dark:bg-emerald-500/5 blur-[80px] rounded-full" />
       
-      <div className="flex items-center justify-between mb-8 relative z-10">
-        <div className="flex items-center gap-3">
+      {/* Téléphone : le titre puis l'étiquette dessous ; côte à côte, ils se chevauchaient */}
+      <div className="flex max-sm:flex-col max-sm:items-start max-sm:gap-3 items-center justify-between mb-8 max-sm:mb-6 relative z-10">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-500/40 dark:border-emerald-500/20">
             <BarChart3 className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
           </div>
-          <span className="text-[clamp(10px,1vw,12px)] uppercase tracking-[0.2em] text-white dark:text-white/80 font-medium">{t('pulse.title')}</span>
+          <span className="text-[clamp(10px,1vw,12px)] max-sm:text-xs uppercase tracking-[0.2em] max-sm:tracking-[0.14em] text-white dark:text-white/80 font-medium">{t('pulse.title')}</span>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-500/20 dark:bg-emerald-500/10 border border-emerald-500/40 dark:border-emerald-500/20 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)] dark:shadow-none">
+        <div className="flex items-center gap-2 shrink-0 whitespace-nowrap bg-emerald-500/20 dark:bg-emerald-500/10 border border-emerald-500/40 dark:border-emerald-500/20 px-4 max-sm:px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)] dark:shadow-none">
           <div className={`w-2 h-2 rounded-full ${stats.enough ? 'animate-pulse' : ''} ${!stats.enough ? 'bg-white/40' : stats.trend >= 10 ? 'bg-emerald-400' : stats.trend >= -5 ? 'bg-blue-400' : 'bg-amber-400'}`} />
           <span className="text-[11px] uppercase tracking-widest text-white font-medium">
             {!stats.enough
@@ -143,7 +144,7 @@ export function MarketPulse({ listings }: MarketPulseProps) {
                 <div className="flex-1 h-2 bg-white/20 dark:bg-white/10 rounded-full overflow-hidden border border-white/30 dark:border-white/5">
                   <div className="h-full bg-emerald-500/80 dark:bg-emerald-500/50 rounded-full" style={{ width: `${(count / stats.totalListings) * 100}%` }} />
                 </div>
-                <span className="text-[10px] text-white dark:text-white/60 font-medium w-28 truncate text-right">
+                <span className="text-[10px] max-sm:text-xs text-white dark:text-white/60 font-medium w-28 max-sm:w-[7.5rem] truncate text-right max-sm:text-left max-sm:order-first">
                   {t(`industry.${name}`, { defaultValue: name })}
                 </span>
                 <span className="text-[11px] text-white font-medium tabular-nums w-8 text-right">{count}</span>

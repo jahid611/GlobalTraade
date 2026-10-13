@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { PageTitle } from '@/components/PageTitle';
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Warning, MagnifyingGlass } from "phosphor-react";
 import { Button } from "@/components/ui/button";
@@ -145,10 +146,8 @@ export default function Projects() {
       <main className="relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full">
 
         {/* En-tête */}
-        <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
-            {t('hub.hero_title')} <span className="text-primary font-medium">{t('hub.hero_title_highlight')}</span>
-          </h1>
+        <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} className="page-head mb-6">
+          <PageTitle lead={t('hub.hero_title')} accent={t('hub.hero_title_highlight')} />
           <p className="text-white/60 font-light text-sm md:text-base mt-2">
             {t('projects.subtitle', "Soutenez le projet d'un entrepreneur, ou faites connaître le vôtre.")}
           </p>

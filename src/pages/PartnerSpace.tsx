@@ -72,13 +72,13 @@ export default function PartnerSpace() {
       <main className="relative z-10 pt-[16vh] pb-[14vh] px-[6vw] max-w-[1300px] mx-auto w-full">
         {/* En-tête */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 sm:mb-24">
-          <p className="text-[10px] lg:text-sm uppercase tracking-[0.3em] text-red-500 font-medium mb-4">
+          <p className="text-[10px] lg:text-sm uppercase tracking-[0.3em] text-[#a9a6ff] font-medium mb-4">
             {t('partners.eyebrow', 'Ils nous font confiance')}
           </p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-light tracking-tight text-white[text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
             {t('partners.title', 'Nos partenaires')}
           </h1>
-          <p className="text-red-500 font-light text-sm sm:text-base lg:text-xl mt-4 lg:mt-6 max-w-xl lg:max-w-3xl mx-auto leading-relaxed">
+          <p className="text-white/75 font-light text-sm sm:text-base lg:text-xl mt-4 lg:mt-6 max-w-xl lg:max-w-3xl mx-auto leading-relaxed">
             {t('partners.subtitle', "Banques, financeurs et réseaux d'accompagnement qui soutiennent les repreneurs et cédants de Globly.")}
           </p>
         </motion.div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
+import { PageTitle } from '@/components/PageTitle';
 import { markIntentionalSignOut } from '@/lib/sessionMemory';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -342,10 +343,8 @@ export default function Settings() {
       <main className={pageShell}>
         {/* En-tête : titre, à quoi sert la page, et le bouton Enregistrer */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-8">
-          <div className="min-w-0">
-            <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
-              {t('acc.settings_title1', 'Vos')} <span className="text-primary font-medium">{t('acc.settings_title2', 'paramètres')}</span>
-            </h1>
+          <div className="page-head min-w-0">
+            <PageTitle lead={t('acc.settings_title1', 'Vos')} accent={t('acc.settings_title2', 'paramètres')} />
             <p className="text-white/65 text-sm md:text-base font-light mt-2 max-w-2xl leading-relaxed">
               {t('acc.settings_subtitle', "Vos informations, votre projet de reprise et la sécurité de votre compte. Modifiez ce que vous voulez, puis cliquez sur « Enregistrer ».")}
             </p>

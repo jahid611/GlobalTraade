@@ -638,7 +638,7 @@ function EarthDetail() {
               64 / level.cols, 64 / level.rows,   // mêmes facettes que le globe : aucune fente
               w.col * phiLen, phiLen, w.row * thetaLen, thetaLen,
             );
-            const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.7, metalness: 0.1, color: '#d9d8de', emissive: '#17386a', emissiveIntensity: 0.6 });
+            const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.7, metalness: 0.1, color: '#d9d8de', emissive: '#ffffff', emissiveMap: texture, emissiveIntensity: 0.55 });
             owner.mesh = new THREE.Mesh(geometry, material);
             owner.mesh.raycast = () => null;
             groupRef.current?.add(owner.mesh);
@@ -842,7 +842,7 @@ function Earth({ listings, favoriteIds, onSelectListing, maxZoomDistance, showLo
     <group>
       <mesh>
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
-        <meshStandardMaterial key={`${sharpMap ? 'net' : 'apercu'}-${bumpMap ? 'relief' : 'plat'}`} map={colorMap} bumpMap={bumpMap} bumpScale={0.02} roughness={0.7} metalness={0.1} color="#d9d8de" emissive="#17386a" emissiveIntensity={0.6} />
+        <meshStandardMaterial key={`${sharpMap ? 'net' : 'apercu'}-${bumpMap ? 'relief' : 'plat'}`} map={colorMap} bumpMap={bumpMap} bumpScale={0.02} roughness={0.7} metalness={0.1} color="#d9d8de" emissive="#ffffff" emissiveMap={colorMap} emissiveIntensity={0.55} />
       </mesh>
       <EarthDetail />
       <mesh>

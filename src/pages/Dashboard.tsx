@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { PageTitle } from '@/components/PageTitle';
 import type { Listing } from '@/types/domain';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -355,10 +356,8 @@ export default function Dashboard() {
       {/* Pleine largeur, comme la marketplace. */}
       <main className="relative z-10 flex-1 w-full px-4 sm:px-6 lg:px-10 2xl:px-14 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24">
 
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
-            {t('dash.cockpit_title1')} <span className="text-primary font-medium">{t('dash.cockpit_title2')}</span>
-          </h1>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head mb-6">
+          <PageTitle lead={t('dash.cockpit_title1')} accent={t('dash.cockpit_title2')} />
           <p className="text-white/60 font-light text-sm md:text-base mt-2">
             {t('dash.subtitle')}
           </p>

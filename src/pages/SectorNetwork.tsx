@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { PageTitle } from '@/components/PageTitle';
 import { radarPathForIndustry } from "@/lib/industryApe";
 import type { Listing, SearchAd } from '@/types/domain';
 import { Link, useNavigate } from "react-router-dom";
@@ -203,10 +204,8 @@ export default function SectorNetwork() {
       {/* Pleine largeur : la page occupe tout l'écran, avec une simple marge. */}
       <main className="relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
-          <h1 className="text-3xl md:text-4xl font-light mb-3 tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]">
-            {t("sector.title1", "Réseau de mon")} <span className="text-primary font-medium">{t("sector.title2", "secteur")}</span>
-          </h1>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head mb-7">
+          <PageTitle className="mb-3" lead={t("sector.title1", "Réseau de mon")} accent={t("sector.title2", "secteur")} />
           <p className="text-white/70 font-light text-[15px] md:text-base max-w-3xl leading-relaxed">
             {t("sector.intro_a", "Vos repreneurs les plus probables sont")} <strong className="text-white font-medium">{t("sector.intro_b", "dans votre métier")}</strong>.{" "}
             {t("sector.intro_c", "Contactez les commerçants de votre secteur : en les approchant, ils sauront que vous envisagez de céder.")}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { PageTitle } from '@/components/PageTitle';
 import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria, BUDGET_MIN, BUDGET_MAX } from '@/components/SmartMatchForm';
@@ -10,7 +11,7 @@ import { matchRegion, regionLabel } from '@/lib/geoRegions';
 import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
-import { AdvancedFilters, FilterState } from '@/components/AdvancedFilters';
+import { AdvancedFilters, FilterState, matchesTeamSize, matchesMinAge } from '@/components/AdvancedFilters';
 import { HelpBanner } from '@/components/HelpBanner';
 import { Dropdown } from '@/components/PickerKit';
 import { Store, Filter, Plus, Loader2, Search, X, Target } from 'lucide-react';
@@ -34,6 +35,9 @@ const DEFAULT_FILTERS: FilterState = {
   priceMax: "",
   revenueMin: "",
   ebitdaMin: "",
+  teamSize: "",
+  minAge: "",
+  sharedFinancials: false,
   sortBy: "recent"
 };
 
@@ -66,6 +70,9 @@ const RESULTS_GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-col
 export default function Marketplace() {
   const queryClient = useQueryClient();
   const { data: listings = [], isLoading } = useListings();
+  // Un visiteur sans formule payante ne reçoit aucun chiffre d'affaires ni résultat
+  // (la base les masque). Tant que la liste charge, on ne conclut pas.
+  const financialsVisible = isLoading || listings.length === 0 || listings.some(l => l.revenue_n1 != null || l.ebitda != null);
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
@@ -139,6 +146,9 @@ export default function Marketplace() {
     if (filters.priceMax) result = result.filter(l => Number(l.price) <= Number(filters.priceMax));
     if (filters.revenueMin) result = result.filter(l => Number(l.revenue_n1) >= Number(filters.revenueMin));
     if (filters.ebitdaMin) result = result.filter(l => Number(l.ebitda) >= Number(filters.ebitdaMin));
+    if (filters.teamSize) result = result.filter(l => matchesTeamSize(l.employees, filters.teamSize));
+    if (filters.minAge) result = result.filter(l => matchesMinAge(l.established_year, filters.minAge));
+    if (filters.sharedFinancials) result = result.filter(l => l.share_financials === true);
 
     // Recherche intelligente -> filtre dur (secteurs/régions/budget) puis tri par pertinence
     if (matchCriteria) {
@@ -218,6 +228,9 @@ export default function Marketplace() {
     if (filters.priceMin || filters.priceMax) count++;
     if (filters.revenueMin) count++;
     if (filters.ebitdaMin) count++;
+    if (filters.teamSize) count++;
+    if (filters.minAge) count++;
+    if (filters.sharedFinancials) count++;
     return count;
   };
 
@@ -252,6 +265,9 @@ export default function Marketplace() {
     ...(filters.priceMax ? [{ key: 'pmax', label: `${t('market.chip_price_max', 'Prix max')} ${euros(filters.priceMax)}`, clear: () => setFilters({ ...filters, priceMax: "" }) }] : []),
     ...(filters.revenueMin ? [{ key: 'rev', label: `${t('market.chip_revenue_min', 'CA min')} ${euros(filters.revenueMin)}`, clear: () => setFilters({ ...filters, revenueMin: "" }) }] : []),
     ...(filters.ebitdaMin ? [{ key: 'ebe', label: `${t('market.chip_ebitda_min', 'EBE min')} ${euros(filters.ebitdaMin)}`, clear: () => setFilters({ ...filters, ebitdaMin: "" }) }] : []),
+    ...(filters.teamSize ? [{ key: 'team', label: `${t('market.chip_team', 'Équipe')} ${filters.teamSize === '21+' ? t('filters.team_large', '21 et plus') : filters.teamSize.replace('-', ' à ')}`, clear: () => setFilters({ ...filters, teamSize: "" }) }] : []),
+    ...(filters.minAge ? [{ key: 'age', label: t('market.chip_age', '{{n}} ans et plus', { n: filters.minAge }) as string, clear: () => setFilters({ ...filters, minAge: "" }) }] : []),
+    ...(filters.sharedFinancials ? [{ key: 'fin', label: t('market.chip_shared', 'Chiffres partagés') as string, clear: () => setFilters({ ...filters, sharedFinancials: false }) }] : []),
     ...(matchCriteria ? [{ key: 'match', label: t('market.chip_smart', 'Recherche intelligente') as string, clear: () => { setMatchCriteria(null); setSmartFormKey(k => k + 1); } }] : []),
   ];
 
@@ -293,10 +309,8 @@ export default function Marketplace() {
             <img src="/mascot/globi-peche.png" alt="" className="w-full h-auto" />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 pr-[100px] sm:pr-[150px] xl:pr-0">
-            <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
-              {t('market.title1')} <span className="text-primary font-medium">{t('market.title2')}</span>
-            </h1>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head relative z-10 pr-[100px] sm:pr-[150px] xl:pr-0">
+            <PageTitle lead={t('market.title1')} accent={t('market.title2')} />
             <p className="text-white/60 text-sm md:text-base font-light mt-2">
               {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
             </p>
@@ -527,6 +541,7 @@ export default function Marketplace() {
         filters={filters}
         setFilters={setFilters}
         onReset={() => setFilters(DEFAULT_FILTERS)}
+        financialsVisible={financialsVisible}
       />
 
       <ListingForm

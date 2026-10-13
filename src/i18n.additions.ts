@@ -223,6 +223,23 @@ export const additionsFr: Record<string, string> = {
 };
 
 export const additionsEn: Record<string, string> = {
+  "filters.any": "All",
+  "filters.team": "Team size",
+  "filters.team_small": "1 to 5 employees",
+  "filters.team_medium": "6 to 20",
+  "filters.team_large": "21 and more",
+  "filters.age": "Company age",
+  "filters.age_3": "3 years and more",
+  "filters.age_5": "5 years and more",
+  "filters.age_10": "10 years and more",
+  "filters.transparency": "Transparency",
+  "filters.shared_financials": "Figures shared by the seller",
+  "filters.shared_financials_hint": "Only listings whose seller agrees to show their accounts.",
+  "filters.performance_locked": "Revenue and earnings of listings are reserved for paid plans. These two filters will become available with your plan.",
+  "filters.see_plans": "See plans",
+  "market.chip_team": "Team",
+  "market.chip_age": "{{n}} years and more",
+  "market.chip_shared": "Shared figures",
   "err.action_home": "Back to home",
   "err.action_retry": "Try again",
   "err.action_listings": "See listings",

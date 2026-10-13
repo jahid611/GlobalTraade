@@ -187,6 +187,10 @@ export function SearchableSelect({
     return groups;
   }, [query, options]);
 
+  // La colonne du code prend la largeur du code le plus long de la liste : étroite
+  // pour un département (« 01 »), plus large pour un code d'activité (« 10.71C »).
+  const codeChars = Math.max(2, ...filtered.flatMap((g) => g.items.map((o) => String(o.value).length)));
+
   return (
     <div className={className}>
       <button
@@ -252,11 +256,11 @@ export function SearchableSelect({
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { onChange(o.value); setOpen(false); }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2.5 transition-colors ${
                           o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"
                         }`}
                       >
-                        <span className="text-xs font-mono text-white/40 w-14 shrink-0">{o.value}</span>
+                        <span className="text-xs tabular-nums text-white/40 shrink-0" style={{ width: `${codeChars + 0.6}ch` }}>{o.value}</span>
                         <span className="truncate flex-1">{o.label}</span>
                         {o.value === value && <Check size={14} className="shrink-0" />}
                       </button>

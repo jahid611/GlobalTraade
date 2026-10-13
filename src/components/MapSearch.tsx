@@ -85,7 +85,7 @@ export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPic
 
       {showList && (
         <div
-          className="absolute left-0 top-full mt-2 w-[min(86vw,20rem)] liquid-glass-heavy bg-black/70 backdrop-blur-xl border border-white/20 rounded-xl p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.55)] max-h-[50vh] overflow-y-auto custom-scrollbar"
+          className="absolute left-0 top-full mt-2 w-[min(86vw,20rem)] liquid-glass-heavy bg-black/70 backdrop-blur-xl border border-white/20 rounded-xl py-1 px-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.55)] max-h-[50vh] overflow-y-auto custom-scrollbar"
           onWheel={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
           onScroll={(e) => {
@@ -103,15 +103,16 @@ export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPic
               {shown.map((l, i) => {
                 const sector = l.industry ? (t(`industry.${l.industry}`, { defaultValue: l.industry }) as string) : '';
                 return (
-                  <li key={l.listingId || l.id} role="option" aria-selected={i === active}>
+                  // Pas de carte autour de chaque résultat : une fine ligne grise les sépare.
+                  <li key={l.listingId || l.id} role="option" aria-selected={i === active} className="border-b border-white/10 last:border-b-0">
                     <button
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onMouseEnter={() => setActive(i)}
                       onClick={() => pick(l)}
-                      className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-colors ${i === active ? 'bg-white/10' : ''}`}
+                      className={`w-full flex items-center gap-3 px-2.5 py-2.5 text-left transition-colors ${i === active ? 'bg-white/[0.06]' : ''}`}
                     >
-                      <span className="w-8 h-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center text-sm font-semibold bg-primary/20 border border-primary/40 text-white">
+                      <span className="w-8 h-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center text-sm font-semibold bg-white/10 text-white">
                         {l.logo_url ? <img src={l.logo_url} alt="" className="w-full h-full object-cover" /> : (l.name || '?').trim().charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">

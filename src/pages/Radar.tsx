@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { PageTitle } from '@/components/PageTitle';
 import { canonicalDepartment } from "@/lib/departments";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -216,7 +217,7 @@ export default function Radar() {
         <SolarSystem />
         <Navbar />
         <main className={MAIN_CLASS}>
-          <div className="max-w-4xl mx-auto mb-4">{backLink}</div>
+          <div className="page-head max-w-4xl mx-auto mb-4">{backLink}</div>
           <LockedScreen onSeePlans={() => navigate('/payment')} />
         </main>
       </div>
@@ -235,11 +236,9 @@ export default function Radar() {
       <main className={MAIN_CLASS}>
         {/* En-tête : titre à gauche, choix Recherche / Mon CRM à droite */}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="min-w-0">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head min-w-0">
             {backLink}
-            <h1 className="text-3xl md:text-4xl font-light text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.55)] tracking-tight">
-              {t('radar.title', 'Prospection')}
-            </h1>
+            <PageTitle accent={t('radar.title', 'Prospection')} />
             <p className="text-white/60 text-sm md:text-base font-light mt-2">
               {t('prospection.subtitle', "Repérez les entreprises susceptibles d'être à céder, puis suivez-les dans votre CRM.")}
             </p>
