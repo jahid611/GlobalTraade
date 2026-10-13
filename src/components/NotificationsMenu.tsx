@@ -365,20 +365,20 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
         </button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-[90vw] sm:w-[380px] p-0 liquid-glass-heavy bg-[#2b2a2f]/90 border-none text-white rounded-[1.5rem] !shadow-none z-[150] overflow-hidden" align="end" sideOffset={16}>
-        <div className="px-5 py-4 bg-transparent flex items-center justify-between">
-          <h3 className="font-medium text-[clamp(1rem,1.2vw,1.125rem)] text-white">{t('notif.title')}</h3>
+      <PopoverContent className="w-[min(18rem,calc(100vw-2rem))] sm:w-[380px] p-0 liquid-glass-heavy bg-[#2b2a2f]/90 border-none text-white rounded-[1.5rem] !shadow-none z-[150] overflow-hidden" align="end" sideOffset={38} collisionPadding={16}>
+        <div className="px-4 py-3 sm:px-5 sm:py-4 bg-transparent flex items-center justify-between">
+          <h3 className="font-medium text-sm sm:text-[clamp(1rem,1.2vw,1.125rem)] text-white">{t('notif.title')}</h3>
           {unreadCount > 0 && (
             <span className="text-[10px] uppercase tracking-wider text-primary font-medium">{unreadCount} {t('notif.new')}</span>
           )}
         </div>
         
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
-            <div className="w-16 h-16 rounded-full liquid-glass bg-white/10 border-none flex items-center justify-center mb-4 !shadow-none">
-              <Bell className="w-6 h-6 text-white stroke-1" />
+          <div className="flex flex-col items-center justify-center pt-3 pb-6 sm:py-12 text-center opacity-60">
+            <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-full liquid-glass bg-white/10 border-none flex items-center justify-center mb-2.5 sm:mb-4 !shadow-none">
+              <Bell className="w-[18px] h-[18px] sm:w-6 sm:h-6 text-white stroke-1" />
             </div>
-            <p className="text-sm font-light text-white">{t('notif.empty')}</p>
+            <p className="text-xs sm:text-sm font-light text-white">{t('notif.empty')}</p>
           </div>
         ) : (
           <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col p-2 space-y-1">

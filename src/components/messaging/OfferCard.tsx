@@ -36,7 +36,7 @@ export function OfferCard({ msg, isMine, contactName, loi, onOfferAction, pendin
 
   return (
     <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${
-      isMine ? 'liquid-glass bg-primary/10 border-primary/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] ml-auto' : 'liquid-glass bg-white/[0.03] border-white/10'
+      isMine ? 'liquid-glass bg-primary/10 border-primary/30 ml-auto' : 'liquid-glass bg-white/[0.03] border-white/10'
     }`}>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
@@ -65,13 +65,14 @@ export function OfferCard({ msg, isMine, contactName, loi, onOfferAction, pendin
           // Le libellé sur sa ligne, les parts en dessous : rien ne se coupe au
           // milieu, quelle que soit la longueur du texte.
           <div className="w-full flex flex-col items-center gap-2">
-            <span className="text-[11px] text-white/50 uppercase tracking-widest font-medium text-center">{t('msg.offer_financing', 'Financement')}</span>
+            <span className="text-[11px] text-white/50 dark:text-white/70 uppercase tracking-widest font-medium text-center">{t('msg.offer_financing', 'Financement')}</span>
             <div className="flex flex-wrap items-center justify-center gap-1.5">
               {(financing && typeof financing === 'object'
                 ? [`${t('msg.loan', 'Emprunt')} ${financing.loan} %`, `${t('msg.equity', 'Fonds propres')} ${financing.equity} %`]
                 : [financing === 'cash' ? t('msg.financing_cash', 'Fonds propres') : t('msg.financing_loan', 'Emprunt')]
               ).map((label) => (
-                <span key={label} className="text-[11px] text-primary font-medium px-2.5 py-1 bg-primary/10 rounded-md border border-primary/20 uppercase tracking-wider whitespace-nowrap">
+                <span key={label} // thème sombre : violet clair sur fond plus marqué, le violet du site y était trop peu lisible
+                  className="text-[11px] text-primary dark:text-[#c7c4ff] font-medium px-2.5 py-1 bg-primary/10 dark:bg-primary/25 rounded-md border border-primary/20 dark:border-primary/45 uppercase tracking-wider whitespace-nowrap">
                   {label}
                 </span>
               ))}

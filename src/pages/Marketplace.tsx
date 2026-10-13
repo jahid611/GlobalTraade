@@ -267,7 +267,7 @@ export default function Marketplace() {
     >
       <Filter className="w-4 h-4 mr-2"/> {t('market.adjust_filters')}
       {getActiveFilterCount() > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.5)] border border-white/20">
+        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white/20">
           {getActiveFilterCount()}
         </span>
       )}

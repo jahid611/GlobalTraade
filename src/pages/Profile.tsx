@@ -753,7 +753,7 @@ export default function Profile() {
           ) : (
             <div>
               <h2 className="text-lg font-medium text-white flex flex-wrap items-center gap-2">
-                {activeTab === 'listings' ? <Store className="w-5 h-5 text-[#a5b4fc]" /> : <Heart className="w-5 h-5 text-[#a5b4fc]" />}
+                {activeTab === 'listings' ? <Store className="w-5 h-5 text-[#a5b4fc]" /> : <Heart className="w-5 h-5 text-pink-400" />}
                 {activeTab === 'listings'
                   ? (isOwnProfile ? t('acc.tab_my_listings', 'Mes annonces') : t('acc.listings_of', { defaultValue: 'Les annonces de {{name}}', name: fullName }))
                   : t('acc.tab_my_favorites', 'Mes favoris')} ({displayedItems.length})

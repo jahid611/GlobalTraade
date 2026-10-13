@@ -68,7 +68,7 @@ export function LiveActivityFeed() {
 
     favs.forEach(f => {
       const name = pMap.get(f.user_id) || 'Membre';
-      items.push({ id: f.id, type: 'favorite', text: `${name} a liké votre annonce`, time: f.created_at, icon: Heart, color: 'text-red-400 bg-red-500/10' });
+      items.push({ id: f.id, type: 'favorite', text: `${name} a liké votre annonce`, time: f.created_at, icon: Heart, color: 'text-pink-400 bg-pink-400/10' });
     });
 
     items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());

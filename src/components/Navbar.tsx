@@ -26,7 +26,6 @@ import {
   ArrowLeft,
 } from "phosphor-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,11 +47,40 @@ import { useTranslation } from "react-i18next";
 import { usePlan, PlanType } from "@/services/planService";
 
 // Badge du plan actuel de l'utilisateur
-const PLAN_BADGE: Record<PlanType, { label: string; className: string }> = {
-  free:     { label: "Gratuit",  className: "bg-white/10 text-white/70 border-white/15" },
-  pro:      { label: "Pro",      className: "bg-primary/20 text-primary border-primary/40" },
-  business: { label: "Business", className: "bg-cyan-500/20 text-cyan-300 border-cyan-400/40" },
+// `className` : la pastille (menu du téléphone). `text` : la couleur du nom de
+// la formule dans le menu du compte (ordinateur). Palette du site, pas de cyan.
+const PLAN_BADGE: Record<PlanType, { label: string; className: string; text: string }> = {
+  free:     { label: "Gratuit",  className: "bg-white/10 text-white/70 border-white/15", text: "text-white/70" },
+  pro:      { label: "Pro",      className: "bg-primary/20 text-primary border-primary/40", text: "text-[#c7c4ff]" },
+  business: { label: "Business", className: "bg-white/10 text-white border-white/25", text: "text-white" },
 };
+
+// Le profil affiché dans la barre (nom, photo) est gardé d'une page à l'autre et
+// d'une visite à l'autre. Sans cela, chaque page remontait la barre sans profil :
+// on voyait l'initiale sur fond violet le temps que la photo revienne.
+type NavProfile = { full_name?: string | null; avatar_url?: string | null };
+const NAV_PROFILE_KEY = "globly.navProfile";
+let navProfileMemo: { id: string; profile: NavProfile } | null = null;
+function readNavProfile(userId?: string): NavProfile | null {
+  if (!userId) return null;
+  if (navProfileMemo?.id === userId) return navProfileMemo.profile;
+  try {
+    const saved = JSON.parse(localStorage.getItem(NAV_PROFILE_KEY) || "null");
+    if (saved?.id === userId && saved.profile) {
+      navProfileMemo = saved;
+      return saved.profile;
+    }
+  } catch { /* stockage indisponible : on fera sans */ }
+  return null;
+}
+function saveNavProfile(userId: string, profile: NavProfile) {
+  navProfileMemo = { id: userId, profile };
+  try { localStorage.setItem(NAV_PROFILE_KEY, JSON.stringify(navProfileMemo)); } catch { /* idem */ }
+}
+function clearNavProfile() {
+  navProfileMemo = null;
+  try { localStorage.removeItem(NAV_PROFILE_KEY); } catch { /* idem */ }
+}
 
 export function Navbar() {
   // `resolvedTheme` : avec `enableSystem`, `theme` peut valoir "system".
@@ -60,7 +88,9 @@ export function Navbar() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
 
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<NavProfile | null>(() => readNavProfile(user?.id));
+  // photo qui n'a pas pu se charger : on retombe sur l'initiale
+  const [avatarBroken, setAvatarBroken] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const navigate = useNavigate();
@@ -89,8 +119,13 @@ export function Navbar() {
           .select("full_name, avatar_url")
           .eq("id", user.id)
           .single();
-        if (data) setProfile(data);
+        if (data) {
+          saveNavProfile(user.id, data);
+          setProfile(data);
+        }
       };
+      // d'abord ce que l'on connaît déjà, puis la version à jour
+      setProfile(readNavProfile(user.id));
       fetchProfile();
     } else {
       setProfile(null);
@@ -98,6 +133,7 @@ export function Navbar() {
   }, [user]);
 
   const handleLogout = async () => {
+    clearNavProfile();
     await supabase.auth.signOut();
     navigate("/");
   };
@@ -223,7 +259,7 @@ export function Navbar() {
                     className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105"
                   />
                 </Link>
-                <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
                   {t("nav.home")}
                 </span>
               </div>
@@ -254,7 +290,7 @@ export function Navbar() {
                     >
                       <Icon className="w-[18px] h-[18px]" />
                     </Link>
-                    <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
                       {link.name}
                     </span>
                   </div>
@@ -283,7 +319,7 @@ export function Navbar() {
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <div className="relative group flex shrink-0">
                   <NotificationsMenu user={user} />
-                  <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                  <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
                     {t('notif.title', 'Notifications')}
                   </span>
                 </div>
@@ -300,7 +336,7 @@ export function Navbar() {
                   {hasUnread && (
                     <span className="absolute top-1 right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-[#2b2a2f]" />
                   )}
-                  <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
+                  <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-[#211f25] border border-white/10 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-75 shadow-xl z-[120]">
                     {t('nav.messages', 'Messages')}
                   </span>
                 </Link>
@@ -308,15 +344,21 @@ export function Navbar() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full overflow-hidden outline-none hover:scale-105 transition-transform hover:ring-2 hover:ring-white/20 ml-2 sm:ml-1">
-                      <Avatar className="h-full w-full rounded-full">
-                        <AvatarImage
-                          src={getAvatarUrl()}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="bg-primary/30 text-white font-medium text-sm">
-                          {getUserName().charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      {(() => {
+                        const url = getAvatarUrl();
+                        // Une photo existe : on l'affiche directement, jamais l'initiale à sa place.
+                        if (url && avatarBroken !== url) {
+                          return <img src={url} alt="" onError={() => setAvatarBroken(url)} className="h-full w-full rounded-full object-cover" />;
+                        }
+                        // Profil pas encore connu : rond neutre, le temps de savoir s'il y a une photo.
+                        if (!url && profile === null) return <span className="block h-full w-full rounded-full bg-white/10" />;
+                        // Pas de photo enregistrée : l'initiale.
+                        return (
+                          <span className="flex h-full w-full items-center justify-center rounded-full bg-primary/30 text-white font-medium text-sm">
+                            {getUserName().charAt(0).toUpperCase()}
+                          </span>
+                        );
+                      })()}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -325,21 +367,21 @@ export function Navbar() {
                     sideOffset={16}
                   >
                     <DropdownMenuLabel className="px-4 py-3 mb-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{getUserName()}</p>
-                        <Link
-                          to="/payment"
-                          className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-transform hover:scale-105 ${planBadge.className}`}
-                          title={t('plan.current', 'Votre formule actuelle')}
-                        >
-                          {planBadge.label}
-                        </Link>
-                      </div>
+                      <p className="text-sm font-medium truncate">{getUserName()}</p>
                       <p className="text-[10px] text-white/50 truncate mt-0.5">
                         {user.email}
                       </p>
+                      {/* La formule, sur sa propre ligne sous l'identité : elle ne serre plus le nom */}
+                      <Link
+                        to="/payment"
+                        title={t('plan.current', 'Votre formule actuelle')}
+                        className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2 transition-colors"
+                      >
+                        <span className="text-[10px] uppercase tracking-widest text-white/50 font-medium">{t('plan.word', 'Formule')}</span>
+                        <span className={`text-xs font-semibold ${planBadge.text}`}>{planBadge.label}</span>
+                      </Link>
                       {plan === 'free' && (
-                        <Link to="/payment" className="text-[10px] text-primary hover:text-primary/80 font-medium mt-1.5 inline-block">
+                        <Link to="/payment" className="text-[10px] text-primary hover:text-primary/80 font-medium mt-2 inline-block">
                           {t('plan.upgrade', 'Améliorer ma formule →')}
                         </Link>
                       )}
@@ -368,7 +410,8 @@ export function Navbar() {
             )}
 
             <Link to="/app" className="hidden sm:block">
-              <Button className="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 h-10 font-medium rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
+              {/* Fond : un planisphère de la Terre, assombri pour que le texte reste lisible */}
+              <Button className="bg-[linear-gradient(rgba(4,6,20,0.62),rgba(4,6,20,0.62)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.42),rgba(4,6,20,0.42)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/25 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_10px_rgba(0,0,0,0.9)] px-5 h-10 font-semibold tracking-wide rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
                 {t("nav.explore")}
               </Button>
             </Link>
@@ -512,7 +555,8 @@ export function Navbar() {
                     setIsMobileMenuOpen(false);
                     navigate("/app");
                   }}
-                  className="w-fit px-8 h-12 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium text-base transition-all shadow-none"
+                  // même fond que la pilule de la barre sur ordinateur : le planisphère, assombri
+                  className="w-fit px-8 h-12 rounded-full bg-[linear-gradient(rgba(4,6,20,0.62),rgba(4,6,20,0.62)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.42),rgba(4,6,20,0.42)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/25 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_10px_rgba(0,0,0,0.9)] font-semibold tracking-wide text-base transition-all shadow-none"
                 >
                   {t("nav.explore")}
                 </Button>

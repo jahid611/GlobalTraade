@@ -122,11 +122,13 @@ input, textarea, select {
   text-shadow: none !important;
 }
 
+/* Flou renforcé (30 px, 36 px pour la version épaisse) : le décor derrière les
+   cartes se lit moins, le contenu se lit mieux. */
 .liquid-glass {
   position: relative;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-top: 1px solid var(--glass-border-top);
   border-left: 1px solid var(--glass-border-left);
@@ -134,11 +136,27 @@ input, textarea, select {
   transition: all 0.3s ease;
 }
 
+/* Le même verre, mais seulement à partir de la tablette (« sm:liquid-glass »).
+   Sans cette règle, la classe ne faisait rien : la colonne des conversations de
+   la messagerie n'avait ni carte ni bordure, et son titre passait derrière le décor. */
+@media (min-width: 640px) {
+  .sm\:liquid-glass {
+    position: relative;
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid var(--glass-border-top);
+    border-left: 1px solid var(--glass-border-left);
+    box-shadow: var(--glass-shadow);
+  }
+}
+
 .liquid-glass-heavy {
   position: relative;
   background: var(--glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(36px);
+  -webkit-backdrop-filter: blur(36px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-top: 1px solid var(--glass-border-top);
   border-left: 1px solid var(--glass-border-left);
@@ -201,6 +219,50 @@ input, textarea, select {
 :root:not(.dark) .contrast-day .text-white\/50 { color: hsl(var(--ink) / 0.86) !important; }
 :root:not(.dark) .contrast-day .text-white\/30,
 :root:not(.dark) .contrast-day .text-white\/35 { color: hsl(var(--ink) / 0.76) !important; }
+
+/* ---------------------------------------------------------------------
+ * LECTURE CONFORTABLE (.lisible) — pensée pour les personnes qui lisent mal
+ * le gris sur du verre flou. Dans un bloc marqué .lisible, en clair comme en
+ * sombre : fond plus dense (le décor ne transparaît presque plus), textes
+ * nettement plus blancs sur trois niveaux, caractères moins fins et petites
+ * lignes un peu plus grandes. Appliqué à la fiche d'une entreprise à vendre.
+ * --------------------------------------------------------------------- */
+:root .lisible.liquid-glass-heavy { background: rgba(20, 20, 26, 0.86); }
+:root:not(.dark) .lisible.liquid-glass-heavy { background: rgba(8, 10, 20, 0.8); }
+:root .lisible .text-white,
+:root .lisible .text-white\/80,
+:root .lisible .text-white\/85,
+:root .lisible .text-white\/90 { color: #fff !important; }
+:root .lisible .text-white\/60,
+:root .lisible .text-white\/70 { color: rgba(255, 255, 255, 0.92) !important; }
+:root .lisible .text-white\/40,
+:root .lisible .text-white\/45,
+:root .lisible .text-white\/50 { color: rgba(255, 255, 255, 0.8) !important; }
+:root .lisible .text-white\/20,
+:root .lisible .text-white\/30,
+:root .lisible .text-white\/35 { color: rgba(255, 255, 255, 0.68) !important; }
+/* RÈGLE : jamais de texte coloré sur un fond de la même couleur (bleu sur bleu,
+   vert sur vert…). Sur une pastille teintée, le texte est une version très
+   claire de la teinte : la couleur reste un repère, le texte reste lisible. */
+:root .lisible .text-primary { color: #cfccff !important; }
+:root .lisible .text-blue-400,
+:root .lisible .text-blue-300,
+:root .lisible .text-blue-200 { color: #cfe4ff !important; }
+:root .lisible .text-emerald-400,
+:root .lisible .text-emerald-400\/80 { color: #b6f5d8 !important; }
+:root .lisible .text-amber-400 { color: #fde9a6 !important; }
+:root .lisible .text-red-400,
+:root .lisible .text-red-500 { color: #ffc9c9 !important; }
+/* un bouton plein garde son texte blanc */
+:root .lisible .bg-primary.text-primary,
+:root .lisible .bg-primary .text-primary { color: #fff !important; }
+/* texte d'exemple des champs : lisible, mais distinct de ce que l'on a saisi */
+:root .lisible ::placeholder { color: rgba(255, 255, 255, 0.62) !important; opacity: 1; }
+:root .lisible .font-light { font-weight: 400; }
+:root .lisible .text-\[9px\] { font-size: 11px; }
+:root .lisible .text-\[10px\] { font-size: 11.5px; }
+:root .lisible .text-\[11px\] { font-size: 12px; }
+:root .lisible .text-xs { font-size: 13px; }
 
 /* Formulaire d'annonce : Globi se pose à un endroit différent à chaque étape (ordinateur) */
 @media (min-width: 1024px) {

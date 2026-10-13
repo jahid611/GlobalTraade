@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { X, CheckCircle2, Heart, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock, LockOpen, Sparkles } from 'lucide-react';
+import { FavoriteHeart } from '@/components/FavoriteHeart';
+import { X, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock, LockOpen, Sparkles } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useTranslation } from 'react-i18next';
@@ -288,7 +289,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0, bottom: 1 }} // Permet de tirer vers le bas de manière ultra fluide
           onDragEnd={(e, info) => { dismissing.current = false; if (isMobile && (info.offset.y > 120 || info.velocity.y > 400)) onClose(); }}
-          className="relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.75rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl"
+          className="lisible relative w-full sm:max-w-4xl lg:max-w-[1000px] pointer-events-auto z-10 liquid-glass-heavy rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.75rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl"
         >
           {/* Animation de déblocage (cadenas qui s'ouvre + révélation) */}
           <AnimatePresence>
@@ -350,8 +351,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
           <div className="sm:hidden absolute top-4 right-4 z-30 flex items-center gap-2">
             {!isOwner && (
-              <button onClick={toggleFavorite} className={`p-2 rounded-full transition-colors flex items-center justify-center shadow-lg ${isFavorite ? 'bg-red-500/20 text-red-400' : 'bg-white/5 border border-white/10 text-white/80'}`}>
-                <Heart size={20} className={isFavorite ? 'fill-current' : ''} />
+              <button onClick={toggleFavorite} aria-pressed={isFavorite} className={`p-2 rounded-full transition-colors flex items-center justify-center shadow-lg ${isFavorite ? 'bg-pink-400/15 border border-pink-400/40' : 'bg-white/5 border border-white/10 text-white/80'}`}>
+                <FavoriteHeart active={isFavorite} size={20} />
               </button>
             )}
             <button onClick={onClose} className="p-2 text-white hover:text-white bg-white/5 border border-white/10 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-90">
@@ -431,8 +432,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
                 <div className="hidden sm:flex flex-row items-center gap-3 w-full md:w-auto shrink-0 justify-start md:justify-end mt-2 md:mt-0">
                   {!isOwner && (
-                    <button onClick={toggleFavorite} className={`p-3 rounded-full border transition-all shadow-sm flex items-center justify-center ${isFavorite ? 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}>
-                      <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
+                    <button onClick={toggleFavorite} aria-pressed={isFavorite} className={`p-3 rounded-full border transition-all shadow-sm flex items-center justify-center ${isFavorite ? 'bg-pink-400/15 border-pink-400/40 hover:bg-pink-400/25' : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}>
+                      <FavoriteHeart active={isFavorite} size={18} />
                     </button>
                   )}
                   <button onClick={onClose} aria-label={t('modal.close')} title={t('modal.close')} className="p-3 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-all shadow-sm flex items-center justify-center">
@@ -792,7 +793,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
               initial={{ scale: 0.95, opacity: 0, y: 20 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.95, opacity: 0, y: 20 }} 
-              className="relative bg-[#2b2a2f] border border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl overflow-hidden"
+              className="lisible relative bg-[#232228] border border-white/15 rounded-[2rem] p-8 max-w-md w-full shadow-2xl overflow-hidden"
             >
               <button onClick={() => setIsReportModalOpen(false)} className="absolute top-4 right-4 p-2 text-white/40 hover:text-white transition-colors rounded-full hover:bg-white/10">
                 <X size={18} />
@@ -813,7 +814,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                   value={reportText}
                   onChange={(e) => setReportText(e.target.value)}
                   placeholder={t('modal.report_placeholder', 'Décrivez le problème rencontré...')}
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all resize-none placeholder:text-white/30"
+                  className="w-full h-32 bg-white/[0.07] border border-white/20 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all resize-none placeholder:text-white/30"
                   maxLength={1500}
                 />
                 <div className="absolute bottom-3 right-4 text-[10px] text-white/30">

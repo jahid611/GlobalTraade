@@ -496,7 +496,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                               )}
                               <div className={`px-5 py-3 rounded-2xl text-[15px] font-light leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-sm ${
                                 isMine 
-                                  ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(168,85,247,0.2)]' 
+                                  ? 'bg-gradient-to-br from-primary/90 to-primary text-white rounded-tr-sm' 
                                   : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5 rounded-tl-sm'
                               }`}>
                                 {msg.content}

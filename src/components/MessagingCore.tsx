@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Handshake, Search, Plus, MessageCircle, MoreVertical, Archive, Trash2, Send, ChevronLeft } from 'lucide-react';
+import { X, Handshake, Search, Plus, MessageCircle, MoreVertical, Archive, Trash2, Send, ChevronLeft, Lock, ListChecks } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -436,14 +437,27 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
     );
   }
 
+  const unreadTotal = conversations.filter((c) => c.unread).length;
+
   return (
-    <div className={`flex flex-1 h-full w-full ${activeTab === 'workflow' ? 'max-w-full' : 'max-w-[1400px]'} mx-auto overflow-hidden bg-transparent pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 text-white`}>
-      <div className={`${(!isMobileListOpen || activeTab === 'workflow') ? 'hidden md:flex' : 'flex'} ${activeTab === 'workflow' ? 'md:hidden' : ''} flex-col w-full md:w-[400px] h-full sm:liquid-glass sm:bg-black/40 sm:border-white/20 sm:rounded-3xl shadow-2xl text-white`}>
+    <div className={`flex flex-1 h-full w-full max-w-full mx-auto overflow-hidden bg-transparent pb-0 sm:pb-6 gap-0 sm:gap-6 px-0 sm:px-6 lg:px-8 text-white`}>
+      <div className={`${(!isMobileListOpen || activeTab === 'workflow') ? 'hidden md:flex' : 'flex'} ${activeTab === 'workflow' ? 'md:hidden' : ''} flex-col w-full md:w-[400px] 2xl:w-[440px] shrink-0 h-full sm:liquid-glass sm:bg-black/40 sm:border-white/20 sm:rounded-3xl sm:overflow-hidden shadow-2xl text-white`}>
         <div className="hidden sm:block mb-1 px-6 pt-5 text-white">
           <h1 className="text-[clamp(1.5rem,2vw,2rem)] font-light text-white tracking-tight leading-none mb-1">
             {t('msg.title', 'Messagerie')} <span className="text-primary font-medium">{t('msg.title_private', 'Privée')}</span>
           </h1>
           <p className="text-[10px] text-white/60 uppercase tracking-widest font-medium">{t('msg.subtitle_strict', 'Échanges strictement confidentiels')}</p>
+          {/* Où j'en suis d'un coup d'œil : nombre de conversations, dont non lues */}
+          {!loading && conversations.length > 0 && (
+            <div className="hidden md:flex items-center gap-2 mt-3 text-xs font-light text-white/60">
+              <span>{t('msg.count', '{{count}} conversation(s)', { count: conversations.length })}</span>
+              {unreadTotal > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-2 py-0.5 text-primary font-medium">
+                  {t('msg.unread_count', '{{count}} non lue(s)', { count: unreadTotal })}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-hidden bg-transparent text-white">
           {loading ? (
@@ -488,14 +502,50 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
             />
           </div>
         ) : (
-          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center liquid-glass bg-black/40 border-white/20 rounded-3xl shadow-2xl relative overflow-hidden group text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="relative z-10 flex flex-col items-center">
-              <div className="w-[200px] mb-6 opacity-90 group-hover:opacity-100 transition-opacity duration-500">
+          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center liquid-glass bg-black/40 border-white/20 rounded-3xl shadow-2xl relative overflow-y-auto custom-scrollbar text-white px-8 py-10">
+            <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="relative z-10 flex flex-col items-center w-full max-w-3xl">
+              <div className="w-[150px] lg:w-[180px] mb-5">
                 <img src="/mascot/globi-bouee.png" alt="" className="w-full h-auto drop-shadow-2xl" />
               </div>
               <h3 className="text-[clamp(1.5rem,2vw,2rem)] font-light mb-2 text-white tracking-tight">{t('msg.negotiation_space', 'Espace de Négociation')}</h3>
-              <p className="text-[clamp(0.875rem,1vw,1rem)] font-light max-w-[250px] text-white/60 leading-relaxed">{t('msg.select_conv', 'Sélectionnez une conversation pour démarrer la transaction.')}</p>
+              <p className="text-[clamp(0.875rem,1vw,1rem)] font-light max-w-md text-white/60 leading-relaxed">
+                {!loading && conversations.length === 0
+                  ? t('msg.empty_long', "Vous n'avez pas encore de conversation. Contactez un cédant depuis une annonce et l'échange s'ouvrira ici.")
+                  : t('msg.select_conv', 'Sélectionnez une conversation pour démarrer la transaction.')}
+              </p>
+
+              {!loading && conversations.length === 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                  <Link to="/marketplace" className="h-11 px-6 inline-flex items-center rounded-full bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors">
+                    {t('msg.cta_market', 'Parcourir les annonces')}
+                  </Link>
+                  <Link to="/app" className="h-11 px-6 inline-flex items-center rounded-full border border-white/20 text-white/90 hover:bg-white/10 text-sm font-medium transition-colors">
+                    {t('msg.cta_map', 'Explorer la carte')}
+                  </Link>
+                </div>
+              )}
+
+              {/* Ce que l'on peut faire dans une conversation */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 w-full mt-9 text-left">
+                {[
+                  { icon: Lock, title: t('msg.tile_private_title', 'Échanges confidentiels'), desc: t('msg.tile_private_desc', 'Seuls vous et votre interlocuteur lisez la conversation.') },
+                  { icon: Handshake, title: t('msg.tile_offer_title', 'Offres chiffrées'), desc: t('msg.tile_offer_desc', "Envoyez une offre de reprise et suivez la réponse dans le fil.") },
+                  { icon: ListChecks, title: t('msg.tile_steps_title', 'Étapes de la cession'), desc: t('msg.tile_steps_desc', "Suivez l'avancement de la transaction, étape par étape.") },
+                ].map((tile) => {
+                  const Icon = tile.icon;
+                  return (
+                    <div key={tile.title as string} className="flex lg:flex-col items-start gap-3 rounded-2xl bg-white/[0.04] border border-white/10 p-4">
+                      <div className="shrink-0 w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-primary">
+                        <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white mb-0.5">{tile.title}</p>
+                        <p className="text-xs font-light text-white/60 leading-relaxed">{tile.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
           </div>
         )}

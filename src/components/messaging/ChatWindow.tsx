@@ -257,7 +257,7 @@ export function ChatWindow({
                         )}
                         <div className={`px-4 py-2.5 rounded-[20px] text-[15px] font-light leading-relaxed shadow-sm break-words relative z-20 whitespace-pre-wrap ${
                           isMine 
-                            ? 'bg-primary text-white shadow-[0_4px_20px_rgba(168,85,247,0.15)]' 
+                            ? 'bg-primary text-white' 
                             : 'liquid-glass bg-white/[0.04] text-white/90 border border-white/5'
                         }`}>
                           {msg.content}

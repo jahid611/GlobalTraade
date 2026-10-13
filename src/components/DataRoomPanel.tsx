@@ -306,7 +306,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className="relative h-full w-full sm:w-[500px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/10 z-[210] flex flex-col shadow-2xl pointer-events-auto"
+            className="lisible relative h-full w-full sm:w-[500px] liquid-glass-heavy bg-[#2b2a2f]/95 border-r border-white/10 z-[210] flex flex-col shadow-2xl pointer-events-auto"
           >
             {/* VDR Header */}
             <div className="flex flex-col p-6 border-b border-white/10 bg-black/20 shrink-0">
@@ -504,7 +504,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                         <div className="relative border-l border-white/10 ml-4 space-y-6 pb-4">
                           {accessLogs.map((log) => (
                             <div key={log.id} className="relative pl-6">
-                              <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-[#2b2a2f] shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+                              <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-[#2b2a2f]" />
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
                                 <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.viewed_at || log.created_at || new Date()), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">

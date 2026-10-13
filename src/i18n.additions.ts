@@ -3,6 +3,23 @@
 // ressources FR et EN ; une clé définie ici l'emporte sur le fichier principal.
 
 export const additionsFr: Record<string, string> = {
+  "plan.word": "Formule",
+  "msg.count": "{{count}} conversation(s)",
+  "msg.unread_count": "{{count}} non lue(s)",
+  "msg.empty_long": "Vous n'avez pas encore de conversation. Contactez un cédant depuis une annonce et l'échange s'ouvrira ici.",
+  "msg.cta_market": "Parcourir les annonces",
+  "msg.cta_map": "Explorer la carte",
+  "msg.tile_private_title": "Échanges confidentiels",
+  "msg.tile_private_desc": "Seuls vous et votre interlocuteur lisez la conversation.",
+  "msg.tile_offer_title": "Offres chiffrées",
+  "msg.tile_offer_desc": "Envoyez une offre de reprise et suivez la réponse dans le fil.",
+  "msg.tile_steps_title": "Étapes de la cession",
+  "msg.tile_steps_desc": "Suivez l'avancement de la transaction, étape par étape.",
+  "msg.filter_all": "Toutes",
+  "msg.filter_unread": "Non lues",
+  "msg.filter_offers": "Offres",
+  "msg.no_result": "Aucun résultat",
+  "msg.no_result_desc": "Essayez un autre mot ou un autre filtre.",
   // Comparateur d'offres
   "compare.title": "Comparateur d'Offres",
   "compare.summary": "{{count}} offres reçues - Meilleure : {{amount}}",
@@ -204,6 +221,23 @@ export const additionsFr: Record<string, string> = {
 };
 
 export const additionsEn: Record<string, string> = {
+  "plan.word": "Plan",
+  "msg.count": "{{count}} conversation(s)",
+  "msg.unread_count": "{{count}} unread",
+  "msg.empty_long": "You have no conversation yet. Contact a seller from a listing and the exchange will open here.",
+  "msg.cta_market": "Browse listings",
+  "msg.cta_map": "Explore the map",
+  "msg.tile_private_title": "Confidential exchanges",
+  "msg.tile_private_desc": "Only you and the other person read the conversation.",
+  "msg.tile_offer_title": "Priced offers",
+  "msg.tile_offer_desc": "Send a purchase offer and follow the reply in the thread.",
+  "msg.tile_steps_title": "Steps of the sale",
+  "msg.tile_steps_desc": "Follow the progress of the transaction, step by step.",
+  "msg.filter_all": "All",
+  "msg.filter_unread": "Unread",
+  "msg.filter_offers": "Offers",
+  "msg.no_result": "No results",
+  "msg.no_result_desc": "Try another word or another filter.",
   "compare.title": "Offer Comparator",
   "compare.summary": "{{count}} offers received - Best: {{amount}}",
   "compare.col_investor": "Investor",

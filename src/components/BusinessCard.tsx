@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Globe, Heart, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown, LockSimple } from 'phosphor-react';
+import { FavoriteHeart } from '@/components/FavoriteHeart';
+import { MapPin, Globe, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown, LockSimple } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -195,7 +196,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
               aria-pressed={isFavorite}
               className="w-9 h-9 flex items-center justify-center rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white hover:bg-black/65 transition-colors"
             >
-              <Heart className={`w-[18px] h-[18px] ${isFavorite ? 'text-primary' : ''}`} weight={isFavorite ? 'fill' : 'regular'} />
+              <FavoriteHeart active={isFavorite} size={18} />
             </button>
           )}
           {actions && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}

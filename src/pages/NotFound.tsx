@@ -21,7 +21,7 @@ const NotFound = () => {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-[#2b2a2f]/80 to-[#2b2a2f]" />
 
       <div className="relative z-10 p-8 md:p-12 liquid-glass-heavy border border-white/10 rounded-[3rem] max-w-xl text-center w-[90%] mx-auto shadow-2xl">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-primary/30 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-primary/30">
           <MapPinOff className="w-10 h-10 text-primary" />
         </div>
         

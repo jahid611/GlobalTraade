@@ -108,7 +108,8 @@ const NEAR_MAX = 7;
 /** survol d'un groupe (pastille avec un nombre) : on liste ses premières entreprises */
 const CLUSTER_PAGE = 20;
 /** rose des favoris (points, pastille des groupes, légende) */
-export const FAVORITE_COLOR = '#f472b6';
+import { FAVORITE_COLOR } from './FavoriteHeart';
+export { FAVORITE_COLOR };
 /** deux entreprises plus proches que ça à l'écran (px) sont regroupées */
 const CLUSTER_RADIUS_PX = 20;
 // Ordre d'empilement des points. Le point survolé (et sa liste) passe devant
@@ -142,6 +143,9 @@ function placeFor(el: HTMLElement | null, width: number): Placement {
 
 // Fiche de survol d'une cession (ordinateur uniquement : il n'y a pas de survol
 // au doigt). L'essentiel pour décider de cliquer : quoi, où, combien.
+// La fiche et la liste au survol s'affichent dès qu'il y a une souris, quelle que
+// soit la largeur de la fenêtre (avant : seulement au-delà de 1024 px, donc rien
+// dans une fenêtre d'ordinateur étroite).
 function PinHoverCard({ listing, isMine, place }: { listing: ListingNode; isMine: boolean; place: Placement }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
@@ -153,7 +157,7 @@ function PinHoverCard({ listing, isMine, place }: { listing: ListingNode; isMine
   if (listing.established_year) facts.push({ label: t('globe.hover_since', 'Créée en') as string, value: String(listing.established_year) });
 
   return (
-    <div style={place.above ? { marginBottom: 8 } : { marginTop: 8 }} className={`absolute ${place.above ? 'bottom-full' : 'top-full'} hidden lg:block opacity-0 peer-hover:opacity-100 translate-y-1 peer-hover:translate-y-0 transition-all duration-200 pointer-events-none z-50`}>
+    <div style={place.above ? { marginBottom: 8 } : { marginTop: 8 }} className={`absolute ${place.above ? 'bottom-full' : 'top-full'} hidden [@media(hover:hover)]:block opacity-0 peer-hover:opacity-100 translate-y-1 peer-hover:translate-y-0 transition-all duration-200 pointer-events-none z-50`}>
       <div
         className="w-[272px] rounded-2xl p-4 text-left backdrop-blur-xl"
         style={{ position: 'relative', left: place.shift, background: 'rgba(28,27,33,0.94)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 18px 50px rgba(0,0,0,0.55)' }}
@@ -256,7 +260,7 @@ function NearbyList({ items, onSelect, total, touch, place, onLoadMore, favorite
   }, []);
   return (
     // collée au point (pas d'espace vide) : le curseur passe du point à la liste sans la refermer
-    <div className={`absolute ${place.above ? 'bottom-full' : 'top-full'} z-50 ${touch ? 'block' : 'hidden lg:block'}`} style={place.above ? { paddingBottom: 6 } : { paddingTop: 6 }}>
+    <div className={`absolute ${place.above ? 'bottom-full' : 'top-full'} z-50 ${touch ? 'block' : 'hidden [@media(hover:hover)]:block'}`} style={place.above ? { paddingBottom: 6 } : { paddingTop: 6 }}>
       <div
         ref={scrollRef}
         className="w-[292px] max-w-[86vw] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl p-2 text-left"
@@ -392,14 +396,14 @@ const Pin = React.memo(function Pin({ listing, onSelectListing, zoom, showLogos,
           <div className="peer relative p-1.5">
           {showDetails ? (
             listing.logo_url && showLogos ? (
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${isMine ? 'border-primary border-2 scale-110 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : isFavorite ? 'border-pink-400 border-2 shadow-[0_0_12px_rgba(244,114,182,0.8)]' : 'border-white/40'} overflow-hidden transition-transform duration-300 hover:scale-[1.8] bg-black`}>
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${isMine ? 'border-primary border-2 scale-110' : isFavorite ? 'border-pink-400 border-2 shadow-[0_0_12px_rgba(244,114,182,0.8)]' : 'border-white/40'} overflow-hidden transition-transform duration-300 hover:scale-[1.8] bg-black`}>
                 <img src={listing.logo_url} alt={listing.name} className="w-full h-full object-cover pointer-events-none" />
               </div>
             ) : (
-              <div className={`w-2 h-2 rounded-full ${isFavorite ? 'bg-pink-400' : 'bg-primary'} border border-white/20 ${isMine ? 'shadow-[0_0_15px_rgba(168,85,247,0.8)] scale-125' : isFavorite ? 'shadow-[0_0_10px_rgba(244,114,182,0.8)] scale-125' : 'shadow-[0_0_8px_rgba(168,85,247,0.4)]'} transition-transform duration-300 hover:scale-[2.5]`} />
+              <div className={`w-2 h-2 rounded-full ${isFavorite ? 'bg-pink-400' : 'bg-primary'} border border-white/20 ${isMine ? ' scale-125' : isFavorite ? 'shadow-[0_0_10px_rgba(244,114,182,0.8)] scale-125' : ''} transition-transform duration-300 hover:scale-[2.5]`} />
             )
           ) : (
-            <div className={`w-1 h-1 rounded-full ${isFavorite ? 'bg-pink-400' : 'bg-primary'} ${isMine ? 'shadow-[0_0_10px_rgba(168,85,247,0.8)] scale-150' : isFavorite ? 'shadow-[0_0_8px_rgba(244,114,182,0.9)] scale-150' : 'shadow-[0_0_5px_rgba(168,85,247,0.4)]'} transition-transform duration-300 hover:scale-[3]`} />
+            <div className={`w-1 h-1 rounded-full ${isFavorite ? 'bg-pink-400' : 'bg-primary'} ${isMine ? ' scale-150' : isFavorite ? 'shadow-[0_0_8px_rgba(244,114,182,0.9)] scale-150' : ''} transition-transform duration-300 hover:scale-[3]`} />
           )}
           </div>
 
@@ -507,7 +511,7 @@ const ClusterPin = React.memo(function ClusterPin({ lat, lng, count, getLeaves, 
             if (items) close(); else { raise(true); setByTouch(true); setItems(firstPage()); }
           }}
         >
-          <div className={`rounded-full bg-primary/70 border border-white/20 relative flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-transform hover:scale-110 hover:border-white/50 ${sizeClass}`}>
+          <div className={`rounded-full bg-primary/70 border border-white/20 relative flex items-center justify-center transition-transform hover:scale-110 hover:border-white/50 ${sizeClass}`}>
             <span className="text-white font-bold">{count > 999 ? `${Math.round(count / 100) / 10}k` : count}</span>
             {favorites > 0 && (
               <Heart className="absolute -top-1 -right-1 w-3 h-3 drop-shadow" style={{ color: FAVORITE_COLOR, fill: FAVORITE_COLOR }} />
@@ -1017,7 +1021,8 @@ export function WorldGlobe({ listings, favoriteIds, onSelectListing, focusListin
       </Canvas>
       {interactive && (
         <div className="absolute bottom-8 right-4 sm:right-8 z-20 flex gap-2 sm:gap-3 flex-col sm:flex-row items-end pointer-events-auto">
-          <button onClick={() => setTheme(isDayMode ? 'dark' : 'light')} className="liquid-glass p-3 sm:p-4 rounded-full border border-white/20 bg-black/30 hover:border-white/40 text-white shadow-xl transition-all hover:scale-105" title={isDayMode ? "Mode Sombre" : "Mode Clair"}>
+          {/* Fond planisphère : on comprend d'un coup d'œil que ce bouton règle la carte (jour / nuit) */}
+          <button onClick={() => setTheme(isDayMode ? 'dark' : 'light')} aria-label={isDayMode ? "Carte : passer en mode nuit" : "Carte : passer en mode jour"} className="p-3 sm:p-4 rounded-full border border-white/30 bg-[linear-gradient(rgba(4,6,20,0.5),rgba(4,6,20,0.5)),url('/earth/pilule.jpg')] bg-cover bg-center hover:border-white/60 text-white [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] shadow-xl transition-all hover:scale-105" title={isDayMode ? "Carte : mode nuit" : "Carte : mode jour"}>
             {isDayMode ? <Moon className="w-4 h-4 sm:w-5 sm:h-5" /> : <Sun className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
           <div className="flex gap-2 sm:gap-3">
