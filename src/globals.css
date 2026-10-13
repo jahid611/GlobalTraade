@@ -178,6 +178,30 @@ input, textarea, select {
 :root:not(.dark) .text-white\/80 { color: hsl(var(--ink) / 0.94) !important; }
 :root:not(.dark) .text-white\/90 { color: hsl(var(--ink) / 0.97) !important; }
 
+/* ---------------------------------------------------------------------
+ * ESSAI — lisibilité en mode jour à l'intérieur d'une carte (.contrast-day).
+ * Sur une carte de verre, les textes secondaires restaient gris, trop proches
+ * de la teinte de la carte. Dans une carte marquée .contrast-day : le fond est
+ * un peu plus dense et les textes nettement plus blancs, en gardant trois
+ * niveaux (principal, secondaire, discret). Mode sombre inchangé.
+ * Appliqué pour l'instant à la « Note de l'entreprise » seulement.
+ * --------------------------------------------------------------------- */
+:root:not(.dark) .contrast-day {
+  /* Teinte unie, pas de dégradé : un dégradé sombre aussi doux se découpe en
+     bandes diagonales visibles à l'écran (pas assez de nuances pour le lisser). */
+  background: rgba(0, 0, 0, 0.72);
+}
+:root:not(.dark) .contrast-day .text-white\/60,
+:root:not(.dark) .contrast-day .text-white\/70,
+:root:not(.dark) .contrast-day .text-white\/80,
+:root:not(.dark) .contrast-day .text-white\/85,
+:root:not(.dark) .contrast-day .text-white\/90 { color: hsl(var(--ink) / 1) !important; }
+:root:not(.dark) .contrast-day .text-white\/40,
+:root:not(.dark) .contrast-day .text-white\/45,
+:root:not(.dark) .contrast-day .text-white\/50 { color: hsl(var(--ink) / 0.86) !important; }
+:root:not(.dark) .contrast-day .text-white\/30,
+:root:not(.dark) .contrast-day .text-white\/35 { color: hsl(var(--ink) / 0.76) !important; }
+
 /* Formulaire d'annonce : Globi se pose à un endroit différent à chaque étape (ordinateur) */
 @media (min-width: 1024px) {
   .guide-pose { transform: translate(var(--guide-x, 0), var(--guide-y, 0)) rotate(var(--guide-r, 0deg)); transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1); }

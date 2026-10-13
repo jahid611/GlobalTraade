@@ -84,7 +84,7 @@ export function SectorBuyerCard({ ad, userId, hasFullAccess }: { ad: SearchAd; u
               onClick={() => navigate(`/payment?unlock=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || "")}`)}
               className={`${primaryBtn} w-full`}
             >
-              <LockSimple size={18} weight="fill" /> {t("quota.unlock_cta", `Débloquer — ${UNLOCK_PRICE} €`)}
+              <LockSimple size={18} weight="fill" /> {t("quota.unlock_cta", `Débloquer - ${UNLOCK_PRICE} €`)}
             </button>
             <p className="text-[13px] text-white/55 font-light leading-relaxed mt-2.5 text-center">
               {t("sector.buyer_locked_hint", "Le déblocage ouvre le descriptif complet et le profil de ce repreneur.")}

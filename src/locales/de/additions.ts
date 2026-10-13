@@ -1,6 +1,6 @@
 export const additions: Record<string, string> = {
   "compare.title": "Angebotsvergleich",
-  "compare.summary": "{{count}} Angebote erhalten – Bestes: {{amount}}",
+  "compare.summary": "{{count}} Angebote erhalten - Bestes: {{amount}}",
   "compare.col_investor": "Investor",
   "compare.col_amount": "Betrag",
   "compare.col_financing": "Finanzierung",
@@ -13,7 +13,7 @@ export const additions: Record<string, string> = {
   "compare.fin_unknown": "Keine Angabe",
   "compare.investor": "Investor",
   "compare.score_basis": "Die Punktzahl beruht auf: Betrag (40 %), Finanzierung (25 %), KYC-Prüfung (20 %), Reaktionsschnelligkeit (15 %)",
-  "notif.gold_match": "Gold-Chance – {{score}} % Übereinstimmung",
+  "notif.gold_match": "Gold-Chance - {{score}} % Übereinstimmung",
   "notif.new_match": "Neuer Treffer {{score}} %",
   "notif.new_listing": "Neues Inserat",
   "form.err_invalid_fields": "Einige Felder fehlen oder sind ungültig. Bitte korrigieren Sie sie, um Ihr Inserat zu speichern.",

@@ -70,7 +70,7 @@ export const generateLOI = async ({
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(
-    isFr ? "Document généré automatiquement — Globly" : "Auto-generated document — Globly",
+    isFr ? "Document généré automatiquement - Globly" : "Auto-generated document - Globly",
     margin,
     32
   );
@@ -78,7 +78,7 @@ export const generateLOI = async ({
   doc.setFontSize(9);
   doc.setTextColor(200, 200, 200);
   doc.text(
-    isFr ? "CONFIDENTIEL — Usage privé uniquement" : "CONFIDENTIAL — Private use only",
+    isFr ? "CONFIDENTIEL - Usage privé uniquement" : "CONFIDENTIAL - Private use only",
     margin,
     40
   );

@@ -31,9 +31,9 @@ export function translateReason(reason: string, t: TFunction): string {
   if (m) return t("prospection.reason_mature", { n: m[1], defaultValue: "Entreprise installée depuis {{n}} ans" }) as string;
   m = reason.match(/^Ancienneté (\d+) ans$/);
   if (m) return t("prospection.reason_seniority", { n: m[1], defaultValue: "Entreprise créée il y a {{n}} ans" }) as string;
-  m = reason.match(/^Dirigeant (\d+) ans — départ retraite probable$/);
+  m = reason.match(/^Dirigeant (\d+) ans(?: —|,) départ retraite probable$/);
   if (m) return t("prospection.reason_retirement", { n: m[1], defaultValue: "Dirigeant de {{n}} ans : départ à la retraite probable" }) as string;
-  m = reason.match(/^Dirigeant (\d+) ans — horizon transmission$/);
+  m = reason.match(/^Dirigeant (\d+) ans(?: —|,) horizon transmission$/);
   if (m) return t("prospection.reason_transmission", { n: m[1], defaultValue: "Dirigeant de {{n}} ans : transmission à préparer" }) as string;
   m = reason.match(/^Dirigeant (\d+) ans$/);
   if (m) return t("prospection.reason_age", { n: m[1], defaultValue: "Dirigeant de {{n}} ans" }) as string;

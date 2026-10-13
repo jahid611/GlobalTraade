@@ -14,7 +14,7 @@ const TARGET: Record<string, string> = { listing: "d'une annonce", project: "d'u
 
 function what(p: AdminPurchase) {
   if (p.kind === "unlock") return `Déblocage ${TARGET[p.detail || ""] || "d'une fiche"}`;
-  return `Contact de prospection${p.detail ? ` — ${p.detail}` : ""}`;
+  return `Contact de prospection${p.detail ? ` - ${p.detail}` : ""}`;
 }
 function reference(p: AdminPurchase) {
   if (!p.target_id) return null;

@@ -144,7 +144,7 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
           </div>
           <div className="text-left">
             <p className="text-sm font-medium text-white">{t('compare.title', "Comparateur d'Offres")}</p>
-            <p className="text-[11px] text-white/40 font-light">{t('compare.summary', '{{count}} offres reçues — Meilleure : {{amount}}', { count: offers.length, amount: fmt(bestOffer.amount) })}</p>
+            <p className="text-[11px] text-white/40 font-light">{t('compare.summary', '{{count}} offres reçues - Meilleure : {{amount}}', { count: offers.length, amount: fmt(bestOffer.amount) })}</p>
           </div>
         </div>
         {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}

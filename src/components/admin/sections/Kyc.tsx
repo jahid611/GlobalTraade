@@ -182,7 +182,7 @@ export default function Kyc() {
         description={decision && (
           <>
             <strong className="text-white font-medium">{decision.row.name || "Membre sans nom"}</strong>
-            {decision.row.email ? ` (${decision.row.email})` : ""} — {DECISION_TEXT[decision.status].description}
+            {decision.row.email ? ` (${decision.row.email})` : ""} - {DECISION_TEXT[decision.status].description}
           </>
         )}
         confirmLabel={decision ? DECISION_TEXT[decision.status].confirm : ""}

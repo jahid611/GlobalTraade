@@ -183,8 +183,8 @@ export function ProspectDrawer({
     switch (r.kind) {
       case "mature": return t("crm.reason.mature", { n: r.years, defaultValue: "Entreprise mature ({{n}} ans)" });
       case "seniority": return t("crm.reason.seniority", { n: r.years, defaultValue: "Ancienneté {{n}} ans" });
-      case "retirement": return t("crm.reason.retirement", { n: r.age, defaultValue: "Dirigeant de {{n}} ans — départ en retraite probable" });
-      case "transmission": return t("crm.reason.transmission", { n: r.age, defaultValue: "Dirigeant de {{n}} ans — horizon de transmission" });
+      case "retirement": return t("crm.reason.retirement", { n: r.age, defaultValue: "Dirigeant de {{n}} ans, départ en retraite probable" });
+      case "transmission": return t("crm.reason.transmission", { n: r.age, defaultValue: "Dirigeant de {{n}} ans, horizon de transmission" });
       case "age": return t("crm.reason.age", { n: r.age, defaultValue: "Dirigeant de {{n}} ans" });
       case "legal_form": return t("crm.reason.legal_form", "Forme juridique sérieuse");
     }
@@ -398,7 +398,7 @@ export function ProspectDrawer({
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-3">
                   <Fact label={t("crm.field.siren", "SIREN")}>{p.siren}</Fact>
                   <Fact label={t("crm.field.city", "Ville")}>{[p.code_postal, p.ville].filter(Boolean).join(" ")}</Fact>
-                  <div className="col-span-2"><Fact label={t("crm.field.activity", "Activité")}>{[p.code_ape, p.libelle_ape].filter(Boolean).join(" — ")}</Fact></div>
+                  <div className="col-span-2"><Fact label={t("crm.field.activity", "Activité")}>{[p.code_ape, p.libelle_ape].filter(Boolean).join(" - ")}</Fact></div>
                   <Fact label={t("crm.field.headcount", "Effectif")}>{p.tranche_effectif}</Fact>
                   <Fact label={t("crm.field.legal_form", "Forme juridique")}>{p.nature_juridique}</Fact>
                   <Fact label={t("crm.field.seniority", "Ancienneté")}>

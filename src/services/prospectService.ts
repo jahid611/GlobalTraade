@@ -129,12 +129,12 @@ export function buildOutreachEmail(p: Prospect, senderName = "[Votre nom]", lang
   if (lang === "en") {
     const greeting = p.dirigeant_nom ? `Hello ${p.dirigeant_nom},` : "Hello,";
     const ville = p.ville ? ` in the ${p.ville} area` : "";
-    const subject = `Business transfer / partnership — ${p.nom}`;
+    const subject = `Business transfer / partnership - ${p.nom}`;
     const body = `${greeting}
 
 I'm reaching out regarding a possible business combination between companies in our sector${ville}.
 
-Your company ${p.nom} caught my attention. If you are considering — even in the medium term — a sale, a transfer or a partnership, I would be glad to discuss it with you in full confidence, with no commitment on your part.
+Your company ${p.nom} caught my attention. If you are considering, even in the medium term, a sale, a transfer or a partnership, I would be glad to discuss it with you in full confidence, with no commitment on your part.
 
 Would you be available for a short phone call in the coming days?
 
@@ -148,12 +148,12 @@ You are receiving this message because your company operates in a sector related
 
   const greeting = p.dirigeant_nom ? `Bonjour ${p.dirigeant_nom},` : "Bonjour,";
   const ville = p.ville ? ` dans le secteur de ${p.ville}` : "";
-  const subject = `Transmission / rapprochement — ${p.nom}`;
+  const subject = `Transmission / rapprochement - ${p.nom}`;
   const body = `${greeting}
 
 Je me permets de vous contacter au sujet d'un éventuel rapprochement entre entreprises de notre secteur${ville}.
 
-Votre société ${p.nom} a retenu mon attention. Si vous envisagez, même à moyen terme, une cession, une transmission ou un partenariat, je serais ravi d'en échanger avec vous en toute confidentialité — sans aucun engagement de votre part.
+Votre société ${p.nom} a retenu mon attention. Si vous envisagez, même à moyen terme, une cession, une transmission ou un partenariat, je serais ravi d'en échanger avec vous en toute confidentialité, sans aucun engagement de votre part.
 
 Seriez-vous disponible pour un court échange téléphonique dans les prochains jours ?
 

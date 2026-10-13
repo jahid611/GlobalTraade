@@ -286,7 +286,7 @@ export function SearchAdsBoard() {
                     <>
                       {!isBoosted(ad) && (
                         <button onClick={() => navigate(`/payment?boost=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`)}
-                          title={t('boost.cta', `Mettre en avant — ${BOOST_PRICE} €`) as string}
+                          title={t('boost.cta', `Mettre en avant - ${BOOST_PRICE} €`) as string}
                           className="p-2.5 rounded-full text-white/50 hover:text-amber-300 hover:bg-amber-500/10 transition-colors outline-none"><RocketLaunch className="w-5 h-5" /></button>
                       )}
                       <button onClick={() => openEdit(ad)} className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors outline-none"><PencilSimple className="w-5 h-5" /></button>
@@ -298,7 +298,7 @@ export function SearchAdsBoard() {
                     </Button>
                   ) : (
                     <Button onClick={() => goUnlock(ad)} className="rounded-full h-11 px-5 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
-                      <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                      <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
                     </Button>
                   )}
                 </div>

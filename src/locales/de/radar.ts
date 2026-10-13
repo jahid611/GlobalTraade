@@ -69,7 +69,7 @@ export const radar: Record<string, string> = {
   "prospection.rule_seniority_desc": "10 Jahre: 1 Punkt. 15 Jahre und mehr: 2 Punkte.",
   "prospection.rule_legal_title": "Die Rechtsform",
   "prospection.rule_legal_desc": "Eine Gesellschaft (SAS, SARL, SA…): 1 Punkt, denn sie lässt sich leichter übergeben.",
-  "prospection.legend_intro": "Der Übergabe-Score reicht von 0 bis {{max}}. Er schätzt anhand öffentlicher Angaben, wie wahrscheinlich das Unternehmen bald übergeben wird. Er ist ein Hinweis, wen Sie zuerst anschreiben sollten – keine Gewissheit.",
+  "prospection.legend_intro": "Der Übergabe-Score reicht von 0 bis {{max}}. Er schätzt anhand öffentlicher Angaben, wie wahrscheinlich das Unternehmen bald übergeben wird. Er ist ein Hinweis, wen Sie zuerst anschreiben sollten, keine Gewissheit.",
   "prospection.rules_label": "Woher die Punkte kommen",
   "prospection.level_strong": "Starkes Signal",
   "prospection.level_medium": "Mittleres Signal",

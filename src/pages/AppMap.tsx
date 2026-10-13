@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { industryOptions } from '@/lib/industries';
+import { ZoomHint } from '@/components/ZoomHint';
+import { MapSearch } from '@/components/MapSearch';
+import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/domain';
-import { WorldGlobe, ListingNode } from '@/components/Globe';
+import { WorldGlobe, ListingNode, FAVORITE_COLOR } from '@/components/Globe';
 import { BusinessModal } from '@/components/BusinessModal';
 import { ListingForm } from '@/components/ListingForm';
 import { ChatPanel } from '@/components/ChatPanel';
 import { SidebarMessaging } from '@/components/SidebarMessaging';
-import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate } from 'phosphor-react';
+import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate, Heart } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -175,6 +178,37 @@ export default function AppMap() {
     }
   };
 
+  // Favoris du membre : leurs points sont roses sur la carte. Relus à la
+  // fermeture d'une fiche, où le cœur a pu être coché ou décoché.
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+  const hasOpenListing = !!selectedListing;
+  useEffect(() => {
+    if (!user?.id) { setFavoriteIds(new Set()); return; }
+    if (hasOpenListing) return;
+    let cancelled = false;
+    supabase.from('favorites').select('listing_id').eq('user_id', user.id).then(({ data }) => {
+      if (cancelled) return;
+      const next = new Set((data || []).map((f) => String(f.listing_id)));
+      // même contenu : on garde le même objet, la carte ne se recalcule pas pour rien
+      setFavoriteIds((prev) => (prev.size === next.size && [...next].every((id) => prev.has(id)) ? prev : next));
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, hasOpenListing]);
+  const favoritesOnMap = useMemo(() => listings.some((l) => favoriteIds.has(l.id)), [listings, favoriteIds]);
+
+  // Recherche par nom : la carte vole jusqu'à l'entreprise, puis ouvre sa fiche.
+  const handleSearchPick = (picked: ListingNode) => {
+    const id = picked.listingId || picked.id;
+    // un filtre de secteur actif pourrait la masquer
+    if (selectedIndustries.length > 0 && !selectedIndustries.includes(picked.industry)) setSelectedIndustries([]);
+    setSelectedListing(null);
+    setFocusListingId(undefined);
+    flightTimers.current.forEach(clearTimeout);
+    flightTimers.current = [setTimeout(() => setFocusListingId(id), 50)];
+    const full = listings.find(l => l.id === id);
+    if (full) flightTimers.current.push(setTimeout(() => setSelectedListing(full), 1600));
+  };
+
   const handleToggleIndustry = (ind: string) => {
     setSelectedIndustries(prev => 
       prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
@@ -330,14 +364,21 @@ export default function AppMap() {
       <div className="absolute inset-0">
         <WorldGlobe 
           listings={displayListings as any} 
+          favoriteIds={favoriteIds}
           onSelectListing={handleSelectListing} 
           focusListingId={focusListingId}
           currentUserId={user?.id}
         />
       </div>
 
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+6rem)] left-6 z-50 flex flex-col gap-4 pointer-events-none">
-        <div className="pointer-events-auto">
+      <ZoomHint hidden={isOverlayOpen} />
+
+      {/* Téléphone : recherche et secteurs côte à côte. Au-delà : l'une au-dessus de l'autre. */}
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+6rem)] left-6 right-6 sm:right-auto z-50 flex flex-row sm:flex-col gap-2 sm:gap-3 pointer-events-none">
+        <div className="pointer-events-auto min-w-0 flex-1 sm:flex-none">
+          <MapSearch listings={listings} onPick={handleSearchPick} />
+        </div>
+        <div className="pointer-events-auto shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-[160px] sm:w-48 liquid-glass bg-black/40 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/20 rounded-xl text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-none font-light h-10 transition-colors shadow-none text-xs flex justify-between items-center px-4 hover:text-white hover:bg-black/60 hover:border-white/60 outline-none focus:ring-0">
@@ -402,6 +443,14 @@ export default function AppMap() {
           <Plus className="w-8 h-8 relative z-10 text-white drop-shadow-lg dark:drop-shadow-none" strokeWidth={1.5} />
         </button>
       </div>
+
+      {/* Légende discrète, seulement si au moins un favori est sur la carte */}
+      {favoritesOnMap && !isOverlayOpen && (
+        <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+3.1rem)] left-[5.25rem] sm:left-[6.5rem] z-10 pointer-events-none select-none flex items-center gap-1.5 text-[11px] font-light text-white/75 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
+          <Heart weight="fill" className="w-3 h-3" style={{ color: FAVORITE_COLOR }} />
+          {t('globe.legend_favorites', 'Mes favoris')}
+        </div>
+      )}
 
       <SidebarMessaging isOpen={isSidebarMessagingOpen} onClose={() => setIsSidebarMessagingOpen(false)} user={user} />
 

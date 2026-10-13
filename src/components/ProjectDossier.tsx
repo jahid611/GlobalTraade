@@ -203,7 +203,7 @@ export function ProjectAccessSection({ project, userId }: { project: Project; us
         {/* État de ma demande (visiteur) */}
         {!isOwner && data?.myRequest && myStatus !== 'accepted' && (
           myStatus === 'pending'
-            ? <StatusNote tone={TONE_WARNING} icon={Clock}>{t('pp.request_pending', 'Demande d\'accès envoyée — en attente du porteur.')}</StatusNote>
+            ? <StatusNote tone={TONE_WARNING} icon={Clock}>{t('pp.request_pending', 'Demande d\'accès envoyée, en attente du porteur.')}</StatusNote>
             : <StatusNote tone={TONE_DANGER} icon={XCircle}>{t('pp.request_rejected', 'Le porteur a décliné votre demande d\'accès.')}</StatusNote>
         )}
       </section>
@@ -227,12 +227,12 @@ export function ProjectAccessSection({ project, userId }: { project: Project; us
                     ? <img src={req.profile.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 border border-white/15" />
                     : <span className="w-9 h-9 rounded-full bg-primary/25 border border-white/15 flex items-center justify-center text-sm font-medium text-white shrink-0">{name.charAt(0).toUpperCase()}</span>}
                   <p className="flex-1 min-w-0 text-sm text-white truncate">{name}</p>
-                  <button onClick={() => answerRequest(req.id, 'accepted')} aria-label={`${t('pd.accept', 'Accepter')} — ${name}`}
+                  <button onClick={() => answerRequest(req.id, 'accepted')} aria-label={`${t('pd.accept', 'Accepter')} - ${name}`}
                     className="h-11 min-w-[44px] px-3 rounded-full border inline-flex items-center justify-center gap-1.5 text-sm font-medium transition-all outline-none hover:brightness-125 focus-visible:ring-2 focus-visible:ring-white/50"
                     style={{ background: toneBg(TONE_SUCCESS, 0.18), borderColor: toneBorder(TONE_SUCCESS, 0.45), color: TONE_SUCCESS.text }}>
                     <Check className="w-4 h-4" weight="bold" /><span className="hidden sm:inline">{t('pd.accept', 'Accepter')}</span>
                   </button>
-                  <button onClick={() => answerRequest(req.id, 'rejected')} aria-label={`${t('pd.decline', 'Refuser')} — ${name}`}
+                  <button onClick={() => answerRequest(req.id, 'rejected')} aria-label={`${t('pd.decline', 'Refuser')} - ${name}`}
                     className="h-11 min-w-[44px] px-3 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 inline-flex items-center justify-center gap-1.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <X className="w-4 h-4" weight="bold" /><span className="hidden sm:inline">{t('pd.decline', 'Refuser')}</span>
                   </button>
@@ -287,7 +287,7 @@ function BusinessPlanModal({ projectId, projectTitle, isOpen, onClose, readOnly 
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Business plan — ${projectTitle}`, 15, 20);
+    doc.text(`Business plan - ${projectTitle}`, 15, 20);
     let y = 35;
     BP_SECTIONS.forEach(section => {
       const content = plan[section];
@@ -308,7 +308,7 @@ function BusinessPlanModal({ projectId, projectTitle, isOpen, onClose, readOnly 
     });
     doc.setFontSize(8);
     doc.setTextColor(120, 120, 120);
-    doc.text('Document généré par Globly — globly.fr', 15, 290);
+    doc.text('Document généré par Globly, globly.fr', 15, 290);
     doc.save(`BusinessPlan_${projectTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`);
   };
 

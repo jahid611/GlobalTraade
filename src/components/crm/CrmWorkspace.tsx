@@ -263,7 +263,7 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
           if (r.url) await openCheckout(r.url);
           else setProspectCS(r.clientSecret!);
           toast.info(t("quota.prospection_pay_first",
-            `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} € — réglez-les, puis relancez l'export.`) as string);
+            `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} €, réglez-les, puis relancez l'export.`) as string);
         } else {
           showError(r.error || t("msg.error", "Une erreur est survenue."));
         }
@@ -288,7 +288,7 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
     a.download = `campagne-${list.length}-contacts.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
-    showSuccess(t("crm.toast.exported", { n: list.length, defaultValue: "{{n}} contact(s) exporté(s) — importe le CSV dans ton outil d'emailing" }));
+    showSuccess(t("crm.toast.exported", { n: list.length, defaultValue: "{{n}} contact(s) exporté(s), importe le CSV dans ton outil d'emailing" }));
   };
 
   // ------------------------------------------------------------------

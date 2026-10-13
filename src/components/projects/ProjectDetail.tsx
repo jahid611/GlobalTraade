@@ -229,7 +229,7 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                         {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
                       </p>
                       <Button onClick={goUnlock} className="rounded-full h-12 px-8 mt-1 bg-primary hover:bg-primary/90 text-white text-sm font-semibold outline-none [text-shadow:none] shadow-[0_10px_30px_rgba(89,85,232,0.55)]">
-                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
                       </Button>
                     </div>
                   </div>
@@ -381,7 +381,7 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                         {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
                       </p>
                       <Button onClick={goUnlock} className="rounded-full bg-primary hover:bg-primary/90 text-white h-12 px-8 text-sm font-semibold transition-all shadow-lg">
-                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
                       </Button>
                     </div>
                   ) : userId ? (

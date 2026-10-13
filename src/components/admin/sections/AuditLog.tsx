@@ -136,7 +136,7 @@ export default function AuditLog() {
       <div className="rounded-2xl border px-4 py-3 mb-5 flex items-start gap-3" style={{ background: TONE.green.background, borderColor: TONE.green.borderColor }}>
         <LockSimple size={22} weight="fill" className="shrink-0 mt-0.5" style={{ color: TONE.green.color }} aria-hidden />
         <p className="text-sm text-white leading-relaxed">
-          Ce journal est écrit par la base de données elle-même. <strong className="font-semibold">Il ne peut être ni modifié ni effacé depuis l'application</strong>, par personne — administrateurs compris.
+          Ce journal est écrit par la base de données elle-même. <strong className="font-semibold">Il ne peut être ni modifié ni effacé depuis l'application</strong>, par personne, administrateurs compris.
         </p>
       </div>
 

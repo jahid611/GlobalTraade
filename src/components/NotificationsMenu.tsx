@@ -245,7 +245,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
           } else if (n.type === 'connection_accepted') {
             toast.success(t('notif.toast_conn_accepted'), { description: n.profile.full_name, duration: 6000 });
           } else if (n.type === 'offer_received') {
-            toast.success(t('notif.toast_offer_received'), { description: `${n.profile.full_name} — ${new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(n.metadata?.amount) || 0)}`, duration: 8000 });
+            toast.success(t('notif.toast_offer_received'), { description: `${n.profile.full_name} - ${new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(n.metadata?.amount) || 0)}`, duration: 8000 });
           } else if (n.type === 'offer_accepted') {
             toast.success(t('notif.toast_offer_accepted'), { description: `"${n.listing?.name}"`, duration: 8000 });
           } else if (n.type === 'offer_declined') {

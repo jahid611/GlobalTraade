@@ -83,8 +83,8 @@ export const crm: Record<string, string> = {
   "crm.reason.title": "Warum dieser Score:",
   "crm.reason.mature": "Etabliertes Unternehmen ({{n}} Jahre)",
   "crm.reason.seniority": "Besteht seit {{n}} Jahren",
-  "crm.reason.retirement": "Inhaber {{n}} Jahre alt — Ruhestand wahrscheinlich",
-  "crm.reason.transmission": "Inhaber {{n}} Jahre alt — Übergabe in Sicht",
+  "crm.reason.retirement": "Inhaber {{n}} Jahre alt - Ruhestand wahrscheinlich",
+  "crm.reason.transmission": "Inhaber {{n}} Jahre alt - Übergabe in Sicht",
   "crm.reason.age": "Inhaber {{n}} Jahre alt",
   "crm.reason.legal_form": "Solide Rechtsform",
   "crm.field.next_label": "Was",
@@ -190,6 +190,6 @@ export const crm: Record<string, string> = {
   "crm.toast.archived": "{{n}} Kontakt(e) archiviert",
   "crm.toast.unarchived": "{{n}} Kontakt(e) wiederhergestellt",
   "crm.toast.export_no_email": "Kein ausgewählter Kontakt hat eine E-Mail-Adresse",
-  "crm.toast.exported": "{{n}} Kontakt(e) exportiert — importieren Sie die CSV-Datei in Ihr E-Mail-Programm für Rundschreiben",
+  "crm.toast.exported": "{{n}} Kontakt(e) exportiert, importieren Sie die CSV-Datei in Ihr E-Mail-Programm für Rundschreiben",
   "quota.prospection_business": "Die gezielte Akquise (Versand von Kampagnen) ist dem Tarif Business vorbehalten.",
 };

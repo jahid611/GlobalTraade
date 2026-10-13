@@ -106,7 +106,7 @@ export function estimateValue(input: EstimateInput): EstimateResult {
         note('dirigeant_non_remunere', "Le dirigeant ne se verse pas de salaire : un repreneur en déduira un de l'EBE, ce qui tire le prix vers le bas de la fourchette.");
       }
     } else {
-      note('ebe_negatif', "L'EBE est nul ou négatif : l'affaire se vendra surtout sur son emplacement, son bail et son matériel, vers le bas de la fourchette — voire en dessous.");
+      note('ebe_negatif', "L'EBE est nul ou négatif : l'affaire se vendra surtout sur son emplacement, son bail et son matériel, vers le bas de la fourchette, voire en dessous.");
     }
   } else {
     note('sans_ebe', "Sans l'EBE, l'estimation repose seulement sur le chiffre d'affaires : elle est moins précise.");

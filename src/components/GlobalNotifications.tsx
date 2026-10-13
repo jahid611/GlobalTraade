@@ -89,7 +89,7 @@ export function GlobalNotifications() {
               const amount = (meta?.amount as number) || 0;
               const formatted = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
               toast.success(`🤝 ${t('notif.toast_offer_received')}`, {
-                description: `${senderName} — ${formatted}`,
+                description: `${senderName} - ${formatted}`,
                 action: { label: t('notif.reply'), onClick: () => navigate('/messages') },
                 duration: 8000,
               });
@@ -151,7 +151,7 @@ export function GlobalNotifications() {
 
             if (score >= 92) {
               const fmt = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-              toast.success(`🏆 ${t('notif.gold_match', 'Opportunité Or — {{score}}% Match', { score })}`, {
+              toast.success(`🏆 ${t('notif.gold_match', 'Opportunité Or - {{score}}% Match', { score })}`, {
                 description: `${newListing.name || t('notif.new_listing', 'Nouvelle annonce')} • ${fmt.format(newListing.price as number || 0)}`,
                 // AppMap n'ouvre une fiche que sur ?focus=<id>
                 action: { label: t('notif.see'), onClick: () => navigate(`/app?focus=${newListing.id}`) },

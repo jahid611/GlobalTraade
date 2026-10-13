@@ -110,7 +110,7 @@ export function SolarSystem() {
       </Canvas>
       
       {/* Voile posé sur la Terre : elle reste un décor, légèrement floutée, pour
-          que le premier plan se lise bien — en sombre comme en clair. */}
+          que le premier plan se lise bien, en sombre comme en clair. */}
       <div
         className={`absolute inset-0 pointer-events-none transition-all duration-700 ${
           isDark

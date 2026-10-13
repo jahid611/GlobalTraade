@@ -245,7 +245,7 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.siren", "SIREN")}</label>
-                    <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres — ex: 394 927 081" inputMode="numeric" />
+                    <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres, ex: 394 927 081" inputMode="numeric" />
                     <p className="text-white/30 text-[11px] font-light mt-1.5">
                       {t("onb.siren_hint", "SIREN = 9 chiffres (votre société). À ne pas confondre avec le SIRET (14 chiffres) qui désigne un établissement précis.")}
                       {siren.length > 0 && siren.length < 9 && <span className="text-[#fca5a5]"> · {t("onb.siren_incomplete", "il manque {{n}} chiffre(s)", { n: 9 - siren.length })}</span>}

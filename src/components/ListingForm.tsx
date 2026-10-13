@@ -72,11 +72,11 @@ const getListingSchema = (t: TFunction) => {
     lat: z.number({ required_error: t('val.address_req') }),
     lng: z.number({ required_error: t('val.address_req') }),
     price: reqNum(1, t('val.price_min')),
-    revenue_n1: reqNum(0, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
-    ebitda: reqNum(-1000000000, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
-    rent: reqNum(0, t('val.amount_req', 'Montant requis — indiquez 0 si aucun')),
-    employees: reqNum(0, t('val.amount_req', 'Champ requis — indiquez 0 si aucun')),
-    surface: reqNum(0, t('val.amount_req', 'Champ requis — indiquez 0 si aucun')),
+    revenue_n1: reqNum(0, t('val.amount_req', 'Montant requis, indiquez 0 si aucun')),
+    ebitda: reqNum(-1000000000, t('val.amount_req', 'Montant requis, indiquez 0 si aucun')),
+    rent: reqNum(0, t('val.amount_req', 'Montant requis, indiquez 0 si aucun')),
+    employees: reqNum(0, t('val.amount_req', 'Champ requis, indiquez 0 si aucun')),
+    surface: reqNum(0, t('val.amount_req', 'Champ requis, indiquez 0 si aucun')),
     lease_details: z.string().min(2, t('val.lease_min')),
     description: z.string().min(10, t('val.desc_min')),
     reason_for_selling: z.string().optional().nullable().or(z.literal("")),
@@ -607,7 +607,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                         {siretCheck.status === 'found' && (
                           <span className="inline-flex items-start gap-2" style={{ color: '#6ee7b7' }}>
                             <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                            <span>{t('siret.found', { defaultValue: 'Entreprise trouvée : {{nom}}{{lieu}}', nom: siretCheck.nom || '', lieu: siretCheck.ville ? ` — ${siretCheck.code_postal || ''} ${siretCheck.ville}`.replace('  ', ' ') : '' })}</span>
+                            <span>{t('siret.found', { defaultValue: 'Entreprise trouvée : {{nom}}{{lieu}}', nom: siretCheck.nom || '', lieu: siretCheck.ville ? ` - ${siretCheck.code_postal || ''} ${siretCheck.ville}`.replace('  ', ' ') : '' })}</span>
                           </span>
                         )}
                         {siretCheck.status === 'closed' && (
@@ -644,7 +644,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                         <p className="text-xs font-light text-white/40 mt-1.5 ml-[52px]">
                           {shareFinancials
                             ? t('form.share_financials_on', 'Vos chiffres restent invisibles pour les visiteurs gratuits ; seuls les acheteurs avec accès complet les voient.')
-                            : t('form.share_financials_off', 'Désactivé : personne ne voit vos chiffres sur la plateforme (ni le simulateur LBO) — vous les communiquez vous-même à qui vous voulez.')}
+                            : t('form.share_financials_off', 'Désactivé : personne ne voit vos chiffres sur la plateforme (ni le simulateur LBO), vous les communiquez vous-même à qui vous voulez.')}
                         </p>
                       </div>
                     </div>

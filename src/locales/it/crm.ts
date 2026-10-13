@@ -96,8 +96,8 @@ export const crm: Record<string, string> = {
   "crm.reason.title": "Perché questo punteggio:",
   "crm.reason.mature": "Azienda matura ({{n}} anni)",
   "crm.reason.seniority": "Anzianità {{n}} anni",
-  "crm.reason.retirement": "Titolare di {{n}} anni — pensionamento probabile",
-  "crm.reason.transmission": "Titolare di {{n}} anni — passaggio di mano in vista",
+  "crm.reason.retirement": "Titolare di {{n}} anni, pensionamento probabile",
+  "crm.reason.transmission": "Titolare di {{n}} anni, passaggio di mano in vista",
   "crm.reason.age": "Titolare di {{n}} anni",
   "crm.reason.legal_form": "Forma giuridica solida",
   "crm.field.next_label": "Che cosa",
@@ -211,6 +211,6 @@ export const crm: Record<string, string> = {
   "crm.toast.archived": "{{n}} prospect archiviato/i",
   "crm.toast.unarchived": "{{n}} prospect tolto/i dall'archivio",
   "crm.toast.export_no_email": "Nessun selezionato con un'email inserita",
-  "crm.toast.exported": "{{n}} contatto/i esportato/i — importi il CSV nel Suo strumento di invio email",
+  "crm.toast.exported": "{{n}} contatto/i esportato/i, importi il CSV nel Suo strumento di invio email",
   "quota.prospection_business": "La prospezione mirata (invio di campagne) è riservata al piano Business.",
 };

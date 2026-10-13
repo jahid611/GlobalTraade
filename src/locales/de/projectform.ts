@@ -130,7 +130,7 @@ export const projectform: Record<string, string> = {
   "pd.status_none": "Nicht geprüft",
   "pd.title_owner": "Ihre vollständigen Unterlagen",
   "pd.title_visitor": "Vollständige Unterlagen",
-  "pd.desc_owner": "Ihr Businessplan und Ihre Finanzplanung. Nur Sie sehen sie – und die Personen, deren Zugriffsanfrage Sie annehmen.",
+  "pd.desc_owner": "Ihr Businessplan und Ihre Finanzplanung. Nur Sie sehen sie, und die Personen, deren Zugriffsanfrage Sie annehmen.",
   "pd.desc_accepted": "Der Projektinhaber hat Ihnen seine Unterlagen freigegeben: Businessplan und Finanzplanung, nur zum Lesen.",
   "pd.desc_visitor": "Businessplan und Finanzplanung sind geschützt. Fragen Sie den Zugriff an: Der Projektinhaber erhält Ihre Anfrage und entscheidet, ob er sie annimmt.",
   "pd.verif_rejected": "Ihre Unterlagen wurden nicht bestätigt. Ergänzen Sie sie und senden Sie sie dann erneut.",

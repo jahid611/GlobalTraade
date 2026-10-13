@@ -84,15 +84,16 @@ export default function Index() {
         <motion.div 
           animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="relative order-2 md:order-none mx-auto mb-8 -mt-2 w-[200px] min-[420px]:w-[230px] md:absolute md:mx-0 md:mb-0 md:mt-0 md:top-0 md:right-[5%] md:w-[150px] lg:top-[5%] lg:right-[3%] lg:w-[21vw] lg:max-w-[400px] z-[110] pointer-events-none opacity-100"
+          className="relative order-2 md:order-none mx-auto mb-8 -mt-2 w-[200px] min-[420px]:w-[230px] md:absolute md:mx-0 md:mb-0 md:mt-0 md:top-0 md:right-[5%] md:w-[150px] lg:top-[5%] lg:right-[2%] lg:w-[15vw] lg:max-w-[300px] z-[110] pointer-events-none opacity-100"
         >
           {/* Globi, la mascotte du site, à la place de l'ancien astronaute (même emplacement) */}
           <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
-        {/* Ordinateur : le texte se centre dans la partie gauche et laisse la droite
-            à Globi, en grand, sans jamais passer devant le titre. */}
-        <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:pr-[24vw] 2xl:pr-[15vw]">
+        {/* Ordinateur : le texte est centré sur la page, comme les cartes en dessous.
+            La même marge des deux côtés réserve la place de Globi à droite, qui ne
+            passe donc jamais devant le titre. */}
+        <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:px-[14vw]">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
@@ -236,13 +237,14 @@ export default function Index() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="liquid-glass p-8 rounded-[2rem] border-white/10 flex flex-col items-start text-left group hover:border-primary/40 transition-all duration-500"
+                // Téléphone : même verre que les trois cartes plus bas (fond et bordure). Ordinateur : inchangé.
+                className="liquid-glass p-8 rounded-[2rem] max-md:dark:bg-white/[0.02] max-md:border-white/30 max-md:dark:border-white/10 md:border-white/10 flex flex-col items-start text-left group hover:border-primary/40 transition-all duration-500"
               >
-                <div className={`p-3 rounded-2xl bg-white/5 mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-500`}>
+                <div className={`p-3 rounded-2xl bg-white/5 max-md:bg-white/15 max-md:dark:bg-white/5 mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-500`}>
                   <Icon size={24} />
                 </div>
                 <h3 className="text-xl font-medium text-white mb-3">{benefit.title}</h3>
-                <p className="text-white/50 font-light text-sm leading-relaxed">{benefit.desc}</p>
+                <p className="text-white/50 max-md:text-white/80 max-md:dark:text-white/50 font-light text-sm leading-relaxed">{benefit.desc}</p>
               </motion.div>
             );
           })}
@@ -261,7 +263,7 @@ export default function Index() {
       {/* SECTION MOBILE MOCKUP */}
       <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1 text-left">
+          <div className="order-2 md:order-1 text-center md:text-left">
             <h2 className="text-3xl md:text-4xl font-light text-white mb-8 tracking-tight">
                {t('index.mobile.title')}
             </h2>
@@ -273,19 +275,26 @@ export default function Index() {
           </div>
           
           <div className="order-1 md:order-2 flex justify-center">
+             {/* La maquette est dessinée à 420 × 700 px et se réduit d'un bloc (--s), vidéo
+                 comprise. Avant, sur petit écran, seule l'image du téléphone était écrasée
+                 en largeur : la vidéo, restée à sa taille, débordait sur la droite. */}
              <motion.div
                initial={{ opacity: 0, x: 50 }}
                whileInView={{ opacity: 1, x: 0 }}
                viewport={{ once: true }}
                transition={{ duration: 0.8, ease: "easeOut" }}
-               className="drop-shadow-[0_40px_70px_rgba(0,0,0,0.55)] scale-[0.66] min-[420px]:scale-[0.82] md:scale-90 lg:scale-100 origin-center"
-               style={{ position: 'relative', width: '420px', height: '700px' }}
+               className="relative shrink-0 drop-shadow-[0_40px_70px_rgba(0,0,0,0.55)] [--s:0.64] min-[390px]:[--s:0.8] md:[--s:0.72] lg:[--s:1]"
+               style={{ width: 'calc(420px * var(--s))', height: 'calc(700px * var(--s))' }}
              >
+              <div
+                className="absolute top-0 left-0"
+                style={{ width: '420px', height: '700px', transformOrigin: '0 0', transform: 'scale(var(--s))' }}
+              >
                <div
                  className="absolute z-0 rounded-[50%] bg-black/55 blur-[38px] pointer-events-none"
                  style={{ left: '4%', width: '60%', bottom: '-1%', height: '13%' }}
                />
-               <div className="absolute inset-0 z-0 origin-center max-md:scale-[0.955]">
+               <div className="absolute inset-0 z-0">
                  <div
                    className="absolute overflow-hidden"
                    style={{
@@ -298,7 +307,7 @@ export default function Index() {
                    <video
                      ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
                      key={filmSrc('mobile', i18n.language)}
-                src={filmSrc('mobile', i18n.language)}
+                     src={filmSrc('mobile', i18n.language)}
                      preload="metadata" autoPlay loop muted playsInline
                      className="w-full h-full object-cover"
                    />
@@ -309,6 +318,7 @@ export default function Index() {
                  alt="Aperçu Globly sur mobile"
                  className="absolute inset-0 z-10 w-full h-full pointer-events-none select-none"
                />
+              </div>
              </motion.div>
           </div>
         </div>

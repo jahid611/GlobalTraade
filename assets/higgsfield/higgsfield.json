@@ -194,5 +194,19 @@
   "type": "image",
   "model": "gpt_image_2_5",
   "date": "2026-10-12"
+ },
+ {
+  "file": "satellite.png",
+  "prompt": "Satellite de télécommunications réaliste, corps doré, deux panneaux solaires bleus déployés, antenne parabolique blanche, seul sur fond noir uni, sans étoiles ni texte.",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
+ },
+ {
+  "file": "satellite-detoure.png",
+  "prompt": "Satellite de télécommunications réaliste, corps doré, deux panneaux solaires bleus déployés, antenne parabolique blanche, seul sur fond noir uni, sans étoiles ni texte. (version détourée, fond transparent, posée dans le ciel de la page Carte 3D)",
+  "type": "image",
+  "model": "gpt_image_2_5",
+  "date": "2026-10-12"
  }
 ]

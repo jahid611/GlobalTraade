@@ -60,7 +60,7 @@ export function AssistantJourney({
                 <button
                   type="button"
                   onClick={() => onSetStatus(step.id, NEXT_STATUS[status])}
-                  aria-label={`${title} — ${statusLabel[status]}. ${nextActionLabel[status]}`}
+                  aria-label={`${title} - ${statusLabel[status]}. ${nextActionLabel[status]}`}
                   title={nextActionLabel[status]}
                   className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium tabular-nums border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                     status === 'doing' ? 'bg-primary/25 border-primary text-white' : status === 'todo' ? 'bg-white/5 border-white/20 text-white/70 hover:border-white/50' : ''

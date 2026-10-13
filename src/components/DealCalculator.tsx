@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { StatusDot } from '@/components/StatusDot';
 import { TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, PiggyBank, Briefcase, AlertTriangle, Handshake, Users, Gift, Gauge } from 'lucide-react';
 
 interface DealCalculatorProps {
@@ -10,10 +11,10 @@ interface DealCalculatorProps {
 
 // Feu de faisabilité (proche de la lecture d'un comité de crédit bancaire)
 type Light = 'green' | 'orange' | 'red';
-const LIGHT_META: Record<Light, { emoji: string; label: string; color: string; bg: string }> = {
-  green:  { emoji: '🟢', label: 'Financement facilement envisageable', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  orange: { emoji: '🟠', label: 'Financement possible sous conditions',  color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20' },
-  red:    { emoji: '🔴', label: 'Financement difficile',                 color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20' },
+const LIGHT_META: Record<Light, { label: string; color: string; bg: string }> = {
+  green:  { label: 'Financement facilement envisageable', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  orange: { label: 'Financement possible sous conditions',  color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20' },
+  red:    { label: 'Financement difficile',                 color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20' },
 };
 
 // Composants définis AU NIVEAU MODULE : déclarés dans le rendu, ils changeaient
@@ -194,7 +195,7 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {!isOpen && <span className="hidden sm:inline text-lg" title={lm.label}>{lm.emoji}</span>}
+          {!isOpen && <StatusDot tone={calc.light} size="md" title={lm.label} className="hidden sm:inline-block" />}
           {isOpen ? <ChevronUp className="w-5 h-5 text-white/40" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
         </div>
       </button>
@@ -207,7 +208,7 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
               {/* VERDICT — feu + probabilité */}
               <div className={`rounded-2xl border p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5 ${lm.bg}`}>
                 <div className="flex items-center gap-4 flex-1">
-                  <span className="text-4xl leading-none">{lm.emoji}</span>
+                  <StatusDot tone={calc.light} size="lg" />
                   <div>
                     <p className={`text-base font-medium ${lm.color}`}>{lm.label}</p>
                     <p className="text-xs text-white/50 font-light mt-0.5">Estimation fondée sur l'apport, le DSCR, le levier et la structure du montage.</p>

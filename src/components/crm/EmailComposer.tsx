@@ -50,7 +50,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
 
   const businessOnly = t("quota.prospection_business", "La prospection ciblée (envoi de campagnes) est réservée à la formule Business.") as string;
   const extraOne = t("quota.prospection_extra_one",
-    `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} € — réglez-le, puis relancez l'envoi.`) as string;
+    `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} €, réglez-le, puis relancez l'envoi.`) as string;
 
   // Change la langue de CE mail uniquement — n'affecte pas la langue du site.
   const applyMailLang = (lang: "fr" | "en") => {
@@ -138,7 +138,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
         await logEmail(to, "server", fresh?.status || prospect.status);
       } catch { /* l'historique est secondaire : l'email est bien parti */ }
       setSending(false);
-      showSuccess(t("crm.mail.sent", "Email envoyé — prospect marqué « Contacté »"));
+      showSuccess(t("crm.mail.sent", "Email envoyé, prospect marqué « Contacté »"));
       onChanged();
       return;
     }
@@ -199,7 +199,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
         const nextStatus = statusAfterContact(prospect.status);
         await patchProspect(prospect.id, { email: to, status: nextStatus, last_contacted_at: new Date().toISOString() });
         try { await logEmail(to, "mailbox", nextStatus); } catch { /* l'historique est secondaire */ }
-        showSuccess(t("crm.mail.opened", "Ouvert dans ta messagerie — marqué « Contacté »"));
+        showSuccess(t("crm.mail.opened", "Ouvert dans ta messagerie, marqué « Contacté »"));
       } catch {
         showError(t("crm.mail.opened_err", "Email ouvert, mais maj statut échouée"));
       }
@@ -238,7 +238,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
             <Search size={15} /> {t("crm.mail.find", "Trouver")}
           </a>
         </div>
-        <p className="text-white/50 text-xs mt-1.5 leading-relaxed">{t("crm.mail.find_hint", "Sirene ne fournit pas l'email — trouve-le via « Trouver » (site web de la boîte) et colle-le ici.")}</p>
+        <p className="text-white/50 text-xs mt-1.5 leading-relaxed">{t("crm.mail.find_hint", "Sirene ne fournit pas l'email, trouve-le via « Trouver » (site web de la boîte) et colle-le ici.")}</p>
       </div>
 
       {/* --- Message de prise de contact --- */}

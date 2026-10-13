@@ -60,7 +60,7 @@ export function LiveActivityFeed() {
       if (m.type === 'offer') {
         const amt = (m.metadata as Record<string, unknown>)?.amount as number || 0;
         const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amt);
-        items.push({ id: m.id, type: 'offer', text: `${name} — Offre de ${fmt}`, time: m.created_at, icon: Handshake, color: 'text-amber-400 bg-amber-500/10' });
+        items.push({ id: m.id, type: 'offer', text: `${name} - Offre de ${fmt}`, time: m.created_at, icon: Handshake, color: 'text-amber-400 bg-amber-500/10' });
       } else {
         items.push({ id: m.id, type: 'message', text: `${name} vous a écrit`, time: m.created_at, icon: MessageSquare, color: 'text-blue-400 bg-blue-500/10' });
       }

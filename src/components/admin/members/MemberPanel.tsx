@@ -30,7 +30,7 @@ const auditValue = (v: unknown) => (v == null || v === "" ? "vide" : typeof v ==
 function auditText(e: AuditEntry): string {
   if (e.action.endsWith(".delete")) return "Suppression";
   const d = e.details || {};
-  if ("suspended_at" in d) return d.suspended_at?.apres ? `Compte suspendu${d.suspended_reason?.apres ? ` — motif : ${d.suspended_reason.apres}` : ""}` : "Suspension levée";
+  if ("suspended_at" in d) return d.suspended_at?.apres ? `Compte suspendu${d.suspended_reason?.apres ? `, motif : ${d.suspended_reason.apres}` : ""}` : "Suspension levée";
   const parts = Object.entries(d).filter(([, v]) => v && typeof v === "object" && "apres" in (v as object))
     .map(([k, v]: [string, any]) => `${AUDIT_COL[k] || k} : ${auditValue(v.avant)} → ${auditValue(v.apres)}`);
   return parts.length ? parts.join(" · ") : e.action;

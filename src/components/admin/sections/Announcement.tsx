@@ -12,9 +12,9 @@ const MAX = 200;
 const EMPTY: SiteAnnouncementValue = { active: false, text: "", level: "info", link: "", link_label: "" };
 
 const LEVELS: { id: SiteAnnouncementValue["level"]; label: string; hint: string; color: string; Icon: React.ElementType }[] = [
-  { id: "info", label: "Information", hint: "Violet — une nouveauté, un rappel", color: "#4338ca", Icon: Megaphone },
-  { id: "success", label: "Bonne nouvelle", hint: "Vert — une offre, un succès", color: "#047857", Icon: CheckCircle },
-  { id: "warning", label: "Attention", hint: "Orange — une maintenance, un incident", color: "#b45309", Icon: Warning },
+  { id: "info", label: "Information", hint: "Violet : une nouveauté, un rappel", color: "#4338ca", Icon: Megaphone },
+  { id: "success", label: "Bonne nouvelle", hint: "Vert : une offre, un succès", color: "#047857", Icon: CheckCircle },
+  { id: "warning", label: "Attention", hint: "Orange : une maintenance, un incident", color: "#b45309", Icon: Warning },
 ];
 
 /** Ce qui sera réellement enregistré : textes nettoyés, lien vide retiré. */
@@ -111,7 +111,7 @@ export default function Announcement() {
               <span className="text-[13px] tabular-nums" style={{ color: draft.text.length >= MAX ? TONE.amber.color : "rgba(255,255,255,0.55)" }}>{draft.text.length} / {MAX}</span>
             </div>
             <textarea id="ann-text" rows={3} maxLength={MAX} value={draft.text} onChange={(e) => set({ text: e.target.value })}
-              placeholder="Ex. : Nouveau — publiez votre annonce gratuitement jusqu'au 30 novembre."
+              placeholder="Ex. : Nouveau, publiez votre annonce gratuitement jusqu'au 30 novembre."
               aria-invalid={!!errors.text} aria-describedby={errors.text ? "ann-text-error" : undefined}
               className="w-full rounded-xl bg-white/5 border border-white/15 px-4 py-3 text-[15px] text-white placeholder:text-white/35 outline-none focus:border-primary/60 resize-none" />
             {errors.text && <p id="ann-text-error" className="text-sm mt-1.5" style={{ color: TONE.red.color }}>{errors.text}</p>}

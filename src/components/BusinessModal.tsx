@@ -42,7 +42,7 @@ function LockedGate({ hasFullAccess, onUnlock, children }: { hasFullAccess: bool
               onClick={onUnlock}
               className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
             >
-              {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+              {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
             </button>
             <button
               onClick={() => navigate('/payment')}
@@ -123,10 +123,16 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       const currentUserId = user?.id;
       // Ne pas insérer si c'est le propriétaire ou si anonyme
       if (currentUserId && listing.owner_id !== currentUserId) {
-        // La contrainte UNIQUE au niveau DB gère les doublons automatiquement
-        const { error } = await supabase.from('listing_views').insert([{ listing_id: listing.id, viewer_id: currentUserId }]);
-        
-        if (!error) {
+        // Une seule vue par membre et par annonce (contrainte UNIQUE en base). Un
+        // simple insert renvoyait une erreur 409 à chaque nouvelle ouverture d'une
+        // annonce déjà vue : on demande plutôt à la base d'ignorer le doublon, et
+        // `count` dit si une ligne a réellement été ajoutée.
+        const { error, count } = await supabase.from('listing_views').upsert(
+          [{ listing_id: listing.id, viewer_id: currentUserId }],
+          { onConflict: 'listing_id,viewer_id', ignoreDuplicates: true, count: 'exact' },
+        );
+
+        if (!error && count !== 0) {
           // Succès = c'est une nouvelle vue ! On met à jour l'affichage global via le cache React Query
           setViewCount(prev => {
             const next = prev + 1;
@@ -429,8 +435,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                       <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
                     </button>
                   )}
-                  <button onClick={onClose} className="px-6 py-2.5 w-fit whitespace-nowrap rounded-full bg-white/5 border border-white/10 text-xs text-white/50 hover:text-white hover:bg-white/15 transition-all text-center flex items-center justify-center">
-                    {t('modal.close')}
+                  <button onClick={onClose} aria-label={t('modal.close')} title={t('modal.close')} className="p-3 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-all shadow-sm flex items-center justify-center">
+                    <X size={18} />
                   </button>
                 </div>
               </div>
@@ -576,7 +582,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                         <p className="text-xs text-white/60 max-w-xs font-light">{t('modal.lbo_locked', `Débloquez l'annonce pour ${UNLOCK_PRICE} € et simulez le montage (dette, apport, TRI).`)}</p>
                         <div className="flex flex-wrap justify-center gap-3 mt-1">
                           <button onClick={goUnlock} disabled={unlocking} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
-                            {t('quota.unlock_cta', `Débloquer — ${UNLOCK_PRICE} €`)}
+                            {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
                           </button>
                           <button onClick={() => navigate('/payment')} className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
                             {t('quota.see_plans', 'Voir les formules')}
@@ -696,7 +702,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                   ) : !hasFullAccess ? (
                     <div className="flex gap-3 flex-wrap justify-center">
                       <button onClick={goUnlock} className="w-fit whitespace-nowrap h-12 px-8 text-sm font-medium rounded-full bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                        <Lock size={16} /> {t('quota.unlock_contact', `Débloquer et contacter — ${UNLOCK_PRICE} €`)}
+                        <Lock size={16} /> {t('quota.unlock_contact', `Débloquer et contacter - ${UNLOCK_PRICE} €`)}
                       </button>
                     </div>
                   ) : (

@@ -103,7 +103,7 @@ export function MyListingCard({
           {onBoost ? (
             <button
               onClick={onBoost}
-              title={t("boost.cta", `Mettre en avant — ${BOOST_PRICE} €`) as string}
+              title={t("boost.cta", `Mettre en avant - ${BOOST_PRICE} €`) as string}
               className={`${actionBtn} ${onDownloadPdf ? "" : "col-span-2"}`}
             >
               <RocketLaunch size={18} className="shrink-0 text-[#fcd34d]" />

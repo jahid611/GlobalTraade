@@ -5,7 +5,7 @@
 export const additionsFr: Record<string, string> = {
   // Comparateur d'offres
   "compare.title": "Comparateur d'Offres",
-  "compare.summary": "{{count}} offres reçues — Meilleure : {{amount}}",
+  "compare.summary": "{{count}} offres reçues - Meilleure : {{amount}}",
   "compare.col_investor": "Investisseur",
   "compare.col_amount": "Montant",
   "compare.col_financing": "Financement",
@@ -19,7 +19,7 @@ export const additionsFr: Record<string, string> = {
   "compare.investor": "Investisseur",
   "compare.score_basis": "Score basé sur : montant (40%), financement (25%), vérification KYC (20%), réactivité (15%)",
   // Notifications de correspondance
-  "notif.gold_match": "Opportunité Or — {{score}}% Match",
+  "notif.gold_match": "Opportunité Or - {{score}}% Match",
   "notif.new_match": "Nouveau match {{score}}%",
   "notif.new_listing": "Nouvelle annonce",
   // Formulaire d'annonce
@@ -147,6 +147,14 @@ export const additionsFr: Record<string, string> = {
   "form.back": "Retour",
   "form.address_none": "Aucune adresse trouvée. Vérifiez l'orthographe, ou essayez sans le numéro puis avec la ville (ex. : « rue Garibaldi Lyon »).",
   "globe.near_title": "{{count}} entreprises à cet endroit",
+  "globe.near_more": "{{shown}} sur {{total}}, faites défiler pour voir la suite",
+  "globe.legend_favorites": "Mes favoris",
+  "map.search_count": "{{count}} résultats",
+  "map.search_placeholder": "Rechercher une entreprise",
+  "map.search_none": "Aucune entreprise trouvée",
+  "map.search_clear": "Effacer",
+  "globe.zoom_hint_mouse": "Molette pour zoomer et voir le détail",
+  "globe.zoom_hint_touch": "Pincez pour zoomer et voir le détail",
   "guide.terms_cta_short": "Un mot que vous ne connaissez pas ? Je vous l'explique",
   // Vérification du SIRET
   "val.siret_key": "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture.",
@@ -197,7 +205,7 @@ export const additionsFr: Record<string, string> = {
 
 export const additionsEn: Record<string, string> = {
   "compare.title": "Offer Comparator",
-  "compare.summary": "{{count}} offers received — Best: {{amount}}",
+  "compare.summary": "{{count}} offers received - Best: {{amount}}",
   "compare.col_investor": "Investor",
   "compare.col_amount": "Amount",
   "compare.col_financing": "Financing",
@@ -210,7 +218,7 @@ export const additionsEn: Record<string, string> = {
   "compare.fin_unknown": "Not specified",
   "compare.investor": "Investor",
   "compare.score_basis": "Score based on: amount (40%), financing (25%), KYC verification (20%), responsiveness (15%)",
-  "notif.gold_match": "Gold opportunity — {{score}}% match",
+  "notif.gold_match": "Gold opportunity - {{score}}% match",
   "notif.new_match": "New match {{score}}%",
   "notif.new_listing": "New listing",
   "form.err_invalid_fields": "Some fields are missing or invalid. Fix them to save your listing.",
@@ -329,6 +337,14 @@ export const additionsEn: Record<string, string> = {
   "guide.s5_p4": "Is your trade more and more in demand, stable, or declining?",
   "form.address_none": "No address found. Check the spelling, or try without the street number and with the city (e.g. “rue Garibaldi Lyon”).",
   "globe.near_title": "{{count}} businesses at this spot",
+  "globe.near_more": "{{shown}} of {{total}}, scroll to see more",
+  "globe.legend_favorites": "My favourites",
+  "map.search_count": "{{count}} results",
+  "map.search_placeholder": "Search a business",
+  "map.search_none": "No business found",
+  "map.search_clear": "Clear",
+  "globe.zoom_hint_mouse": "Scroll to zoom in and see the details",
+  "globe.zoom_hint_touch": "Pinch to zoom in and see the details",
   "guide.terms_cta_short": "A word you don't know? I'll explain it",
   "val.siret_key": "This SIRET number does not exist: check the digits on your Kbis extract or an invoice.",
   "siret.count": "{{n}} of 14 digits",

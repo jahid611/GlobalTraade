@@ -3,7 +3,7 @@
 export const additions: Record<string, string> = {
   // Comparador de ofertas
   "compare.title": "Comparador de Ofertas",
-  "compare.summary": "{{count}} ofertas recibidas — Mejor: {{amount}}",
+  "compare.summary": "{{count}} ofertas recibidas - Mejor: {{amount}}",
   "compare.col_investor": "Inversor",
   "compare.col_amount": "Importe",
   "compare.col_financing": "Financiación",
@@ -17,7 +17,7 @@ export const additions: Record<string, string> = {
   "compare.investor": "Inversor",
   "compare.score_basis": "Puntuación basada en: importe (40%), financiación (25%), verificación KYC (20%), rapidez de respuesta (15%)",
   // Notificaciones de coincidencia
-  "notif.gold_match": "Oportunidad Oro — {{score}}% de coincidencia",
+  "notif.gold_match": "Oportunidad Oro - {{score}}% de coincidencia",
   "notif.new_match": "Nueva coincidencia {{score}}%",
   "notif.new_listing": "Nuevo anuncio",
   // Formulario de anuncio

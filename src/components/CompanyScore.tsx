@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { Gauge, TrendingUp, TrendingDown, Wallet, Landmark, Coins, Globe, HeartHandshake, Users, Cpu, ShieldAlert, Sparkles } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Gauge, TrendingUp, TrendingDown, Wallet, Landmark, Coins, Globe, HeartHandshake, Users, Cpu, ShieldAlert, Sparkles, Info } from 'lucide-react';
 import type { Listing } from '@/types/domain';
+import { StatusDot, type StatusTone } from '@/components/StatusDot';
 
 // Note de qualité de l'entreprise sur 100, répartie en 10 critères notés
 // sur 10, à la manière d'une évaluation d'investisseur / repreneur.
@@ -96,20 +97,123 @@ export function computeCompanyScore(listing: Listing): { total: number; crits: C
   return { total, crits };
 }
 
-const barColor = (s: number) => s >= 7 ? '#34d399' : s >= 4 ? '#a855f7' : '#f87171';
+// ── Explications des critères ───────────────────────────────────────────────
+// Pour chaque critère : ce qu'il mesure, puis ce que la note obtenue implique
+// (bonne : 7 et plus, moyenne : 4 à 6, faible : moins de 4). Affiché au survol
+// sur ordinateur, au toucher sur téléphone.
+type Explain = { what: string; high: string; mid: string; low: string };
+const EXPLAIN: Record<string, Explain> = {
+  rentabilite: {
+    what: "La part du chiffre d'affaires qui reste une fois les charges d'exploitation payées (marge d'EBE). C'est ce que l'activité dégage réellement pour rembourser un emprunt et rémunérer le repreneur.",
+    high: "La marge est confortable : l'entreprise dégage de quoi rembourser un prêt et encaisser un imprévu.",
+    mid: "La marge est correcte mais sans grande réserve : une hausse des charges ou une baisse d'activité se ressentira vite.",
+    low: "La marge est faible ou nulle : l'activité dégage peu de quoi rembourser un emprunt. À comprendre avant d'aller plus loin (charges, prix de vente, saisonnalité).",
+  },
+  croissance: {
+    what: "L'évolution moyenne du chiffre d'affaires par an, sur les exercices communiqués dans l'annonce.",
+    high: "Le chiffre d'affaires progresse nettement : l'activité est sur une bonne dynamique, ce qui rassure un banquier.",
+    mid: "Le chiffre d'affaires est globalement stable : pas de signal d'alerte, mais la croissance sera à aller chercher.",
+    low: "Le chiffre d'affaires recule : il faut en comprendre la cause (marché, concurrence, départ d'un client) avant de s'engager.",
+  },
+  endettement: {
+    what: "Les annonces ne contiennent pas le bilan : cette note est une estimation, fondée sur le poids du loyer dans le chiffre d'affaires et sur le prix demandé rapporté à l'EBE.",
+    high: "Loyer léger et prix cohérent avec ce que l'entreprise dégage : la reprise laisse de la marge pour rembourser.",
+    mid: "Le loyer ou le prix demandé pèse déjà sensiblement : le remboursement sera plus tendu. À vérifier avec le bilan réel.",
+    low: "Loyer lourd ou prix élevé par rapport à l'EBE : le financement sera difficile sans apport important ou sans négocier le prix.",
+  },
+  tresorerie: {
+    what: "La capacité de l'entreprise à générer de l'argent disponible, estimée à partir de l'EBE (environ 70 %, une fois l'impôt et les investissements courants déduits) rapporté au chiffre d'affaires. Ce n'est pas le solde du compte en banque.",
+    high: "L'activité génère beaucoup de liquidités : de quoi rembourser et investir.",
+    mid: "L'activité génère des liquidités correctes : suffisant en rythme normal, juste en cas de coup dur.",
+    low: "L'activité génère peu de liquidités : risque de tension de trésorerie, prévoyez une réserve au démarrage.",
+  },
+  potentiel: {
+    what: "La tendance du marché sur lequel l'entreprise travaille, telle que le vendeur l'a déclarée.",
+    high: "Marché porteur : la demande progresse, ce qui facilite le développement.",
+    mid: "Marché mature, ou tendance non renseignée : la croissance viendra surtout de parts prises aux concurrents.",
+    low: "Marché en contraction : il faudra se différencier ou se diversifier pour maintenir l'activité.",
+  },
+  fidelisation: {
+    what: "Une estimation de la capacité à faire revenir les clients, à partir de deux informations de l'annonce : les outils numériques en place (fichier clients, site, réservation…) et la diversité de la clientèle.",
+    high: "Clientèle récurrente et bien outillée : le chiffre d'affaires sera plus prévisible après la reprise.",
+    mid: "Fidélisation moyenne : des outils ou une clientèle à consolider pour sécuriser les revenus.",
+    low: "Peu d'outils et clientèle concentrée : les revenus reposent sur peu de chose, à renforcer rapidement.",
+  },
+  dependance: {
+    what: "La part de l'activité qui repose sur quelques clients (ou fournisseurs). Plus la note est haute, moins l'entreprise est dépendante.",
+    high: "Clientèle diversifiée : la perte d'un client ne met pas l'activité en danger.",
+    mid: "Dépendance modérée, ou non renseignée : quelques clients comptent beaucoup, à identifier.",
+    low: "Forte dépendance : le départ d'un seul client peut faire chuter l'activité. Vérifiez les contrats et leur durée.",
+  },
+  productivite: {
+    what: "L'EBE dégagé par salarié : ce que chaque poste rapporte en moyenne.",
+    high: "Équipe très productive : la structure est légère par rapport à ce qu'elle dégage.",
+    mid: "Productivité dans la moyenne : cohérente, avec une marge d'amélioration.",
+    low: "Faible résultat par salarié : la masse salariale est lourde par rapport à l'activité.",
+  },
+  risque: {
+    what: "Une synthèse de ce qui peut fragiliser la reprise : dépendance au dirigeant, concentration des clients, tendance du marché et rentabilité. Plus la note est haute, plus le risque est faible.",
+    high: "Risque limité : l'entreprise peut fonctionner sans son dirigeant actuel et repose sur des bases diversifiées.",
+    mid: "Risque modéré : un ou deux points fragiles, à couvrir dans la négociation (accompagnement du cédant, garanties).",
+    low: "Risque élevé : l'activité tient à peu de chose (dirigeant, client, marché). Prévoyez une période d'accompagnement et des garanties.",
+  },
+  attractivite: {
+    what: "Une vue d'ensemble, comme la regarderait un investisseur : croissance, rentabilité, marché et cohérence du prix demandé (entre 2 et 8 fois l'EBE).",
+    high: "Dossier attractif : il intéressera facilement banques et repreneurs, d'autres acheteurs peuvent se positionner.",
+    mid: "Dossier correct : finançable, avec des points à argumenter ou à négocier.",
+    low: "Dossier difficile à défendre en l'état : le prix ou les résultats sont à revoir.",
+  },
+};
+
+/** Ce que la note obtenue implique, en tenant compte des cas où l'information manque. */
+function implication(c: Crit): { tone: StatusTone; text: string } {
+  const tone: StatusTone = c.score >= 7 ? 'green' : c.score >= 4 ? 'orange' : 'red';
+  if (c.key === 'croissance' && c.note === 'Historique incomplet') {
+    return { tone, text: "L'annonce ne donne pas assez d'exercices pour mesurer la croissance : la note est neutre (5/10) et ne dit rien de la tendance réelle. Demandez les bilans au vendeur." };
+  }
+  if (c.key === 'productivite' && c.note === 'Effectif non renseigné') {
+    return { tone, text: "L'effectif n'est pas renseigné dans l'annonce : la note est indicative. Demandez le nombre de salariés au vendeur." };
+  }
+  const e = EXPLAIN[c.key];
+  return { tone, text: c.score >= 7 ? e.high : c.score >= 4 ? e.mid : e.low };
+}
+
+function CritExplanation({ crit }: { crit: Crit }) {
+  const e = EXPLAIN[crit.key];
+  const imp = implication(crit);
+  return (
+    <>
+      <p className="text-[10px] uppercase tracking-widest text-white/45 font-medium mb-1">Ce que ça mesure</p>
+      <p className="text-xs text-white/80 font-light leading-relaxed">{e.what}</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/45 font-medium mt-3 mb-1">Ce que {crit.score}/10 implique</p>
+      <p className="flex items-start gap-2 text-xs text-white/80 font-light leading-relaxed">
+        <StatusDot tone={imp.tone} className="mt-[5px]" />
+        <span>{imp.text}</span>
+      </p>
+    </>
+  );
+}
+
+// Même code que le voyant : vert = bon (7 et plus), orange = moyen (4 à 6), rouge = faible.
+const barColor = (s: number) => s >= 7 ? '#34d399' : s >= 4 ? '#f59e0b' : '#f87171';
 
 export function CompanyScore({ listing }: { listing: Listing }) {
   const { total, crits } = useMemo(() => computeCompanyScore(listing), [listing]);
 
-  const light = total >= 70 ? { emoji: '🟢', label: 'Entreprise solide et attractive', color: 'text-emerald-400' }
-    : total >= 45 ? { emoji: '🟠', label: 'Profil intéressant, points de vigilance', color: 'text-amber-400' }
-    : { emoji: '🔴', label: 'Reprise à sécuriser', color: 'text-red-400' };
+  const light: { tone: StatusTone; label: string; color: string } =
+    total >= 70 ? { tone: 'green', label: 'Entreprise solide et attractive', color: 'text-emerald-400' }
+    : total >= 45 ? { tone: 'orange', label: 'Profil intéressant, points de vigilance', color: 'text-amber-400' }
+    : { tone: 'red', label: 'Reprise à sécuriser', color: 'text-red-400' };
+
+  // Explication d'un critère : au survol avec une souris, au toucher sinon.
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [canHover] = useState(() => typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches);
 
   const forts = crits.filter(c => c.score >= 8).sort((a, b) => b.score - a.score).slice(0, 3);
   const faibles = crits.filter(c => c.score <= 4).sort((a, b) => a.score - b.score).slice(0, 3);
 
   return (
-    <div className="liquid-glass border-white/10 rounded-[2rem] p-6 sm:p-8">
+    <div className="liquid-glass contrast-day border-white/10 rounded-[2rem] p-6 sm:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center gap-5 mb-8">
         <div className="flex items-center gap-4 flex-1">
           <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center border border-primary/25 shrink-0">
@@ -117,7 +221,10 @@ export function CompanyScore({ listing }: { listing: Listing }) {
           </div>
           <div>
             <p className="text-lg font-light text-white leading-tight">Note de l'entreprise</p>
-            <p className={`text-xs font-light mt-0.5 ${light.color}`}>{light.emoji} {light.label}</p>
+            <p className="flex items-center gap-2 mt-1 text-xs font-light text-white/60 leading-snug">
+              <StatusDot tone={light.tone} size="md" />
+              {light.label}
+            </p>
           </div>
         </div>
         <div className="flex items-end gap-1.5 sm:justify-end">
@@ -127,19 +234,56 @@ export function CompanyScore({ listing }: { listing: Listing }) {
       </div>
 
       <div className="space-y-3">
-        {crits.map(c => (
-          <div key={c.key} className="flex items-center gap-3">
-            <c.Icon className="w-4 h-4 text-white/40 shrink-0" />
-            <div className="w-40 sm:w-52 shrink-0">
-              <p className="text-sm font-light text-white/85 leading-tight truncate">{c.label}</p>
-              <p className="text-[10px] text-white/35 font-light truncate">{c.note}</p>
+        {crits.map(c => {
+          const open = openKey === c.key;
+          return (
+            <div
+              key={c.key}
+              className="relative"
+              onMouseEnter={() => { if (canHover) setOpenKey(c.key); }}
+              onMouseLeave={() => { if (canHover) setOpenKey(null); }}
+            >
+              <button
+                type="button"
+                onClick={() => { if (!canHover) setOpenKey(open ? null : c.key); }}
+                onFocus={() => { if (canHover) setOpenKey(c.key); }}
+                onBlur={() => { if (canHover) setOpenKey(null); }}
+                aria-expanded={open}
+                className={`w-full flex items-center gap-3 text-left rounded-lg -mx-2 px-2 py-1 outline-none transition-colors ${open ? 'bg-white/[0.05]' : ''} ${canHover ? 'cursor-help' : ''}`}
+                style={{ width: 'calc(100% + 1rem)' }}
+              >
+                <c.Icon className="w-4 h-4 text-white/40 shrink-0" />
+                <div className="w-40 sm:w-52 shrink-0">
+                  <p className="text-sm font-light text-white/85 leading-tight truncate flex items-center gap-1.5">
+                    <span className="truncate">{c.label}</span>
+                    <Info className="w-3 h-3 text-white/30 shrink-0" />
+                  </p>
+                  <p className="text-[10px] text-white/35 font-light truncate">{c.note}</p>
+                </div>
+                <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${c.score * 10}%`, background: barColor(c.score) }} />
+                </div>
+                <span className="text-sm font-light text-white/80 tabular-nums w-10 text-right shrink-0">{c.score}/10</span>
+              </button>
+
+              {open && (canHover ? (
+                // souris : fiche flottante sous la ligne, sans décaler les autres
+                <div
+                  className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl p-4 pointer-events-none"
+                  style={{ background: 'rgba(28,27,33,0.98)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 18px 50px rgba(0,0,0,0.55)' }}
+                  role="tooltip"
+                >
+                  <CritExplanation crit={c} />
+                </div>
+              ) : (
+                // tactile : l'explication se déplie sous la ligne
+                <div className="mt-2 mb-1 rounded-xl p-3.5 bg-white/[0.04] border border-white/10">
+                  <CritExplanation crit={c} />
+                </div>
+              ))}
             </div>
-            <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${c.score * 10}%`, background: barColor(c.score) }} />
-            </div>
-            <span className="text-sm font-light text-white/80 tabular-nums w-10 text-right shrink-0">{c.score}/10</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {(forts.length > 0 || faibles.length > 0) && (

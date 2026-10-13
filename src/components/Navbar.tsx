@@ -367,9 +367,9 @@ export function Navbar() {
               </div>
             )}
 
-            <Link to="/app" className="hidden sm:block" aria-label={t("nav.explore")} title={t("nav.explore")}>
-              <Button className="bg-transparent hover:bg-transparent border-0 p-0 w-10 h-10 rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
-                <img src="/terre-icone.webp" alt="" className="w-9 h-9 rounded-full transition-transform duration-500 hover:rotate-12 hover:scale-110" />
+            <Link to="/app" className="hidden sm:block">
+              <Button className="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 h-10 font-medium rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
+                {t("nav.explore")}
               </Button>
             </Link>
 

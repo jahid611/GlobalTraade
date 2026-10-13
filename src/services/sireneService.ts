@@ -88,8 +88,8 @@ function computeScore(anciennete: number | null, age: number | null, nature: str
     else if (anciennete >= 10) { score += 1; reasons.push(`Ancienneté ${anciennete} ans`); }
   }
   if (age != null) {
-    if (age >= 60) { score += 3; reasons.push(`Dirigeant ${age} ans — départ retraite probable`); }
-    else if (age >= 55) { score += 2; reasons.push(`Dirigeant ${age} ans — horizon transmission`); }
+    if (age >= 60) { score += 3; reasons.push(`Dirigeant ${age} ans, départ retraite probable`); }
+    else if (age >= 55) { score += 2; reasons.push(`Dirigeant ${age} ans, horizon transmission`); }
     else if (age >= 50) { score += 1; reasons.push(`Dirigeant ${age} ans`); }
   }
   if (SERIOUS_NATURE.has(nature)) { score += 1; reasons.push("Forme juridique sérieuse"); }
