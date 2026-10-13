@@ -8,10 +8,24 @@
 // cession, src/components/assistant) le dit toujours, et renvoie vers
 // l'expert-comptable pour le prix définitif.
 //
+// CE SONT DES REPÈRES FRANÇAIS (barèmes d'usage des fonds de commerce en France).
+// Aucun autre pays n'a été étudié. Pour une entreprise située ailleurs, le calcul
+// reste le même, faute de mieux, mais le résultat le signale (`hors_france`) et
+// l'avertissement le dit : ne jamais présenter ces fourchettes comme la norme
+// d'un autre pays.
+//
 // Les textes renvoyés (remarques, avertissement) sont en français : le moteur
 // de Globi les reformule dans la langue de l'utilisateur à partir des données.
 //
 // Fichier pur, testé par src/lib/valuation.test.ts.
+
+import { benchmarkCountry } from './financingRules';
+
+/** Pays dont viennent les repères de ce fichier. */
+export const VALUATION_BENCHMARK_COUNTRY = 'FR';
+
+/** Les repères de ce fichier valent-ils comme repères du pays de cette entreprise ? Pays absent : la France. */
+export const valuationBenchmarksApply = (pays: string | null | undefined): boolean => benchmarkCountry(pays) === VALUATION_BENCHMARK_COUNTRY;
 
 export type EstimateInput = {
   secteur: string;
@@ -19,6 +33,8 @@ export type EstimateInput = {
   ebe?: number;
   /** le dirigeant se verse déjà un salaire compté dans les charges */
   dirigeantRemunere?: boolean;
+  /** pays de l'entreprise (code ISO) ; absent, c'est la France */
+  pays?: string | null;
 };
 
 export type EstimateResult = {
@@ -32,6 +48,8 @@ export type EstimateResult = {
   remarques: string[];
   /** les mêmes remarques sous forme de codes, pour les afficher dans une autre langue */
   codes: RemarkCode[];
+  /** l'entreprise n'est pas en France : la fourchette repose sur des repères français, donnés à titre indicatif */
+  hors_france: boolean;
   avertissement: string;
 };
 
@@ -46,7 +64,7 @@ export type RemarkCode =
 type Family = { label: string; keywords: string[]; pct: [number, number]; multiple: [number, number] };
 
 // Pourcentages du chiffre d'affaires annuel HT et multiples d'EBE couramment
-// observés pour les petites affaires. Volontairement larges.
+// observés en France pour les petites affaires. Volontairement larges.
 const FAMILIES: Family[] = [
   { label: "boulangerie-pâtisserie", keywords: ["boulang", "patiss", "pâtiss", "bakery", "pastry"], pct: [0.6, 1.1], multiple: [3, 5] },
   { label: "restauration", keywords: ["restaur", "brasserie", "pizzeria", "creperie", "crêperie", "traiteur", "snack", "fast food", "kebab", "food truck", "catering"], pct: [0.5, 1.0], multiple: [2.5, 4.5] },
@@ -135,6 +153,8 @@ export function estimateValue(input: EstimateInput): EstimateResult {
     haut = (byRevenue.bas + byRevenue.haut) / 2;
   }
 
+  const horsFrance = !valuationBenchmarksApply(input.pays);
+
   return {
     famille: family.label,
     fourchette_basse: round(bas),
@@ -150,7 +170,9 @@ export function estimateValue(input: EstimateInput): EstimateResult {
       : null,
     remarques,
     codes,
-    avertissement:
-      "Ordre de grandeur calculé à partir de repères d'usage. Le prix réel dépend de l'emplacement, du bail, de l'état du matériel, de la régularité des résultats et de la dépendance au dirigeant. À faire valider par un expert-comptable avant de fixer le prix.",
+    hors_france: horsFrance,
+    avertissement: horsFrance
+      ? "Ordre de grandeur calculé à partir de repères d'usage français, donnés à titre indicatif : ils n'ont pas été vérifiés pour le pays de cette entreprise. Le prix réel dépend de l'emplacement, du bail, de l'état du matériel, de la régularité des résultats et de la dépendance au dirigeant. À faire valider par un expert-comptable du pays avant de fixer le prix."
+      : "Ordre de grandeur calculé à partir de repères d'usage en France. Le prix réel dépend de l'emplacement, du bail, de l'état du matériel, de la régularité des résultats et de la dépendance au dirigeant. À faire valider par un expert-comptable avant de fixer le prix.",
   };
 }

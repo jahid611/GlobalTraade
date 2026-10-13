@@ -102,7 +102,7 @@ export function BuyerProjectCard({
     ...project.sectors.map((k) => t(`industry.${k}`, { defaultValue: k }) as string),
     ...project.legacy.sectors,
   ];
-  const zones = zoneLabels(project);
+  const zones = zoneLabels(project, i18n.language);
   const budget = budgetLabel(project);
   const apport = apportLabel(project, i18n.language);
   const revenue = revenueLabel(project);

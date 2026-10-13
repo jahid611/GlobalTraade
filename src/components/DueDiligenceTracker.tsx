@@ -18,6 +18,9 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
 import { exportDueDiligenceReport } from '@/utils/pdfExport';
 import type { TFunction } from 'i18next';
+import { loadMarketContent, useMarketContent } from '@/lib/marketContent';
+import { countryLabel } from '@/lib/countries';
+import { defaultDdTasks, ddExplanation } from './dueDiligenceDefaults';
 
 // Configuration visuelle d'une catégorie de tâche (couleur, icône, libellé)
 type CatConfig = { color: string; icon: React.ElementType; label: string };
@@ -99,7 +102,7 @@ function KanbanCardPreview({ task, catConfig, getTaskDisplayTitle }: {
 function KanbanTaskCard({
   task, catConfig, isEditing, editTaskTitle, setEditTaskTitle,
   handleUpdateTaskTitle, cycleTaskStatus, setEditingTaskId, handleDeleteTask,
-  t, getTaskDisplayTitle
+  t, getTaskDisplayTitle, explanation
 }: {
   task: Task;
   catConfig: CatConfig;
@@ -112,6 +115,8 @@ function KanbanTaskCard({
   handleDeleteTask: (id: string) => void;
   t: TFunction;
   getTaskDisplayTitle: (title: string) => string;
+  /** ce qu'est ce document, dans la langue du visiteur (vide si le titre n'est pas un document du pays) */
+  explanation?: string;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: isEditing });
   const StatusIcon = STATUS_ICON[task.status as string] || Circle;
@@ -157,6 +162,9 @@ function KanbanTaskCard({
               {getTaskDisplayTitle(task.title)}
             </p>
           )}
+          {explanation && !isEditing && (
+            <p className="mt-2 text-[13px] text-white/75 leading-relaxed pointer-events-none">{explanation}</p>
+          )}
           
           <div className="mt-4 flex items-center justify-between">
             <button onClick={() => cycleTaskStatus(task.id)} className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
@@ -196,6 +204,11 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
   const [tasks, setTasks] = useState<Task[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [listingName, setListingName] = useState<string>("Dossier");
+  // Pays de l'annonce (code ISO à deux lettres) : il décide de la liste de départ
+  // et des explications. `null` tant qu'il n'est pas connu, ou pour un dossier
+  // sans annonce : la liste générique s'applique alors.
+  const [listingCountry, setListingCountry] = useState<string | null>(null);
+  const marketContent = useMarketContent(listingCountry);
   
   const referenceFilter = projectId ? { project_id: projectId } : { listing_id: listingId };
   const referenceKey = projectId ? 'project_id' : 'listing_id';
@@ -280,6 +293,10 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
     return title;
   };
 
+  // Une tâche dont le titre est le nom local d'un document du pays reçoit son
+  // explication, dans la langue du visiteur.
+  const getTaskExplanation = (title: string) => ddExplanation(marketContent, title, i18n.language);
+
   useEffect(() => {
     fetchTasks();
   }, [listingId, projectId, buyerId, sellerId]);
@@ -292,8 +309,21 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
 
     try {
       if (listingId && VALID_UUID.test(listingId)) {
-        const { data: listingData } = await supabase.from('listings').select('name').eq('id', listingId).single();
-        if (listingData) setListingName(listingData.name);
+        // Nom et pays de l'annonce : par la vue publique, sinon par la table
+        // (annonce retirée de la vente, lisible par ses deux parties).
+        // Une annonce sans pays date d'avant le multi-pays : elle est française.
+        // Annonce illisible : pays inconnu, donc liste générique.
+        let row: { name?: string | null; country?: string | null } | null = null;
+        const { data: secure } = await supabase.from('listings_secure').select('name, country').eq('id', listingId).maybeSingle();
+        row = secure;
+        if (!row) {
+          const { data: raw } = await supabase.from('listings').select('name, country').eq('id', listingId).maybeSingle();
+          row = raw;
+        }
+        if (row?.name) setListingName(row.name);
+        setListingCountry(row ? (row.country || 'FR').trim().toUpperCase() : null);
+      } else {
+        setListingCountry(null);
       }
 
       const { data, error } = await supabase
@@ -329,12 +359,9 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
     if (!user) return;
     setIsGenerating(true);
 
-    const defaultTasks = [
-      { category: 'governance', title: 'dd.task_gov1' },
-      { category: 'financial', title: 'dd.task_fin1' },
-      { category: 'legal', title: 'dd.task_leg1' },
-      { category: 'social', title: 'dd.task_soc1' }
-    ];
+    // Les douze pièces à demander dans le pays de l'annonce (titre = nom local
+    // du document). Pays sans contenu rédigé : la liste générique, par clés.
+    const defaultTasks = defaultDdTasks(await loadMarketContent(listingCountry));
 
     const tasksToInsert = defaultTasks.map(tk => ({
       [referenceKey]: referenceValue,
@@ -546,7 +573,15 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
           <div className="h-full flex flex-col items-center justify-center p-8 text-center">
             <Wand2 className="w-16 h-16 text-primary/20 mb-6" />
             <h3 className="text-2xl font-light mb-2">{t('dd.empty_title', 'Structurez votre Audit')}</h3>
-            <p className="text-sm text-white/40 font-light mb-8 max-w-sm">{t('dd.empty_desc', 'Générez une checklist standard pour gagner du temps.')}</p>
+            <p className={`text-sm text-white/40 font-light max-w-sm ${marketContent ? 'mb-3' : 'mb-8'}`}>{t('dd.empty_desc', 'Générez une checklist standard pour gagner du temps.')}</p>
+            {marketContent && (
+              <p className="text-sm text-white/75 mb-8 max-w-sm">
+                {t('dd.empty_country', {
+                  defaultValue: "La liste reprend les documents que l'on demande dans le pays de l'entreprise ({{country}}), avec une explication pour chacun.",
+                  country: countryLabel(marketContent.country, i18n.language),
+                })}
+              </p>
+            )}
             <Button onClick={handleGenerateDefault} disabled={isGenerating} className="rounded-full bg-primary hover:bg-primary/90 h-12 px-10 text-sm">
               {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
               {t('dd.btn_generate', "Générer la checklist")}
@@ -575,15 +610,21 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 p-4 space-y-2 bg-black/10">
-                        {catTasks.map(task => (
-                          <div key={task.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 group border border-transparent hover:border-white/5">
-                            <button onClick={() => cycleTaskStatus(task.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        {catTasks.map(task => {
+                          const explanation = getTaskExplanation(task.title);
+                          return (
+                          <div key={task.id} className={`flex ${explanation ? 'items-start' : 'items-center'} gap-4 p-3 rounded-2xl hover:bg-white/5 group border border-transparent hover:border-white/5`}>
+                            <button onClick={() => cycleTaskStatus(task.id)} className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
                               task.status === 'completed' ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'
                             }`}>{task.status === 'completed' && <Check size={14} className="text-white" />}</button>
-                            <span className={`flex-1 text-[15px] font-light ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/90'}`}>{getTaskDisplayTitle(task.title)}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`block text-[15px] font-light ${task.status === 'completed' ? 'text-white/30 line-through' : 'text-white/90'}`}>{getTaskDisplayTitle(task.title)}</span>
+                              {explanation && <p className="mt-1 text-[13px] text-white/75 leading-relaxed">{explanation}</p>}
+                            </div>
                             <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                           </div>
-                        ))}
+                          );
+                        })}
                         <div className="pt-2">
                           {addingTaskTo === cat ? (
                             <div className="flex gap-2">
@@ -635,6 +676,7 @@ export function DueDiligenceTracker({ listingId, projectId, buyerId, sellerId }:
                         handleDeleteTask={handleDeleteTask}
                         t={t}
                         getTaskDisplayTitle={getTaskDisplayTitle}
+                        explanation={getTaskExplanation(task.title)}
                       />
                     ))}
                     {colTasks.length === 0 && (

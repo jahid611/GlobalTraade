@@ -1,12 +1,15 @@
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';
-import { createGloblyPdf, pdfFileName, pdfTextLang, type GloblyPdf } from './pdfTemplate';
-import { localeFor } from '@/lib/markets';
+import { createGloblyPdf, pdfFileName, type GloblyPdf } from './pdfTemplate';
+import { PRESENTATION_WORDING } from './pdf/presentation';
+import { wordsFor } from './pdf/wording';
+import { formatMoney } from '@/lib/markets';
 
 // Dossier de présentation complet de l'entreprise (premium) :
 // identité, logo intégré, chiffres, structure, atouts immatériels.
 // Contrairement au blind teaser, ce document est nominatif :
 // le vendeur le télécharge, l'imprime et le remet à qui il veut.
+// Ses textes existent dans les six langues du site : voir pdf/presentation.ts.
 // jspdf est chargé à la demande par le gabarit (voir pdfTemplate).
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
@@ -34,40 +37,35 @@ const imageFormat = (dataUrl: string): 'PNG' | 'JPEG' | null => {
 
 /** Construit le document sans le télécharger (utilisé par les tests). */
 export const buildPremiumPresentation = async (listing: Listing, t: TFunction, lang: string): Promise<{ pdf: GloblyPdf; filename: string }> => {
-  const en = pdfTextLang(lang) === 'en';
-  const notDisclosed = en ? 'Not disclosed' : 'Non communiqué';
+  const w = wordsFor(PRESENTATION_WORDING, lang);
+  const notDisclosed = w('notDisclosed');
 
+  // montants dans la langue du document, comme ses textes
   const formatCurrency = (val: number | string | null | undefined) => {
     const n = typeof val === 'string' ? Number(val) : val;
     if (!n || Number.isNaN(n)) return notDisclosed;
-    return new Intl.NumberFormat(localeFor(lang), { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-      .format(n)
-      .replace(/\s/g, ' ');
+    return formatMoney(n, lang).replace(/\s/g, ' ');
   };
 
   const industryStr = String(t(`industry.${listing.industry}`, { defaultValue: listing.industry || '' }) ?? '');
   const logoData = listing.logo_url ? await fetchImageAsDataUrl(listing.logo_url) : null;
 
-  const priceLabel = en ? 'Asking price' : 'Prix de cession demandé';
-  const revenueLabel = en ? 'Revenue (last year)' : "Chiffre d'affaires (N-1)";
-  const ebitdaLabel = en ? 'EBITDA' : 'EBITDA (rentabilité brute)';
-
   const pdf = await createGloblyPdf({
-    kind: en ? 'Company presentation' : 'Dossier de présentation',
+    kind: w('kind'),
     title: listing.name || '',
     subtitle: industryStr,
-    footerNote: en ? 'Company presentation' : 'Dossier de présentation',
+    footerNote: w('kind'),
     facts: [
-      [en ? 'Address' : 'Adresse', listing.address ? String(listing.address) : ''],
-      [en ? 'Asking price' : 'Prix demandé', formatCurrency(listing.price)],
-      [en ? 'Revenue' : "Chiffre d'affaires", formatCurrency(listing.revenue_n1)],
-      ['EBITDA', formatCurrency(listing.ebitda)],
+      [w('address'), listing.address ? String(listing.address) : ''],
+      [w('askingPriceShort'), formatCurrency(listing.price)],
+      [w('revenueShort'), formatCurrency(listing.revenue_n1)],
+      [w('ebitdaShort'), formatCurrency(listing.ebitda)],
     ],
     lang,
   });
 
   // Présentation
-  pdf.section(en ? 'Company overview' : "Présentation de l'entreprise");
+  pdf.section(w('overviewTitle'));
   const format = logoData ? imageFormat(logoData) : null;
   if (logoData && format) {
     // le logo garde ses proportions, dans un cadre de 60 x 28 mm
@@ -84,54 +82,55 @@ export const buildPremiumPresentation = async (listing: Listing, t: TFunction, l
     } catch { /* format non supporté */ }
   }
   pdf.keyValues([
-    [en ? 'Company' : 'Entreprise', listing.name || ''],
-    [en ? 'Sector' : 'Secteur', industryStr],
-    [en ? 'Address' : 'Adresse', listing.address ? String(listing.address) : ''],
+    [w('company'), listing.name || ''],
+    [w('sector'), industryStr],
+    [w('address'), listing.address ? String(listing.address) : ''],
   ]);
-  pdf.paragraph(listing.description || (en ? 'No description provided.' : 'Aucune description fournie.'));
+  // la description est saisie par le vendeur : reprise telle quelle
+  pdf.paragraph(listing.description || w('noDescription'));
   if (listing.established_year) {
-    pdf.paragraph(en ? `Established in ${listing.established_year}.` : `Entreprise créée en ${listing.established_year}.`);
+    pdf.paragraph(w('established', { year: listing.established_year }));
   }
 
   // Chiffres clés
-  pdf.section(en ? 'Key figures' : 'Chiffres clés');
+  pdf.section(w('figuresTitle'));
   // libellés courts dans les cases ; les libellés complets sont dans le tableau
   pdf.figures([
-    { label: en ? 'Asking price' : 'Prix demandé', value: formatCurrency(listing.price), highlight: true },
-    { label: en ? 'Revenue' : "Chiffre d'affaires", value: formatCurrency(listing.revenue_n1) },
-    { label: 'EBITDA', value: formatCurrency(listing.ebitda) },
+    { label: w('askingPriceShort'), value: formatCurrency(listing.price), highlight: true },
+    { label: w('revenueShort'), value: formatCurrency(listing.revenue_n1) },
+    { label: w('ebitdaShort'), value: formatCurrency(listing.ebitda) },
   ]);
   const figureRows: string[][] = [
-      [priceLabel, formatCurrency(listing.price)],
-      [revenueLabel, formatCurrency(listing.revenue_n1)],
-      ...(listing.revenue_n2 ? [[en ? 'Revenue (Y-2)' : "Chiffre d'affaires (N-2)", formatCurrency(listing.revenue_n2)]] : []),
-      ...(listing.revenue_n3 ? [[en ? 'Revenue (Y-3)' : "Chiffre d'affaires (N-3)", formatCurrency(listing.revenue_n3)]] : []),
-      [ebitdaLabel, formatCurrency(listing.ebitda)],
+      [w('price'), formatCurrency(listing.price)],
+      [w('revenue'), formatCurrency(listing.revenue_n1)],
+      ...(listing.revenue_n2 ? [[w('revenueN2'), formatCurrency(listing.revenue_n2)]] : []),
+      ...(listing.revenue_n3 ? [[w('revenueN3'), formatCurrency(listing.revenue_n3)]] : []),
+      [w('ebitda'), formatCurrency(listing.ebitda)],
   ];
   pdf.ensure(17 + figureRows.length * 8.5); // le tableau reste d'un seul tenant
-  pdf.grid([en ? 'Indicator' : 'Indicateur', en ? 'Amount' : 'Montant'], figureRows, { widths: [3, 2], align: ['left', 'right'] });
+  pdf.grid([w('indicator'), w('amount')], figureRows, { widths: [3, 2], align: ['left', 'right'] });
 
   // Structure opérationnelle
-  pdf.section(en ? 'Operations' : 'Structure opérationnelle');
+  pdf.section(w('operationsTitle'));
   pdf.keyValues([
-    [en ? 'Employees' : 'Effectif', listing.employees ? String(listing.employees) : notDisclosed],
-    [en ? 'Surface area' : "Surface d'exploitation", listing.surface ? `${listing.surface} m²` : 'N/A'],
-    [en ? 'Annual rent' : 'Loyer annuel', listing.rent ? formatCurrency(listing.rent) : 'N/A'],
-    ...(listing.website_url ? [[en ? 'Website' : 'Site web', listing.website_url] as [string, string]] : []),
+    [w('employees'), listing.employees ? String(listing.employees) : notDisclosed],
+    [w('surface'), listing.surface ? `${listing.surface} m²` : w('notApplicable')],
+    [w('rent'), listing.rent ? formatCurrency(listing.rent) : w('notApplicable')],
+    ...(listing.website_url ? [[w('website'), listing.website_url] as [string, string]] : []),
   ]);
 
   // Atouts immatériels
   const intangibles: [string, string][] = [];
-  if (listing.management_type) intangibles.push([en ? 'Management' : 'Management', listing.management_type]);
-  if (listing.client_concentration) intangibles.push([en ? 'Client base' : 'Concentration clients', listing.client_concentration]);
-  if (listing.digital_maturity) intangibles.push([en ? 'Digital maturity' : 'Maturité digitale', listing.digital_maturity]);
-  if (listing.market_trend) intangibles.push([en ? 'Market trend' : 'Tendance du marché', listing.market_trend]);
+  if (listing.management_type) intangibles.push([w('management'), listing.management_type]);
+  if (listing.client_concentration) intangibles.push([w('clients'), listing.client_concentration]);
+  if (listing.digital_maturity) intangibles.push([w('digitalMaturity'), listing.digital_maturity]);
+  if (listing.market_trend) intangibles.push([w('marketTrend'), listing.market_trend]);
   if (intangibles.length) {
-    pdf.section(en ? 'Intangible assets' : 'Capital immatériel');
+    pdf.section(w('intangiblesTitle'));
     pdf.keyValues(intangibles);
   }
 
-  return { pdf, filename: pdfFileName('Presentation', `${listing.name || ''} Globly`) };
+  return { pdf, filename: pdfFileName(w('filePrefix'), `${listing.name || ''} Globly`) };
 };
 
 export const generatePremiumPresentation = async (listing: Listing, t: TFunction, lang: string) => {

@@ -28,6 +28,9 @@ export interface ListingNode {
   view_count?: number;
   // Ce que la fiche de survol affiche, quand l'annonce le donne.
   address?: string | null;
+  /** pays de l'entreprise (code ISO à deux lettres) ; absent = France */
+  country?: string | null;
+  city?: string | null;
   employees?: number | null;
   established_year?: number | null;
   revenue_n1?: number | null;

@@ -16,6 +16,7 @@ import { DealCalculator } from './DealCalculator';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { OfferComparator } from './OfferComparator';
 import { CompanyScore } from './CompanyScore';
+import { MarketGuide } from './MarketGuide';
 import { usePlan, hasContentAccess, UNLOCK_PRICE } from '@/services/planService';
 import type { Listing } from '@/types/domain';
 import { formatMoney, marketOf } from '@/lib/markets';
@@ -574,6 +575,11 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                   </p>
                 </div>
               )}
+
+              {/* Guide du pays de l'annonce (comment se passe la vente, financement,
+                  vocabulaire) : information générale et publique, visible par tous,
+                  annonce débloquée ou non. Rien ne s'affiche pour un pays sans guide. */}
+              <MarketGuide key={listing.id} country={listingCountry(listing)} className="mb-12 sm:mb-16" />
 
               {/* Simulateur de financement (LBO) — VISIBLE par tous quand le vendeur
                   partage ses financiers, mais UTILISABLE seulement après déblocage

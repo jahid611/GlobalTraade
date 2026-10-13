@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';
 import { setPdfAssetLoader } from './pdfTemplate';
 import { buildBlindTeaser } from './teaserGenerator';
+import { TEASER_WORDING } from './pdf/teaser';
+import { PDF_LANGS } from './pdf/wording';
+import { checkAndSavePdf } from './pdf/pdfTestKit';
 
 const t = ((key: string, opts?: { defaultValue?: string }) => (key === 'industry.restauration' ? 'Restauration' : opts?.defaultValue ?? key)) as unknown as TFunction;
 
@@ -47,20 +50,27 @@ describe('teaser anonyme', () => {
   beforeEach(() => { written.length = 0; });
   beforeAll(() => setPdfAssetLoader(async (path) => readFileSync(resolve(process.cwd(), 'public', path.replace(/^\//, ''))).toString('base64')));
 
-  it.each(['fr', 'en'])('produit un PDF complet (%s)', async (lang) => {
+  // Sortie : PDF_OUT pour le français, avec le suffixe « -pt », « -de »… pour les autres langues.
+  it.each(PDF_LANGS)('produit un PDF complet dans la langue du document (%s)', async (lang) => {
     const { pdf, filename } = await buildBlindTeaser(listing, t, lang);
-    const bytes = pdf.toArrayBuffer();
+    const bytes = checkAndSavePdf(pdf, process.env.PDF_OUT, lang);
     expect(bytes.byteLength).toBeGreaterThan(20_000);
     expect(pdf.doc.getNumberOfPages()).toBeGreaterThanOrEqual(2); // couverture + contenu
-    expect(filename).toMatch(lang === 'en' ? /^Teaser_Project_[A-Z]+\.pdf$/ : /^Teaser_Projet_[A-Z]+\.pdf$/);
-    if (process.env.PDF_OUT && lang === 'fr') writeFileSync(process.env.PDF_OUT, Buffer.from(bytes));
+    expect(filename).toMatch(new RegExp(`^Teaser_${TEASER_WORDING.fileProject[lang]}_[A-Z]+\\.pdf$`));
+    const all = written.join(' ');
+    expect(all).toContain(TEASER_WORDING.opportunity[lang]);
+    expect(all).toContain(TEASER_WORDING.indicatorsTitle[lang]);
+    expect(all).toContain(TEASER_WORDING.disclaimerTitle[lang]);
+    const money: Record<string, string> = { fr: '420 000 €', en: '€420,000', es: '420.000 €', it: '420.000 €', pt: '420 000 €', de: '420.000 €' };
+    expect(all).toContain(money[lang]);
   });
 
-  it('écrit en anglais pour une langue sans texte propre, avec les nombres de cette langue', async () => {
+  it('écrit chaque langue avec ses propres textes et ses propres nombres', async () => {
     const { filename } = await buildBlindTeaser(listing, t, 'de');
     const all = written.join(' ');
-    expect(filename).toMatch(/^Teaser_Project_[A-Z]+\.pdf$/);
-    expect(all).toContain('Acquisition Opportunity');
+    expect(filename).toMatch(/^Teaser_Projekt_[A-Z]+\.pdf$/);
+    expect(all).toContain('Übernahmemöglichkeit');
+    expect(all).not.toContain('Acquisition Opportunity');
     expect(all).not.toContain("Opportunité d'Acquisition");
     expect(all).toContain('420.000 €'); // nombres à l'allemande
     written.length = 0;
@@ -77,6 +87,14 @@ describe('teaser anonyme', () => {
     const all = written.join(' ');
     expect(all).toContain('Restauration');
     expect(all).toContain('780');
+    for (const secret of ['Brasserie', 'Halles', 'Lyon', '69002', '12345678900012', 'brasserie-des-halles', 'retraite']) {
+      expect(all).not.toContain(secret);
+    }
+  });
+
+  it.each(PDF_LANGS)("reste anonyme dans toutes les langues (%s)", async (lang) => {
+    await buildBlindTeaser(listing, t, lang);
+    const all = written.join(' ');
     for (const secret of ['Brasserie', 'Halles', 'Lyon', '69002', '12345678900012', 'brasserie-des-halles', 'retraite']) {
       expect(all).not.toContain(secret);
     }

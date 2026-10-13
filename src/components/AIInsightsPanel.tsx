@@ -4,6 +4,15 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Info, Zap, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { localeFor } from '@/lib/markets';
+import { countryLabel } from '@/lib/countries';
+import { benchmarkCountry } from '@/lib/financingRules';
+
+// Les seuils de cette analyse (prix à moins de 4 fois l'EBE, entre 4 et 7, au-delà ;
+// marge de 10 % et 20 % ; loyer à 8 % et 15 % du chiffre d'affaires) sont une
+// grille de lecture de Globly, tirée d'usages français. Ce ne sont ni des
+// moyennes de marché ni des moyennes par métier : les textes ne le prétendent
+// plus, et pour une annonce hors de France l'interface dit d'où ils viennent.
 
 interface AIInsightsPanelProps {
   listing: {
@@ -23,6 +32,8 @@ interface AIInsightsPanelProps {
     client_concentration?: string;
     digital_maturity?: string;
     market_trend?: string;
+    /** code ISO du pays de l'annonce ; absent, c'est la France */
+    country?: string | null;
   };
 }
 
@@ -33,22 +44,29 @@ interface Flag {
 }
 
 export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const isFrench = benchmarkCountry(listing.country) === 'FR';
 
   const analysis = useMemo(() => {
     const flags: Flag[] = [];
-    let score = 50; 
+    let score = 50;
+    // Nombres écrits comme dans la langue du visiteur.
+    const locale = localeFor(lang);
+    const int = (v: number) => v.toLocaleString(locale, { maximumFractionDigits: 0 });
+    const dec1 = (v: number) => v.toLocaleString(locale, { maximumFractionDigits: 1 });
+    const pct = (v: number) => new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(v / 100);
 
     // --- FINANCIAL ANALYSIS ---
     const multiple = listing.ebitda > 0 ? listing.price / listing.ebitda : 0;
     if (multiple > 0 && multiple < 4) {
-      flags.push({ type: 'green', label: t('ai.val_attr', 'Valorisation attractive'), detail: t('ai.val_attr_det', { multiple: multiple.toFixed(1) }) });
+      flags.push({ type: 'green', label: t('ai.price_low', 'Prix modéré par rapport au résultat'), detail: t('ai.price_low_det', "Le prix demandé représente {{multiple}} fois l'EBE, soit moins de 4 fois.", { multiple: dec1(multiple) }) });
       score += 10;
     } else if (multiple >= 4 && multiple <= 7) {
-      flags.push({ type: 'amber', label: t('ai.val_norm', 'Valorisation dans la norme'), detail: t('ai.val_norm_det', { multiple: multiple.toFixed(1) }) });
+      flags.push({ type: 'amber', label: t('ai.price_mid', 'Prix intermédiaire par rapport au résultat'), detail: t('ai.price_mid_det', "Le prix demandé représente {{multiple}} fois l'EBE, soit entre 4 et 7 fois.", { multiple: dec1(multiple) }) });
       score += 3;
     } else if (multiple > 7) {
-      flags.push({ type: 'red', label: t('ai.val_high', 'Valorisation élevée'), detail: t('ai.val_high_det', { multiple: multiple.toFixed(1) }) });
+      flags.push({ type: 'red', label: t('ai.price_high', 'Prix élevé par rapport au résultat'), detail: t('ai.price_high_det', "Le prix demandé représente {{multiple}} fois l'EBE, soit plus de 7 fois. Une négociation est à envisager.", { multiple: dec1(multiple) }) });
       score -= 8;
     }
 
@@ -56,13 +74,13 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
     if (listing.revenue_n1 > 0 && listing.ebitda > 0) {
       const margin = (listing.ebitda / listing.revenue_n1) * 100;
       if (margin > 20) {
-        flags.push({ type: 'green', label: t('ai.margin_high', 'Marge opérationnelle solide'), detail: t('ai.margin_high_det', { margin: margin.toFixed(0) }) });
+        flags.push({ type: 'green', label: t('ai.margin_high', 'Marge opérationnelle solide'), detail: t('ai.margin_high_det', { margin: int(margin) }) });
         score += 8;
       } else if (margin > 10) {
-        flags.push({ type: 'amber', label: t('ai.margin_med', 'Marge opérationnelle correcte'), detail: t('ai.margin_med_det', { margin: margin.toFixed(0) }) });
+        flags.push({ type: 'amber', label: t('ai.margin_med', 'Marge opérationnelle correcte'), detail: t('ai.margin_mid_det', "Marge d'EBE de {{margin}} : ni faible, ni élevée.", { margin: pct(margin) }) });
         score += 3;
       } else {
-        flags.push({ type: 'red', label: t('ai.margin_low', 'Marge opérationnelle faible'), detail: t('ai.margin_low_det', { margin: margin.toFixed(0) }) });
+        flags.push({ type: 'red', label: t('ai.margin_low', 'Marge opérationnelle faible'), detail: t('ai.margin_low_det', { margin: int(margin) }) });
         score -= 8;
       }
     }
@@ -71,13 +89,13 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
     if (listing.revenue_n1 && listing.revenue_n2) {
       const growth = ((listing.revenue_n1 - listing.revenue_n2) / listing.revenue_n2) * 100;
       if (growth > 10) {
-        flags.push({ type: 'green', label: t('ai.growth_high', 'Croissance forte'), detail: t('ai.growth_high_det', { growth: growth.toFixed(0) }) });
+        flags.push({ type: 'green', label: t('ai.growth_high', 'Croissance forte'), detail: t('ai.growth_high_det', { growth: int(growth) }) });
         score += 8;
       } else if (growth > 0) {
-        flags.push({ type: 'amber', label: t('ai.growth_med', 'Croissance modérée'), detail: t('ai.growth_med_det', { growth: growth.toFixed(0) }) });
+        flags.push({ type: 'amber', label: t('ai.growth_med', 'Croissance modérée'), detail: t('ai.growth_med_det', { growth: int(growth) }) });
         score += 2;
       } else {
-        flags.push({ type: 'red', label: t('ai.growth_low', 'Chiffre d\'affaires en baisse'), detail: t('ai.growth_low_det', { growth: growth.toFixed(0) }) });
+        flags.push({ type: 'red', label: t('ai.growth_low', 'Chiffre d\'affaires en baisse'), detail: t('ai.growth_low_det', { growth: int(growth) }) });
         score -= 10;
       }
     }
@@ -87,10 +105,10 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
     if (listing.rent && listing.revenue_n1) {
       const rentRatio = (listing.rent / listing.revenue_n1) * 100;
       if (rentRatio > 15) {
-        flags.push({ type: 'red', label: t('ai.rent_high', 'Charge locative élevée'), detail: t('ai.rent_high_det', { ratio: rentRatio.toFixed(0) }) });
+        flags.push({ type: 'red', label: t('ai.rent_high', 'Charge locative élevée'), detail: t('ai.rent_high_det', { ratio: int(rentRatio) }) });
         score -= 5;
       } else if (rentRatio < 8) {
-        flags.push({ type: 'green', label: t('ai.rent_low', 'Charge locative maîtrisée'), detail: t('ai.rent_low_det', { ratio: rentRatio.toFixed(0) }) });
+        flags.push({ type: 'green', label: t('ai.rent_low', 'Charge locative maîtrisée'), detail: t('ai.rent_low_det', { ratio: int(rentRatio) }) });
         score += 5;
       }
     }
@@ -154,7 +172,7 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
     const verdictColor = score >= 75 ? 'text-emerald-400' : score >= 55 ? 'text-amber-400' : 'text-red-400';
 
     return { flags, score, verdict, verdictColor };
-  }, [listing, t]);
+  }, [listing, t, lang]);
 
   const greenFlags = analysis.flags.filter(f => f.type === 'green');
   const redFlags = analysis.flags.filter(f => f.type === 'red');
@@ -238,6 +256,15 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
           ))}
         </div>
       )}
+
+      <p className="flex items-start gap-2.5 text-sm text-white/80 leading-relaxed rounded-xl p-4 bg-white/[0.04] border border-white/10">
+        <Info className="w-4 h-4 text-white/80 shrink-0 mt-0.5" />
+        <span>
+          {isFrench
+            ? t('ai.scale_note', "Les seuils utilisés (prix rapporté à l'EBE, marge, poids du loyer) sont une grille de lecture de Globly, tirée d'usages français. Ce ne sont pas des moyennes de marché.")
+            : t('ai.scale_note_other', "Pays de l'annonce : {{country}}. Les seuils utilisés (prix rapporté à l'EBE, marge, poids du loyer) sont une grille de lecture de Globly, tirée d'usages français et donnée à titre indicatif. Ils n'ont pas été vérifiés pour ce pays.", { country: countryLabel(listing.country, lang) })}
+        </span>
+      </p>
 
       <p className="text-[9px] text-white/20 font-light text-center leading-relaxed pt-2">
         {t('ai.disclaimer', 'Analyse générée automatiquement par notre algorithme IA. Ne constitue pas un conseil en investissement ou un audit certifié.')}

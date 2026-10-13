@@ -1,10 +1,16 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';
 import { setPdfAssetLoader } from './pdfTemplate';
 import { buildPremiumPresentation } from './premiumPresentation';
+import { PRESENTATION_WORDING } from './pdf/presentation';
+import { PDF_LANGS } from './pdf/wording';
+import { checkAndSavePdf, outOfMargins, takeWrittenTexts } from './pdf/pdfTestKit';
+
+// chaque texte écrit est noté : contenu et position
+vi.mock('jspdf', async (importOriginal) => (await import('./pdf/pdfTestKit')).trackedJsPdf(await importOriginal()));
 
 const t = ((key: string, opts?: { defaultValue?: string }) => (key === 'industry.restauration' ? 'Restauration' : opts?.defaultValue ?? key)) as unknown as TFunction;
 
@@ -35,13 +41,25 @@ const listing: Listing = {
 describe('dossier de présentation premium', () => {
   beforeAll(() => setPdfAssetLoader(async (path) => publicFile(path)));
 
-  it.each(['fr', 'en'])('produit un PDF complet avec le logo (%s)', async (lang) => {
+  // Sortie : PDF_OUT pour le français, avec le suffixe « -de », « -es »… pour les autres langues.
+  it.each(PDF_LANGS)('produit un PDF complet avec le logo, dans la langue du document (%s)', async (lang) => {
+    takeWrittenTexts();
     const { pdf, filename } = await buildPremiumPresentation(listing, t, lang);
-    const bytes = pdf.toArrayBuffer();
+    const bytes = checkAndSavePdf(pdf, process.env.PDF_OUT, lang);
     expect(bytes.byteLength).toBeGreaterThan(20_000);
     expect(pdf.doc.getNumberOfPages()).toBeGreaterThanOrEqual(2); // couverture + contenu
-    expect(filename).toBe('Presentation-Brasserie-des-Halles-Globly.pdf');
-    if (process.env.PDF_OUT && lang === 'fr') writeFileSync(process.env.PDF_OUT, Buffer.from(bytes));
+    expect(filename).toBe(`${PRESENTATION_WORDING.filePrefix[lang]}-Brasserie-des-Halles-Globly.pdf`);
+    if (lang === 'fr' || lang === 'en') expect(filename).toBe('Presentation-Brasserie-des-Halles-Globly.pdf');
+    const texts = takeWrittenTexts();
+    const all = texts.map((t) => t.text).join(' ');
+    expect(outOfMargins(texts)).toEqual([]);
+    expect(all).toContain(PRESENTATION_WORDING.overviewTitle[lang]);
+    expect(all).toContain(PRESENTATION_WORDING.intangiblesTitle[lang]);
+    expect(all).toContain(PRESENTATION_WORDING.kind[lang]); // pied de page
+    const money: Record<string, string> = { fr: '420 000 €', en: '€420,000', es: '420.000 €', it: '420.000 €', pt: '420 000 €', de: '420.000 €' };
+    expect(all).toContain(money[lang]);
+    // la description saisie par le vendeur est reprise telle quelle
+    expect(all).toContain('Brasserie traditionnelle de 80 couverts');
   });
 
   it('fonctionne sans logo et avec une annonce presque vide', async () => {

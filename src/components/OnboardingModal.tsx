@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/PickerKit";
 import { MultiSelect } from "@/components/MultiSelect";
 import { industryOptions } from '@/lib/industries';
-import { FR_REGIONS } from "@/lib/geoRegions";
+import { marketCountryOptions, pruneRegions, regionOptionsFor, splitGeoKeys } from "@/lib/geoRegions";
 import { AMOUNT_RANGE_OPTIONS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
 import { CountrySelect } from "@/components/CountrySelect";
-import { DEFAULT_COUNTRY } from "@/lib/countries";
-import { marketOf } from "@/lib/markets";
+import { DEFAULT_COUNTRY, countryLabel } from "@/lib/countries";
+import { MARKET_CODES, marketOf } from "@/lib/markets";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -105,8 +105,21 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
     [t]
   );
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
-  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
   const listVal = (v: string) => (v ? v.split(",").map((x) => x.trim()).filter(Boolean) : []);
+  // Zones visées : des pays, puis les régions de ces pays. Enregistré dans
+  // `target_geo` comme partout ailleurs (voir src/lib/geoRegions.ts) : pays en
+  // code ISO (« ES »), puis régions (« idf », « ES-CT »). Rien de choisi = tous les pays.
+  const geo = useMemo(() => splitGeoKeys(targetGeo.split(",").filter(Boolean)), [targetGeo]);
+  const setGeo = (countries: string[], regions: string[]) =>
+    setTargetGeo([...MARKET_CODES.filter((c) => countries.includes(c)), ...regions].join(","));
+  const geoCountryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
+  // Les régions des pays choisis (tous les pays si aucun n'est choisi), rangées
+  // sous le nom de leur pays dès qu'il y en a plusieurs.
+  const regionOptions = useMemo(() => {
+    const scope = MARKET_CODES.filter((c) => !geo.countries.length || geo.countries.includes(c));
+    return scope.flatMap((c) => regionOptionsFor([c], i18n.language)
+      .map((o) => (scope.length > 1 ? { ...o, group: countryLabel(c, i18n.language) } : o)));
+  }, [geo.countries, i18n.language]);
 
   const canNext = () => {
     if (step === 1) return accountType !== "" && fullName.trim().length >= 2 && country !== "";
@@ -307,11 +320,20 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                       placeholder={t("searchads.any", "Indifférent") as string} buttonClassName={btnDropdown} />
                   </div>
                   <div>
-                    <label className={labelClass}>{t("onb.geo", "Zone géographique")}</label>
-                    <MultiSelect options={regionOptions} selected={listVal(targetGeo)}
-                      onChange={(v) => setTargetGeo(v.join(","))}
-                      placeholder={t("searchads.regions_ph", "Choisir une ou plusieurs régions") as string} />
+                    <label className={labelClass}>{t("onb.geo_countries", "Pays visés")}</label>
+                    <MultiSelect options={geoCountryOptions} selected={geo.countries} searchable={false}
+                      onChange={(v) => setGeo(v, pruneRegions(geo.regions, v))}
+                      placeholder={t("onb.geo_countries_ph", "Tous les pays") as string} />
                   </div>
+                </div>
+                <div>
+                  <label className={labelClass}>{t("onb.geo_regions", "Régions visées")}</label>
+                  <MultiSelect options={regionOptions} selected={geo.regions}
+                    onChange={(v) => setGeo(geo.countries, v)}
+                    placeholder={t("onb.geo_regions_ph", "Toutes les régions") as string} />
+                  <p className="text-white/30 text-[11px] font-light mt-1.5">
+                    {t("onb.geo_hint", "Facultatif. Sans région choisie dans un pays, tout le pays est retenu.")}
+                  </p>
                 </div>
               </>
             )}

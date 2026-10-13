@@ -11,6 +11,7 @@
 //                  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (injectés)
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasZone, zoneFit } from "./geo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,13 +38,29 @@ type Listing = {
   owner_id: string;
   industry: string | null;
   address: string | null;
+  /** pays de l'entreprise (code ISO) ; absent = France */
+  country: string | null;
+  /** région (code ISO 3166-2), quand elle est connue */
+  region: string | null;
   price: number | null;
   description: string | null;
   created_at: string;
 };
 
-const money = (n: number | null) =>
-  n ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n) : "Prix non communiqué";
+// Le message est écrit en français : les montants suivent la langue du message,
+// pas le pays de l'annonce. Aucune langue n'est enregistrée par membre à ce jour ;
+// le jour où elle le sera, c'est ici qu'elle se branche.
+const MAIL_LOCALE = "fr-FR";
+
+const money = (n: number | null, locale = MAIL_LOCALE) =>
+  n ? new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n) : "Prix non communiqué";
+
+/** Nom du pays d'une annonce, écrit seulement quand ce n'est pas la France. */
+function countryName(code: string | null, locale = MAIL_LOCALE): string {
+  const c = (code || "").trim().toUpperCase();
+  if (!c || c === "FR") return "";
+  try { return new Intl.DisplayNames([locale], { type: "region" }).of(c) || c; } catch { return c; }
+}
 
 const tokens = (s: string | null) =>
   (s || "").toLowerCase().split(/[,;/]+/).map((x) => x.trim()).filter((x) => x.length > 2);
@@ -77,7 +94,6 @@ function budgetRange(str: string | null): { min: number; max: number } | null {
 function score(l: Listing, p: Profile): number {
   let s = 15;
   const industry = (l.industry || "").toLowerCase();
-  const address = (l.address || "").toLowerCase();
   const desc = (l.description || "").toLowerCase();
 
   const sectors = tokens(p.target_sectors);
@@ -86,10 +102,10 @@ function score(l: Listing, p: Profile): number {
     else if (sectors.some((w) => desc.includes(w))) s += 18;
   } else s += 20;
 
-  const geos = tokens(p.target_geo);
-  if (geos.length) {
-    if (geos.some((g) => address.includes(g))) s += 30;
-  } else s += 18;
+  // Zone : même règle que le site (pays et régions, voir ./geo.ts).
+  const zone = zoneFit(l, p.target_geo);
+  if (zone === "match") s += 30;
+  else if (zone === "open") s += 18;
 
   const range = budgetRange(p.target_budget);
   const price = Number(l.price) || 0;
@@ -104,6 +120,13 @@ function score(l: Listing, p: Profile): number {
   return Math.min(99, s);
 }
 
+/** « Secteur · adresse · pays » : le pays n'est ajouté que s'il n'est pas déjà dans l'adresse. */
+function placeLine(l: Listing): string {
+  const country = countryName(l.country);
+  const known = !!country && (l.address || "").toLowerCase().includes(country.toLowerCase());
+  return [l.industry, l.address, known ? "" : country].filter(Boolean).join(" · ");
+}
+
 // Tout texte saisi par un membre est échappé avant d'entrer dans le HTML d'un e-mail.
 const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -112,7 +135,7 @@ function html(firstName: string, matches: { l: Listing; s: number }[]) {
     <a href="${SITE_URL}/app?focus=${l.id}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
       <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#A855F7;font-weight:700;">${s}% de correspondance</div>
       <div style="font-size:17px;color:#111827;font-weight:600;margin:6px 0 2px;">${esc(l.name).slice(0, 160)}</div>
-      <div style="font-size:14px;color:#6b7280;">${esc([l.industry, l.address].filter(Boolean).join(" · ")).slice(0, 240) || "—"}</div>
+      <div style="font-size:14px;color:#6b7280;">${esc(placeLine(l)).slice(0, 240) || "-"}</div>
       <div style="font-size:15px;color:#111827;margin-top:8px;">${money(l.price)}</div>
     </a>`).join("");
 
@@ -146,7 +169,7 @@ serve(async (req) => {
     // dans l'email : nom, secteur, ville, prix — ce que voit déjà un visiteur.
     const { data: fresh, error: lErr } = await admin
       .from("listings")
-      .select("id, name, owner_id, industry, address, price, description, created_at")
+      .select("id, name, owner_id, industry, address, country, region, price, description, created_at")
       .eq("status", "active")
       .gte("created_at", since);
     if (lErr) throw lErr;
@@ -163,7 +186,7 @@ serve(async (req) => {
 
     let sent = 0;
     for (const p of (profs || []) as Profile[]) {
-      if (!tokens(p.target_sectors).length && !tokens(p.target_geo).length && !p.target_budget) continue;
+      if (!tokens(p.target_sectors).length && !hasZone(p.target_geo) && !p.target_budget) continue;
       // Jamais deux résumés dans la même journée (cron rejoué, retry…)
       if (p.last_digest_sent_at && Date.now() - new Date(p.last_digest_sent_at).getTime() < 20 * 3600e3) continue;
 

@@ -13,8 +13,19 @@
 // Polices : Instrument Serif (titres) et Instrument Sans (texte), les mêmes que
 // le site, servies depuis /fonts/pdf et chargées seulement au moment de créer
 // un document.
+//
+// Langues : les textes des documents existent dans les six langues du site
+// (dossier ./pdf, un fichier par document). Les mentions du gabarit lui-même
+// (pied de page, « Date et signature ») suivent `meta.lang`. Les libellés d'une
+// seule ligne se réduisent puis se coupent pour rester dans leur case : un mot
+// allemand très long ne déborde ni d'une case, ni d'une colonne, ni du bandeau.
 
 import type { jsPDF as JsPDF } from 'jspdf';
+import { TEMPLATE_WORDING } from './pdf/template';
+import { wordsFor } from './pdf/wording';
+
+// La langue des textes d'un document : voir `pdfLang` (les six langues du site).
+export { pdfLang, type PdfLang } from './pdf/wording';
 
 export type Rgb = [number, number, number];
 
@@ -101,20 +112,13 @@ export interface GloblyPdfMeta {
   reference?: string;
   /** repères en bas de couverture (4 au plus), ex. [['Date', '13 octobre 2026']] */
   facts?: [label: string, value: string][];
-  /** mention du pied de page ; « Document confidentiel » par défaut */
+  /** mention du pied de page ; « Document confidentiel » par défaut, dans la langue du document */
   footerNote?: string;
   /** false : pas de couverture, le document commence directement sur une page blanche */
   cover?: boolean;
-  lang?: string;
+  /** langue du document (fr, en, es, it, pt, de) : textes par défaut du gabarit */
+  lang?: string | null;
 }
-
-/**
- * Langue des TEXTES d'un document : ils n'existent qu'en français et en
- * anglais. Français pour un visiteur français, anglais pour toute autre langue.
- * Les nombres et les dates suivent, eux, la langue réelle (voir `localeFor`).
- */
-export const pdfTextLang = (language: string | null | undefined): 'fr' | 'en' =>
-  (language || 'fr').slice(0, 2).toLowerCase() === 'fr' ? 'fr' : 'en';
 
 export interface Figure {
   label: string;
@@ -191,19 +195,77 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
   const write = (text: string | string[], x: number, y: number, o: TextOpts = {}) => {
     setFont(o);
     doc.setTextColor(...(o.color || C.ink));
+    // une ligne espacée, à droite ou centrée : jsPDF compte mal l'espacement, on place donc le texte nous-mêmes
+    if (o.spacing && o.align && o.align !== 'left' && !Array.isArray(text)) {
+      const clean = pdfText(text);
+      const width = doc.getTextWidth(clean) + Math.max(0, clean.length - 1) * o.spacing;
+      doc.setCharSpace(o.spacing);
+      doc.text(clean, o.align === 'right' ? x - width : x - width / 2, y);
+      doc.setCharSpace(0);
+      return;
+    }
     doc.setCharSpace(o.spacing ?? 0);
     doc.text(Array.isArray(text) ? text.map(pdfText) : pdfText(text), x, y, { align: o.align || 'left' });
     doc.setCharSpace(0);
   };
   const wrap = (text: string, width: number, o: TextOpts = {}): string[] => {
     setFont(o);
-    return doc.splitTextToSize(pdfText(text), width) as string[];
+    // un mot plus large que la colonne (mots composés allemands) est coupé avec un trait
+    // d'union, plutôt qu'au milieu sans signe. Seuls les mots faits de lettres sont
+    // concernés : une adresse web, une référence ou un nom de fichier ne reçoit aucun tiret.
+    const clean = pdfText(text).replace(/\p{L}{12,}/gu, (word) => {
+      if (doc.getTextWidth(word) <= width) return word;
+      const parts: string[] = [];
+      let rest = word;
+      while (rest.length > 6 && doc.getTextWidth(rest) > width) {
+        let n = rest.length - 3;
+        while (n > 3 && doc.getTextWidth(`${rest.slice(0, n)}-`) > width) n -= 1;
+        parts.push(`${rest.slice(0, n)}-`);
+        rest = rest.slice(n);
+      }
+      parts.push(rest);
+      return parts.join(' ');
+    });
+    return doc.splitTextToSize(clean, width) as string[];
   };
   /** hauteur d'une ligne de texte, en mm, pour un corps donné */
   const lead = (size: number) => size * 0.49;
+  /** largeur d'une ligne en mm, espacement des lettres compris */
+  const widthOf = (text: string, o: TextOpts = {}) => {
+    const clean = pdfText(text);
+    setFont(o);
+    return doc.getTextWidth(clean) + (o.spacing ? clean.length * o.spacing : 0);
+  };
+  /**
+   * Une ligne qui doit tenir dans `max` mm (libellé, en-tête, bandeau) : le
+   * corps se réduit jusqu'à `minSize`, puis le texte est coupé. Les mots longs
+   * (allemand surtout) restent ainsi dans leur case.
+   */
+  const fit = (text: string, max: number, o: TextOpts = {}, minSize = (o.size || 10) * 0.8) => {
+    let size = o.size || 10;
+    let shown = pdfText(text);
+    while (widthOf(shown, { ...o, size }) > max && size > minSize) size -= 0.2;
+    while (shown.length > 4 && widthOf(shown, { ...o, size }) > max) shown = shown.slice(0, -2).trimEnd() + '.';
+    return { text: shown, size };
+  };
+  const writeFit = (text: string, x: number, y: number, max: number, o: TextOpts = {}, minSize?: number) => {
+    const fitted = fit(text, max, o, minSize);
+    write(fitted.text, x, y, { ...o, size: fitted.size });
+  };
+  /** coupe un texte en lignes, mot par mot, en comptant l'espacement des lettres */
+  const wrapSpaced = (text: string, width: number, o: TextOpts = {}): string[] => {
+    const lines: string[] = [];
+    let line = '';
+    pdfText(text).split(/\s+/).filter(Boolean).forEach((word) => {
+      const next = line ? `${line} ${word}` : word;
+      if (line && widthOf(next, o) > width) { lines.push(line); line = word; } else line = next;
+    });
+    if (line) lines.push(line);
+    return lines;
+  };
 
-  const en = pdfTextLang(meta.lang) === 'en';
-  const defaultNote = en ? 'Confidential document' : 'Document confidentiel';
+  const words = wordsFor(TEMPLATE_WORDING, meta.lang);
+  const defaultNote = words('confidential');
   const kind = pdfText(meta.kind);
   const headerRight = [kind, meta.reference ? pdfText(meta.reference) : ''].filter(Boolean).join('  ·  ');
 
@@ -217,11 +279,14 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
     if (logo) doc.addImage(logo, 'PNG', MARGIN, 22, 15.4, 14, undefined, 'FAST');
     write('Globly', MARGIN + (logo ? 20 : 0), 31.5, { style: 'bold', size: 15, color: C.white });
 
-    write(kind.toUpperCase(), MARGIN, 128, { size: 8.5, style: 'bold', spacing: 1.6, color: [170, 167, 255] });
-    // le titre se réduit s'il est long, pour tenir en trois lignes au plus
+    writeFit(kind.toUpperCase(), MARGIN, 128, CONTENT_W - 10, { size: 8.5, style: 'bold', spacing: 1.6, color: [170, 167, 255] }, 6);
+    // le titre se réduit s'il est long, pour tenir en trois lignes au plus,
+    // ou si l'un de ses mots dépasse la largeur (sinon le mot serait coupé en deux)
     let size = 46;
+    const titleWords = pdfText(meta.title).split(/\s+/).filter(Boolean);
+    const wordTooWide = () => titleWords.some((word) => widthOf(word, { font: 'Serif', size }) > CONTENT_W - 20);
     let lines = wrap(meta.title, CONTENT_W - 20, { font: 'Serif', size });
-    while (lines.length > 3 && size > 26) { size -= 4; lines = wrap(meta.title, CONTENT_W - 20, { font: 'Serif', size }); }
+    while ((lines.length > 3 || wordTooWide()) && size > 26) { size -= 4; lines = wrap(meta.title, CONTENT_W - 20, { font: 'Serif', size }); }
     lines = lines.slice(0, 3);
     const titleLead = size * 0.4;
     write(lines, MARGIN, 148, { font: 'Serif', size, color: C.white });
@@ -237,11 +302,11 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
       const col = CONTENT_W / facts.length;
       facts.forEach(([label, value], i) => {
         const x = MARGIN + i * col;
-        write(label.toUpperCase(), x, 246, { size: 6.5, style: 'bold', spacing: 0.6, color: [140, 140, 156] });
+        writeFit(label.toUpperCase(), x, 246, col - 5, { size: 6.5, style: 'bold', spacing: 0.6, color: [140, 140, 156] }, 5.2);
         write(wrap(value, col - 5, { size: 9.6 }).slice(0, 2), x, 253, { size: 9.6, color: C.white });
       });
     }
-    write(meta.footerNote || defaultNote, MARGIN, 281, { size: 7.8, color: [140, 140, 156] });
+    writeFit(meta.footerNote || defaultNote, MARGIN, 281, CONTENT_W - 24, { size: 7.8, color: [140, 140, 156] }, 6);
     write('globly.fr', PAGE_W - MARGIN, 281, { size: 7.8, color: [140, 140, 156], align: 'right' });
   };
 
@@ -250,7 +315,8 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
     doc.setFillColor(...C.ink); doc.rect(0, 0, PAGE_W, 17, 'F');
     if (logo) doc.addImage(logo, 'PNG', MARGIN, 4.6, 8.6, 7.8, undefined, 'FAST');
     write('Globly', MARGIN + (logo ? 11.5 : 0), 10.4, { style: 'bold', size: 9.5, color: C.white });
-    write(headerRight, PAGE_W - MARGIN, 10.4, { size: 7.8, color: [190, 190, 204], align: 'right' });
+    // type de document et référence : à droite, sans jamais atteindre le logo
+    writeFit(headerRight, PAGE_W - MARGIN, 10.4, CONTENT_W - 36, { size: 7.8, color: [190, 190, 204], align: 'right' }, 6);
   };
 
   const hasCover = meta.cover !== false;
@@ -290,7 +356,7 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
     heading(title) {
       pdf.ensure(16);
       pdf.y += 3;
-      write(title.toUpperCase(), MARGIN, pdf.y, { size: 7.4, style: 'bold', spacing: 0.6, color: C.grey });
+      writeFit(title.toUpperCase(), MARGIN, pdf.y, CONTENT_W, { size: 7.4, style: 'bold', spacing: 0.6, color: C.grey }, 6);
       pdf.y += 6;
     },
     paragraph(text, opts = {}) {
@@ -333,18 +399,9 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
           doc.setFillColor(...(f.highlight ? C.ink : C.soft));
           doc.roundedRect(x, pdf.y, w, h, 3, 3, 'F');
           // le libellé se réduit, puis se coupe, pour rester dans la case (l'espacement des lettres compte)
-          const label = pdfText(f.label.toUpperCase());
-          const labelWidth = (size: number) => { setFont({ size, style: 'bold' }); return doc.getTextWidth(label) + label.length * 0.5; };
-          let labelSize = 6.8;
-          while (labelWidth(labelSize) > w - 11 && labelSize > 5.4) labelSize -= 0.2;
-          let shown = label;
-          while (shown.length > 4 && (() => { setFont({ size: labelSize, style: 'bold' }); return doc.getTextWidth(shown) + shown.length * 0.5; })() > w - 11) shown = shown.slice(0, -2).trimEnd() + '.';
-          write(shown, x + 6, pdf.y + 9, { size: labelSize, style: 'bold', spacing: 0.5, color: f.highlight ? [210, 208, 255] : C.grey });
+          writeFit(f.label.toUpperCase(), x + 6, pdf.y + 9, w - 11, { size: 6.8, style: 'bold', spacing: 0.5, color: f.highlight ? [210, 208, 255] : C.grey }, 5.4);
           // la valeur se réduit si elle ne tient pas dans la case
-          let size = valueSize;
-          setFont({ font: 'Serif', size });
-          while (doc.getTextWidth(pdfText(f.value)) > w - 12 && size > 9) { size -= 1; setFont({ font: 'Serif', size }); }
-          write(f.value, x + 6, pdf.y + 20.5, { font: 'Serif', size, color: f.highlight ? C.white : C.ink });
+          writeFit(f.value, x + 6, pdf.y + 20.5, w - 12, { font: 'Serif', size: valueSize, color: f.highlight ? C.white : C.ink }, 9);
           if (f.hint) write(wrap(f.hint, w - 12, { size: 7.4 })[0] || '', x + 6, pdf.y + 27.5, { size: 7.4, color: f.highlight ? [190, 190, 204] : C.grey });
         });
         pdf.y += h + 5;
@@ -372,12 +429,22 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
       const xs = widths.map((_, i) => MARGIN + widths.slice(0, i).reduce((a, b) => a + b, 0));
       const align = (i: number) => opts.align?.[i] || 'left';
       const cellX = (i: number) => (align(i) === 'right' ? xs[i] + widths[i] - 4 : align(i) === 'center' ? xs[i] + widths[i] / 2 : xs[i] + 4);
+      // un en-tête trop long pour sa colonne passe sur deux lignes, puis se réduit
+      const headStyle: TextOpts = { size: 6.6, style: 'bold', spacing: 0.4, color: C.white };
+      const headLines = head.map((h, i) => {
+        const lines = wrapSpaced(h.toUpperCase(), widths[i] - 7, headStyle);
+        return lines.length > 2 ? [lines[0], lines.slice(1).join(' ')] : lines;
+      });
+      const headH = headLines.some((lines) => lines.length > 1) ? 12.6 : 9;
       const drawHead = () => {
-        doc.setFillColor(...C.ink); doc.rect(MARGIN, pdf.y, CONTENT_W, 9, 'F');
-        head.forEach((h, i) => write(wrap(h.toUpperCase(), widths[i] - 6, { size: 6.6, style: 'bold' })[0] || '', cellX(i), pdf.y + 5.9, { size: 6.6, style: 'bold', spacing: 0.4, color: C.white, align: align(i) }));
-        pdf.y += 9;
+        doc.setFillColor(...C.ink); doc.rect(MARGIN, pdf.y, CONTENT_W, headH, 'F');
+        headLines.forEach((lines, i) => {
+          const first = pdf.y + headH / 2 + 1.4 - (lines.length - 1) * 1.7;
+          lines.forEach((line, n) => writeFit(line, cellX(i), first + n * 3.4, widths[i] - 7, { ...headStyle, align: align(i) }, 5.2));
+        });
+        pdf.y += headH;
       };
-      pdf.ensure(24);
+      pdf.ensure(headH + 15);
       drawHead();
       repeatOnBreak = drawHead;
       rows.forEach((row, r) => {
@@ -404,7 +471,7 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
       pdf.ensure(h + 4);
       doc.setFillColor(...tones.bg); doc.roundedRect(MARGIN, pdf.y, CONTENT_W, h, 2.5, 2.5, 'F');
       doc.setFillColor(...tones.bar); doc.roundedRect(MARGIN, pdf.y, 1.6, h, 0.8, 0.8, 'F');
-      if (opts.title) write(opts.title, MARGIN + 8, pdf.y + 7.2, { size: 8.8, style: 'bold', color: tones.ink });
+      if (opts.title) writeFit(opts.title, MARGIN + 8, pdf.y + 7.2, CONTENT_W - 16, { size: 8.8, style: 'bold', color: tones.ink }, 7);
       write(lines, MARGIN + 8, pdf.y + 7.2 + titleH, { size: 8.6, color: tones.ink });
       pdf.y += h + 8;
     },
@@ -416,10 +483,10 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
       pdf.y += 4;
       parties.slice(0, 3).forEach((p, i) => {
         const x = MARGIN + i * (w + gap);
-        write(p.role.toUpperCase(), x, pdf.y, { size: 6.8, style: 'bold', spacing: 0.5, color: C.grey });
+        writeFit(p.role.toUpperCase(), x, pdf.y, w, { size: 6.8, style: 'bold', spacing: 0.5, color: C.grey }, 5.4);
         write(wrap(p.name, w, { font: 'Serif', size: 14 })[0] || '', x, pdf.y + 7, { font: 'Serif', size: 14 });
         doc.setDrawColor(...C.ink); doc.setLineWidth(0.3); doc.line(x, pdf.y + 27, x + w, pdf.y + 27);
-        write(p.note || (en ? 'Date and signature' : 'Date et signature'), x, pdf.y + 31.5, { size: 7.5, color: C.grey });
+        writeFit(p.note || words('dateAndSignature'), x, pdf.y + 31.5, w, { size: 7.5, color: C.grey }, 6);
       });
       pdf.y += 40;
     },
@@ -446,11 +513,11 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
     finished = true;
     const pages = doc.getNumberOfPages();
     const first = hasCover ? 2 : 1;
-    const note = [meta.footerNote || defaultNote, en ? 'generated on Globly' : 'établi sur Globly'].join(', ');
+    const note = [meta.footerNote || defaultNote, words('generatedOn')].join(', ');
     for (let i = first; i <= pages; i++) {
       doc.setPage(i);
       doc.setDrawColor(...C.line); doc.setLineWidth(0.25); doc.line(MARGIN, 281, PAGE_W - MARGIN, 281);
-      write(note, MARGIN, 287, { size: 7.4, color: C.grey });
+      writeFit(note, MARGIN, 287, CONTENT_W - 22, { size: 7.4, color: C.grey }, 6);
       write(`${i} / ${pages}`, PAGE_W - MARGIN, 287, { size: 7.4, color: C.grey, align: 'right' });
     }
   };

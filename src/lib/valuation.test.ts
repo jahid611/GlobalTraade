@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { estimateValue, findFamily } from './valuation';
+import { estimateValue, findFamily, valuationBenchmarksApply } from './valuation';
 
 describe('findFamily', () => {
   it('reconnaît les métiers courants, avec ou sans accents', () => {
@@ -55,5 +55,31 @@ describe('estimateValue', () => {
 
   it('accompagne toujours le résultat d’un avertissement', () => {
     expect(estimateValue({ secteur: 'x', chiffreAffaires: 50_000 }).avertissement).toMatch(/expert-comptable/);
+  });
+});
+
+describe('repères français et pays de l’entreprise', () => {
+  const input = { secteur: 'boulangerie', chiffreAffaires: 300_000, ebe: 60_000 };
+
+  it('sans pays, ou en France : repères du pays', () => {
+    expect(valuationBenchmarksApply(undefined)).toBe(true);
+    expect(valuationBenchmarksApply('FR')).toBe(true);
+    const r = estimateValue({ ...input, pays: 'FR' });
+    expect(r.hors_france).toBe(false);
+    expect(estimateValue(input).hors_france).toBe(false);
+    expect(r.avertissement).toMatch(/en France/);
+    expect(r.avertissement).not.toMatch(/indicatif/);
+  });
+
+  it('autre pays : même calcul, mais signalé comme repères français indicatifs', () => {
+    expect(valuationBenchmarksApply('ES')).toBe(false);
+    const fr = estimateValue({ ...input, pays: 'FR' });
+    const es = estimateValue({ ...input, pays: 'ES' });
+    expect(es.fourchette_basse).toBe(fr.fourchette_basse);
+    expect(es.fourchette_haute).toBe(fr.fourchette_haute);
+    expect(es.hors_france).toBe(true);
+    expect(es.avertissement).toMatch(/repères d'usage français, donnés à titre indicatif/);
+    expect(es.avertissement).toMatch(/pas été vérifiés/);
+    expect(es.avertissement).toMatch(/expert-comptable du pays/);
   });
 });

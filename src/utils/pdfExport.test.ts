@@ -1,8 +1,14 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import type { TFunction } from 'i18next';
-import { usePublicFolderForPdf } from './pdfTemplate.test';
 import { buildDueDiligenceReport, buildVDRAuditTrail } from './pdfExport';
+import { DUE_DILIGENCE_WORDING } from './pdf/dueDiligence';
+import { DATA_ROOM_LOG_WORDING } from './pdf/dataRoomLog';
+import { PDF_LANGS } from './pdf/wording';
+import { checkAndSavePdf, outOfMargins, takeWrittenTexts, usePublicFolderForPdf } from './pdf/pdfTestKit';
+
+// chaque texte écrit est noté : contenu et position
+vi.mock('jspdf', async (importOriginal) => (await import('./pdf/pdfTestKit')).trackedJsPdf(await importOriginal()));
 
 const t = ((key: string) => key) as unknown as TFunction;
 
@@ -37,6 +43,62 @@ describe('rapport de due diligence et journal de la data room', () => {
   it('produit le rapport en anglais, même sans tâche', async () => {
     const pdf = await buildDueDiligenceReport([], 'Parc Bakery', t, 'en');
     expect(pdf.toArrayBuffer().byteLength).toBeGreaterThan(20_000);
+  });
+
+  // Tâches inventées, dans la langue du document comme le site les envoie (ici en allemand pour les mots longs).
+  // Sortie : PDF_OUT_DD pour le français, avec le suffixe « -de », « -es »… pour les autres langues.
+  it.each(PDF_LANGS)('produit le rapport de due diligence dans la langue du document (%s)', async (lang) => {
+    takeWrittenTexts();
+    const categories = ['Finanzen', 'Recht', 'Personal', 'Steuern', 'Geschäftsbeziehungen', 'Immobilien'];
+    const titles = [
+      'Bilanzen sowie Gewinn- und Verlustrechnungen der letzten drei Geschäftsjahre',
+      'Gewerbemietvertrag und Nachträge',
+      'Arbeitsverträge und Personalverzeichnis',
+      'Unbedenklichkeitsbescheinigungen (Steuern und Sozialversicherung)',
+      'Liste der zehn größten Kunden mit Umsatzanteil und laufenden Rahmenverträgen',
+      'Technische Gutachten zum Geschäftslokal (Asbest, Elektrik, Barrierefreiheit)',
+    ];
+    const statuses = ['completed', 'in_progress', 'pending'];
+    const tasks = Array.from({ length: 34 }, (_, i) => ({
+      category: categories[i % categories.length],
+      title: titles[i % titles.length],
+      status: statuses[i % statuses.length],
+      created_at: `2026-09-${String((i % 28) + 1).padStart(2, '0')}T09:00:00Z`,
+      completed_at: i % 3 === 0 ? `2026-10-${String((i % 12) + 1).padStart(2, '0')}T15:30:00Z` : null,
+    }));
+    const pdf = await buildDueDiligenceReport(tasks, 'Bäckerei am Stadtpark', t, lang);
+    const bytes = checkAndSavePdf(pdf, process.env.PDF_OUT_DD, lang);
+    expect(bytes.byteLength).toBeGreaterThan(20_000);
+    const texts = takeWrittenTexts();
+    const all = texts.map((t) => t.text).join(' ');
+    expect(outOfMargins(texts)).toEqual([]);
+    expect(all).toContain(DUE_DILIGENCE_WORDING.kind[lang].toUpperCase());
+    expect(all).toContain(DUE_DILIGENCE_WORDING.progressTitle[lang]);
+    for (const key of ['statusCompleted', 'statusInProgress', 'statusPending'] as const) expect(all).toContain(DUE_DILIGENCE_WORDING[key][lang]);
+    // dates courtes dans la langue du document
+    expect(all).toContain(lang === 'de' ? '01.09.2026' : '01/09/2026');
+  });
+
+  // Sortie : PDF_OUT_VDR pour le français, avec le suffixe « -de », « -es »… pour les autres langues.
+  it.each(PDF_LANGS)("produit le journal d'accès dans la langue du document (%s)", async (lang) => {
+    takeWrittenTexts();
+    const logs = Array.from({ length: 12 }, (_, i) => ({
+      viewed_at: new Date(Date.UTC(2026, 8, 1 + i, 8 + i, 7, 13)).toISOString(),
+      created_at: null,
+      viewer: i % 4 === 3 ? null : { full_name: ['Marie Dupont', 'Wirtschaftsprüfungsgesellschaft Rhein-Main', 'Karim Benali'][i % 3] },
+      document: i % 5 === 4 ? null : { name: ['Bilanz 2025.pdf', 'Gewerbemietvertrag mit sämtlichen Nachträgen.pdf'][i % 2] },
+    }));
+    const pdf = await buildVDRAuditTrail(logs, 'Bäckerei am Stadtpark', t, lang);
+    const bytes = checkAndSavePdf(pdf, process.env.PDF_OUT_VDR, lang);
+    expect(bytes.byteLength).toBeGreaterThan(20_000);
+    const texts = takeWrittenTexts();
+    const all = texts.map((t) => t.text).join(' ');
+    expect(outOfMargins(texts)).toEqual([]);
+    expect(all).toContain(DATA_ROOM_LOG_WORDING.historyTitle[lang]);
+    expect(all).toContain(DATA_ROOM_LOG_WORDING.secureAccess[lang]);
+    expect(all).toContain(DATA_ROOM_LOG_WORDING.unknownUser[lang]);
+    expect(all).toContain(DATA_ROOM_LOG_WORDING.unknownFile[lang]);
+    if (lang !== 'fr') expect(all).not.toContain('Accès sécurisé');
   });
 
   it("produit le journal d'accès sur plusieurs pages", async () => {

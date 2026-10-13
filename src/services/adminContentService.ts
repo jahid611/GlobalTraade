@@ -7,7 +7,9 @@
 // qu'au public aux autres : la sécurité ne repose pas sur ce fichier.
 
 import { supabase } from '@/integrations/supabase/client';
-import { FR_REGIONS } from '@/lib/geoRegions';
+import { regionStoreKey } from '@/lib/geoRegions';
+import { MARKET_CODES, MARKETS } from '@/lib/markets';
+import { countryLabel } from '@/lib/countries';
 import type { Listing, SearchAd } from '@/types/domain';
 import type { Project } from '@/services/projectService';
 
@@ -113,6 +115,40 @@ export type SearchAdFilter = 'all' | 'active' | 'paused';
 
 export const BUYER_TYPE_LABEL: Record<string, string> = { individuel: 'Repreneur individuel', entreprise: 'Entreprise', investisseur: 'Investisseur' };
 
+const SITE_LANGUAGES = ['fr', 'en', 'es', 'it', 'pt', 'de'];
+
+/**
+ * Conditions sur la colonne `regions` d'une recherche de repreneur pour un mot
+ * tapé par l'administrateur (déjà sans accents, en minuscules).
+ *
+ * La colonne contient des clés séparées par des virgules : un pays (« ES »),
+ * une région française (« idf ») ou une région d'un autre pays (« ES-CT »).
+ *   - le mot est dans le nom d'une région : on cherche la clé de cette région ;
+ *   - le mot est dans le nom d'un pays (dans une des langues du site) : on
+ *     cherche le pays lui-même et toutes ses régions.
+ * Un code de pays ne fait que deux lettres : il est cherché comme un élément
+ * entier de la liste, jamais comme un morceau de texte (« ES » est dans « ges »).
+ */
+export function zoneSearchConditions(needle: string): string[] {
+  if (!needle) return [];
+  const out = new Set<string>();
+  const regionKey = (iso: string) => out.add(`regions.ilike.%${regionStoreKey(iso)}%`);
+  for (const c of MARKET_CODES) {
+    const named = SITE_LANGUAGES.some((lang) => plain(countryLabel(c, lang)).includes(needle));
+    if (named) {
+      out.add(`regions.eq.${c}`);
+      out.add(`regions.like."${c},%"`);
+      out.add(`regions.like."%,${c},%"`);
+      out.add(`regions.like."%,${c}"`);
+      // Régions du pays : la France par ses anciennes clés, les autres par leur code (« ES-… »).
+      if (c === 'FR') MARKETS.FR.regions.forEach((r) => regionKey(r.key));
+      out.add(`regions.like.%${c}-%`);
+    }
+    for (const r of MARKETS[c].regions) if (plain(r.label).includes(needle)) regionKey(r.key);
+  }
+  return [...out];
+}
+
 const searchAdFilter = (q: Query, filter: SearchAdFilter): Query =>
   filter === 'all' ? q : filter === 'active' ? q.eq('status', 'active') : q.neq('status', 'active');
 
@@ -121,10 +157,10 @@ export async function listSearchAds(p: { search: string; filter: SearchAdFilter;
   const s = cleanSearch(p.search);
   if (s) {
     const needle = plain(s);
-    // Type de repreneur et régions sont enregistrés sous forme de clés : on
-    // retrouve les clés dont le libellé affiché contient le mot.
+    // Type de repreneur, pays et régions sont enregistrés sous forme de clés :
+    // on retrouve les clés dont le libellé affiché contient le mot.
     const types = Object.entries(BUYER_TYPE_LABEL).filter(([, label]) => plain(label).includes(needle)).map(([key]) => key);
-    const regions = FR_REGIONS.filter((r) => plain(r.label).includes(needle)).map((r) => `regions.ilike.%${r.key}%`);
+    const regions = zoneSearchConditions(needle);
     q = q.or([
       ...likes(s, ['title', 'description', 'sectors', 'regions']),
       ...(types.length ? [`buyer_type.in.(${types.join(',')})`] : []),

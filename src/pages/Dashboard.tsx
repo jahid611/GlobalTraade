@@ -32,7 +32,7 @@ import { scoreListing } from '@/lib/matching';
 import type { MatchCriteria } from '@/components/SmartMatchForm';
 import { rangeBounds } from '@/lib/rangeBounds';
 import { INDUSTRIES } from '@/lib/industries';
-import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
+import { regionLabel, splitGeoKeys } from '@/lib/geoRegions';
 import { DashboardHero, type DashStat } from '@/components/dashboard/DashboardHero';
 import { DashboardTodo, type TodoItem } from '@/components/dashboard/DashboardTodo';
 import { DashboardTabs, type DashTab, type DashTabDef } from '@/components/dashboard/DashboardTabs';
@@ -43,9 +43,9 @@ import { formatDate } from '@/lib/markets';
 initNativeFeel();
 
 // Valeurs encadrées des critères du profil (Réglages > critères) : secteurs =
-// libellés de INDUSTRIES, zones = clés de FR_REGIONS, séparés par des virgules.
+// libellés de INDUSTRIES, zones = codes de pays (« ES ») et clés de région
+// (« idf », « ES-CT »), séparés par des virgules. Voir src/lib/geoRegions.ts.
 const INDUSTRY_SET = new Set<string>(INDUSTRIES);
-const REGION_KEY_SET = new Set<string>(FR_REGIONS.map((r) => r.key));
 const listVal = (v: unknown): string[] =>
   (typeof v === 'string' ? v.split(',') : []).map((x) => x.trim()).filter(Boolean);
 
@@ -223,14 +223,15 @@ export default function Dashboard() {
   // (`scoreListing`, le même que la Marketplace). Seules les valeurs encadrées
   // comptent : un ancien texte libre n'est pas interprété au hasard.
   const criteriaSectors = listVal(profile?.target_sectors || user?.user_metadata?.target_sectors).filter((v) => INDUSTRY_SET.has(v));
-  const criteriaRegions = listVal(profile?.target_geo || user?.user_metadata?.target_geo).filter((v) => REGION_KEY_SET.has(v));
+  const { countries: criteriaCountries, regions: criteriaRegions } = splitGeoKeys(listVal(profile?.target_geo || user?.user_metadata?.target_geo));
   const targetBudgetLabel: string = profile?.target_budget || user?.user_metadata?.target_budget || "";
   const budgetBounds = rangeBounds(targetBudgetLabel);
 
-  const hasCriteria = criteriaSectors.length > 0 || criteriaRegions.length > 0 || !!budgetBounds;
+  const hasCriteria = criteriaSectors.length > 0 || criteriaCountries.length > 0 || criteriaRegions.length > 0 || !!budgetBounds;
 
   const matchCriteria: MatchCriteria = {
     industries: criteriaSectors,
+    countries: criteriaCountries,
     regions: criteriaRegions,
     budgetMin: budgetBounds?.min ?? 0,
     budgetMax: budgetBounds?.max ?? 0, // 0 = pas de plafond pour le moteur
@@ -248,7 +249,8 @@ export default function Dashboard() {
   // Rappel lisible des critères utilisés (libellés traduits, pas les valeurs brutes).
   const criteriaSummary = [
     ...criteriaSectors.map((v) => t(`industry.${v}`, { defaultValue: v }) as string),
-    ...criteriaRegions.map((k) => regionLabel(k)),
+    ...criteriaCountries.map((k) => regionLabel(k, i18n.language)),
+    ...criteriaRegions.map((k) => regionLabel(k, i18n.language)),
     ...(budgetBounds ? [targetBudgetLabel] : []),
   ].join(' • ');
 

@@ -7,21 +7,21 @@ import type { SearchAd } from "@/types/domain";
 import { BuyerBadges } from "@/components/BuyerBadges";
 import { UNLOCK_PRICE } from "@/services/planService";
 import { isBoosted } from "@/services/boostService";
-import { FR_REGIONS, regionLabel } from "@/lib/geoRegions";
+import { regionLabel } from "@/lib/geoRegions";
 import { toList } from "./sectorData";
 import { primaryBtn, ghostBtn } from "./Section";
 
-const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
 const chip = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/15 text-[13px] text-white/75";
 
 // Une recherche de repreneur du secteur. Mêmes règles d'accès que la page
 // « Repreneurs en recherche » (SearchAdsBoard) : le profil ne s'ouvre que si
 // le serveur a accordé l'accès, sinon on propose le déblocage.
 export function SectorBuyerCard({ ad, userId, hasFullAccess }: { ad: SearchAd; userId?: string; hasFullAccess: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isOwner = !!userId && userId === ad.owner_id;
-  const regions = toList(ad.regions).map((k) => (REGION_KEYS.has(k) ? regionLabel(k) : k));
+  // Pays (« ES »), régions françaises (« idf ») ou d'un autre pays (« ES-CT ») : tout est nommé en clair.
+  const regions = toList(ad.regions).map((k) => regionLabel(k, i18n.language));
   const shownRegions = regions.slice(0, 3);
 
   return (
