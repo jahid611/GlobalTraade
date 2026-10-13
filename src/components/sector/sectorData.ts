@@ -3,6 +3,7 @@
 // Aucun chiffre n'est estimé : sans donnée, on renvoie null.
 
 import type { Listing, SearchAd } from "@/types/domain";
+import { localeFor } from "@/lib/markets";
 
 /** Colonnes texte « a,b,c » (ou tableau) -> liste propre. */
 export const toList = (s: string | string[] | null | undefined): string[] =>
@@ -50,7 +51,7 @@ export const cityFromAddress = (address: string | null | undefined): string =>
 
 export const formatEuro = (value: number, lang: string): string => {
   try {
-    return new Intl.NumberFormat(lang, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat(localeFor(lang), { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
   } catch {
     return `${Math.round(value)} €`;
   }
@@ -58,8 +59,8 @@ export const formatEuro = (value: number, lang: string): string => {
 
 export const formatDate = (iso: string, lang: string): string => {
   try {
-    return new Date(iso).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" });
+    return new Date(iso).toLocaleDateString(localeFor(lang), { day: "numeric", month: "long", year: "numeric" });
   } catch {
-    return new Date(iso).toLocaleDateString();
+    return iso;
   }
 };

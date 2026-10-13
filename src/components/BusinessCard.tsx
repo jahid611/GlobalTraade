@@ -12,6 +12,9 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { usePlan, hasContentAccess } from '@/services/planService';
 import type { Listing } from '@/types/domain';
+import { formatMoney, formatNumber, marketOf } from '@/lib/markets';
+import { showsCountry } from '@/lib/geoRegions';
+import { CountryTag } from '@/components/CountryFlag';
 
 interface BusinessCardProps {
   listing: Listing;
@@ -89,11 +92,16 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
 
   const formatEuro = (val: number | undefined | null) => {
     if (val === undefined || val === null) return '-';
-    const locale = i18n.language === 'fr' ? 'fr-FR' : 'en-US';
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
+    return formatMoney(val, i18n.language);
   };
 
   const isOwner = user && listing.owner_id === user.id;
+  // Règles du pays de l'annonce : nom de l'identifiant (SIRET, NIF…), et si le
+  // site peut le vérifier dans un registre officiel (la France seulement).
+  const market = marketOf(listing.country);
+  const idName = market.identifier.name;
+  // Le pays est écrit quand l'annonce n'est pas dans le pays du visiteur.
+  const foreign = showsCountry(listing, i18n.language);
   const gallery = listing.image_urls || [];
   const hasGallery = gallery.length > 0;
   const isSafeUrl = listing.website_url && (listing.website_url.startsWith('http://') || listing.website_url.startsWith('https://'));
@@ -225,7 +233,8 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
 
         <div className="flex items-start text-[13px] text-white/60 font-light mt-2.5">
           <MapPin className="w-4 h-4 mr-1.5 mt-px text-primary shrink-0" />
-          <span className="line-clamp-1">{listing.address || t('card.protected_location')}</span>
+          <span className="line-clamp-1 min-w-0">{listing.address || t('card.protected_location')}</span>
+          {foreign && <CountryTag country={listing.country} className="ml-2 shrink-0 text-white/85 font-normal" />}
         </div>
 
         {/* Prix, puis chiffres clés */}
@@ -256,7 +265,7 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-white/60">
           {listing.surface ? (
             <span className="flex items-center gap-1.5 text-xs font-light" title={t('card.surface', 'Surface') as string}>
-              <CornersOut className="w-4 h-4 text-white/40" /> {listing.surface} m²
+              <CornersOut className="w-4 h-4 text-white/40" /> {formatNumber(listing.surface, i18n.language)} m²
             </span>
           ) : null}
           {listing.employees ? (
@@ -269,14 +278,17 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
               <Receipt className="w-4 h-4 text-white/40" /> {formatEuro(listing.rent)}
             </span>
           ) : null}
-          {/* SIRET : affiché s'il est public ; « vérifié » s'il est masqué ; rien s'il est inconnu */}
+          {/* Identifiant du pays (SIRET, NIF…) : affiché s'il est public ; s'il est masqué, « vérifié »
+              seulement là où le site le contrôle dans un registre (France), sinon « renseigné » ; rien s'il est inconnu */}
           {listing.hide_siret && !isOwner ? (
             <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider" style={{ color: '#6ee7b7' }}>
-              <CheckCircle className="w-3.5 h-3.5" /> {t('card.siret_prefix')} {t('card.verified')}
+              <CheckCircle className="w-3.5 h-3.5" /> {market.identifier.onlineCheck
+                ? t('listing.id_verified', { defaultValue: '{{name}} vérifié', name: idName })
+                : t('listing.id_provided', { defaultValue: '{{name}} renseigné', name: idName })}
             </span>
           ) : listing.siret ? (
             <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/40">
-              {t('card.siret_prefix')} {listing.siret}
+              {t('listing.id_label', { defaultValue: '{{name}} :', name: idName })} {listing.siret}
               {listing.hide_siret && isOwner && <span className="normal-case tracking-normal italic">{t('card.hidden')}</span>}
             </span>
           ) : null}

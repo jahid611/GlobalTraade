@@ -87,7 +87,7 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const statusLabel = useStatusLabel();
-  const siteLang: "fr" | "en" = i18n.language?.startsWith("en") ? "en" : "fr";
+  const siteLang: "fr" | "en" = (i18n.language || "fr").startsWith("fr") ? "fr" : "en";
   // Ce qui est réservé à Business le reste ; tant que la formule se rafraîchit, rien n'est débloqué.
   const isBusiness = plan === "business" && !planFetching;
 

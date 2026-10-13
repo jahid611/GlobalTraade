@@ -108,6 +108,14 @@ export interface GloblyPdfMeta {
   lang?: string;
 }
 
+/**
+ * Langue des TEXTES d'un document : ils n'existent qu'en français et en
+ * anglais. Français pour un visiteur français, anglais pour toute autre langue.
+ * Les nombres et les dates suivent, eux, la langue réelle (voir `localeFor`).
+ */
+export const pdfTextLang = (language: string | null | undefined): 'fr' | 'en' =>
+  (language || 'fr').slice(0, 2).toLowerCase() === 'fr' ? 'fr' : 'en';
+
 export interface Figure {
   label: string;
   value: string;
@@ -194,7 +202,7 @@ export async function createGloblyPdf(meta: GloblyPdfMeta): Promise<GloblyPdf> {
   /** hauteur d'une ligne de texte, en mm, pour un corps donné */
   const lead = (size: number) => size * 0.49;
 
-  const en = meta.lang === 'en';
+  const en = pdfTextLang(meta.lang) === 'en';
   const defaultNote = en ? 'Confidential document' : 'Document confidentiel';
   const kind = pdfText(meta.kind);
   const headerRight = [kind, meta.reference ? pdfText(meta.reference) : ''].filter(Boolean).join('  ·  ');

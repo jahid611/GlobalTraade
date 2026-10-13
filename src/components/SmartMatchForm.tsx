@@ -4,14 +4,16 @@ import React, { useState, useMemo } from "react";
 import { Loader2, Sparkles, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { industryOptions } from "@/lib/industries";
-import { FR_REGIONS } from "@/lib/geoRegions";
+import { marketCountryOptions, pruneRegions, regionOptionsFor } from "@/lib/geoRegions";
 import { MultiSelect } from "@/components/MultiSelect";
 import { RangeSlider } from "@/components/RangeSlider";
 import { useTranslation } from "react-i18next";
 
 export interface MatchCriteria {
   industries: string[];
-  regions: string[];      // clés de région (geoRegions)
+  /** codes de pays (« ES ») ; absent ou vide = tous les pays */
+  countries?: string[];
+  regions: string[];      // clés de région (geoRegions) : « idf », « ES-CT »
   budgetMin: number;      // €
   budgetMax: number;      // €
 }
@@ -39,19 +41,23 @@ const fmtEur = (n: number) =>
 export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }: SmartMatchFormProps) {
   const { t, i18n } = useTranslation();
   const [industries, setIndustries] = useState<string[]>(initial?.industries ?? []);
+  const [countries, setCountriesState] = useState<string[]>(initial?.countries ?? []);
   const [regions, setRegions] = useState<string[]>(initial?.regions ?? []);
+  // Retirer un pays retire aussi ses régions.
+  const setCountries = (next: string[]) => { setCountriesState(next); setRegions((r) => pruneRegions(r, next)); };
   const [budget, setBudget] = useState<[number, number]>([initial?.budgetMin ?? BUDGET_MIN, initial?.budgetMax ?? BUDGET_MAX]);
   const [loading, setLoading] = useState(false);
 
   // Toujours la liste maîtresse complète — la même que partout sur le site.
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
 
-  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
+  const countryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
+  const regionOptions = useMemo(() => regionOptionsFor(countries, i18n.language), [countries, i18n.language]);
 
   const submit = () => {
     setLoading(true);
     const c: MatchCriteria = {
-      industries, regions,
+      industries, countries, regions,
       budgetMin: budget[0], budgetMax: budget[1],
     };
     setTimeout(() => { onResults(c); setLoading(false); }, 350);
@@ -59,12 +65,13 @@ export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }
 
   const reset = () => {
     setIndustries([]);
+    setCountriesState([]);
     setRegions([]);
     setBudget([BUDGET_MIN, BUDGET_MAX]);
     onReset?.();
   };
 
-  const isDirty = industries.length > 0 || regions.length > 0 || budget[0] !== BUDGET_MIN || budget[1] !== BUDGET_MAX;
+  const isDirty = industries.length > 0 || countries.length > 0 || regions.length > 0 || budget[0] !== BUDGET_MIN || budget[1] !== BUDGET_MAX;
 
   const labelClass = "text-xs font-semibold uppercase tracking-widest text-white/50";
 
@@ -90,15 +97,20 @@ export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.2fr_1.2fr_1.1fr_auto] gap-x-6 gap-y-5 xl:items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.15fr_0.9fr_1.15fr_1fr_auto] gap-x-6 gap-y-5 xl:items-end">
             <div className="space-y-2.5 min-w-0">
               <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_sectors", { defaultValue: "Secteurs" }) as string}</label>
               <MultiSelect options={sectorOptions} selected={industries} onChange={setIndustries} placeholder={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} allowSelectAll selectAllLabel={t("smart.ph_sectors", { defaultValue: "Tous les secteurs" }) as string} />
             </div>
 
             <div className="space-y-2.5 min-w-0">
+              <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_countries", { defaultValue: "Pays" }) as string}</label>
+              <MultiSelect options={countryOptions} selected={countries} onChange={setCountries} searchable={false} placeholder={t("smart.ph_countries", { defaultValue: "Tous les pays" }) as string} />
+            </div>
+
+            <div className="space-y-2.5 min-w-0">
               <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_regions", { defaultValue: "Régions" }) as string}</label>
-              <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions", { defaultValue: "Toute la France" }) as string} allowSelectAll selectAllLabel={t("smart.all_regions_opt", { defaultValue: "Toutes les régions" }) as string} />
+              <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions_all", { defaultValue: "Toutes les régions" }) as string} />
             </div>
 
             <div className="space-y-2 min-w-0 xl:pb-1">
@@ -144,8 +156,13 @@ export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }
       </div>
 
       <div className="space-y-2">
+        <label className={labelClass}>{t("smart.f_countries", { defaultValue: "Pays" }) as string}</label>
+        <MultiSelect options={countryOptions} selected={countries} onChange={setCountries} searchable={false} placeholder={t("smart.ph_countries", { defaultValue: "Tous les pays" }) as string} />
+      </div>
+
+      <div className="space-y-2">
         <label className={labelClass}>{t("smart.f_regions", { defaultValue: "Régions" }) as string}</label>
-        <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions", { defaultValue: "Toute la France" }) as string} allowSelectAll selectAllLabel={t("smart.all_regions_opt", { defaultValue: "Toutes les régions" }) as string} />
+        <MultiSelect options={regionOptions} selected={regions} onChange={setRegions} placeholder={t("smart.ph_regions_all", { defaultValue: "Toutes les régions" }) as string} />
       </div>
 
       <div className="space-y-1">

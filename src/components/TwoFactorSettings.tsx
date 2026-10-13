@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { showError, showSuccess } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
 import { Loader2, ShieldCheck, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/markets';
 
 // Double authentification (TOTP) — Supabase Auth MFA.
 // Volontairement court et explicite : la cible de Globly n'est pas technique.
@@ -14,7 +15,7 @@ import { Loader2, ShieldCheck, Trash2 } from 'lucide-react';
 type Factor = { id: string; friendly_name?: string | null; status: string };
 
 export function TwoFactorSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [factor, setFactor] = useState<Factor | null>(null);
 
@@ -44,7 +45,7 @@ export function TwoFactorSettings() {
 
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: `Globly ${new Date().toLocaleDateString()}`,
+      friendlyName: `Globly ${formatDate(new Date(), i18n.language, 'short')}`,
     });
     setBusy(false);
     if (error || !data) { showError(error?.message || t('msg.error', 'Une erreur est survenue.')); return; }

@@ -31,11 +31,13 @@ export function LanguageFlag({ code, size = 24 }: { code: string; size?: number 
  * Le choix de la langue : un bouton avec le drapeau courant, qui ouvre la liste
  * des langues du site. Remplace l'ancien bouton qui alternait français/anglais.
  */
-export function LanguageMenu({ className = "", flagSize = 24, placement = "bottom" }: {
+export function LanguageMenu({ className = "", flagSize = 24, placement = "bottom", align = "right" }: {
   className?: string;
   flagSize?: number;
   /** où s'ouvre la liste par rapport au bouton */
   placement?: "bottom" | "top";
+  /** bord du bouton sur lequel la liste s'aligne (à gauche quand le bouton est loin du bord droit) */
+  align?: "right" | "left";
 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -75,7 +77,7 @@ export function LanguageMenu({ className = "", flagSize = 24, placement = "botto
         <ul
           role="listbox"
           aria-label={t("lang.switch", "Changer de langue") as string}
-          className={`absolute right-0 ${placement === "top" ? "bottom-full mb-2" : "top-full mt-2"} z-[300] w-48 p-1.5 rounded-2xl`}
+          className={`absolute ${align === "left" ? "left-0" : "right-0"} ${placement === "top" ? "bottom-full mb-2" : "top-full mt-2"} z-[300] w-48 p-1.5 rounded-2xl`}
           style={{ background: "#211f25", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 50px rgba(0,0,0,0.55)" }}
         >
           {LANGUAGES.map((l) => (
@@ -87,7 +89,7 @@ export function LanguageMenu({ className = "", flagSize = 24, placement = "botto
                 style={{ color: "#ffffff", background: l.code === current ? "rgba(120,114,251,0.18)" : undefined }}
               >
                 <LanguageFlag code={l.code} size={20} />
-                <span className="flex-1">{l.label}</span>
+                <span className="flex-1" lang={l.code}>{l.label}</span>
                 {loading === l.code ? <Loader2 className="w-4 h-4 animate-spin" /> : l.code === current ? <Check className="w-4 h-4" style={{ color: "#a5b4fc" }} /> : null}
               </button>
             </li>

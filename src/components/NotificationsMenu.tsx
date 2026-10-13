@@ -6,10 +6,11 @@ import { Bell, Heart, UserPlus, UserCheck, X, Handshake, Check, XCircle } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/markets';
+import { dateLocaleFor } from '@/lib/dateLocale';
 
 interface NotificationProfile {
   id: string;
@@ -46,7 +47,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === 'fr' ? fr : enUS;
+  const dateLocale = dateLocaleFor(i18n.language);
   const fetchingRef = useRef(false);
   const channelRef = useRef<any>(null);
 
@@ -245,7 +246,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
           } else if (n.type === 'connection_accepted') {
             toast.success(t('notif.toast_conn_accepted'), { description: n.profile.full_name, duration: 6000 });
           } else if (n.type === 'offer_received') {
-            toast.success(t('notif.toast_offer_received'), { description: `${n.profile.full_name} - ${new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(n.metadata?.amount) || 0)}`, duration: 8000 });
+            toast.success(t('notif.toast_offer_received'), { description: `${n.profile.full_name} - ${formatMoney(Number(n.metadata?.amount) || 0, i18n.language)}`, duration: 8000 });
           } else if (n.type === 'offer_accepted') {
             toast.success(t('notif.toast_offer_accepted'), { description: `"${n.listing?.name}"`, duration: 8000 });
           } else if (n.type === 'offer_declined') {
@@ -339,7 +340,7 @@ export function NotificationsMenu({ user }: NotificationsMenuProps) {
       case 'connection': return t('notif.connection_request');
       case 'connection_accepted': return t('notif.connection_accepted');
       case 'favorite': return t('notif.favorite', { name: n.listing?.name || '...' });
-      case 'offer_received': return t('notif.offer_received', { amount: new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(n.metadata?.amount) || 0), listing: n.listing?.name || '...' });
+      case 'offer_received': return t('notif.offer_received', { amount: formatMoney(Number(n.metadata?.amount) || 0, i18n.language), listing: n.listing?.name || '...' });
       case 'offer_accepted': return t('notif.offer_accepted_text', { listing: n.listing?.name || '...' });
       case 'offer_declined': return t('notif.offer_declined_text', { listing: n.listing?.name || '...' });
       default: return '';

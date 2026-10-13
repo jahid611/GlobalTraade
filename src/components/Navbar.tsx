@@ -250,7 +250,7 @@ export function Navbar() {
       />
 
       <nav className="fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] sm:top-[calc(env(safe-area-inset-top,0px)+1.5rem)] left-1/2 -translate-x-1/2 z-[100] w-[94%] max-w-6xl pointer-events-none">
-        <div className="bg-black/10 backdrop-blur-sm border border-white/10 shadow-lg px-4 sm:px-6 py-3 sm:py-3.5 rounded-full flex items-center justify-between relative overflow-visible pointer-events-auto min-h-[72px]">
+        <div className="bg-black/10 backdrop-blur-sm border border-white/10 shadow-lg px-3 min-[400px]:px-4 sm:px-6 py-3 sm:py-3.5 rounded-full flex items-center justify-between relative overflow-visible pointer-events-auto min-h-[72px]">
           <div className="flex items-center gap-2 sm:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="relative group flex shrink-0 mr-1 sm:mr-4">
@@ -278,7 +278,7 @@ export function Navbar() {
                 </button>
               )}
 
-              <div className="hidden md:flex items-center gap-1 lg:gap-2">
+              <div className="hidden lg:flex items-center gap-2">
 
               {NAV_LINKS.map((link) => {
                 const Icon = link.icon;
@@ -300,7 +300,7 @@ export function Navbar() {
               })}
               </div>
 
-              <div className="hidden md:flex items-center gap-1 ml-1 sm:ml-2 border-l border-white/20 pl-2 sm:pl-3">
+              <div className="hidden lg:flex items-center gap-1 ml-2 border-l border-white/20 pl-3">
                 <LanguageMenu />
                 <button
                   onClick={toggleTheme}
@@ -316,7 +316,31 @@ export function Navbar() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="flex items-center gap-1.5 sm:gap-5 shrink-0">
+            {/* Menu replié (téléphone, tablette) : la langue et le thème se changent depuis
+                la barre (sur ordinateur, ces deux boutons sont à gauche, après les icônes).
+                La langue cède sa place sur les tout petits écrans, où elle ne tient pas. */}
+            <div className="lg:hidden flex items-center shrink-0">
+              <div className="max-[359px]:hidden">
+                <LanguageMenu
+                  align="left"
+                  flagSize={22}
+                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                />
+              </div>
+              <button
+                onClick={toggleTheme}
+                aria-label={t("theme.toggle", "Changer de thème")}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Moon className="w-[18px] h-[18px]" />
+                ) : (
+                  <Sun className="w-[18px] h-[18px]" />
+                )}
+              </button>
+            </div>
+
             {user ? (
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <div className="relative group flex shrink-0">
@@ -345,7 +369,7 @@ export function Navbar() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full overflow-hidden outline-none hover:scale-105 transition-transform hover:ring-2 hover:ring-white/20 ml-2 sm:ml-1">
+                    <button className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full overflow-hidden outline-none hover:scale-105 transition-transform hover:ring-2 hover:ring-white/20 sm:ml-1">
                       {(() => {
                         const url = getAvatarUrl();
                         // Une photo existe : on l'affiche directement, jamais l'initiale à sa place.
@@ -411,7 +435,10 @@ export function Navbar() {
               </div>
             )}
 
-            <Link to="/app" className="hidden sm:block">
+            {/* La pilule ne s'affiche que là où elle tient sans rien pousser hors de la barre :
+                avec le menu replié (tablette, une fois connecté) et sur grand écran.
+                Entre les deux, l'icône de la carte dans la barre fait le même travail. */}
+            <Link to="/app" className={`shrink-0 hidden ${user ? "md:block lg:hidden" : ""} xl:block`}>
               {/* Fond : un planisphère de la Terre, assombri pour que le texte reste lisible */}
               <Button className="bg-[linear-gradient(rgba(4,6,20,0.62),rgba(4,6,20,0.62)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.42),rgba(4,6,20,0.42)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/25 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_10px_rgba(0,0,0,0.9)] px-5 h-10 font-semibold tracking-wide rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
                 {t("nav.explore")}
@@ -420,7 +447,7 @@ export function Navbar() {
 
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors pointer-events-auto ml-1"
+              className="lg:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors pointer-events-auto sm:ml-1"
             >
               <List className="w-5 h-5" />
             </button>
@@ -436,7 +463,7 @@ export function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[999] bg-[#2b2a2f]/40 backdrop-blur-2xl flex flex-col px-6 overflow-hidden"
+            className="fixed inset-0 z-[999] bg-[#1c1b20]/75 backdrop-blur-2xl flex flex-col px-6 overflow-hidden"
             style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)',
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
@@ -460,7 +487,7 @@ export function Navbar() {
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white transition-all"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -479,9 +506,9 @@ export function Navbar() {
                     <Link
                       to={link.path}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-2xl font-light text-white/80 hover:text-white transition-colors flex items-center gap-4"
+                      className="text-2xl font-normal text-white transition-colors flex items-center gap-4"
                     >
-                      <Icon className="w-6 h-6 opacity-50" /> {link.name}
+                      <Icon className="w-6 h-6 shrink-0" /> {link.name}
                     </Link>
                   </motion.div>
                 );
@@ -495,9 +522,9 @@ export function Navbar() {
                   <Link
                     to="/messages"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-2xl font-light text-white/80 hover:text-white transition-colors flex items-center gap-4"
+                    className="text-2xl font-normal text-white transition-colors flex items-center gap-4"
                   >
-                    <ChatCircle className="w-6 h-6 opacity-50" />{" "}
+                    <ChatCircle className="w-6 h-6 shrink-0" />{" "}
                     {t("nav.messages")}{" "}
                     {hasUnread && (
                       <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)]" />

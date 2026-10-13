@@ -8,8 +8,8 @@ describe('liste des pays', () => {
     for (const code of COUNTRY_CODES) expect(code).toMatch(/^[A-Z]{2}$/);
   });
 
-  it('chaque pays a un nom en français et en anglais', () => {
-    for (const lang of ['fr', 'en']) {
+  it('chaque pays a un nom dans les six langues du site', () => {
+    for (const lang of ['fr', 'en', 'es', 'it', 'pt', 'de']) {
       const options = countryOptions(lang);
       expect(options).toHaveLength(COUNTRY_CODES.length);
       for (const o of options) {
@@ -40,5 +40,29 @@ describe('liste des pays', () => {
     expect(countryLabel('DE', 'en')).toBe('Germany');
     expect(countryLabel('France', 'en')).toBe('France');
     expect(countryLabel('Atlantide', 'fr')).toBe('Atlantide');
+  });
+
+  it('écrit les noms dans les six langues, avec ou sans région dans le code de langue', () => {
+    expect(countryLabel('DE', 'es')).toBe('Alemania');
+    expect(countryLabel('DE', 'it')).toBe('Germania');
+    expect(countryLabel('DE', 'pt')).toBe('Alemanha');
+    expect(countryLabel('DE', 'de')).toBe('Deutschland');
+    expect(countryLabel('ES', 'de-DE')).toBe('Spanien');
+    expect(countryLabel('GB', 'en-GB')).toBe('United Kingdom');
+    // langue que le site ne propose pas : français
+    expect(countryLabel('DE', 'ja')).toBe('Allemagne');
+  });
+
+  it('trie selon la langue affichée, la France toujours en tête', () => {
+    for (const lang of ['en', 'es', 'it', 'pt', 'de']) {
+      const options = countryOptions(lang);
+      expect(options[0].value).toBe('FR');
+      const rest = options.slice(1).map(o => o.label);
+      expect(rest, lang).toEqual([...rest].sort(new Intl.Collator(lang).compare));
+    }
+    // l'accent ne renvoie pas un pays en fin de liste (« Ägypten » avant « Albanien »)
+    const de = countryOptions('de').map(o => o.label);
+    expect(de.indexOf('Ägypten')).toBeLessThan(de.indexOf('Albanien'));
+    expect(de.indexOf('Österreich')).toBeLessThan(de.indexOf('Polen'));
   });
 });

@@ -69,7 +69,9 @@ export function CessionAssistant() {
   const [journey, setJourney] = useStored<JourneyState>(journeyKey(userId), EMPTY_JOURNEY, sanitizeJourney);
   const messages = session.messages;
 
-  const lang: Lang = i18n.language?.startsWith('en') ? 'en' : 'fr';
+  // Globi parle français et anglais : français pour un visiteur français,
+  // anglais pour toute autre langue du site.
+  const lang: Lang = (i18n.language || 'fr').startsWith('fr') ? 'fr' : 'en';
   const fullName = user?.user_metadata?.full_name;
   const firstName = typeof fullName === 'string' ? fullName.trim().split(/\s+/)[0] || undefined : undefined;
   // L'année en cours est donnée au moteur, qui ne lit pas l'horloge lui-même.

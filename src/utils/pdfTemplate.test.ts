@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createGloblyPdf, pdfFileName, pdfText, setPdfAssetLoader } from './pdfTemplate';
+import { createGloblyPdf, pdfFileName, pdfText, pdfTextLang, setPdfAssetLoader } from './pdfTemplate';
 
 // Hors navigateur, les polices et le logo sont lus dans le dossier public.
 export const usePublicFolderForPdf = () =>
@@ -12,6 +12,13 @@ describe('gabarit PDF', () => {
 
   it('remplace les signes absents des polices', () => {
     expect(pdfText('110 m² ≈ 1 200 €')).toBe('110 m2 ~ 1 200 €');
+  });
+
+  it('écrit en français pour le français, en anglais pour toute autre langue', () => {
+    expect(pdfTextLang('fr')).toBe('fr');
+    expect(pdfTextLang('fr-BE')).toBe('fr');
+    expect(pdfTextLang(undefined)).toBe('fr');
+    for (const lang of ['en', 'en-GB', 'es', 'it', 'pt', 'de']) expect(pdfTextLang(lang)).toBe('en');
   });
 
   it('donne un nom de fichier sûr', () => {

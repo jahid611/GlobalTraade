@@ -29,7 +29,7 @@ const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-�
 
 // ─── Main Page ────────────────────────────────────────────────
 export default function Projects() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,14 +106,14 @@ export default function Projects() {
     if (words.length) {
       base = base.filter((p: Project) => {
         const haystack = normalize([
-          p.title, p.tagline, p.city, p.country, countryLabel(p.country, 'fr'), countryLabel(p.country, 'en'), p.category, t(`industry.${canonicalIndustry(p.category)}`, p.category),
+          p.title, p.tagline, p.city, p.country, countryLabel(p.country, 'fr'), countryLabel(p.country, 'en'), countryLabel(p.country, i18n.language), p.category, t(`industry.${canonicalIndustry(p.category)}`, p.category),
         ].filter(Boolean).join(' '));
         return words.every(w => haystack.includes(w));
       });
     }
     // Projets mis en avant (10 €) en tête
     return [...base].sort((a: Project, b: Project) => Number(isBoosted(b)) - Number(isBoosted(a)));
-  }, [projects, mineOnly, user, query, t, activeCategories]);
+  }, [projects, mineOnly, user, query, t, i18n.language, activeCategories]);
 
   const hasActiveFilters = !!(activeHelp || urgentOnly || mineOnly || activeCategories.length > 0 || query.trim());
   const resetFilters = () => { setActiveHelp(null); setUrgentOnly(false); setMineOnly(false); setActiveCategories([]); setQuery(""); };

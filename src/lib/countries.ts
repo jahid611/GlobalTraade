@@ -68,9 +68,17 @@ export function canonicalCountry(value: string | null | undefined): string {
   return LEGACY_NAMES[normalize(value)] ?? '';
 }
 
+// Langues dans lesquelles le site écrit les noms de pays ; toute autre valeur
+// retombe sur le français, langue d'écriture du site.
+const NAME_LANGUAGES = ['fr', 'en', 'es', 'it', 'pt', 'de'];
+const nameLanguage = (lang: string | null | undefined): string => {
+  const code = (lang || 'fr').slice(0, 2).toLowerCase();
+  return NAME_LANGUAGES.includes(code) ? code : 'fr';
+};
+
 const displayNames = new Map<string, Intl.DisplayNames | null>();
 function namesFor(lang: string): Intl.DisplayNames | null {
-  const key = lang === 'en' ? 'en' : 'fr';
+  const key = nameLanguage(lang);
   if (!displayNames.has(key)) {
     try { displayNames.set(key, new Intl.DisplayNames([key], { type: 'region' })); }
     catch { displayNames.set(key, null); }
@@ -93,9 +101,10 @@ export type CountryOption = { value: string; label: string };
 
 /** Tous les pays, triés par nom dans la langue affichée — la France en tête. */
 export function countryOptions(lang = 'fr'): CountryOption[] {
-  const locale = lang === 'en' ? 'en' : 'fr';
+  const locale = nameLanguage(lang);
   const options = COUNTRY_CODES.map((code) => ({ value: code as string, label: countryLabel(code, locale) }));
+  const collator = new Intl.Collator(locale);
   options.sort((a, b) =>
-    Number(b.value === DEFAULT_COUNTRY) - Number(a.value === DEFAULT_COUNTRY) || a.label.localeCompare(b.label, locale));
+    Number(b.value === DEFAULT_COUNTRY) - Number(a.value === DEFAULT_COUNTRY) || collator.compare(a.label, b.label));
   return options;
 }

@@ -91,14 +91,45 @@ function isValidPartitaIva(raw: string): boolean {
   return (10 - (sum % 10)) % 10 === Number(d[10]);
 }
 
-/** Espagne : société (lettre + 7 chiffres + clé), indépendant (8 chiffres + lettre) ou étranger résident (X/Y/Z…). */
-const isValidNif = (raw: string) => /^([ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]|\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$/.test(alnum(raw));
+const DNI_LETTERS = 'TRWAGMYFPDXBNJZSQVHLCKE';
 
-/** Allemagne : numéro au registre du commerce (HRA / HRB + chiffres) ou numéro de TVA (DE + 9 chiffres). */
-const isValidGermanId = (raw: string) => /^(HR[AB]\d{1,6}[A-Z]{0,2}|DE\d{9})$/.test(alnum(raw));
+/**
+ * Espagne. Trois formes, chacune avec une clé de contrôle publique que l'on vérifie :
+ *   - société : une lettre, sept chiffres, puis un chiffre ou une lettre de contrôle ;
+ *   - indépendant (DNI) : huit chiffres et une lettre ;
+ *   - étranger résident (NIE) : X, Y ou Z, sept chiffres et une lettre.
+ * Un numéro inventé au bon format est donc refusé dans la grande majorité des cas.
+ * Cela ne prouve pas que l'entreprise existe : seul un registre le dirait.
+ */
+function isValidNif(raw: string): boolean {
+  const v = alnum(raw);
+  if (/^\d{8}[A-Z]$/.test(v)) return DNI_LETTERS[Number(v.slice(0, 8)) % 23] === v[8];
+  if (/^[XYZ]\d{7}[A-Z]$/.test(v)) return DNI_LETTERS[Number('XYZ'.indexOf(v[0]) + v.slice(1, 8)) % 23] === v[8];
+  if (!/^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$/.test(v)) return false;
+  const d = v.slice(1, 8);
+  let sum = 0;
+  for (let i = 0; i < 7; i++) {
+    const n = Number(d[i]);
+    if (i % 2 === 1) sum += n;
+    else { const doubled = n * 2; sum += Math.floor(doubled / 10) + (doubled % 10); }
+  }
+  const control = (10 - (sum % 10)) % 10;
+  const letter = 'JABCDEFGHI'[control];
+  // selon le type d'entité, la clé s'écrit en chiffre, en lettre, ou l'un des deux
+  if ('KPQSNW'.includes(v[0])) return v[8] === letter;
+  if ('ABEH'.includes(v[0])) return v[8] === String(control);
+  return v[8] === String(control) || v[8] === letter;
+}
 
-/** Royaume-Uni : 8 chiffres, ou 2 lettres + 6 chiffres (SC… pour l'Écosse, NI… pour l'Irlande du Nord). */
-const isValidCompanyNumber = (raw: string) => /^(\d{8}|[A-Z]{2}\d{6})$/.test(alnum(raw));
+/**
+ * Allemagne : numéro à un registre (HRA / HRB pour le commerce, GsR pour les sociétés civiles
+ * inscrites, PR pour les professions libérales, GnR pour les coopératives) suivi de chiffres,
+ * ou numéro de TVA (DE + 9 chiffres), ou identifiant économique (DE + 9 chiffres + 5 chiffres).
+ */
+const isValidGermanId = (raw: string) => /^((HR[AB]|GSR|PR|GNR)\d{1,6}[A-Z]{0,2}|DE\d{9}(\d{5})?)$/.test(alnum(raw));
+
+/** Royaume-Uni : 8 chiffres, ou 2 lettres + 6 chiffres (SC… pour l'Écosse, NI… pour l'Irlande du Nord), ou 1 lettre + 7 chiffres (anciens numéros). */
+const isValidCompanyNumber = (raw: string) => /^(\d{8}|[A-Z]{2}\d{6}|[A-Z]\d{7})$/.test(alnum(raw));
 
 const r = (key: string, label: string): MarketRegion => ({ key, label });
 
@@ -129,11 +160,11 @@ export const MARKETS: Record<MarketCode, Market> = {
     code: 'ES', language: 'es', locale: 'es-ES', localCurrency: 'EUR', phonePrefix: '+34',
     identifier: {
       name: 'NIF',
-      what: "Le numéro d'identification fiscale de l'entreprise (ancien CIF) : une lettre, sept chiffres et un caractère de contrôle.",
-      placeholder: 'B12345678',
+      what: "Le numéro d'identification fiscale (ancien CIF). Société : une lettre, sept chiffres et un caractère de contrôle. Indépendant (autónomo) : huit chiffres et une lettre.",
+      placeholder: 'B12345674',
       clean: (raw) => alnum(raw).slice(0, 9),
       isValid: isValidNif,
-      registry: { name: 'Registro Mercantil Central', url: 'https://www.rmc.es' },
+      registry: { name: 'Registro Mercantil (Colegio de Registradores)', url: 'https://sede.registradores.org' },
       onlineCheck: false,
     },
     legalForms: ['S.L.', 'S.L.U.', 'S.A.', 'Autónomo', 'Sociedad Cooperativa', 'Comunidad de Bienes', 'Otra'],
@@ -145,7 +176,7 @@ export const MARKETS: Record<MarketCode, Market> = {
       r('ES-PV', 'País Vasco'), r('ES-CE', 'Ceuta'), r('ES-ML', 'Melilla'),
     ],
     leaseName: 'Contrato de arrendamiento de local de negocio',
-    needsReview: ["Format du NIF pour les entités particulières (lettres initiales acceptées).", "Accès en ligne au Registro Mercantil pour vérifier une entreprise."],
+    needsReview: ["Format du NIF : les NIF de personnes commençant par K, L ou M ne sont pas acceptés.", "Un autónomo ou une comunidad de bienes n'est en général pas inscrit au Registro Mercantil : il ne peut pas y être vérifié.", "Accès en ligne au Registro Mercantil pour vérifier une entreprise."],
   },
   PT: {
     code: 'PT', language: 'pt', locale: 'pt-PT', localCurrency: 'EUR', phonePrefix: '+351',
@@ -155,7 +186,7 @@ export const MARKETS: Record<MarketCode, Market> = {
       placeholder: '501 234 567',
       clean: (raw) => digits(raw).slice(0, 9),
       isValid: isValidNipc,
-      registry: { name: 'Registo Comercial (Portal da Empresa)', url: 'https://eportugal.gov.pt' },
+      registry: { name: 'Registo Comercial (gov.pt, Empresa Online)', url: 'https://www.gov.pt/servicos/consultar-a-certidao-permanente-de-registo-comercial' },
       onlineCheck: false,
     },
     legalForms: ['Lda.', 'Unipessoal Lda.', 'S.A.', 'Empresário em Nome Individual', 'Cooperativa', 'Outra'],
@@ -172,9 +203,9 @@ export const MARKETS: Record<MarketCode, Market> = {
     code: 'DE', language: 'de', locale: 'de-DE', localCurrency: 'EUR', phonePrefix: '+49',
     identifier: {
       name: 'Handelsregisternummer',
-      what: "Le numéro au registre du commerce (HRB ou HRA suivi de chiffres). Une entreprise individuelle non inscrite donne son numéro de TVA (DE + 9 chiffres).",
+      what: "Le numéro au registre du commerce (HRB ou HRA suivi de chiffres). Une entreprise non inscrite donne son numéro de TVA (USt-IdNr., DE + 9 chiffres) ou son identifiant économique (W-IdNr.).",
       placeholder: 'HRB 123456',
-      clean: (raw) => (raw || '').toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 14),
+      clean: (raw) => (raw || '').toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20),
       isValid: isValidGermanId,
       registry: { name: 'Handelsregister', url: 'https://www.handelsregister.de' },
       onlineCheck: false,
@@ -206,7 +237,7 @@ export const MARKETS: Record<MarketCode, Market> = {
       r('IT-45', 'Emilia-Romagna'), r('IT-36', 'Friuli-Venezia Giulia'), r('IT-62', 'Lazio'), r('IT-42', 'Liguria'),
       r('IT-25', 'Lombardia'), r('IT-57', 'Marche'), r('IT-67', 'Molise'), r('IT-21', 'Piemonte'),
       r('IT-75', 'Puglia'), r('IT-88', 'Sardegna'), r('IT-82', 'Sicilia'), r('IT-52', 'Toscana'),
-      r('IT-32', 'Trentino-Alto Adige'), r('IT-55', 'Umbria'), r('IT-23', "Valle d'Aosta"), r('IT-34', 'Veneto'),
+      r('IT-32', 'Trentino-Alto Adige/Südtirol'), r('IT-55', 'Umbria'), r('IT-23', "Valle d'Aosta"), r('IT-34', 'Veneto'),
     ],
     leaseName: 'Contratto di locazione commerciale',
     needsReview: ["Accès en ligne au Registro Imprese pour vérifier une entreprise."],

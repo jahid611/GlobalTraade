@@ -7,7 +7,9 @@ import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria, BUDGET_MIN, BUDGET_MAX } from '@/components/SmartMatchForm';
 import { parseBuyerProject, toMatchCriteria, hasSearchCriteria } from '@/lib/buyerProject';
 import { scoreListing, ProfileCriteria } from '@/lib/matching';
-import { matchRegion, regionLabel } from '@/lib/geoRegions';
+import { matchGeo, regionLabel, withCountries } from '@/lib/geoRegions';
+import { formatMoney } from '@/lib/markets';
+import { countryLabel } from '@/lib/countries';
 import { ListingForm } from '@/components/ListingForm';
 import { Navbar } from '@/components/Navbar';
 import { BusinessCard } from '@/components/BusinessCard';
@@ -30,6 +32,7 @@ import { UpgradeModal } from '@/components/UpgradeModal';
 
 const DEFAULT_FILTERS: FilterState = {
   industries: [],
+  countries: [],
   regions: [],
   priceMin: "",
   priceMax: "",
@@ -133,7 +136,8 @@ export default function Marketplace() {
     if (words.length) {
       result = result.filter(l => {
         const haystack = normalize([
-          l.name, l.industry, t(`industry.${l.industry}`, { defaultValue: l.industry || '' }) as string, l.address,
+          l.name, l.industry, t(`industry.${l.industry}`, { defaultValue: l.industry || '' }) as string, l.address, l.city,
+          l.country ? countryLabel(l.country, i18n.language) : '',
         ].filter(Boolean).join(' '));
         return words.every(w => haystack.includes(w));
       });
@@ -141,7 +145,8 @@ export default function Marketplace() {
 
     // Filtres manuels (panneau « Ajuster les filtres ») — multi-sélection combinable
     if (filters.industries.length) result = result.filter(l => filters.industries.includes(l.industry));
-    if (filters.regions.length) result = result.filter(l => matchRegion(l.address, filters.regions));
+    // Pays et régions : une région ne retient que les annonces de son pays.
+    if (filters.countries.length || filters.regions.length) result = result.filter(l => matchGeo(l, filters));
     if (filters.priceMin) result = result.filter(l => Number(l.price) >= Number(filters.priceMin));
     if (filters.priceMax) result = result.filter(l => Number(l.price) <= Number(filters.priceMax));
     if (filters.revenueMin) result = result.filter(l => Number(l.revenue_n1) >= Number(filters.revenueMin));
@@ -153,7 +158,7 @@ export default function Marketplace() {
     // Recherche intelligente -> filtre dur (secteurs/régions/budget) puis tri par pertinence
     if (matchCriteria) {
       if (matchCriteria.industries.length) result = result.filter(l => matchCriteria.industries.includes(l.industry));
-      if (matchCriteria.regions.length) result = result.filter(l => matchRegion(l.address, matchCriteria.regions));
+      if (matchCriteria.countries?.length || matchCriteria.regions.length) result = result.filter(l => matchGeo(l, matchCriteria));
       result = result.filter(l => {
         const p = Number(l.price) || 0;
         return p === 0 || (p >= matchCriteria.budgetMin && p <= matchCriteria.budgetMax);
@@ -183,7 +188,7 @@ export default function Marketplace() {
       || (Number(b._trusted) - Number(a._trusted)));
 
     return result;
-  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners, query, t]);
+  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners, query, t, i18n.language]);
 
   const handleSmartMatch = (criteria: MatchCriteria) => {
     setMatchCriteria(criteria);
@@ -224,6 +229,7 @@ export default function Marketplace() {
   const getActiveFilterCount = () => {
     let count = 0;
     if (filters.industries.length) count++;
+    if (filters.countries.length) count++;
     if (filters.regions.length) count++;
     if (filters.priceMin || filters.priceMax) count++;
     if (filters.revenueMin) count++;
@@ -250,15 +256,19 @@ export default function Marketplace() {
   ];
 
   // Filtres en cours, affichés en pastilles que l'on retire d'un clic.
-  const euros = (v: string) => new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(v));
+  const euros = (v: string) => formatMoney(v, i18n.language);
   const chips: { key: string; label: string; clear: () => void }[] = [
     ...(query.trim() ? [{ key: 'q', label: `« ${query.trim()} »`, clear: () => setQuery("") }] : []),
     ...filters.industries.map(v => ({
       key: `i-${v}`, label: t(`industry.${v}`, { defaultValue: v }) as string,
       clear: () => setFilters({ ...filters, industries: filters.industries.filter(x => x !== v) }),
     })),
+    ...filters.countries.map(v => ({
+      key: `c-${v}`, label: countryLabel(v, i18n.language),
+      clear: () => setFilters(withCountries(filters, filters.countries.filter(x => x !== v))),
+    })),
     ...filters.regions.map(v => ({
-      key: `r-${v}`, label: regionLabel(v),
+      key: `r-${v}`, label: regionLabel(v, i18n.language),
       clear: () => setFilters({ ...filters, regions: filters.regions.filter(x => x !== v) }),
     })),
     ...(filters.priceMin ? [{ key: 'pmin', label: `${t('market.chip_price_min', 'Prix min')} ${euros(filters.priceMin)}`, clear: () => setFilters({ ...filters, priceMin: "" }) }] : []),

@@ -1,5 +1,6 @@
 // Lettre d'intention, mise en page par le gabarit commun (voir pdfTemplate).
-import { createGloblyPdf, pdfFileName, type GloblyPdf } from "./pdfTemplate";
+import { createGloblyPdf, pdfFileName, pdfTextLang, type GloblyPdf } from "./pdfTemplate";
+import { localeFor } from "@/lib/markets";
 
 interface LOIParams {
   buyerName: string;
@@ -25,10 +26,11 @@ export const buildLOI = async ({
   acceptedDate,
   lang,
 }: LOIParams): Promise<{ pdf: GloblyPdf; filename: string; reference: string }> => {
-  const isFr = lang === "fr";
+  const isFr = pdfTextLang(lang) === "fr";
+  const locale = localeFor(lang);
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat(isFr ? "fr-FR" : "en-US", {
+    new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "EUR",
       maximumFractionDigits: 0,
@@ -39,9 +41,7 @@ export const buildLOI = async ({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return isFr
-      ? d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-      : d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+    return d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
   };
 
   const refNumber = `LOI-${Date.now().toString(36).toUpperCase()}`;

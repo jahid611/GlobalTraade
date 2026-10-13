@@ -1,5 +1,6 @@
 import i18n from 'i18next';
-import { LAZY_LANGUAGES, isLanguage, loadLanguageBundle, type LanguageCode } from './locales';
+import { LANGUAGES, LAZY_LANGUAGES, isLanguage, loadLanguageBundle, type LanguageCode } from './locales';
+import { initialLanguage } from './lib/languageDetect';
 import { initReactI18next } from 'react-i18next';
 import { additionsEn, additionsFr } from './i18n.additions';
 import { pagesKeys } from './i18n.pages';
@@ -3250,10 +3251,38 @@ const resources = {
   }
 };
 
-// Langue enregistrée. Le français et l'anglais démarrent tout de suite ; une
-// autre langue démarre en français, le temps de télécharger ses textes.
-const storedLanguage = localStorage.getItem('language');
-const startLanguage = storedLanguage === 'en' || storedLanguage === 'fr' ? storedLanguage : 'fr';
+// ---------------------------------------------------------------------------
+// Langue de départ
+// ---------------------------------------------------------------------------
+//
+// 1. Un choix enregistré (localStorage « language ») est toujours respecté.
+// 2. Sans choix enregistré, on prend une seule fois la langue du navigateur si
+//    le site la propose, sinon le français, et on l'enregistre.
+// 3. Le français et l'anglais sont dans le paquet principal. Les autres langues
+//    sont téléchargées : `languageReady` permet d'attendre leurs textes avant le
+//    premier affichage (src/main.tsx), pour ne pas montrer du français d'abord.
+
+const SUPPORTED: LanguageCode[] = LANGUAGES.map((l) => l.code);
+
+const readStored = (): string | null => { try { return localStorage.getItem('language'); } catch { return null; } };
+const writeStored = (language: string) => { try { localStorage.setItem('language', language); } catch { /* stockage indisponible */ } };
+const browserLanguages = (): readonly string[] => {
+  if (typeof navigator === 'undefined') return [];
+  return navigator.languages?.length ? navigator.languages : navigator.language ? [navigator.language] : [];
+};
+
+const start = initialLanguage(readStored(), browserLanguages(), SUPPORTED, 'fr');
+const wantedLanguage: LanguageCode = start.language;
+if (start.detected) writeStored(wantedLanguage);
+
+// Langue des tout premiers textes : la langue voulue si elle est déjà là,
+// sinon le français le temps du téléchargement.
+const startLanguage: LanguageCode = LAZY_LANGUAGES.includes(wantedLanguage) ? 'fr' : wantedLanguage;
+
+/** `<html lang>` suit toujours la langue réellement affichée (lecteurs d'écran, césure, traduction automatique). */
+const announce = (language: string) => {
+  if (typeof document !== 'undefined') document.documentElement.lang = (language || 'fr').slice(0, 2);
+};
 
 i18n
   .use(initReactI18next)
@@ -3268,6 +3297,20 @@ i18n
     interpolation: { escapeValue: false }
   });
 
+announce(startLanguage);
+i18n.on('languageChanged', announce);
+
+// Les textes d'une langue sont répartis en plusieurs fichiers, lus l'un après
+// l'autre par `loadLanguageBundle`. On les demande ici tous en même temps :
+// le téléchargement se fait en parallèle, la lecture qui suit est immédiate.
+const languageFiles = import.meta.glob('./locales/*/*.ts');
+const warmLanguageFiles = (language: LanguageCode): Promise<unknown> =>
+  Promise.all(
+    Object.entries(languageFiles)
+      .filter(([path]) => path.startsWith(`./locales/${language}/`) && !/\.(test|spec)\.ts$/.test(path))
+      .map(([, load]) => load()),
+  ).catch(() => undefined);
+
 /**
  * Change la langue du site. Les langues autres que le français et l'anglais
  * sont téléchargées au premier usage (src/locales/<code>/).
@@ -3275,16 +3318,30 @@ i18n
 export async function setLanguage(code: string): Promise<void> {
   const language: LanguageCode = isLanguage(code) ? code : 'fr';
   if (LAZY_LANGUAGES.includes(language) && !i18n.hasResourceBundle(language, 'translation')) {
+    await warmLanguageFiles(language);
     const bundle = await loadLanguageBundle(language, industriesFr);
     i18n.addResourceBundle(language, 'translation', bundle, true, true);
   }
   await i18n.changeLanguage(language);
-  localStorage.setItem('language', language);
-  document.documentElement.lang = language;
+  writeStored(language);
+  announce(language);
 }
 
-if (isLanguage(storedLanguage) && storedLanguage !== startLanguage) {
-  void setLanguage(storedLanguage).catch(() => { /* on reste en français */ });
-}
+/**
+ * Tenue quand la langue de départ est prête à l'écran. Immédiate en français
+ * et en anglais ; pour une langue téléchargée, à la fin du téléchargement
+ * (en cas d'échec le site reste en français, sans effacer le choix enregistré).
+ */
+export const languageReady: Promise<void> = wantedLanguage === startLanguage
+  ? Promise.resolve()
+  : (async () => {
+      try {
+        await warmLanguageFiles(wantedLanguage);
+        const bundle = await loadLanguageBundle(wantedLanguage, industriesFr);
+        i18n.addResourceBundle(wantedLanguage, 'translation', bundle, true, true);
+        // Le visiteur a pu choisir une autre langue pendant le téléchargement.
+        if (readStored() === wantedLanguage) await i18n.changeLanguage(wantedLanguage);
+      } catch { /* on reste en français */ }
+    })();
 
 export default i18n;

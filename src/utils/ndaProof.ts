@@ -8,7 +8,8 @@
 // Ce n'est PAS une signature électronique qualifiée (eIDAS) : c'est la trace
 // d'une acceptation par clic depuis un compte connecté, et le document le dit.
 
-import { createGloblyPdf, pdfFileName, PDF_COLORS, type GloblyPdf } from './pdfTemplate';
+import { createGloblyPdf, pdfFileName, pdfTextLang, PDF_COLORS, type GloblyPdf } from './pdfTemplate';
+import { localeFor } from '@/lib/markets';
 
 export interface NdaProofParams {
   ndaId: string;
@@ -42,11 +43,11 @@ async function fingerprint(parts: string[]): Promise<string> {
 
 /** Construit l'attestation, sans l'enregistrer. */
 export async function buildNdaProof(p: NdaProofParams): Promise<GloblyPdf> {
-  const fr = p.lang !== 'en';
+  const fr = pdfTextLang(p.lang) === 'fr';
   const GREY = PDF_COLORS.grey;
 
   const signed = new Date(p.signedAt);
-  const locale = fr ? 'fr-FR' : 'en-GB';
+  const locale = localeFor(p.lang);
   const dateParis = signed.toLocaleString(locale, { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dayParis = signed.toLocaleDateString(locale, { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric' });
   const issued = new Date().toLocaleString(locale, { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -127,5 +128,5 @@ export async function buildNdaProof(p: NdaProofParams): Promise<GloblyPdf> {
 
 export async function generateNdaProof(p: NdaProofParams) {
   const pdf = await buildNdaProof(p);
-  pdf.save(pdfFileName(p.lang !== 'en' ? 'attestation-nda' : 'nda-certificate', p.listingName || 'annonce'));
+  pdf.save(pdfFileName(pdfTextLang(p.lang) === 'fr' ? 'attestation-nda' : 'nda-certificate', p.listingName || 'annonce'));
 }

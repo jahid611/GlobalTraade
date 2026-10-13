@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StatusDot } from '@/components/StatusDot';
+import { useTranslation } from 'react-i18next';
+import { formatMoney, localeFor } from '@/lib/markets';
 import { TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, PiggyBank, Briefcase, AlertTriangle, Handshake, Users, Gift, Gauge } from 'lucide-react';
 
 interface DealCalculatorProps {
@@ -126,6 +128,8 @@ function Slider({ label, icon: Icon, value, onChange, color, max = 100, infoId, 
 }
 
 export function DealCalculator({ listing }: DealCalculatorProps) {
+  // Les textes de ce simulateur sont en français ; les nombres suivent la langue du site.
+  const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   // Répartition du financement (en % du prix)
@@ -228,7 +232,7 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
     };
   }, [apportPct, investisseursPct, creditVendeurPct, aidesPct, loanRate, loanDuration, listing]);
 
-  const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const fmt = (v: number) => formatMoney(v, i18n.language);
 
   const lm = LIGHT_META[calc.light];
 
@@ -366,7 +370,7 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
                     la règle de la banque. Le nom technique reste en petit, pour qui le cherche. */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
-                    const n1 = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+                    const n1 = (v: number) => v.toLocaleString(localeFor(i18n.language), { maximumFractionDigits: 1 });
                     const { levierNum: lev, dscrNum: dscr, gearingNum: gear } = calc.ratios;
                     const cards = [
                       {

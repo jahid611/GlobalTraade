@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';
-import { createGloblyPdf, pdfFileName, type GloblyPdf } from './pdfTemplate';
+import { createGloblyPdf, pdfFileName, pdfTextLang, type GloblyPdf } from './pdfTemplate';
+import { localeFor } from '@/lib/markets';
 
 // Dossier de présentation complet de l'entreprise (premium) :
 // identité, logo intégré, chiffres, structure, atouts immatériels.
@@ -33,13 +34,13 @@ const imageFormat = (dataUrl: string): 'PNG' | 'JPEG' | null => {
 
 /** Construit le document sans le télécharger (utilisé par les tests). */
 export const buildPremiumPresentation = async (listing: Listing, t: TFunction, lang: string): Promise<{ pdf: GloblyPdf; filename: string }> => {
-  const en = lang === 'en';
+  const en = pdfTextLang(lang) === 'en';
   const notDisclosed = en ? 'Not disclosed' : 'Non communiqué';
 
   const formatCurrency = (val: number | string | null | undefined) => {
     const n = typeof val === 'string' ? Number(val) : val;
     if (!n || Number.isNaN(n)) return notDisclosed;
-    return new Intl.NumberFormat(en ? 'en-US' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+    return new Intl.NumberFormat(localeFor(lang), { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
       .format(n)
       .replace(/\s/g, ' ');
   };

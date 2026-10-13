@@ -6,8 +6,9 @@ import { useAuth } from '@/components/AuthProvider';
 import { motion } from 'framer-motion';
 import { Zap, MessageSquare, Heart, Handshake, UserPlus, ShieldCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/markets';
+import { dateLocaleFor } from '@/lib/dateLocale';
 
 interface ActivityEvent {
   id: string;
@@ -22,7 +23,7 @@ export function LiveActivityFeed() {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
-  const locale = i18n.language === 'fr' ? fr : enUS;
+  const locale = dateLocaleFor(i18n.language);
 
   useEffect(() => {
     if (!user) return;
@@ -59,7 +60,7 @@ export function LiveActivityFeed() {
       const name = pMap.get(m.sender_id) || 'Membre';
       if (m.type === 'offer') {
         const amt = (m.metadata as Record<string, unknown>)?.amount as number || 0;
-        const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amt);
+        const fmt = formatMoney(amt, i18n.language);
         items.push({ id: m.id, type: 'offer', text: `${name} - Offre de ${fmt}`, time: m.created_at, icon: Handshake, color: 'text-amber-400 bg-amber-500/10' });
       } else {
         items.push({ id: m.id, type: 'message', text: `${name} vous a écrit`, time: m.created_at, icon: MessageSquare, color: 'text-blue-400 bg-blue-500/10' });

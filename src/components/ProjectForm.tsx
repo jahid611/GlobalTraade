@@ -10,6 +10,7 @@ import { canonicalIndustry, industryOptions } from "@/lib/industries";
 import { useAuth } from "@/components/AuthProvider";
 import { showSuccess, showError } from "@/utils/toast";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/lib/markets";
 import { Dropdown } from "@/components/PickerKit";
 import { CountrySelect } from "@/components/CountrySelect";
 import { countryLabel } from "@/lib/countries";
@@ -191,7 +192,7 @@ function SummaryBlock({ title, editLabel, onEdit, children }: { title: string; e
 
 export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const uid = useId();
   const fid = (name: string) => `${uid}-${name}`;
   const [saving, setSaving] = useState(false);
@@ -373,8 +374,8 @@ export function ProjectForm({ isOpen, onClose, onSuccess, projectToEdit }: Props
   const category = canonicalIndustry(form.category);
   const categoryLabel = category ? String(t(`industry.${category}`, { defaultValue: category })) : dash;
   const stageLabel = STAGES.find(s => s.v === (form.stage || "idea"))?.l || dash;
-  const place = [form.city, countryLabel(form.country)].map(x => (x || "").trim()).filter(Boolean).join(", ");
-  const money = (n?: number) => (n ? `${Number(n).toLocaleString()} €` : "");
+  const place = [form.city, countryLabel(form.country, i18n.language)].map(x => (x || "").trim()).filter(Boolean).join(", ");
+  const money = (n?: number) => (n ? formatMoney(n, i18n.language) : "");
   const budgetLabel = form.budget_min && form.budget_max
     ? `${money(form.budget_min)} – ${money(form.budget_max)}`
     : form.budget_min ? t('pf.sum_budget_from', { defaultValue: 'À partir de {{amount}}', amount: money(form.budget_min) })

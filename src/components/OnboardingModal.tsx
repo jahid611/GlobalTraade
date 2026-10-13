@@ -8,9 +8,10 @@ import { Dropdown } from "@/components/PickerKit";
 import { MultiSelect } from "@/components/MultiSelect";
 import { industryOptions } from '@/lib/industries';
 import { FR_REGIONS } from "@/lib/geoRegions";
-import { AMOUNT_RANGE_OPTIONS, LEGAL_FORMS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
+import { AMOUNT_RANGE_OPTIONS, ROLE_FUNCTIONS, ROLE_FUNCTION_LABELS } from "@/lib/ranges";
 import { CountrySelect } from "@/components/CountrySelect";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
+import { marketOf } from "@/lib/markets";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -84,7 +85,21 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
   // Toutes les listes viennent des référentiels partagés : aucune saisie libre
   // (hors nom, téléphone et raison sociale), pour que les données restent
   // filtrables et comparables d'un formulaire à l'autre.
-  const legalForms = useMemo(() => LEGAL_FORMS.map((v) => ({ value: v, label: v })), []);
+  // Le numéro d'entreprise et les formes juridiques sont ceux du pays choisi à
+  // la première étape (règles dans src/lib/markets.ts).
+  const market = useMemo(() => marketOf(country), [country]);
+  const isFrance = market.code === "FR";
+  const companyIdName = market.code === "XX" ? (t("market.xx.id_name", market.identifier.name) as string) : market.identifier.name;
+  const companyIdLooksWrong = !isFrance && siren.trim().length > 0 && !market.identifier.isValid(siren);
+  const legalForms = useMemo(() => market.legalForms.map((v) => ({ value: v, label: v })), [market]);
+  // Changer de pays : le numéro repasse au format du pays, et une forme
+  // juridique qui n'existe pas dans ce pays est retirée.
+  const changeCountry = (code: string) => {
+    setCountry(code);
+    const nextMarket = marketOf(code);
+    setSiren((v) => (nextMarket.code === "FR" ? v.replace(/\D/g, "").slice(0, 9) : nextMarket.identifier.clean(v)));
+    setLegalForm((v) => (nextMarket.legalForms.includes(v) ? v : ""));
+  };
   const roleOptions = useMemo(
     () => ROLE_FUNCTIONS.map((v) => ({ value: v, label: t(`onb.role_${v}`, ROLE_FUNCTION_LABELS[v]) as string })),
     [t]
@@ -128,7 +143,8 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
         country: country || null,
         account_type: accountType || null,
         company_name: companyName.trim() || null,
-        siren: siren.trim() || null,
+        // France : SIREN à 9 chiffres. Autres pays : le numéro du pays, nettoyé (même colonne).
+        siren: (isFrance ? siren.trim() : market.identifier.clean(siren)) || null,
         legal_form: legalForm || null,
         role_function: roleFunction || null,
         target_sectors: targetSectors || null,
@@ -224,11 +240,11 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("onb.phone", "Téléphone")}</label>
-                    <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ().-]/g, "").slice(0, 20))} className={inputClass} placeholder="+33 6 12 34 56 78" />
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ().-]/g, "").slice(0, 20))} className={inputClass} placeholder={isFrance ? "+33 6 12 34 56 78" : market.phonePrefix ? `${market.phonePrefix} …` : ""} />
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.country", "Pays")} *</label>
-                    <CountrySelect value={country} onChange={setCountry}
+                    <CountrySelect value={country} onChange={changeCountry}
                       placeholder={t("onb.select", "Sélectionnez…") as string} className={btnDropdown} />
                   </div>
                 </div>
@@ -244,16 +260,27 @@ export function OnboardingModal({ onDone }: { onDone: () => void }) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>{t("onb.siren", "SIREN")}</label>
-                    <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres, ex: 394 927 081" inputMode="numeric" />
+                    <label className={labelClass}>{isFrance ? t("onb.siren", "SIREN") : companyIdName}</label>
+                    {isFrance ? (
+                      <input value={siren} onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputClass} placeholder="9 chiffres, ex: 394 927 081" inputMode="numeric" />
+                    ) : (
+                      <input value={siren} onChange={(e) => setSiren(e.target.value.toUpperCase().replace(/[^A-Z0-9 .\-/]/g, "").slice(0, 30))} className={inputClass} placeholder={market.identifier.placeholder} autoComplete="off" spellCheck={false} />
+                    )}
                     <p className="text-white/30 text-[11px] font-light mt-1.5">
-                      {t("onb.siren_hint", "SIREN = 9 chiffres (votre société). À ne pas confondre avec le SIRET (14 chiffres) qui désigne un établissement précis.")}
-                      {siren.length > 0 && siren.length < 9 && <span className="text-[#fca5a5]"> · {t("onb.siren_incomplete", "il manque {{n}} chiffre(s)", { n: 9 - siren.length })}</span>}
+                      {isFrance
+                        ? t("onb.siren_hint", "SIREN = 9 chiffres (votre société). À ne pas confondre avec le SIRET (14 chiffres) qui désigne un établissement précis.")
+                        : t(`market.${market.code.toLowerCase()}.id_what`, market.identifier.what)}
+                      {isFrance && siren.length > 0 && siren.length < 9 && <span className="text-[#fca5a5]"> · {t("onb.siren_incomplete", "il manque {{n}} chiffre(s)", { n: 9 - siren.length })}</span>}
+                      {companyIdLooksWrong && <span className="text-[#fca5a5]"> · {t("onb.company_id_check", "ce numéro ne ressemble pas au format habituel, vérifiez-le")}</span>}
                     </p>
                   </div>
                   <div>
                     <label className={labelClass}>{t("onb.legal_form", "Forme juridique")}</label>
-                    <Dropdown value={legalForm} onChange={setLegalForm} options={legalForms} placeholder={t("onb.select", "Sélectionnez…")} buttonClassName={btnDropdown} />
+                    {legalForms.length > 0 ? (
+                      <Dropdown value={legalForm} onChange={setLegalForm} options={legalForms} placeholder={t("onb.select", "Sélectionnez…")} buttonClassName={btnDropdown} />
+                    ) : (
+                      <input value={legalForm} onChange={(e) => setLegalForm(e.target.value.slice(0, 60))} className={inputClass} placeholder={t("onb.legal_form_free", "Ex. : société à responsabilité limitée") as string} />
+                    )}
                   </div>
                 </div>
                 <div>

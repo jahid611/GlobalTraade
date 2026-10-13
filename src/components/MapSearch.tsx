@@ -2,6 +2,8 @@ import React, { useMemo, useRef, useState } from 'react';
 import { MagnifyingGlass, X } from 'phosphor-react';
 import { useTranslation } from 'react-i18next';
 import type { ListingNode } from '@/components/Globe';
+import { showsCountry } from '@/lib/geoRegions';
+import { CountryTag } from '@/components/CountryFlag';
 
 // Recherche d'une entreprise par son nom sur la carte. On choisit dans la
 // liste : la carte vole jusqu'à elle.
@@ -13,7 +15,7 @@ const PAGE = 12;
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPick: (listing: ListingNode) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -102,6 +104,10 @@ export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPic
               )}
               {shown.map((l, i) => {
                 const sector = l.industry ? (t(`industry.${l.industry}`, { defaultValue: l.industry }) as string) : '';
+                // Le pays est écrit à côté du nom quand l'entreprise n'est pas dans le pays du visiteur.
+                // (`country` est transmis par la carte quand l'annonce le porte.)
+                const country = (l as ListingNode & { country?: string | null }).country;
+                const foreign = !!country && showsCountry({ country }, i18n.language);
                 return (
                   // Pas de carte autour de chaque résultat : une fine ligne grise les sépare.
                   <li key={l.listingId || l.id} role="option" aria-selected={i === active} className="border-b border-white/10 last:border-b-0">
@@ -116,7 +122,10 @@ export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPic
                         {l.logo_url ? <img src={l.logo_url} alt="" className="w-full h-full object-cover" /> : (l.name || '?').trim().charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] font-medium leading-snug truncate text-white">{l.name}</span>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="block text-[13px] font-medium leading-snug truncate text-white">{l.name}</span>
+                          {foreign && <CountryTag country={country} className="shrink-0 text-[11px] text-white/75" />}
+                        </span>
                         <span className="block text-[11px] leading-snug truncate text-white/60">{[sector, l.address].filter(Boolean).join(' · ')}</span>
                       </span>
                     </button>

@@ -3,8 +3,8 @@
 // Tout ce qui lit ou écrit le projet (Réglages, Profil, Marketplace) passe par
 // ce fichier : mêmes champs, mêmes valeurs que le reste du site.
 //   - secteurs   : clés de la liste maîtresse (src/lib/industries.ts)
-//   - zones      : clés de région (src/lib/geoRegions.ts) et codes de
-//                  département (src/lib/departments.ts)
+//   - zones      : codes de pays, clés de région (src/lib/geoRegions.ts) et
+//                  codes de département français (src/lib/departments.ts)
 //   - budget, CA : tranches canoniques (src/lib/ranges.ts)
 //   - apport     : un montant en euros
 //
@@ -12,7 +12,9 @@
 // de `profiles`, sous une forme normalisée que les autres lecteurs (matching,
 // alertes email, tableau de bord) comprennent déjà.
 //   target_sectors  « Bakery,Restaurant »
-//   target_geo      « idf,ara,69,2A »   (régions puis départements)
+//   target_geo      « FR,ES,idf,ES-CT,69,2A »   (pays, puis régions, puis départements)
+//                   pays : code ISO en majuscules ; région française : ancienne clé
+//                   (« idf ») ; région d'un autre pays : code ISO (« ES-CT »)
 //   target_budget   « 250 – 500 k€ »
 //   target_revenue  « 100 – 250 k€ »
 //   apport          « 80000 »
@@ -21,7 +23,9 @@
 // Les anciennes valeurs (texte libre) restent lisibles : voir `parseBuyerProject`.
 import type { MatchCriteria } from '@/components/SmartMatchForm';
 import { INDUSTRIES, canonicalIndustry } from './industries';
-import { FR_REGIONS, matchRegion, regionLabel } from './geoRegions';
+import { FR_REGIONS, isCountryKey, isRegionKey, listingCountry, matchRegion, regionLabel, regionStoreKey } from './geoRegions';
+import { MARKET_CODES, formatMoney, isMarket, regionCountry } from './markets';
+import { canonicalCountry } from './countries';
 import { DEPARTMENTS, canonicalDepartment, departmentName } from './departments';
 import { AMOUNT_RANGES, type AmountRange } from './ranges';
 import { rangeBounds } from './rangeBounds';
@@ -62,7 +66,9 @@ export interface BuyerProject {
   buyerType: BuyerType | '';
   /** clés de la liste maîtresse des secteurs */
   sectors: string[];
-  /** clés de région */
+  /** codes de pays visés (« ES ») ; vide = tous les pays */
+  countries: string[];
+  /** clés de région (« idf », « ES-CT ») */
   regions: string[];
   /** codes de département */
   departments: string[];
@@ -103,7 +109,7 @@ export interface BuyerProjectRow {
 }
 
 export const emptyBuyerProject = (): BuyerProject => ({
-  buyerType: '', sectors: [], regions: [], departments: [], budget: '', revenue: '',
+  buyerType: '', sectors: [], countries: [], regions: [], departments: [], budget: '', revenue: '',
   apport: null, experience: '', timeline: '', ambitions: '',
   legacy: { buyerType: '', sectors: [], zones: [], budget: '', revenue: '', apport: '', experience: '' },
 });
@@ -121,7 +127,6 @@ const splitList = (v: unknown): string[] => str(v).split(/[,;\n]+/).map((x) => x
 const uniq = <T,>(list: T[]): T[] => Array.from(new Set(list));
 
 const INDUSTRY_BY_FOLD = new Map(INDUSTRIES.map((k) => [fold(k), k]));
-const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
 const REGION_BY_FOLD = new Map<string, string>(
   FR_REGIONS.flatMap((r) => [[fold(r.key), r.key], [fold(r.label), r.key]] as [string, string][]),
 );
@@ -132,7 +137,13 @@ function toSector(raw: string): string {
   return INDUSTRY_BY_FOLD.get(fold(canonical)) ?? '';
 }
 
-function toZone(raw: string): { region?: string; department?: string } {
+function toZone(raw: string): { country?: string; region?: string; department?: string } {
+  // Un pays : son code en majuscules (« ES »), ou son nom dans une ancienne saisie (« Espagne »).
+  if (isCountryKey(raw)) return { country: raw };
+  const named = raw.length > 2 ? canonicalCountry(raw) : '';
+  if (isMarket(named)) return { country: named };
+  // Une région d'un des six pays, par son code (« ES-CT », « FR-IDF »).
+  if (isRegionKey(raw.toUpperCase())) return { region: regionStoreKey(raw.toUpperCase()) };
   const f = fold(raw);
   const region = REGION_BY_FOLD.get(f);
   if (region) return { region };
@@ -211,10 +222,12 @@ export function parseBuyerProject(row: BuyerProjectRow | null | undefined): Buye
 
   for (const raw of splitList(row.target_geo)) {
     const z = toZone(raw);
-    if (z.region) p.regions.push(z.region);
+    if (z.country) p.countries.push(z.country);
+    else if (z.region) p.regions.push(z.region);
     else if (z.department) p.departments.push(z.department);
     else p.legacy.zones.push(raw);
   }
+  p.countries = MARKET_CODES.filter((c) => p.countries.includes(c));
   p.regions = uniq(p.regions);
   p.departments = uniq(p.departments);
   p.legacy.zones = uniq(p.legacy.zones);
@@ -254,7 +267,7 @@ export function serializeBuyerProject(p: BuyerProject): Required<{ [K in keyof B
   return {
     buyer_type: p.buyerType || p.legacy.buyerType,
     target_sectors: [...p.sectors, ...p.legacy.sectors].join(','),
-    target_geo: [...p.regions, ...p.departments, ...p.legacy.zones].join(','),
+    target_geo: [...p.countries, ...p.regions, ...p.departments, ...p.legacy.zones].join(','),
     target_budget: p.budget || p.legacy.budget,
     target_revenue: p.revenue || p.legacy.revenue,
     apport: p.apport !== null ? String(Math.round(p.apport)) : p.legacy.apport,
@@ -273,7 +286,7 @@ export function isEmptyProject(p: BuyerProject): boolean {
 // ---------------------------------------------------------------------------
 /** « 80 000 € » */
 export function formatEuros(amount: number, lang = 'fr'): string {
-  return new Intl.NumberFormat(lang, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+  return formatMoney(amount, lang);
 }
 
 /** Saisie d'un montant : chiffres seuls, plafonnés (un apport ne dépasse pas 999 M€). */
@@ -290,9 +303,9 @@ export function formatEurosInput(amount: number | null): string {
 /** « Rhône (69) » */
 export const departmentLabel = (code: string) => `${departmentName(code) || code} (${code})`;
 
-/** Les zones du projet, en clair : régions, puis départements, puis anciennes saisies. */
-export function zoneLabels(p: BuyerProject): string[] {
-  return [...p.regions.map(regionLabel), ...p.departments.map(departmentLabel), ...p.legacy.zones];
+/** Les zones du projet, en clair : pays, régions, puis départements, puis anciennes saisies. */
+export function zoneLabels(p: BuyerProject, lang = 'fr'): string[] {
+  return [...p.countries.map((c) => regionLabel(c, lang)), ...p.regions.map((k) => regionLabel(k, lang)), ...p.departments.map(departmentLabel), ...p.legacy.zones];
 }
 
 /** Budget, CA et apport en clair (l'ancienne saisie libre s'affiche telle qu'écrite). */
@@ -314,7 +327,7 @@ const FIELD_WEIGHTS: [ProjectField, number][] = [
 function isFilled(p: BuyerProject, f: ProjectField): boolean {
   switch (f) {
     case 'sectors': return p.sectors.length + p.legacy.sectors.length > 0;
-    case 'zones': return p.regions.length + p.departments.length + p.legacy.zones.length > 0;
+    case 'zones': return p.countries.length + p.regions.length + p.departments.length + p.legacy.zones.length > 0;
     case 'budget': return !!(p.budget || p.legacy.budget);
     case 'apport': return p.apport !== null || !!p.legacy.apport;
     case 'timeline': return !!p.timeline;
@@ -357,16 +370,17 @@ export function regionOfDepartment(code: string): string {
 
 /** Vrai si le projet donne au moins un critère de recherche. */
 export function hasSearchCriteria(p: BuyerProject): boolean {
-  return p.sectors.length > 0 || p.regions.length > 0 || p.departments.some(regionOfDepartment) || !!p.budget;
+  return p.sectors.length > 0 || p.countries.length > 0 || p.regions.length > 0 || p.departments.some(regionOfDepartment) || !!p.budget;
 }
 
 /**
  * Les critères de la recherche intelligente correspondant au projet. La
- * recherche raisonne par région : un département y entre par sa région.
+ * recherche raisonne par pays et par région : un département français y entre
+ * par sa région.
  * `bounds` : les limites du curseur de budget du formulaire.
  */
 export function toMatchCriteria(p: BuyerProject, bounds: { min: number; max: number } = { min: 5_000, max: 3_000_000 }): MatchCriteria {
-  const regions = uniq([...p.regions, ...p.departments.map(regionOfDepartment).filter(Boolean)]).filter((k) => REGION_KEYS.has(k));
+  const regions = uniq([...p.regions, ...p.departments.map(regionOfDepartment).filter(Boolean)]).filter(isRegionKey);
   let budgetMin = bounds.min;
   let budgetMax = bounds.max;
   const b = rangeBounds(p.budget);
@@ -376,7 +390,7 @@ export function toMatchCriteria(p: BuyerProject, bounds: { min: number; max: num
     budgetMin = Math.max(bounds.min, b.min);
     budgetMax = b.max === null ? bounds.max : Math.min(bounds.max, b.max);
   }
-  return { industries: [...p.sectors], regions, budgetMin, budgetMax };
+  return { industries: [...p.sectors], countries: [...p.countries], regions, budgetMin, budgetMax };
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +419,10 @@ export interface ListingFit {
 export interface FitListing {
   industry?: string | null;
   address?: string | null;
+  /** pays de l'annonce (code ISO) ; absent = France */
+  country?: string | null;
+  /** région de l'annonce (code ISO 3166-2), quand elle est connue */
+  region?: string | null;
   price?: number | string | null;
 }
 
@@ -417,15 +435,24 @@ export function departmentOfAddress(address: string | null | undefined): string 
   return canonicalDepartment(code);
 }
 
-function zoneFit(p: BuyerProject, address: string | null | undefined): FitStatus {
-  const precise = p.regions.length + p.departments.length;
+function zoneFit(p: BuyerProject, listing: FitListing): FitStatus {
+  const precise = p.countries.length + p.regions.length + p.departments.length;
   if (!precise) return p.legacy.zones.length ? 'unknown' : 'open';
-  if (!address || !address.trim()) return 'unknown';
-  if (p.regions.length && matchRegion(address, p.regions)) return 'match';
-  const dep = departmentOfAddress(address);
-  if (dep && p.departments.includes(dep)) return 'match';
-  const a = fold(address);
-  if (p.departments.some((code) => { const n = fold(departmentName(code)); return !!n && new RegExp(`(^|[^a-z])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(a); })) return 'match';
+  const address = listing.address;
+  if ((!address || !address.trim()) && !listing.country && !listing.region) return 'unknown';
+  const country = listingCountry(listing);
+  // Régions (et départements, pour la France) choisis DANS le pays de l'annonce :
+  // l'annonce doit être dans l'un d'eux. Sinon, le pays entier convient s'il est visé.
+  const ownRegions = p.regions.filter((k) => regionCountry(k) === country);
+  const ownDepartments = country === 'FR' ? p.departments : [];
+  if (!ownRegions.length && !ownDepartments.length) return p.countries.includes(country) ? 'match' : 'miss';
+  if (ownRegions.length && matchRegion(listing, ownRegions)) return 'match';
+  if (ownDepartments.length && address) {
+    const dep = departmentOfAddress(address);
+    if (dep && ownDepartments.includes(dep)) return 'match';
+    const a = fold(address);
+    if (ownDepartments.some((code) => { const n = fold(departmentName(code)); return !!n && new RegExp(`(^|[^a-z])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(a); })) return 'match';
+  }
   return 'miss';
 }
 
@@ -436,7 +463,7 @@ export function fitListing(p: BuyerProject, listing: FitListing): ListingFit {
     ? (industry ? (p.sectors.includes(industry) ? 'match' : 'miss') : 'unknown')
     : (p.legacy.sectors.length ? 'unknown' : 'open');
 
-  const zone = zoneFit(p, listing.address);
+  const zone = zoneFit(p, listing);
 
   const price = Number(listing.price);
   const hasPrice = Number.isFinite(price) && price > 0;

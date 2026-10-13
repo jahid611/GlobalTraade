@@ -26,6 +26,8 @@ type Parts = {
   core: Record<string, string>; additions: Record<string, string>; pages: Record<string, string>;
   assistant: Record<string, string>; projects: Record<string, string>; projectform: Record<string, string>;
   radar: Record<string, string>; crm: Record<string, string>; industries: Record<string, string>;
+  account: Record<string, string>; sector: Record<string, string>; dashboard: Record<string, string>;
+  extra: Record<string, string>;
 };
 
 async function loadParts(code: LanguageCode): Promise<Parts> {
@@ -37,21 +39,29 @@ async function loadParts(code: LanguageCode): Promise<Parts> {
       core: await pick(import('./es/core'), 'core'), additions: await pick(import('./es/additions'), 'additions'), pages: await pick(import('./es/pages'), 'pages'),
       assistant: await pick(import('./es/assistant'), 'assistant'), projects: await pick(import('./es/projects'), 'projects'), projectform: await pick(import('./es/projectform'), 'projectform'),
       radar: await pick(import('./es/radar'), 'radar'), crm: await pick(import('./es/crm'), 'crm'), industries: await pick(import('./es/industries'), 'industries'),
+      account: await pick(import('./es/account'), 'account'), sector: await pick(import('./es/sector'), 'sector'), dashboard: await pick(import('./es/dashboard'), 'dashboard'),
+      extra: await pick(import('./es/extra'), 'extra'),
     };
     case 'it': return {
       core: await pick(import('./it/core'), 'core'), additions: await pick(import('./it/additions'), 'additions'), pages: await pick(import('./it/pages'), 'pages'),
       assistant: await pick(import('./it/assistant'), 'assistant'), projects: await pick(import('./it/projects'), 'projects'), projectform: await pick(import('./it/projectform'), 'projectform'),
       radar: await pick(import('./it/radar'), 'radar'), crm: await pick(import('./it/crm'), 'crm'), industries: await pick(import('./it/industries'), 'industries'),
+      account: await pick(import('./it/account'), 'account'), sector: await pick(import('./it/sector'), 'sector'), dashboard: await pick(import('./it/dashboard'), 'dashboard'),
+      extra: await pick(import('./it/extra'), 'extra'),
     };
     case 'pt': return {
       core: await pick(import('./pt/core'), 'core'), additions: await pick(import('./pt/additions'), 'additions'), pages: await pick(import('./pt/pages'), 'pages'),
       assistant: await pick(import('./pt/assistant'), 'assistant'), projects: await pick(import('./pt/projects'), 'projects'), projectform: await pick(import('./pt/projectform'), 'projectform'),
       radar: await pick(import('./pt/radar'), 'radar'), crm: await pick(import('./pt/crm'), 'crm'), industries: await pick(import('./pt/industries'), 'industries'),
+      account: await pick(import('./pt/account'), 'account'), sector: await pick(import('./pt/sector'), 'sector'), dashboard: await pick(import('./pt/dashboard'), 'dashboard'),
+      extra: await pick(import('./pt/extra'), 'extra'),
     };
     case 'de': return {
       core: await pick(import('./de/core'), 'core'), additions: await pick(import('./de/additions'), 'additions'), pages: await pick(import('./de/pages'), 'pages'),
       assistant: await pick(import('./de/assistant'), 'assistant'), projects: await pick(import('./de/projects'), 'projects'), projectform: await pick(import('./de/projectform'), 'projectform'),
       radar: await pick(import('./de/radar'), 'radar'), crm: await pick(import('./de/crm'), 'crm'), industries: await pick(import('./de/industries'), 'industries'),
+      account: await pick(import('./de/account'), 'account'), sector: await pick(import('./de/sector'), 'sector'), dashboard: await pick(import('./de/dashboard'), 'dashboard'),
+      extra: await pick(import('./de/extra'), 'extra'),
     };
     default: throw new Error(`Langue non prise en charge : ${code}`);
   }
@@ -70,5 +80,8 @@ export async function loadLanguageBundle(code: LanguageCode, industriesFr: Recor
     sectors[`industry.${english}`] = label;
     sectors[`industry.${french}`] = label;
   }
-  return { ...p.core, ...sectors, ...p.additions, ...p.pages, ...p.assistant, ...p.projects, ...p.projectform, ...p.radar, ...p.crm };
+  return {
+    ...p.core, ...sectors, ...p.additions, ...p.pages, ...p.assistant, ...p.projects, ...p.projectform, ...p.radar, ...p.crm,
+    ...p.dashboard, ...p.sector, ...p.account, ...p.extra,
+  };
 }

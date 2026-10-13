@@ -1,5 +1,19 @@
-// Régions de France (métropole) + mots-clés pour matcher une adresse d'annonce.
-// Partagé par les filtres Marketplace, la Smart Search et le moteur de matching.
+// Zones géographiques de la recherche : pays, régions, et correspondance avec une annonce.
+// Partagé par les filtres Marketplace, la Smart Search, le projet de reprise et le moteur de matching.
+//
+// Les règles par pays (liste des régions, codes ISO) vivent dans `markets.ts` ;
+// ce fichier ne garde que les mots-clés des régions FRANÇAISES, qui servent
+// encore pour les annonces françaises d'avant le multi-pays (pas de `region`).
+//
+// CE QUI EST ENREGISTRÉ dans une liste de zones (`target_geo`, `search_ads.regions`,
+// filtres) : des clés de texte, dans le même tableau.
+//   - un pays      : son code ISO à deux lettres en majuscules (« ES ») ;
+//   - une région française : son ancienne clé (« idf »), comme avant, pour que
+//     tous les lecteurs existants continuent de la comprendre (« FR-IDF » est lu aussi) ;
+//   - une région d'un autre pays : son code ISO 3166-2 (« ES-CT »).
+import { MARKET_CODES, MARKETS, isMarket, legacyFrRegionKey, marketRegionLabel, regionCountry, regionIso } from './markets';
+import { countryLabel } from './countries';
+
 export interface RegionDef {
   key: string;
   label: string;
@@ -24,14 +38,149 @@ export const FR_REGIONS: RegionDef[] = [
 
 const BY_KEY: Record<string, RegionDef> = Object.fromEntries(FR_REGIONS.map((r) => [r.key, r]));
 
-export function regionLabel(key: string): string {
-  return BY_KEY[key]?.label || key;
+/** Tous les codes ISO de région connus (les six pays). */
+const ALL_REGION_ISO = new Set<string>(MARKET_CODES.flatMap((c) => MARKETS[c].regions.map((r) => r.key)));
+
+/** « ES », « FR »… : un des pays ouverts sur Globly, écrit en majuscules. */
+export const isCountryKey = (key: string | null | undefined): boolean =>
+  !!key && /^[A-Z]{2}$/.test(key) && isMarket(key);
+
+/** « idf », « FR-IDF », « ES-CT »… : une région connue, sous son ancienne clé ou son code ISO. */
+export const isRegionKey = (key: string | null | undefined): boolean => !!key && ALL_REGION_ISO.has(regionIso(key));
+
+/** La clé à ENREGISTRER pour une région : ancienne clé pour la France (« idf »), code ISO ailleurs (« ES-CT »). */
+export const regionStoreKey = (key: string): string => legacyFrRegionKey(key) || regionIso(key);
+
+/**
+ * Nom d'une zone enregistrée : une région (« idf », « ES-CT ») ou un pays (« ES »).
+ * Une valeur inconnue est rendue telle quelle.
+ */
+export function regionLabel(key: string, lang = 'fr'): string {
+  if (BY_KEY[key]) return BY_KEY[key].label;
+  if (isCountryKey(key)) return countryLabel(key, lang);
+  return marketRegionLabel(key);
 }
 
-// Vrai si l'adresse correspond à AU MOINS une des régions sélectionnées.
-// Liste vide = aucune contrainte géographique (tout passe).
-export function matchRegion(address: string | null | undefined, keys: string[]): boolean {
-  if (!keys || keys.length === 0) return true;
-  const a = (address || "").toLowerCase();
-  return keys.some((k) => BY_KEY[k]?.keywords.some((kw) => a.includes(kw)));
+/** Sépare une liste de zones enregistrées : pays, régions, et le reste (départements, ancien texte libre). */
+export function splitGeoKeys(keys: readonly string[] | null | undefined): { countries: string[]; regions: string[]; others: string[] } {
+  const out = { countries: [] as string[], regions: [] as string[], others: [] as string[] };
+  for (const k of keys || []) {
+    if (isCountryKey(k)) out.countries.push(k);
+    else if (isRegionKey(k)) out.regions.push(regionStoreKey(k));
+    else out.others.push(k);
+  }
+  return out;
 }
+
+// ---------------------------------------------------------------------------
+// Listes de choix (formulaires)
+// ---------------------------------------------------------------------------
+/** Les six pays, la France en tête, nommés dans la langue affichée. */
+export function marketCountryOptions(lang = 'fr'): { value: string; label: string }[] {
+  return MARKET_CODES.map((c) => ({ value: c as string, label: countryLabel(c, lang) }));
+}
+
+/**
+ * Les régions proposées pour les pays choisis, rangées pays par pays. Aucun
+ * pays choisi : tous les pays. Dès que plusieurs pays sont proposés, le nom du
+ * pays précède celui de la région (« Espagne · Cataluña »).
+ */
+export function regionOptionsFor(countries: readonly string[] | null | undefined, lang = 'fr'): { value: string; label: string }[] {
+  const wanted = (countries || []).filter(isCountryKey);
+  const scope = MARKET_CODES.filter((c) => !wanted.length || wanted.includes(c));
+  const prefix = scope.length > 1;
+  return scope.flatMap((c) => MARKETS[c].regions.map((r) => ({
+    value: regionStoreKey(r.key),
+    label: prefix ? `${countryLabel(c, lang)} · ${r.label}` : r.label,
+  })));
+}
+
+/** Retire les régions qui n'appartiennent plus aux pays choisis (aucun pays choisi : on garde tout). */
+export function pruneRegions(regions: readonly string[], countries: readonly string[]): string[] {
+  const wanted = countries.filter(isCountryKey);
+  return wanted.length ? regions.filter((k) => wanted.includes(regionCountry(k))) : [...regions];
+}
+
+/**
+ * Nouveau choix de pays dans un filtre ou un formulaire : les régions d'un pays
+ * retiré sont retirées avec lui (aucun pays choisi = tous les pays, les régions restent).
+ */
+export const withCountries = <F extends { countries: string[]; regions: string[] }>(filters: F, countries: string[]): F =>
+  ({ ...filters, countries, regions: pruneRegions(filters.regions, countries) });
+
+// ---------------------------------------------------------------------------
+// Une annonce est-elle dans la zone choisie ?
+// ---------------------------------------------------------------------------
+/** Ce qu'il faut connaître d'une annonce pour la situer. */
+export interface GeoListing {
+  country?: string | null;
+  region?: string | null;
+  address?: string | null;
+}
+
+/** Pays d'une annonce (les annonces d'avant le multi-pays, sans pays, sont françaises). */
+export const listingCountry = (listing: GeoListing | null | undefined): string => (listing?.country || 'FR').trim().toUpperCase();
+
+/**
+ * Vrai si l'annonce est dans CETTE région. Le pays de l'annonce doit être celui
+ * de la région ; ensuite la région enregistrée sur l'annonce fait foi. Seules
+ * les annonces françaises sans région (publiées avant le multi-pays) sont
+ * encore situées par les mots de leur adresse.
+ */
+export function listingInRegion(listing: GeoListing | null | undefined, key: string): boolean {
+  if (!listing || !isRegionKey(key)) return false;
+  const iso = regionIso(key);
+  if (listingCountry(listing) !== regionCountry(iso)) return false;
+  const own = (listing.region || '').trim();
+  if (own) return regionIso(own) === iso || regionIso(own.toUpperCase()) === iso;
+  const legacy = legacyFrRegionKey(iso);
+  if (!legacy) return false;
+  const a = (listing.address || '').toLowerCase();
+  return !!a && BY_KEY[legacy].keywords.some((kw) => a.includes(kw));
+}
+
+/**
+ * Vrai si l'annonce est dans AU MOINS une des régions sélectionnées.
+ * Liste vide = aucune contrainte géographique (tout passe).
+ * Reçoit l'annonce ; une simple adresse (ancien appel) est lue comme une
+ * annonce française sans région.
+ */
+export function matchRegion(listing: GeoListing | string | null | undefined, keys: string[]): boolean {
+  if (!keys || keys.length === 0) return true;
+  const l: GeoListing = typeof listing === 'string' ? { address: listing } : (listing || {});
+  return keys.some((k) => listingInRegion(l, k));
+}
+
+/**
+ * Pays et régions ensemble. Aucun des deux : tout passe. Sinon l'annonce doit
+ * être dans un pays visé (choisi, ou pays d'une région choisie) ; si des
+ * régions de SON pays sont choisies, elle doit être dans l'une d'elles, sinon
+ * tout le pays convient.
+ */
+export function matchGeo(listing: GeoListing | null | undefined, zone: { countries?: readonly string[] | null; regions?: readonly string[] | null }): boolean {
+  const countries = (zone.countries || []).map((c) => c.toUpperCase());
+  const regions = (zone.regions || []).filter(isRegionKey);
+  if (!countries.length && !(zone.regions || []).length) return true;
+  const country = listingCountry(listing);
+  const own = regions.filter((k) => regionCountry(k) === country);
+  if (own.length) return own.some((k) => listingInRegion(listing, k));
+  return countries.includes(country);
+}
+
+// ---------------------------------------------------------------------------
+// Le pays du visiteur (pour savoir quand afficher le pays d'une annonce)
+// ---------------------------------------------------------------------------
+/**
+ * Le pays « de chez soi » d'un visiteur, d'après la langue du site : français,
+ * la France ; espagnol, l'Espagne… L'anglais sert à des visiteurs de partout :
+ * aucun pays de référence, le pays de chaque annonce est alors toujours affiché.
+ */
+export function homeCountryFor(language: string | null | undefined): string | null {
+  const lang = (language || 'fr').slice(0, 2).toLowerCase();
+  if (lang === 'en') return null;
+  return MARKET_CODES.find((c) => MARKETS[c].language === lang) ?? 'FR';
+}
+
+/** Faut-il écrire le pays de cette annonce pour ce visiteur ? */
+export const showsCountry = (listing: GeoListing | null | undefined, language: string | null | undefined): boolean =>
+  listingCountry(listing) !== homeCountryFor(language);

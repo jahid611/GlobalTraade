@@ -11,7 +11,7 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { Dropdown } from "@/components/PickerKit";
 import { ChoicePill, Field, inputCls, dropdownButtonCls } from "@/components/settings/ui";
 import { industryOptions } from "@/lib/industries";
-import { FR_REGIONS } from "@/lib/geoRegions";
+import { marketCountryOptions, pruneRegions, regionOptionsFor } from "@/lib/geoRegions";
 import { DEPARTMENTS } from "@/lib/departments";
 import { AMOUNT_RANGE_OPTIONS, type AmountRange } from "@/lib/ranges";
 import { rangeBounds } from "@/lib/rangeBounds";
@@ -59,7 +59,10 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
   const setLegacy = (patch: Partial<BuyerProject["legacy"]>) => ({ ...value.legacy, ...patch });
 
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
-  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
+  const countryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
+  const regionOptions = useMemo(() => regionOptionsFor(value.countries, i18n.language), [value.countries, i18n.language]);
+  // Les départements sont français : on ne les propose que si la France est visée.
+  const franceInScope = value.countries.length === 0 || value.countries.includes("FR");
   const departmentOptions = useMemo(() => DEPARTMENTS.map((d) => ({ value: d.code, label: departmentLabel(d.code) })), []);
   const any = t("bp.not_set", "Non précisé") as string;
   const amountOptions = useMemo(() => [{ value: "", label: any }, ...AMOUNT_RANGE_OPTIONS], [any]);
@@ -118,22 +121,44 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
-        label={t("bp.q_regions", "Dans quelles régions ?")}
-        hint={t("bp.q_regions_hint", "Laissez vide si vous cherchez dans toute la France.")}
+        className="xl:col-span-2"
+        label={t("bp.q_countries", "Dans quels pays ?")}
+        hint={t("bp.q_countries_hint", "Choisissez un ou plusieurs pays. Laissez vide si tous les pays vous conviennent.")}
       >
         <MultiSelect
-          options={regionOptions}
-          selected={value.regions}
-          onChange={(v) => set({ regions: v })}
-          placeholder={t("bp.regions_ph", "Toute la France") as string}
+          options={countryOptions}
+          selected={value.countries}
+          onChange={(v) => set({
+            countries: v,
+            // un pays retiré emporte ses régions ; sans la France, plus de départements
+            regions: pruneRegions(value.regions, v),
+            departments: v.length === 0 || v.includes("FR") ? value.departments : [],
+          })}
+          searchable={false}
+          placeholder={t("bp.countries_ph", "Tous les pays") as string}
           className="!rounded-2xl !border-white/15"
         />
       </Field>
 
       <Field
+        className={franceInScope ? "" : "xl:col-span-2"}
+        label={t("bp.q_regions", "Dans quelles régions ?")}
+        hint={t("bp.q_regions_hint_multi", "Les régions des pays choisis. Laissez vide si tout le pays vous convient.")}
+      >
+        <MultiSelect
+          options={regionOptions}
+          selected={value.regions}
+          onChange={(v) => set({ regions: v })}
+          placeholder={t("bp.regions_ph_all", "Toutes les régions") as string}
+          className="!rounded-2xl !border-white/15"
+        />
+      </Field>
+
+      {franceInScope && (
+      <Field
         label={t("bp.q_departments", "Des départements précis ?")}
         optional
-        hint={t("bp.q_departments_hint", "Pour viser plus fin qu'une région, ou l'outre-mer.")}
+        hint={t("bp.q_departments_hint_fr", "En France seulement : pour viser plus fin qu'une région, ou l'outre-mer.")}
       >
         <MultiSelect
           options={departmentOptions}
@@ -143,6 +168,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
           className="!rounded-2xl !border-white/15"
         />
       </Field>
+      )}
 
       {value.legacy.zones.length > 0 && (
         <div className="xl:col-span-2 -mt-4">

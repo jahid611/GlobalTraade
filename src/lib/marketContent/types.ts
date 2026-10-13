@@ -21,7 +21,7 @@ export interface DdItem {
   /** identifiant stable, ex. « es_gov_1 » */
   id: string;
   category: DdCategory;
-  /** nom du document tel qu'on le demande dans le pays (« Nota simple del Registro Mercantil ») */
+  /** nom du document tel qu'on le demande dans le pays (« Nota informativa mercantil ») */
   localName: string;
   /** ce que c'est et pourquoi on le demande, en une phrase */
   what: Localized;

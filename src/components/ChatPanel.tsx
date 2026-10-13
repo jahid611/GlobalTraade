@@ -12,7 +12,6 @@ import { generateLOI } from '@/utils/loiGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { format, isToday, isYesterday } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +20,8 @@ import { DealTimeline } from '@/components/DealTimeline';
 import type { ChatMessage, OfferMetadata } from '@/types/domain';
 import { OfferCard } from '@/components/messaging/OfferCard';
 import { OFFER_MIN_PCT, OFFER_MAX_PCT, isOfferMessage } from '@/lib/offers';
+import { formatMoney } from '@/lib/markets';
+import { dateLocaleFor } from '@/lib/dateLocale';
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -379,7 +380,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
     }
   };
 
-  const dateLocale = i18n.language === 'fr' ? fr : enUS;
+  const dateLocale = dateLocaleFor(i18n.language);
 
   const formatMessageDate = (date: string) => {
     const d = new Date(date);
@@ -576,7 +577,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
                   const max = Math.round(price * OFFER_MAX_PCT);
                   const amount = Number(String(offerAmount).replace(/\D/g, '')) || 0;
                   const pct = Math.round((amount / price) * 100);
-                  const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+                  const fmt = (v: number) => formatMoney(v, i18n.language);
                   return (
                     <div>
                       <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/50 mb-3 font-medium">

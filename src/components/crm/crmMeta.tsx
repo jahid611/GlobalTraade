@@ -3,7 +3,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { format, formatDistanceToNow, differenceInCalendarDays } from "date-fns";
-import { fr, enUS } from "date-fns/locale";
 import {
   Flame, Sparkles, Crosshair, StickyNote, Phone, Mail, CalendarDays, ArrowRightLeft, CheckSquare, Zap,
   ChevronsUp, ChevronsDown, Minus, Clock, AlertTriangle,
@@ -11,6 +10,8 @@ import {
 import { STATUS_META, type ProspectPriority, type ProspectStatus } from "@/services/prospectService";
 import type { ActivityType } from "@/services/crmService";
 import { dueState } from "@/lib/crm";
+import { localeFor } from "@/lib/markets";
+import { dateLocaleFor } from "@/lib/dateLocale";
 
 // tailwind.config.ts remappe emerald/red/amber/blue… sur des violets : les vraies
 // couleurs (étapes, priorités, retard, succès) passent par des styles inline.
@@ -89,8 +90,9 @@ export function useStatusLabel() {
 export function useCrmFormat() {
   const { i18n } = useTranslation();
   const en = !!i18n.language?.startsWith("en");
-  const locale = en ? enUS : fr;
-  const intl = en ? "en-GB" : "fr-FR";
+  const french = (i18n.language || "fr").startsWith("fr");
+  const locale = dateLocaleFor(i18n.language);
+  const intl = localeFor(i18n.language);
   const safe = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? null : d;
@@ -102,7 +104,7 @@ export function useCrmFormat() {
       new Intl.NumberFormat(intl, { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(n),
     day: (iso: string) => { const d = safe(iso); return d ? format(d, "d MMM yyyy", { locale }) : ""; },
     shortDay: (iso: string) => { const d = safe(iso); return d ? format(d, "d MMM", { locale }) : ""; },
-    dayTime: (iso: string) => { const d = safe(iso); return d ? format(d, en ? "d MMM yyyy, HH:mm" : "d MMM yyyy 'à' HH:mm", { locale }) : ""; },
+    dayTime: (iso: string) => { const d = safe(iso); return d ? format(d, french ? "d MMM yyyy 'à' HH:mm" : "d MMM yyyy, HH:mm", { locale }) : ""; },
     ago: (iso: string) => { const d = safe(iso); return d ? formatDistanceToNow(d, { addSuffix: true, locale }) : ""; },
     /** valeur d'un <input type="date"> */
     inputDay: (iso: string | null | undefined) => { const d = iso ? safe(iso) : null; return d ? format(d, "yyyy-MM-dd") : ""; },

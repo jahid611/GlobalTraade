@@ -271,5 +271,47 @@
     "type": "image",
     "model": "gpt_image_2_5",
     "date": "2026-10-13"
+  },
+  {
+    "file": "formule-logo-gratuite.png",
+    "prompt": "D'après le logo Globly (rubans mats lavande à indigo, sans lueur ni doré) : emblème de niveau 1 sur 3, un seul ruban courbé en arc ouvert, le début de la sphère. Fond transparent.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
+  },
+  {
+    "file": "formule-logo-pro.png",
+    "prompt": "D'après le logo Globly (rubans mats lavande à indigo, sans lueur ni doré) : emblème de niveau 2 sur 3, trois rubans formant la moitié de la sphère. Fond transparent.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
+  },
+  {
+    "file": "formule-logo-business.png",
+    "prompt": "D'après le logo Globly (rubans mats lavande à indigo) : emblème de niveau 3 sur 3, la sphère complète entourée d'un anneau plat comme celui de Saturne, en or satiné brossé, bien centré, sans paillettes ni lueur. Fond transparent.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
+  },
+  {
+    "file": "formule-carte-gratuite.png",
+    "prompt": "D'après le logo Globly : fond vertical de carte de formule, niveau 1 sur 3, un seul ruban mat lavande en haut ; le reste très sombre et uni, libre pour le texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
+  },
+  {
+    "file": "formule-carte-pro.png",
+    "prompt": "D'après le logo Globly : fond vertical de carte de formule, niveau 2 sur 3, trois rubans mats lavande à indigo en haut ; le reste très sombre et uni, libre pour le texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
+  },
+  {
+    "file": "formule-carte-business.png",
+    "prompt": "D'après le logo Globly : fond vertical de carte de formule, niveau 3 sur 3, le haut de la sphère de rubans en dôme avec un fin anneau lavande ; le reste très sombre et uni, libre pour le texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-13"
   }
 ]

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PageTitle } from '@/components/PageTitle';
 import type { Listing } from '@/types/domain';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle, ArrowRight } from 'phosphor-react';
@@ -38,6 +38,7 @@ import { DashboardTodo, type TodoItem } from '@/components/dashboard/DashboardTo
 import { DashboardTabs, type DashTab, type DashTabDef } from '@/components/dashboard/DashboardTabs';
 import { MyListingCard } from '@/components/dashboard/MyListingCard';
 import { PanelHeader, SubTitle, EmptyState, ShowAllGrid, DASH_GRID, primaryBtn, outlineBtn } from '@/components/dashboard/DashboardBits';
+import { formatDate } from '@/lib/markets';
 
 initNativeFeel();
 
@@ -51,6 +52,7 @@ const listVal = (v: unknown): string[] =>
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
 
@@ -59,7 +61,10 @@ export default function Dashboard() {
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [listingToEdit, setListingToEdit] = useState<any>(null);
   // Rubrique choisie par l'utilisateur (null = celle proposée par défaut).
-  const [tab, setTab] = useState<DashTab | null>(null);
+  // La carte peut en demander une à l'arrivée (légende « Mes favoris »).
+  const [tab, setTab] = useState<DashTab | null>(
+    location.state?.tab === 'favorites' ? 'favorites' : null,
+  );
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['dashboard', user?.id, JSON.stringify(user?.user_metadata)],
@@ -153,6 +158,16 @@ export default function Dashboard() {
     setListingToDelete(null);
   };
 
+  // Arrivée depuis la carte sur une rubrique précise : on descend jusqu'à elle,
+  // une seule fois, quand les données sont là (sinon la page n'a pas sa hauteur).
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const cameForTab = useRef(location.state?.tab === 'favorites');
+  useEffect(() => {
+    if (!cameForTab.current || isLoading || !tabsRef.current) return;
+    cameForTab.current = false;
+    tabsRef.current.scrollIntoView({ block: 'start' });
+  }, [isLoading]);
+
   // La requête a échoué et rien n'est en cache : état d'erreur avec « Réessayer »
   // (et non un squelette qui ne se termine jamais).
   if (isError && !data) {
@@ -243,7 +258,7 @@ export default function Dashboard() {
     if (!l.inactive_since) return '';
     const d = new Date(l.inactive_since);
     d.setDate(d.getDate() + 30);
-    return d.toLocaleDateString();
+    return formatDate(d, i18n.language, 'short');
   };
 
   const isPremium = normalizePlan(profile?.plan_type) !== 'free';
@@ -380,7 +395,7 @@ export default function Dashboard() {
         />
 
         {/* 3. Le détail : une rubrique à la fois */}
-        <div className="mb-8">
+        <div ref={tabsRef} className="mb-8 scroll-mt-[120px] sm:scroll-mt-[140px]">
           <DashboardTabs tabs={tabs} tab={activeTab} onChange={setTab} />
         </div>
 
@@ -422,7 +437,7 @@ export default function Dashboard() {
                         onEdit={() => { setListingToEdit(listing); setIsEditFormOpen(true); }}
                         onDelete={() => setListingToDelete(listing)}
                         onBoost={isBoosted(listing) ? undefined : () => navigate(`/payment?boost=listing:${listing.id}&name=${encodeURIComponent(listing.name || '')}`)}
-                        onDownloadPdf={isPremium ? async () => { await generatePremiumPresentation(listing, t, i18n.language?.startsWith('en') ? 'en' : 'fr'); } : undefined}
+                        onDownloadPdf={isPremium ? async () => { await generatePremiumPresentation(listing, t, i18n.language); } : undefined}
                       />
                     )}
                   />

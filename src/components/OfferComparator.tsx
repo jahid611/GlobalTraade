@@ -9,6 +9,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { useTranslation } from 'react-i18next';
 import { financingKind, type FinancingKind } from '@/lib/offers';
 import type { OfferMetadata } from '@/types/domain';
+import { formatMoney } from '@/lib/markets';
 
 interface Offer {
   id: string;
@@ -120,7 +121,7 @@ export function OfferComparator({ listingId, listingPrice, sellerId }: OfferComp
   if (loading || offers.length < 2) return null;
 
   const bestOffer = scored[0];
-  const fmt = (v: number) => new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const fmt = (v: number) => formatMoney(v, i18n.language);
   // Toujours une chaîne : rendre l'objet { loan, equity } tel quel faisait
   // planter React (et tout le Dashboard avec).
   const financingLabel = (kind: FinancingKind) =>

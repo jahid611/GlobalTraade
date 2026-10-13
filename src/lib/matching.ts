@@ -1,8 +1,9 @@
 // Moteur de pertinence (matching) Globly — calcul réel, local, déterministe.
 // Note chaque annonce sur 0–100 selon les critères de recherche (SmartMatch)
 // + les critères d'investissement du profil (target_sectors / target_geo).
+// Le pays de l'annonce compte : une région ne correspond qu'à une annonce de son pays.
 import type { MatchCriteria } from "@/components/SmartMatchForm";
-import { matchRegion } from "@/lib/geoRegions";
+import { matchGeo, splitGeoKeys } from "@/lib/geoRegions";
 import type { Listing } from "@/types/domain";
 
 export interface ProfileCriteria {
@@ -56,13 +57,17 @@ export function scoreListing(listing: Listing, c: MatchCriteria, profile?: Profi
     pts += 12; // prix sous la fourchette
   }
 
-  // 3) Région — poids 20 (multi-sélection ; vide = pas de contrainte géo)
+  // 3) Zone — poids 20 (pays et régions, multi-sélection ; vide = pas de contrainte géo).
+  // Une région ne vaut que pour une annonce de son pays : voir `matchGeo`.
   max += 20;
-  if (!c.regions || c.regions.length === 0) {
+  const countries = c.countries || [];
+  const regions = c.regions || [];
+  if (countries.length === 0 && regions.length === 0) {
     pts += 14;
-  } else if (matchRegion(listing.address, c.regions)) {
+  } else if (matchGeo(listing, { countries, regions })) {
     pts += 20;
-    reasons.push("region");
+    // « region » : une région choisie correspond ; « country » : seul le pays est demandé.
+    reasons.push(matchGeo(listing, { regions }) && regions.length ? "region" : "country");
   } else {
     pts += 4;
   }
@@ -87,10 +92,14 @@ export function scoreListing(listing: Listing, c: MatchCriteria, profile?: Profi
       reasons.push("profile_sector");
     }
   }
-  if (profile?.target_geo && listing.address) {
-    const addr = listing.address.toLowerCase();
-    const tokens = profile.target_geo.toLowerCase().split(/[,;/]+/).map((s) => s.trim()).filter((s) => s.length > 2);
-    if (tokens.some((tk) => addr.includes(tk))) {
+  if (profile?.target_geo) {
+    // Le projet enregistre des pays (« ES »), des régions (« idf », « ES-CT ») et,
+    // pour les anciennes saisies, du texte libre cherché dans l'adresse.
+    const zone = splitGeoKeys(profile.target_geo.split(/[,;/]+/).map((s) => s.trim()).filter(Boolean));
+    const addr = (listing.address || "").toLowerCase();
+    const words = zone.others.map((s) => s.toLowerCase()).filter((s) => s.length > 2);
+    const inZone = (zone.countries.length + zone.regions.length > 0) && matchGeo(listing, zone);
+    if (inZone || (!!addr && words.some((tk) => addr.includes(tk)))) {
       bonus += 4;
       reasons.push("profile_geo");
     }

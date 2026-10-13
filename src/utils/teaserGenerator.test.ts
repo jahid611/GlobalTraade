@@ -56,6 +56,22 @@ describe('teaser anonyme', () => {
     if (process.env.PDF_OUT && lang === 'fr') writeFileSync(process.env.PDF_OUT, Buffer.from(bytes));
   });
 
+  it('écrit en anglais pour une langue sans texte propre, avec les nombres de cette langue', async () => {
+    const { filename } = await buildBlindTeaser(listing, t, 'de');
+    const all = written.join(' ');
+    expect(filename).toMatch(/^Teaser_Project_[A-Z]+\.pdf$/);
+    expect(all).toContain('Acquisition Opportunity');
+    expect(all).not.toContain("Opportunité d'Acquisition");
+    expect(all).toContain('420.000 €'); // nombres à l'allemande
+    written.length = 0;
+    await buildBlindTeaser(listing, t, 'en');
+    expect(written.join(' ')).toContain('€420,000');
+    written.length = 0;
+    await buildBlindTeaser(listing, t, 'fr');
+    expect(written.join(' ')).toContain('420 000 €');
+    expect(written.join(' ')).toContain("Opportunité d'Acquisition");
+  });
+
   it("ne laisse passer ni le nom ni l'adresse de l'entreprise", async () => {
     await buildBlindTeaser(listing, t, 'fr');
     const all = written.join(' ');

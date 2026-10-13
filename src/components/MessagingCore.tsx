@@ -14,6 +14,7 @@ import { ConversationList } from './messaging/ConversationList';
 import { ChatWindow } from './messaging/ChatWindow';
 import type { ChatMessage, Conversation, OfferMetadata } from '@/types/domain';
 import { OFFER_MIN_PCT, OFFER_MAX_PCT, isPurchaseOfferMessage } from '@/lib/offers';
+import { formatMoney } from '@/lib/markets';
 
 interface MessagingCoreProps {
   variant?: 'full' | 'sidebar';
@@ -595,7 +596,7 @@ export function MessagingCore({ variant = 'full', onClose }: MessagingCoreProps)
                     const max = Math.round(price * OFFER_MAX_PCT);
                     const amount = Number(offerAmount) || 0;
                     const pct = price > 0 ? Math.round((amount / price) * 100) : 0;
-                    const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+                    const fmt = (v: number) => formatMoney(v, i18n.language);
                     return (
                       <div>
                         <label className="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/60 font-medium mb-3 pl-1">

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { generateLOI } from '@/utils/loiGenerator';
 import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '@/types/domain';
+import { formatMoney } from '@/lib/markets';
 
 interface OfferCardProps {
   msg: ChatMessage;
@@ -30,9 +31,7 @@ export function OfferCard({ msg, isMine, contactName, loi, onOfferAction, pendin
 
   const formattedAmount = isNeedOffer && isNaN(Number(amount))
     ? amount
-    : new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
-      style: 'currency', currency: 'EUR', maximumFractionDigits: 0
-    }).format(Number(amount));
+    : formatMoney(Number(amount), i18n.language);
 
   return (
     <div className={`w-full max-w-sm rounded-[1.5rem] p-5 border transition-all duration-500 hover:shadow-xl text-white ${

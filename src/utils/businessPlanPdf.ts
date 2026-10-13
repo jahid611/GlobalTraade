@@ -1,5 +1,6 @@
 // Business plan d'un projet, en PDF, sur le gabarit commun (voir pdfTemplate).
-import { createGloblyPdf, pdfFileName, type GloblyPdf } from './pdfTemplate';
+import { createGloblyPdf, pdfFileName, pdfTextLang, type GloblyPdf } from './pdfTemplate';
+import { formatDate } from '@/lib/markets';
 
 export interface BusinessPlanPdfParams {
   projectTitle: string;
@@ -13,9 +14,9 @@ const noLongDash = (text: string) => text.replace(/[\u2013\u2014]/g, '-');
 
 /** Construit le business plan, sans l'enregistrer. */
 export async function buildBusinessPlanPdf(p: BusinessPlanPdfParams): Promise<GloblyPdf> {
-  const fr = !(p.lang || 'fr').startsWith('en');
+  const fr = pdfTextLang(p.lang) === 'fr';
   const filled = p.sections.filter((section) => (section.content || '').trim());
-  const date = new Date().toLocaleDateString(fr ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const date = formatDate(new Date(), p.lang, 'long');
 
   const pdf = await createGloblyPdf({
     kind: 'Business plan',

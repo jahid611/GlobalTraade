@@ -109,6 +109,7 @@ const NEAR_MAX = 7;
 const CLUSTER_PAGE = 20;
 /** rose des favoris (points, pastille des groupes, légende) */
 import { FAVORITE_COLOR } from './FavoriteHeart';
+import { formatMoney } from '@/lib/markets';
 export { FAVORITE_COLOR };
 /** deux entreprises plus proches que ça à l'écran (px) sont regroupées */
 const CLUSTER_RADIUS_PX = 20;
@@ -148,8 +149,7 @@ function placeFor(el: HTMLElement | null, width: number): Placement {
 // dans une fenêtre d'ordinateur étroite).
 function PinHoverCard({ listing, isMine, place }: { listing: ListingNode; isMine: boolean; place: Placement }) {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
-  const money = (v: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const money = (v: number) => formatMoney(v, i18n.language);
   const sector = listing.industry ? (t(`industry.${listing.industry}`, { defaultValue: listing.industry }) as string) : '';
   const facts: { label: string; value: string }[] = [];
   if (listing.revenue_n1) facts.push({ label: t('globe.hover_revenue', "Chiffre d'affaires") as string, value: money(listing.revenue_n1) });
@@ -238,8 +238,7 @@ function NearbyList({ items, onSelect, total, touch, place, onLoadMore, favorite
   touch?: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
-  const money = (v: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  const money = (v: number) => formatMoney(v, i18n.language);
   // Faire défiler la liste ne doit ni zoomer ni faire tourner le globe. Les
   // commandes de la carte écoutent le conteneur 3D en direct : il faut arrêter
   // l'événement sur l'élément lui-même (le onWheel de React arriverait trop tard).

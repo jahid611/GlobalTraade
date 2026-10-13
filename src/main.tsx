@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
-import "./i18n";
+import { languageReady } from "./i18n";
 import { initMonitoring } from "./monitoring";
 import { initNative } from "./native";
 
@@ -10,4 +10,10 @@ initMonitoring();
 // Initialisation native (no-op hors app Capacitor)
 initNative();
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Une langue téléchargée (espagnol, italien, portugais, allemand) est attendue
+// avant le premier affichage, pour ne pas montrer du français puis basculer.
+// L'attente est plafonnée : sur un réseau lent, le site s'affiche quand même
+// et passe dans la langue dès que ses textes arrivent.
+const LANGUAGE_WAIT_MS = 1500;
+Promise.race([languageReady, new Promise<void>((resolve) => setTimeout(resolve, LANGUAGE_WAIT_MS))])
+  .finally(() => createRoot(document.getElementById("root")!).render(<App />));

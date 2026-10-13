@@ -7,14 +7,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { industryOptions } from "@/lib/industries";
-import { FR_REGIONS } from "@/lib/geoRegions";
+import { marketCountryOptions, regionOptionsFor, withCountries } from "@/lib/geoRegions";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useTranslation } from "react-i18next";
 
 export interface FilterState {
   industries: string[];
-  regions: string[];      // clés de région (geoRegions)
+  /** codes de pays (« ES ») ; vide = tous les pays */
+  countries: string[];
+  regions: string[];      // clés de région (geoRegions) : « idf », « ES-CT »
   priceMin: string;
   priceMax: string;
   revenueMin: string;
@@ -80,7 +82,8 @@ export function AdvancedFilters({ isOpen, onClose, filters, setFilters, onReset,
   const labelClass = "text-xs font-semibold uppercase tracking-widest text-white/50 mb-2 max-sm:mb-2.5 block mt-6 max-sm:mt-7";
 
   const sectorOptions = industryOptions(t, i18n.language);
-  const regionOptions = FR_REGIONS.map((r) => ({ value: r.key, label: r.label }));
+  const countryOptions = marketCountryOptions(i18n.language);
+  const regionOptions = regionOptionsFor(filters.countries, i18n.language);
 
   const chipClass = (active: boolean) => `px-4 py-2 max-sm:py-2.5 rounded-full text-xs max-sm:text-sm border transition-all ${
     active
@@ -155,9 +158,13 @@ export function AdvancedFilters({ isOpen, onClose, filters, setFilters, onReset,
               <label className={labelClass}>{t("filters.industry", "Secteurs")}</label>
               <MultiSelect options={sectorOptions} selected={filters.industries} onChange={(v) => set("industries", v)} className="max-sm:bg-white/[0.09] max-sm:border-white/30 max-sm:min-h-[52px]" placeholder={t("filters.all_sectors", "Tous les secteurs") as string} />
 
-              {/* Régions (multi) */}
+              {/* Pays (multi) : aucun choix = tous les pays */}
+              <label className={labelClass}>{t("filters.country", "Pays")}</label>
+              <MultiSelect options={countryOptions} selected={filters.countries} onChange={(v) => setFilters(withCountries(filters, v))} searchable={false} className="max-sm:bg-white/[0.09] max-sm:border-white/30 max-sm:min-h-[52px]" placeholder={t("filters.all_countries", "Tous les pays") as string} />
+
+              {/* Régions (multi) : celles des pays choisis */}
               <label className={labelClass}>{t("filters.region", "Régions")}</label>
-              <MultiSelect options={regionOptions} selected={filters.regions} onChange={(v) => set("regions", v)} className="max-sm:bg-white/[0.09] max-sm:border-white/30 max-sm:min-h-[52px]" placeholder={t("filters.all_france", "Toute la France") as string} />
+              <MultiSelect options={regionOptions} selected={filters.regions} onChange={(v) => set("regions", v)} className="max-sm:bg-white/[0.09] max-sm:border-white/30 max-sm:min-h-[52px]" placeholder={t("filters.all_regions", "Toutes les régions") as string} />
 
               {/* Prix */}
               <label className={labelClass}>{t("filters.price", "Prix de cession (€)")}</label>

@@ -93,7 +93,7 @@ export default function Payment() {
         t('pay.free_f4', 'Tendances générales du marché'),
         t('pay.free_f5', { price: UNLOCK_PRICE, defaultValue: "Déblocage d'une annonce : {{price}} €" }),
       ] as string[],
-      highlight: false, cta: t('pay.plan_free_cta', 'Formule gratuite'), color: 'text-white/70' },
+      highlight: false, cta: t('pay.plan_free_cta', 'Formule gratuite'), color: 'text-white/70', visual: 'gratuite' },
     { id: 'pro' as PlanType, name: t('pay.plan_pro', 'Pro'), icon: Star, price: String(PLAN_PRICES.pro), period: t('pay.per_month', '/ mois'),
       description: t('pay.pro_desc', 'Pour des besoins réguliers : accès complet et CRM.'),
       features: [
@@ -104,7 +104,7 @@ export default function Payment() {
         t('pay.pro_f5', { n: PLAN_RULES.pro.activeListings, defaultValue: "Jusqu'à {{n}} annonces actives" }),
         t('pay.pro_f6', 'Email et téléphone affichables sur le profil'),
       ] as string[],
-      highlight: true, cta: t('pay.pro_cta', 'Passer Pro'), color: 'text-primary' },
+      highlight: true, cta: t('pay.pro_cta', 'Passer Pro'), color: 'text-primary', visual: 'pro' },
     { id: 'business' as PlanType, name: t('pay.plan_business', 'Business'), icon: Building2, price: String(PLAN_PRICES.business), period: t('pay.per_month', '/ mois'),
       description: t('pay.business_desc', 'Tout illimité, avec la prospection ciblée par code APE.'),
       features: [
@@ -115,7 +115,7 @@ export default function Payment() {
         t('pay.business_f5', { n: PLAN_RULES.business.prospectionContacts, defaultValue: '{{n}} entreprises contactées / mois incluses' }),
         t('pay.business_f6', { price: EXTRA_PROSPECT_PRICE, defaultValue: 'Puis {{price}} € par contact supplémentaire' }),
       ] as string[],
-      highlight: false, cta: t('pay.business_cta', 'Passer Business'), color: 'text-cyan-400' },
+      highlight: false, cta: t('pay.business_cta', 'Passer Business'), color: 'text-cyan-400', visual: 'business' },
   ], [t]);
 
   const planName = (p: PlanType) => plans.find((x) => x.id === p)?.name || p;
@@ -383,7 +383,9 @@ export default function Payment() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }} className="w-full mb-16">
-          <Carousel opts={{ align: "start" }} className="w-full">
+          {/* Ordinateur : les trois cartes tiennent côte à côte, le carrousel n'a donc rien à
+              rogner. Sans cela, il coupait net l'ombre des cartes : on voyait un rectangle autour. */}
+          <Carousel opts={{ align: "start" }} className="w-full lg:[&>div:first-child]:overflow-visible">
             <CarouselContent className="-ml-4 md:-ml-6">
               {plans.map((plan) => {
                 // Tant que la formule n'est pas connue, on ne laisse lancer aucun paiement.
@@ -394,12 +396,19 @@ export default function Payment() {
                 const loadingThis = loadingKind === plan.id;
                 return (
                 <CarouselItem key={plan.id} className="pl-4 md:pl-6 basis-full md:basis-1/2 lg:basis-1/3">
-                  <div className={`h-full relative liquid-glass rounded-[2.5rem] p-8 flex flex-col transition-all duration-500 border ${plan.highlight ? 'border-primary/40 bg-white/[0.03]' : 'border-white/5'}`}>
+                  <div className={`h-full relative liquid-glass rounded-[2.5rem] px-8 pb-8 pt-40 flex flex-col overflow-hidden transition-all duration-500 border ${plan.highlight ? 'border-primary/40 bg-white/[0.03]' : 'border-white/5'}`}>
+                    {/* Le décor de la formule : la sphère du logo se construit d'un niveau à l'autre
+                        (un ruban, trois rubans, la sphère entière). Il s'efface vers le bas pour laisser lire. */}
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-0 top-0 h-52 bg-cover bg-top pointer-events-none [mask-image:linear-gradient(to_bottom,black_50%,transparent)]"
+                      style={{ backgroundImage: `url('/formules/carte-${plan.visual}.webp')` }}
+                    />
                     {plan.highlight && (
-                      <div className="absolute top-6 right-8 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest py-1.5 px-4 rounded-full border border-primary/30 backdrop-blur-md">{t('pay.most_popular', 'Le plus populaire')}</div>
+                      <div className="absolute top-5 right-6 bg-[#17161c]/85 text-white text-[10px] font-bold uppercase tracking-widest py-1.5 px-4 rounded-full border border-white/25 backdrop-blur-md">{t('pay.most_popular', 'Le plus populaire')}</div>
                     )}
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 ${plan.color}`}><plan.icon className="w-6 h-6" /></div>
+                    <div className="relative flex items-center gap-4 mb-6">
+                      <img src={`/formules/logo-${plan.visual}.webp`} alt="" width={56} height={56} className="w-14 h-14 shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]" />
                       <h3 className="text-2xl font-light text-white">{plan.name}</h3>
                     </div>
                     <div className="mb-6 flex items-baseline gap-1">

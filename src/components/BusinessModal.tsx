@@ -18,6 +18,10 @@ import { OfferComparator } from './OfferComparator';
 import { CompanyScore } from './CompanyScore';
 import { usePlan, hasContentAccess, UNLOCK_PRICE } from '@/services/planService';
 import type { Listing } from '@/types/domain';
+import { formatMoney, marketOf } from '@/lib/markets';
+import { listingCountry, showsCountry } from '@/lib/geoRegions';
+import { countryLabel } from '@/lib/countries';
+import { CountryTag } from '@/components/CountryFlag';
 import { useIsUnlocked } from '@/services/unlockService';
 import { startCheckout, openCheckout } from '@/services/stripe';
 import { StripeCheckoutModal } from './StripeCheckoutModal';
@@ -71,7 +75,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   const cacheKey = listing ? `${listing.id}_${user?.id || 'anon'}` : '';
   
@@ -225,7 +229,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
   const formatEuro = (val: number | undefined | null) => {
     if (val === undefined || val === null || val === 0) return '-';
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
+    return formatMoney(val, i18n.language);
   };
 
   // Formules : en gratuit on ne voit que le prix demandé et les photos.
@@ -235,6 +239,12 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
 
   if (!listing) return null;
   const isOwner = user && listing.owner_id === user.id;
+  // Règles du pays de l'annonce : nom de l'identifiant (SIRET, NIF…), et si le
+  // site peut le vérifier dans un registre officiel (la France seulement).
+  const market = marketOf(listing.country);
+  const idName = market.identifier.name;
+  // Le pays est écrit à côté de l'adresse quand l'annonce n'est pas dans le pays du visiteur.
+  const foreign = showsCountry(listing, i18n.language);
   // SÉCURITÉ : l'accès payant n'est accordé que sur un plan CONFIRMÉ (pas en
   // cours de rafraîchissement) — évite tout flash de contenu débloqué avec un
   // cache de plan périmé (ex. juste après un downgrade). Pareil pour le déblocage.
@@ -355,9 +365,9 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                 <FavoriteHeart active={isFavorite} size={20} />
               </button>
             )}
-            {/* Téléphone : le mot « Fermer » à côté de la croix, plus évident qu'une icône seule */}
-            <button onClick={onClose} className="h-9 pl-2.5 pr-3.5 gap-1.5 text-white text-sm font-medium bg-white/10 border border-white/20 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-95">
-              <X size={18} /> {t('modal.close')}
+            {/* Téléphone : la croix seule, de la même taille que le cœur à côté */}
+            <button onClick={onClose} aria-label={t('modal.close')} className="h-9 w-9 text-white bg-white/10 border border-white/20 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-95">
+              <X size={18} />
             </button>
           </div>
 
@@ -395,10 +405,10 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                           <span className="text-white/20 hidden sm:inline">•</span>
                           <span className="text-[10px] uppercase tracking-widest flex items-center gap-1.5 text-white/40">
                             {!listing.hide_siret ? (
-                              `SIRET : ${listing.siret}`
+                              `${t('listing.id_label', { defaultValue: '{{name}} :', name: idName })} ${listing.siret}`
                             ) : (
                               <span className="flex items-center gap-1.5">
-                                SIRET : {listing.siret}
+                                {t('listing.id_label', { defaultValue: '{{name}} :', name: idName })} {listing.siret}
                                 <span className="text-white/40 normal-case tracking-normal italic">{t('modal.siret_hidden')}</span>
                               </span>
                             )}
@@ -408,7 +418,9 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                       {(listing.hide_siret && !isOwner) && (
                         <>
                           <span className="text-white/20 hidden sm:inline">•</span>
-                          <span className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-medium">{t('modal.siret_verified')}</span>
+                          <span className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-medium">{market.identifier.onlineCheck
+                            ? t('listing.id_verified', { defaultValue: '{{name}} vérifié', name: idName })
+                            : t('listing.id_provided', { defaultValue: '{{name}} renseigné', name: idName })}</span>
                         </>
                       )}
                     </div>
@@ -420,9 +432,19 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                     )}
 
                     <p className="text-sm text-white/60 font-light max-w-xl leading-relaxed mt-2">
-                      {t('modal.located_at')} {listing.address || t('modal.protected_address')}. <br className="hidden sm:block" />
+                      {t('modal.located_at')} {listing.address || t('modal.protected_address')}.
+                      {foreign && <CountryTag country={listing.country} className="ml-2 align-baseline text-white/90 font-normal" />} <br className="hidden sm:block" />
                       {t('modal.views')} {viewCount} {t('modal.views_times')}
                     </p>
+                    {/* Annonce hors de France : on dit quelles règles s'appliquent, et que les prix restent en euros. */}
+                    {listingCountry(listing) !== 'FR' && (
+                      <p className="text-xs text-white/55 font-light max-w-xl leading-relaxed mt-2">
+                        {t('listing.country_rules', {
+                          defaultValue: "Pays de l'entreprise : {{country}}. Les règles de ce pays s'appliquent à la vente. Les montants sont affichés en euros.",
+                          country: countryLabel(listingCountry(listing), i18n.language),
+                        })}
+                      </p>
+                    )}
                     {listing.website_url && isSafeUrl(listing.website_url) && (
                       <a href={listing.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-white/40 hover:text-white underline underline-offset-4 mt-3 transition-colors w-fit">
                         {t('modal.website')}

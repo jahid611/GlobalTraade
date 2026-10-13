@@ -17,7 +17,8 @@ import type { SearchAd } from '@/types/domain';
 import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
 import { INDUSTRIES, industryOptions } from '@/lib/industries';
-import { FR_REGIONS, regionLabel } from '@/lib/geoRegions';
+import { marketCountryOptions, pruneRegions, regionLabel, regionOptionsFor, splitGeoKeys } from '@/lib/geoRegions';
+import { formatMoney, formatNumber } from '@/lib/markets';
 import { AMOUNT_RANGE_OPTIONS as RANGE_OPTIONS, isAmountRange } from '@/lib/ranges';
 import { MultiSelect } from '@/components/MultiSelect';
 import { Dropdown, ConfirmDialog } from '@/components/PickerKit';
@@ -51,6 +52,8 @@ const EMPTY_FORM = {
   title: '',
   buyer_type: '',
   sectors: [] as string[],
+  /** pays visés (codes ISO) : enregistrés avec les régions, dans la même colonne `regions` */
+  countries: [] as string[],
   regions: [] as string[],
   revenue_range: '',
   budget: '',
@@ -63,7 +66,6 @@ const EMPTY_FORM = {
 
 // Conversions liste <-> chaîne stockée (colonnes text)
 const toList = (s: string | string[] | null | undefined): string[] => (typeof s === 'string' && s.trim() ? s.split(',').map((x) => x.trim()).filter(Boolean) : Array.isArray(s) ? s : []);
-const REGION_KEYS = new Set(FR_REGIONS.map((r) => r.key));
 const INDUSTRY_SET = new Set(INDUSTRIES);
 
 export function SearchAdsBoard() {
@@ -80,11 +82,13 @@ export function SearchAdsBoard() {
   const [adToDelete, setAdToDelete] = useState<SearchAd | null>(null);
 
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
-  const regionOptions = useMemo(() => FR_REGIONS.map((r) => ({ value: r.key, label: r.label })), []);
+  const countryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
+  const regionOptions = useMemo(() => regionOptionsFor(form.countries, i18n.language), [form.countries, i18n.language]);
 
   // Libellés d'affichage
   const sectorLabels = (s: string) => toList(s).map((v) => t(`industry.${v}`, { defaultValue: v }) as string);
-  const regionLabels = (s: string) => toList(s).map((k) => (REGION_KEYS.has(k) ? regionLabel(k) : k));
+  // pays (« ES »), régions (« idf », « ES-CT ») ou ancienne valeur, rendue telle quelle
+  const regionLabels = (s: string) => toList(s).map((k) => regionLabel(k, i18n.language));
 
   const { plan, isFetching: planFetching } = usePlan(user?.id);
   const { data: unlockedIds } = useQuery({
@@ -133,7 +137,8 @@ export function SearchAdsBoard() {
       ...EMPTY_FORM,
       buyer_type: profile?.buyer_type || '',
       sectors: toList(profile?.target_sectors).filter((v) => INDUSTRY_SET.has(v)),
-      regions: toList(profile?.target_geo).filter((v) => REGION_KEYS.has(v)),
+      countries: splitGeoKeys(toList(profile?.target_geo)).countries,
+      regions: splitGeoKeys(toList(profile?.target_geo)).regions,
       budget: isAmountRange(profile?.target_budget) ? profile!.target_budget : '',
       revenue_range: isAmountRange(profile?.target_revenue) ? profile!.target_revenue : '',
       apport_available: !!profile?.apport,
@@ -148,7 +153,8 @@ export function SearchAdsBoard() {
       ...EMPTY_FORM,
       ...ad,
       sectors: toList(ad.sectors),
-      regions: toList(ad.regions),
+      countries: splitGeoKeys(toList(ad.regions)).countries,
+      regions: toList(ad.regions).filter((k) => !splitGeoKeys([k]).countries.length),
       revenue_range: ad.revenue_range || '',
       budget: ad.budget || '',
       apport_amount: ad.apport_amount != null ? String(Math.round(Number(ad.apport_amount))) : '',
@@ -162,7 +168,7 @@ export function SearchAdsBoard() {
     if (!form.title.trim()) { showError(t('searchads.title_required', 'Donnez un titre à votre recherche.')); return; }
     if (!form.buyer_type) { showError(t('searchads.type_required', 'Précisez votre profil de repreneur.')); return; }
     if (!form.sectors.length) { showError(t('searchads.sectors_required', 'Sélectionnez au moins un secteur.')); return; }
-    if (!form.regions.length) { showError(t('searchads.regions_required', 'Sélectionnez au moins une zone géographique.')); return; }
+    if (!form.countries.length && !form.regions.length) { showError(t('searchads.regions_required', 'Sélectionnez au moins une zone géographique.')); return; }
     if (form.apport_available && !(Number(form.apport_amount) > 0)) { showError(t('searchads.apport_required', "Indiquez le montant de votre apport, ou décochez « J'ai un apport personnel ».")); return; }
 
     setSaving(true);
@@ -171,7 +177,8 @@ export function SearchAdsBoard() {
       title: form.title.trim(),
       buyer_type: form.buyer_type || null,
       sectors: form.sectors.length ? form.sectors.join(',') : null,
-      regions: form.regions.length ? form.regions.join(',') : null,
+      // pays puis régions, dans la même colonne (liste de clés séparées par des virgules)
+      regions: [...form.countries, ...form.regions].join(',') || null,
       revenue_range: form.revenue_range || null,
       budget: form.budget || null,
       // « Apport » coché : le montant est obligatoire (voir plus haut) ; 0 = pas d'apport
@@ -268,7 +275,7 @@ export function SearchAdsBoard() {
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border"
                         style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.3)' }}>
                         <Bank size={12} /> {(() => {
-                          const amount = Number(ad.apport_amount) > 0 ? `${Math.round(Number(ad.apport_amount)).toLocaleString('fr-FR')} €` : null;
+                          const amount = Number(ad.apport_amount) > 0 ? formatMoney(Math.round(Number(ad.apport_amount)), i18n.language) : null;
                           // anciennes recherches : l'apport était coché sans montant
                           const apport = amount
                             ? t('searchads.apport_value', { defaultValue: 'Apport {{amount}}', amount })
@@ -384,10 +391,18 @@ export function SearchAdsBoard() {
                 <div>
                   <label className={labelCls}>{t('searchads.regions_label', 'Zones géographiques')} *</label>
                   <MultiSelect
+                    options={countryOptions}
+                    selected={form.countries}
+                    onChange={(v) => setForm({ ...form, countries: v, regions: pruneRegions(form.regions, v) })}
+                    searchable={false}
+                    placeholder={t('searchads.countries_ph', 'Choisir un ou plusieurs pays') as string}
+                    className="mb-2"
+                  />
+                  <MultiSelect
                     options={regionOptions}
                     selected={form.regions}
                     onChange={(v) => setForm({ ...form, regions: v })}
-                    placeholder={t('searchads.regions_ph', 'Choisir une ou plusieurs régions') as string}
+                    placeholder={t('searchads.regions_ph_multi', 'Régions précises (facultatif si un pays est choisi)') as string}
                   />
                 </div>
 
@@ -427,7 +442,7 @@ export function SearchAdsBoard() {
                       <label htmlFor="searchad-apport" className={labelCls}>{t('searchads.apport_amount', 'Montant de votre apport (€)')}</label>
                       <input
                         id="searchad-apport" type="text" inputMode="numeric" autoComplete="off"
-                        value={form.apport_amount ? Number(form.apport_amount).toLocaleString('fr-FR') : ''}
+                        value={form.apport_amount ? formatNumber(form.apport_amount, i18n.language) : ''}
                         onChange={(e) => setForm({ ...form, apport_amount: e.target.value.replace(/\D/g, '').slice(0, 9) })}
                         placeholder={t('searchads.apport_amount_ph', 'Ex. : 80 000') as string}
                         className="w-full liquid-glass bg-white/5 border border-white/15 rounded-2xl px-4 h-12 text-white outline-none focus:border-primary/60 placeholder:text-white/30"

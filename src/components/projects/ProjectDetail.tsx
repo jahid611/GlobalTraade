@@ -12,6 +12,7 @@ import { expressInterest, Project, HelpType, type TeamRole, type MaterialItem } 
 import { showSuccess, showError } from "@/utils/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
+import { formatDate, formatMoney } from "@/lib/markets";
 import { ProjectAccessSection, VerificationBadge } from "@/components/ProjectDossier";
 import { usePlan, hasContentAccess, UNLOCK_PRICE } from "@/services/planService";
 import { useIsUnlocked } from "@/services/unlockService";
@@ -179,7 +180,7 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
             {/* Repères : lieu, échéance, audience */}
             <div className="flex flex-wrap gap-2">
               {project.city && <span className="flex items-center gap-1.5 text-xs text-white/75 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><MapPin className="w-3.5 h-3.5 text-primary"/>{project.city}{project.country && `, ${countryLabel(project.country, i18n.language)}`}</span>}
-              {project.deadline && <span className="flex items-center gap-1.5 text-xs text-white/75 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><Calendar className="w-3.5 h-3.5 text-primary"/>{t('hub.before')} {new Date(project.deadline).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</span>}
+              {project.deadline && <span className="flex items-center gap-1.5 text-xs text-white/75 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><Calendar className="w-3.5 h-3.5 text-primary"/>{t('hub.before')} {formatDate(project.deadline, i18n.language, 'short')}</span>}
               <span className="flex items-center gap-1.5 text-xs text-white/75 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><Eye className="w-3.5 h-3.5 text-white/50"/>{project.view_count} {t('hub.views')}</span>
               {project.interest_count > 0 && <span className="flex items-center gap-1.5 text-xs text-white/75 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"><Heart className="w-3.5 h-3.5 text-white/50"/>{project.interest_count} {t('hub.interests')}</span>}
             </div>
@@ -241,7 +242,7 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
             {project.financial_needed && hasFullAccess && (
               <NeedSection tone={TONES.green} Icon={Money} title={t('project.detail.financial')}>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><p className={fieldLabel}>{t('project.detail.budget')}</p><p className="text-white font-medium">{project.budget_min?.toLocaleString()}€ – {project.budget_max?.toLocaleString()}€</p></div>
+                  <div><p className={fieldLabel}>{t('project.detail.budget')}</p><p className="text-white font-medium">{formatMoney(project.budget_min, i18n.language)} – {formatMoney(project.budget_max, i18n.language)}</p></div>
                   <div><p className={fieldLabel}>{t('project.detail.type')}</p><p className="text-white font-medium capitalize">{t(`project.form.inv_${project.investment_type}`, project.investment_type)}</p></div>
                   {project.equity_offered && <div><p className={fieldLabel}>{t('project.detail.equity')}</p><p className="font-bold text-lg" style={{ color: TONES.green.color }}>{project.equity_offered}%</p></div>}
                   {project.apport_personnel && <div><p className={fieldLabel}>{t('pp.apport', 'Apport personnel')}</p><p className="text-white font-medium">{project.apport_personnel}</p></div>}
@@ -313,8 +314,8 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                       </div>
                       {m.estimated_value > 0 && (
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-medium" style={{ color: TONES.amber.color }}>{(quantityOf(m) * m.estimated_value).toLocaleString()} €</p>
-                          {quantityOf(m) > 1 && <p className="text-white/50 text-xs">{m.estimated_value.toLocaleString()} € {t('need.per_unit', "l'unité")}</p>}
+                          <p className="text-sm font-medium" style={{ color: TONES.amber.color }}>{formatMoney(quantityOf(m) * m.estimated_value, i18n.language)}</p>
+                          {quantityOf(m) > 1 && <p className="text-white/50 text-xs">{formatMoney(m.estimated_value, i18n.language)} {t('need.per_unit', "l'unité")}</p>}
                         </div>
                       )}
                     </div>
@@ -322,7 +323,7 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                 </div>
                 {totalMaterialValue(project.material_items) > 0 && project.material_items.length > 1 && (
                   <p className="text-[13px] font-medium mt-3" style={{ color: TONES.amber.color }}>
-                    {t('need.mat_total', { defaultValue: 'Valeur totale du matériel : {{total}}.', total: `${totalMaterialValue(project.material_items).toLocaleString()} €` })}
+                    {t('need.mat_total', { defaultValue: 'Valeur totale du matériel : {{total}}.', total: formatMoney(totalMaterialValue(project.material_items), i18n.language) })}
                   </p>
                 )}
               </NeedSection>

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, Heart, User as UserIcon, LockSimple, ArrowRight } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/markets';
 
 // Lignes brutes des trois sources (vues de profil, vues d'annonce, favoris)
 type ViewRow = { viewer_id?: string | null; user_id?: string | null; created_at: string; listing_id?: string };
@@ -19,7 +20,7 @@ type Viewer = ViewerProfile & { at: string };
 type TabKey = 'profile' | 'listings' | 'favorites';
 
 export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string; listingIds: string[]; isPremium: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>('profile');
 
@@ -149,7 +150,7 @@ export function ViewersPanel({ userId, listingIds, isPremium }: { userId: string
                     : <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center"><UserIcon className="w-5 h-5 text-white/50" /></div>}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white font-light truncate">{person.full_name || t('viewers.anonymous', 'Membre Globly')}</p>
-                    <p className="text-xs text-white/40 font-light">{new Date(person.at).toLocaleDateString()}</p>
+                    <p className="text-xs text-white/40 font-light">{formatDate(person.at, i18n.language, 'short')}</p>
                   </div>
                 </button>
               </li>

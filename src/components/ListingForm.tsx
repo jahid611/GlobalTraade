@@ -19,13 +19,36 @@ import { uploadListingImage, saveListing } from '@/services/listingService';
 import { checkPublicationQuota } from '@/services/planService';
 import { Dropdown } from '@/components/PickerKit';
 import type { TFunction } from 'i18next';
-import { cleanSiret, isValidSiret } from '@/lib/siret';
+import { isValidSiret } from '@/lib/siret';
 import { lookupSiret, type SiretLookup } from '@/services/sireneService';
 import { FormGuide } from '@/components/listing/FormGuide';
+import { banSearchUrl, mergeSuggestions, nominatimSearchUrl, suggestionFromBan, suggestionFromNominatim, type AddressSuggestion } from '@/components/listing/address';
+import { MARKET_CODES, isMarket, marketOf, type Market } from '@/lib/markets';
+import { DEFAULT_COUNTRY, canonicalCountry, countryLabel } from '@/lib/countries';
+import { CountrySelect } from '@/components/CountrySelect';
 import type { Listing } from '@/types/domain';
 
-// Réponse de l'API adresse (data.gouv / Nominatim)
-type AddressSuggestion = { display_name: string; lat: string; lon: string };
+// Nom d'un pays dans la langue de l'interface (les six langues du site).
+const countryName = (code: string, language: string): string => {
+  try {
+    const name = new Intl.DisplayNames([language], { type: 'region' }).of(code);
+    if (name && name !== code) return name;
+  } catch { /* langue ou code inconnu du navigateur : on retombe sur la liste des pays */ }
+  return countryLabel(code, language);
+};
+
+// Saisie en direct de l'identifiant : on applique le nettoyage du pays, en
+// gardant l'espace que l'utilisateur vient de taper quand le format en admet
+// un (« HRB 123456 »). Sans cela, l'espace serait retiré avant le chiffre suivant.
+const cleanIdentifierInput = (market: Market, raw: string): string => {
+  const cleaned = market.identifier.clean(raw);
+  if (cleaned && /\s$/.test(raw) && market.identifier.clean(`${cleaned} 0`) === `${cleaned} 0`) return `${cleaned} `;
+  return cleaned;
+};
+
+// Ville, code postal et région de l'adresse choisie (enregistrés avec l'annonce).
+type ListingPlace = { region: string | null; city: string | null; postal_code: string | null };
+const NO_PLACE: ListingPlace = { region: null, city: null, postal_code: null };
 
 // URL saisie sans schéma (« www.exemple.fr ») -> « https://www.exemple.fr ».
 // Une valeur qui porte déjà un schéma est laissée telle quelle.
@@ -47,7 +70,11 @@ const FIELD_STEP: Record<string, number> = {
   management_type: 5, client_concentration: 5, digital_maturity: 5, market_trend: 5,
 };
 
-const getListingSchema = (t: TFunction) => {
+// Le pays de l'entreprise décide du contrôle de l'identifiant et du caractère
+// obligatoire du bail : la France garde exactement ses règles d'origine.
+const getListingSchema = (t: TFunction, country: string = DEFAULT_COUNTRY) => {
+  const market = marketOf(country);
+  const isFrance = market.code === 'FR';
   const currentYear = new Date().getFullYear();
   // Nombre OBLIGATOIRE : un champ vide ("") est rejeté (≠ 0). 0 reste accepté
   // s'il est saisi explicitement. Évite que z.coerce.number() transforme "" en 0.
@@ -58,9 +85,14 @@ const getListingSchema = (t: TFunction) => {
     );
   return z.object({
     name: z.string().min(2, t('val.name_req')),
-    siret: z.string().regex(/^[0-9]{14}$/, t('val.siret_req'))
-      // la clé de contrôle écarte un numéro inventé ou mal recopié
-      .refine(isValidSiret, t('val.siret_key', "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture.")),
+    siret: isFrance
+      ? z.string().regex(/^[0-9]{14}$/, t('val.siret_req'))
+        // la clé de contrôle écarte un numéro inventé ou mal recopié
+        .refine(isValidSiret, t('val.siret_key', "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture."))
+      // hors de France : contrôle du format seulement (pas de registre consultable en ligne)
+      : z.string().refine((v) => market.identifier.isValid(v), market.identifier.placeholder
+        ? t('val.company_id_format', { defaultValue: "Ce numéro n'a pas le format attendu ({{name}}). Exemple : {{example}}", name: market.identifier.name, example: market.identifier.placeholder })
+        : t('val.company_id_required', "Indiquez le numéro officiel d'immatriculation de l'entreprise (5 caractères au moins).")),
     hide_siret: z.boolean().default(false),
     share_financials: z.boolean().default(true),
     industry: z.string().min(2, t('val.industry_req')),
@@ -77,7 +109,10 @@ const getListingSchema = (t: TFunction) => {
     rent: reqNum(0, t('val.amount_req', 'Montant requis, indiquez 0 si aucun')),
     employees: reqNum(0, t('val.amount_req', 'Champ requis, indiquez 0 si aucun')),
     surface: reqNum(0, t('val.amount_req', 'Champ requis, indiquez 0 si aucun')),
-    lease_details: z.string().min(2, t('val.lease_min')),
+    // Le bail commercial est une notion française : ailleurs, le champ est facultatif.
+    lease_details: isFrance
+      ? z.string().min(2, t('val.lease_min'))
+      : z.string().optional().nullable().or(z.literal("")),
     description: z.string().min(10, t('val.desc_min')),
     reason_for_selling: z.string().optional().nullable().or(z.literal("")),
     established_year: z.coerce.number()
@@ -179,13 +214,28 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   const prefillRef = useRef(prefill);
   prefillRef.current = prefill;
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
+  // Pays de l'entreprise : celui de l'annonce modifiée, sinon celui du profil du
+  // vendeur s'il fait partie des six marchés, sinon la France.
+  const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
+  const [place, setPlace] = useState<ListingPlace>(NO_PLACE);
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  // Pays de l'adresse choisie, pour savoir s'il faut la redemander quand le pays change.
+  const addressCountryRef = useRef<string | null>(null);
+  // Le vendeur a choisi lui-même : le pays du profil, lu juste après, ne doit plus l'écraser.
+  const countryTouchedRef = useRef(false);
+  const market = useMemo(() => marketOf(country), [country]);
+  const isFrance = market.code === 'FR';
+  const marketKey = market.code.toLowerCase();
+  const identifierName = market.code === 'XX' ? t('market.xx.id_name', market.identifier.name) : market.identifier.name;
+  const identifierWhat = t(`market.${marketKey}.id_what`, market.identifier.what);
+
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addressQuery, setAddressQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressSelected, setAddressSelected] = useState(false);
   const [addressNotFound, setAddressNotFound] = useState(false);
@@ -197,7 +247,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const schema = useMemo(() => getListingSchema(t), [t]);
+  const schema = useMemo(() => getListingSchema(t, country), [t, country]);
   
   const { register, handleSubmit, setValue, getValues, watch, reset, trigger, control, formState: { errors } } = useForm<ListingData>({ 
     resolver: zodResolver(schema) 
@@ -210,7 +260,8 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   const siretValue = (watch('siret') || '') as string;
   const [siretCheck, setSiretCheck] = useState<{ status: 'idle' | 'checking' | 'unavailable' } | (SiretLookup & { status: SiretLookup['status'] })>({ status: 'idle' });
   useEffect(() => {
-    if (!isOpen || !isValidSiret(siretValue)) { setSiretCheck({ status: 'idle' }); return; }
+    // Le registre public interrogé est français : aucune recherche pour un autre pays.
+    if (!isOpen || !isFrance || !isValidSiret(siretValue)) { setSiretCheck({ status: 'idle' }); return; }
     let cancelled = false;
     setSiretCheck({ status: 'checking' });
     const timer = setTimeout(() => {
@@ -219,13 +270,19 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
         .catch(() => { if (!cancelled) setSiretCheck({ status: 'unavailable' }); });
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [siretValue, isOpen]);
+  }, [siretValue, isOpen, isFrance]);
   const shareFinancials = watch('share_financials');
 
   useEffect(() => {
     if (isOpen) {
       setStep(1);
+      setShowAllCountries(false);
+      countryTouchedRef.current = false;
       if (listingToEdit) {
+        const editCountry = canonicalCountry(listingToEdit.country) || DEFAULT_COUNTRY;
+        setCountry(editCountry);
+        addressCountryRef.current = editCountry;
+        setPlace({ region: listingToEdit.region ?? null, city: listingToEdit.city ?? null, postal_code: listingToEdit.postal_code ?? null });
         // Coercition des null/undefined -> "" pour garder des inputs contrôlés
         // (sinon Zod renvoie "expected string, received null" à la validation).
         reset({
@@ -241,11 +298,16 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
           revenue_n2: listingToEdit.revenue_n2 ?? "",
           revenue_n3: listingToEdit.revenue_n3 ?? "",
           established_year: listingToEdit.established_year ?? "",
+          // hors de France le bail est facultatif : une valeur absente reste un champ vide
+          ...(editCountry === 'FR' ? {} : { lease_details: listingToEdit.lease_details ?? "" }),
         });
         setAddressQuery(listingToEdit.address || ""); setAddressSelected(true); 
         setLogoBase64(listingToEdit.logo_url || null);
         setGalleryImages(listingToEdit.image_urls || []);
       } else {
+        setCountry(DEFAULT_COUNTRY);
+        addressCountryRef.current = null;
+        setPlace(NO_PLACE);
         const draft = prefillRef.current;
         reset({ name: "", siret: "", hide_siret: false, share_financials: true, industry: "", website_url: "", address: "", price: "" as any, revenue_n1: "" as any, ebitda: "" as any, rent: "" as any, employees: "" as any, surface: "" as any, lease_details: "", description: "", reason_for_selling: "", established_year: "", revenue_n2: "" as any, revenue_n3: "" as any, management_type: "", client_concentration: "", digital_maturity: "", market_trend: "", ...(draft ? prefillToFormValues(draft) as any : {}) });
         setAddressQuery(typeof draft?.address === 'string' ? draft.address.trim() : ""); setAddressSelected(false); setLogoBase64(null); setGalleryImages([]);
@@ -253,10 +315,57 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     }
   }, [isOpen, listingToEdit, reset]);
 
-  // Recherche d'adresse.
-  // 1) La Base Adresse Nationale (service public français) : elle connaît les
-  //    numéros de rue un par un, là où OpenStreetMap n'en a souvent aucun.
-  // 2) OpenStreetMap ensuite, pour les adresses hors de France.
+  // Nouvelle annonce : on part du pays du profil du vendeur quand c'est l'un des six marchés.
+  useEffect(() => {
+    if (!isOpen || listingToEdit) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data } = await supabase.from('profiles').select('country').eq('id', session.user.id).maybeSingle();
+        const profileCountry = canonicalCountry((data as { country?: string | null } | null)?.country);
+        if (!cancelled && !countryTouchedRef.current && isMarket(profileCountry)) setCountry(profileCountry);
+      } catch { /* profil illisible : on reste sur la France */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, listingToEdit]);
+
+  // Le pays a changé : l'identifiant est remis au format du nouveau pays, puis
+  // contrôlé de nouveau s'il était déjà saisi.
+  const previousCountryRef = useRef(country);
+  useEffect(() => {
+    if (previousCountryRef.current === country) return;
+    previousCountryRef.current = country;
+    if (!isOpen) return;
+    const current = String(getValues('siret') || '');
+    if (!current) return;
+    setValue('siret', marketOf(country).identifier.clean(current), { shouldDirty: true });
+    void trigger('siret');
+  }, [country, isOpen, getValues, setValue, trigger]);
+
+  // Choix du pays par le vendeur. Une adresse déjà choisie dans un autre pays
+  // est effacée : elle sera redemandée à l'étape suivante.
+  const chooseCountry = (code: string) => {
+    const next = canonicalCountry(code);
+    if (!next || next === country) return;
+    countryTouchedRef.current = true;
+    setCountry(next);
+    if (addressSelected && addressCountryRef.current !== next) {
+      setAddressQuery(''); setAddressSelected(false); setSuggestions([]);
+      setValue('address', '');
+      setValue('lat', undefined as unknown as number);
+      setValue('lng', undefined as unknown as number);
+      setPlace(NO_PLACE);
+      addressCountryRef.current = null;
+    }
+  };
+
+  // Recherche d'adresse, dans le pays de l'entreprise.
+  // France : la Base Adresse Nationale d'abord (elle connaît les numéros de rue
+  // un par un), puis OpenStreetMap sans limite de pays, pour qu'une adresse
+  // située ailleurs reste trouvable.
+  // Autres pays : OpenStreetMap, limité au pays choisi.
   useEffect(() => {
     if (!addressQuery || addressSelected) { setSuggestions([]); setAddressNotFound(false); return; }
     const query = addressQuery.trim();
@@ -264,37 +373,46 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     let cancelled = false;
     const timer = setTimeout(async () => {
       setIsSearchingAddress(true);
-      const q = encodeURIComponent(query);
-      const french = fetch(`https://data.geopf.fr/geocodage/search?q=${q}&limit=5&autocomplete=1`)
-        .then((r) => (r.ok ? r.json() : { features: [] }))
-        .then((d) => (d.features || []).map((f: any) => ({
-          display_name: `${f.properties.label}, France`,
-          lat: String(f.geometry.coordinates[1]),
-          lon: String(f.geometry.coordinates[0]),
-        })))
-        .catch(() => []);
-      const world = fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`)
+      const french: Promise<AddressSuggestion[]> = isFrance
+        ? fetch(banSearchUrl(query))
+          .then((r) => (r.ok ? r.json() : { features: [] }))
+          .then((d) => ((d.features || []) as unknown[]).map(suggestionFromBan).filter((x): x is AddressSuggestion => !!x))
+          .catch(() => [])
+        : Promise.resolve([]);
+      const world: Promise<AddressSuggestion[]> = fetch(nominatimSearchUrl(query, { country: isFrance ? null : country, language: i18n.language }))
         .then((r) => (r.ok ? r.json() : []))
+        .then((d) => (Array.isArray(d) ? d : []).map(suggestionFromNominatim).filter((x): x is AddressSuggestion => !!x))
         .catch(() => []);
       const [fr, osm] = await Promise.all([french, world]);
       if (cancelled) return;
-      // Les adresses françaises précises d'abord ; d'OpenStreetMap on ne garde
-      // que ce qui n'est pas en France (sinon la même rue reviendrait en double, sans numéro).
-      const abroad = (osm as any[]).filter((o) => !/,\s*France$/i.test(o.display_name || ''));
-      const merged = [...fr, ...(fr.length ? abroad : (osm as any[]))].slice(0, 7);
+      const merged = mergeSuggestions(fr, osm);
       setSuggestions(merged);
       setAddressNotFound(merged.length === 0);
       setIsSearchingAddress(false);
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [addressQuery, addressSelected]);
+  }, [addressQuery, addressSelected, country, isFrance, i18n.language]);
 
   const selectAddress = (suggestion: AddressSuggestion) => {
     setAddressQuery(suggestion.display_name);
     setValue('address', suggestion.display_name, { shouldValidate: true });
     setValue('lat', parseFloat(suggestion.lat), { shouldValidate: true });
     setValue('lng', parseFloat(suggestion.lon), { shouldValidate: true });
+    setPlace({ region: suggestion.region, city: suggestion.city, postal_code: suggestion.postal_code });
     setAddressSelected(true); setSuggestions([]);
+    // L'adresse fait foi : si elle est dans un autre pays que celui choisi, le
+    // pays de l'entreprise suit, et l'identifiant est contrôlé de nouveau
+    // (voir l'effet sur `country`).
+    const picked = suggestion.country || country;
+    addressCountryRef.current = picked;
+    if (picked !== country) {
+      countryTouchedRef.current = true;
+      setCountry(picked);
+      showSuccess(t('form.country_switched', {
+        defaultValue: "Cette adresse se trouve dans un autre pays : {{country}}. Le pays de votre entreprise a été mis à jour. Vérifiez le numéro de l'entreprise à la première étape.",
+        country: countryName(picked, i18n.language),
+      }));
+    }
   };
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,7 +463,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
     const isValid = await trigger(fields);
     // Étape 1 : le registre doit connaître l'établissement, et il doit être en activité.
     // (S'il ne répond pas, on laisse passer : l'équipe vérifiera.)
-    if (step === 1 && isValid && (siretCheck.status === 'not_found' || siretCheck.status === 'closed' || siretCheck.status === 'checking')) {
+    if (step === 1 && isValid && isFrance && (siretCheck.status === 'not_found' || siretCheck.status === 'closed' || siretCheck.status === 'checking')) {
       if (siretCheck.status !== 'checking') showError(siretCheck.status === 'closed'
         ? t('siret.closed_short', "Cet établissement est fermé d'après le registre public.")
         : t('siret.not_found_short', 'Ce numéro SIRET est introuvable dans le registre public.'));
@@ -401,6 +519,13 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
         logo_url: finalLogoUrl,
         image_urls: finalGalleryUrls,
         established_year: data.established_year ? Number(data.established_year) : null,
+        // identifiant de l'entreprise dans son pays (la colonne garde le nom « siret »)
+        siret: market.identifier.clean(data.siret),
+        lease_details: data.lease_details ?? '',
+        country,
+        region: place.region,
+        city: place.city,
+        postal_code: place.postal_code,
       };
       for (const k of nullableText) {
         const v = payload[k];
@@ -512,7 +637,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
             transition={{ type: 'spring', damping: 24, stiffness: 190 }}
             className={`w-full lg:w-[360px] xl:w-[420px] shrink-0 lg:sticky lg:top-28 ${step % 2 === 0 ? 'lg:order-2' : 'lg:order-1'}`}
           >
-            <FormGuide step={step} t={t} />
+            <FormGuide step={step} t={t} country={country} />
           </motion.div>
           <motion.div
             layout="position"
@@ -527,6 +652,35 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                   <div className="mb-5 sm:mb-8">
                     <h2 className="text-[1.7rem] sm:text-5xl font-light text-white mb-3 sm:mb-4 tracking-tight leading-tight">{t('form.visual_identity')}</h2>
                     <p className="text-base text-white/50 font-light">{t('form.visual_desc')}</p>
+                  </div>
+
+                  {/* Pays de l'entreprise : il décide du numéro demandé et de la recherche d'adresse */}
+                  <div>
+                    <span id="listing-country-label" className={labelClass}>{t('form.country', "Pays de l'entreprise")}</span>
+                    <div role="radiogroup" aria-labelledby="listing-country-label" className="flex flex-wrap gap-2.5 mt-3">
+                      {MARKET_CODES.map((code) => (
+                        <button
+                          key={code} type="button" role="radio" aria-checked={country === code}
+                          onClick={() => { setShowAllCountries(false); chooseCountry(code); }}
+                          className={`h-11 px-5 rounded-full border text-sm sm:text-base font-light transition-colors ${country === code ? 'bg-primary/20 border-primary text-white' : 'bg-white/5 border-white/15 text-white/75 hover:border-white/40 hover:text-white'}`}
+                        >
+                          {countryName(code, i18n.language)}
+                        </button>
+                      ))}
+                      <button
+                        type="button" role="radio" aria-checked={!isMarket(country)}
+                        onClick={() => setShowAllCountries(true)}
+                        className={`h-11 px-5 rounded-full border text-sm sm:text-base font-light transition-colors ${!isMarket(country) ? 'bg-primary/20 border-primary text-white' : 'bg-white/5 border-white/15 text-white/75 hover:border-white/40 hover:text-white'}`}
+                      >
+                        {!isMarket(country) ? countryName(country, i18n.language) : t('form.country_other', 'Autre pays')}
+                      </button>
+                    </div>
+                    {(showAllCountries || !isMarket(country)) && (
+                      <div className="mt-4 max-w-md">
+                        <CountrySelect value={country} onChange={(code) => { if (code) chooseCountry(code); }} className={eliteBtnClass} />
+                      </div>
+                    )}
+                    <Hint text={t('form.hint_country', "Choisissez le pays où l'entreprise est installée. Le numéro d'entreprise demandé et la recherche d'adresse s'adaptent à ce pays.")} />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-8 mb-8">
@@ -584,21 +738,27 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
                     <div>
-                      <label className={labelClass}>{t('form.siret')}</label>
+                      <label htmlFor="listing-company-id" className={labelClass}>{isFrance ? t('form.siret') : identifierName}</label>
                       <input
                         {...register('siret')}
-                        // chiffres uniquement, 14 au plus : rien d'autre ne peut être saisi
-                        onChange={(e) => setValue('siret', cleanSiret(e.target.value), { shouldValidate: !!errors.siret, shouldDirty: true })}
-                        maxLength={17} inputMode="numeric" autoComplete="off" pattern="[0-9]*"
+                        id="listing-company-id"
+                        // la saisie est nettoyée au format du pays (France : 14 chiffres, rien d'autre)
+                        onChange={(e) => setValue('siret', cleanIdentifierInput(market, e.target.value), { shouldValidate: !!errors.siret, shouldDirty: true })}
+                        {...(isFrance ? { maxLength: 17, inputMode: 'numeric' as const, pattern: '[0-9]*' } : { maxLength: 30 })}
+                        autoComplete="off"
+                        placeholder={market.identifier.placeholder}
                         aria-describedby="siret-status"
                         className={getInputClass(!!errors.siret || siretCheck.status === 'not_found' || siretCheck.status === 'closed')} spellCheck={false}
                       />
-                      {/* Ce que le registre public répond, en direct */}
+                      {/* France : ce que le registre public répond, en direct. Ailleurs : format seulement. */}
                       <div id="siret-status" aria-live="polite" className="mt-2 min-h-[1.25rem] text-sm">
-                        {siretValue.length > 0 && siretValue.length < 14 && (
+                        {!isFrance && !errors.siret && market.identifier.isValid(siretValue) && (
+                          <span className="text-white/70">{t('company_id.format_ok', "Le format est correct. Ce numéro n'a pas encore été vérifié : l'équipe Globly le contrôlera.")}</span>
+                        )}
+                        {isFrance && siretValue.length > 0 && siretValue.length < 14 && (
                           <span className="text-white/60">{t('siret.count', { defaultValue: '{{n}} chiffres sur 14', n: siretValue.length })}</span>
                         )}
-                        {siretValue.length === 14 && !isValidSiret(siretValue) && (
+                        {isFrance && siretValue.length === 14 && !isValidSiret(siretValue) && (
                           <span style={{ color: '#f87171' }}>{t('val.siret_key', "Ce numéro SIRET n'existe pas : vérifiez les chiffres sur votre extrait Kbis ou une facture.")}</span>
                         )}
                         {siretCheck.status === 'checking' && (
@@ -620,8 +780,10 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                           <span style={{ color: '#fcd34d' }}>{t('siret.unavailable', "Le registre public ne répond pas pour le moment. Vous pouvez continuer : votre numéro sera vérifié par notre équipe.")}</span>
                         )}
                       </div>
-                      <Hint text={t('form.hint_siret')} />
-                      {errors.siret && siretValue.length !== 14 && <span className="text-[#f87171] text-xs mt-2 block">{errors.siret.message}</span>}
+                      <Hint text={isFrance
+                        ? t('form.hint_siret')
+                        : `${identifierWhat} ${t('form.hint_company_id', "Globly ne peut pas consulter le registre de ce pays en ligne : ce numéro sera vérifié par l'équipe Globly. Vous pouvez le masquer ci-dessous pour rester anonyme.")}`} />
+                      {errors.siret && (!isFrance || siretValue.length !== 14) && <span className="text-[#f87171] text-xs mt-2 block">{errors.siret.message}</span>}
                       <div className="flex items-center gap-3 mt-4">
                         <div 
                           onClick={() => setValue('hide_siret', !hideSiret)}
@@ -714,9 +876,19 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                     <div className="relative w-full mt-2">
                       <input value={addressQuery} onChange={(e) => { setAddressQuery(e.target.value); setAddressSelected(false); }} className={getInputClass(!!errors.address || !!errors.lat)} spellCheck={false} />
                       <Hint text={t('form.hint_address')} />
+                      {!isFrance && (
+                        <Hint text={t('form.address_country', { defaultValue: "La recherche porte sur ce pays : {{country}}. Pour une entreprise située ailleurs, changez le pays à la première étape.", country: countryName(country, i18n.language) })} />
+                      )}
                       {addressNotFound && !addressSelected && (
                         <span className="text-sm mt-2 block" style={{ color: '#fcd34d' }}>
-                          {t('form.address_none', "Aucune adresse trouvée. Vérifiez l'orthographe, ou essayez sans le numéro puis avec la ville (ex. : « rue Garibaldi Lyon »).")}
+                          {isFrance
+                            ? t('form.address_none', "Aucune adresse trouvée. Vérifiez l'orthographe, ou essayez sans le numéro puis avec la ville (ex. : « rue Garibaldi Lyon »).")
+                            : t('form.address_none_country', { defaultValue: "Aucune adresse trouvée dans ce pays ({{country}}). Vérifiez l'orthographe, ou essayez sans le numéro puis avec la ville.", country: countryName(country, i18n.language) })}
+                        </span>
+                      )}
+                      {errors.siret && addressSelected && (
+                        <span className="text-sm mt-2 block" style={{ color: '#fcd34d' }}>
+                          {t('form.company_id_recheck', { defaultValue: "Le numéro saisi à la première étape ne correspond pas au format de ce pays ({{name}}). Revenez à la première étape pour le corriger.", name: identifierName })}
                         </span>
                       )}
                       {errors.address && <span className="text-[#f87171] text-xs mt-2 block">{errors.address.message}</span>}
@@ -856,9 +1028,13 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
                   </div>
 
                   <div>
-                    <label className={labelClass}>{t('form.lease')}</label>
+                    <label className={labelClass}>{isFrance ? t('form.lease') : t('form.lease_other', "Location des locaux et conditions d'exploitation")}</label>
                     <textarea {...register('lease_details')} rows={3} className={getTextareaClass(!!errors.lease_details)} />
-                    <Hint text={t('form.hint_lease')} />
+                    <Hint text={isFrance
+                      ? t('form.hint_lease')
+                      : market.leaseName
+                        ? t('form.hint_lease_other', { defaultValue: "Facultatif. Si vous louez vos locaux, indiquez le type de contrat ({{lease}}), sa date de fin et les activités autorisées.", lease: market.leaseName })
+                        : t('form.hint_lease_generic', "Facultatif. Si vous louez vos locaux, indiquez le type de contrat, sa date de fin et les activités autorisées.")} />
                     {errors.lease_details && <span className="text-[#f87171] text-xs mt-2 block">{errors.lease_details.message}</span>}
                   </div>
                 </div>

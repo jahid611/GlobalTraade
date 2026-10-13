@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown, HelpCircle } from "lucide-react";
 import type { TFunction } from "i18next";
+import { marketOf } from "@/lib/markets";
 
 /**
  * Globi accompagne le vendeur dans le formulaire d'annonce.
@@ -103,14 +104,21 @@ function PoseEffect({ effect }: { effect: PoseMotion["effects"][number] }) {
 
 export const GUIDE_STEP_COUNT = 5;
 
-function guideSteps(t: TFunction): GuideStep[] {
+function guideSteps(t: TFunction, country?: string | null): GuideStep[] {
+  // Le numéro d'entreprise et le contrat de location portent un nom différent
+  // dans chaque pays : hors de France, on reprend ceux du pays de l'annonce.
+  const market = marketOf(country);
+  const isFrance = market.code === "FR";
+  const identifierName = market.code === "XX" ? t("market.xx.id_name", market.identifier.name) : market.identifier.name;
   return [
     {
       image: "/mascot/globi-etape-1.png",
       title: t("guide.s1_title", "Présentons votre entreprise"),
       say: t("guide.s1_say", "On commence simplement : le nom de votre entreprise, son activité, et une photo si vous en avez une. Prenez votre temps, rien n'est publié avant la fin."),
       terms: [
-        { term: t("guide.s1_t1", "SIRET"), plain: t("guide.s1_p1", "Le numéro à 14 chiffres de votre entreprise. Il figure sur vos factures et sur votre extrait Kbis.") },
+        isFrance
+          ? { term: t("guide.s1_t1", "SIRET"), plain: t("guide.s1_p1", "Le numéro à 14 chiffres de votre entreprise. Il figure sur vos factures et sur votre extrait Kbis.") }
+          : { term: identifierName, plain: t(`market.${market.code.toLowerCase()}.id_what`, market.identifier.what) },
         { term: t("guide.s1_t2", "Secteur d'activité"), plain: t("guide.s1_p2", "Votre métier, tout simplement : boulangerie, garage, salon de coiffure…") },
         { term: t("guide.s1_t3", "Logo"), plain: t("guide.s1_p3", "L'image ou l'enseigne de votre commerce. Une photo de votre devanture convient très bien.") },
       ],
@@ -144,7 +152,7 @@ function guideSteps(t: TFunction): GuideStep[] {
       terms: [
         { term: t("guide.s4_t1", "Loyer"), plain: t("guide.s4_p1", "Ce que vous payez chaque mois pour votre local. Si les murs vous appartiennent, mettez 0.") },
         { term: t("guide.s4_t2", "Surface"), plain: t("guide.s4_p2", "La taille de votre local, en mètres carrés.") },
-        { term: t("guide.s4_t3", "Bail commercial"), plain: t("guide.s4_p3", "Le contrat de location de votre local : sa durée, sa date de fin, le montant du loyer.") },
+        { term: isFrance ? t("guide.s4_t3", "Bail commercial") : (market.leaseName || t("guide.s4_t3_other", "Contrat de location")), plain: t("guide.s4_p3", "Le contrat de location de votre local : sa durée, sa date de fin, le montant du loyer.") },
         { term: t("guide.s4_t4", "Motif de cession"), plain: t("guide.s4_p4", "La raison pour laquelle vous vendez : départ à la retraite, déménagement, nouveau projet…") },
       ],
       pose: { x: 12, y: 34, rotate: 4 },
@@ -164,9 +172,9 @@ function guideSteps(t: TFunction): GuideStep[] {
   ];
 }
 
-export function FormGuide({ step, t }: { step: number; t: TFunction }) {
+export function FormGuide({ step, t, country }: { step: number; t: TFunction; country?: string | null }) {
   const reduceMotion = useReducedMotion();
-  const steps = guideSteps(t);
+  const steps = guideSteps(t, country);
   const current = steps[Math.min(steps.length, Math.max(1, step)) - 1];
   const motionOf = POSE_MOTION[Math.min(steps.length, Math.max(1, step)) - 1];
   const [showTerms, setShowTerms] = useState(false);

@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 import type { ListingDraft } from '@/services/assistantService';
 import { Mascot } from './Mascot';
+import { formatMoney } from '@/lib/markets';
 
 // Carte du fil de discussion : brouillon d'annonce préparé par Globi.
 export function DraftCard({ draft, onOpen }: { draft: ListingDraft; onOpen: (draft: ListingDraft) => void }) {
   const { t, i18n } = useTranslation();
-  const euros = (value: number) =>
-    new Intl.NumberFormat(i18n.language?.startsWith('en') ? 'en-GB' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+  const euros = (value: number) => formatMoney(value, i18n.language);
 
   const rows: { label: string; value: string }[] = [];
   if (draft.name) rows.push({ label: t('globi.draft_name', 'Nom'), value: draft.name });

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/markets';
 
 interface MarketPulseProps {
   listings: Array<{ price: number; created_at: string; industry?: string }>;
@@ -52,11 +53,7 @@ export function MarketPulse({ listings }: MarketPulseProps) {
 
   if (!stats) return null;
 
-  const fmt = (v: number) => new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
-    style: 'currency', 
-    currency: 'EUR', 
-    maximumFractionDigits: 0 
-  }).format(v);
+  const fmt = (v: number) => formatMoney(v, i18n.language);
 
   return (
     <div className="liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] p-6 sm:p-8 relative overflow-hidden group hover:border-white/50 dark:hover:bg-white/[0.04] transition-all duration-500">

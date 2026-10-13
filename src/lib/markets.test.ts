@@ -12,8 +12,14 @@ describe('marchés', () => {
   it('contrôle le format des identifiants de chaque pays', () => {
     expect(MARKETS.FR.identifier.isValid('73282932000074')).toBe(true);
     expect(MARKETS.FR.identifier.isValid('12345678901234')).toBe(false);
-    expect(MARKETS.ES.identifier.isValid('B-12345678')).toBe(true);
+    // vrais numéros publics : CaixaBank, Telefónica, l'administration fiscale
+    expect(MARKETS.ES.identifier.isValid('A08663619')).toBe(true);
+    expect(MARKETS.ES.identifier.isValid('A-28015865')).toBe(true);
+    expect(MARKETS.ES.identifier.isValid('Q2826000H')).toBe(true);
     expect(MARKETS.ES.identifier.isValid('12345678Z')).toBe(true);
+    // bon format, mauvaise clé : refusé
+    expect(MARKETS.ES.identifier.isValid('B12345678')).toBe(false);
+    expect(MARKETS.ES.identifier.isValid('12345678A')).toBe(false);
     expect(MARKETS.ES.identifier.isValid('1234')).toBe(false);
     // 501442600 : la clé modulo 11 tombe juste
     expect(MARKETS.PT.identifier.isValid('501 442 600')).toBe(true);
@@ -30,7 +36,7 @@ describe('marchés', () => {
   });
 
   it('nettoie la saisie sans perdre les lettres utiles', () => {
-    expect(MARKETS.ES.identifier.clean('b-1234.5678')).toBe('B12345678');
+    expect(MARKETS.ES.identifier.clean('b-1234.5674')).toBe('B12345674');
     expect(MARKETS.DE.identifier.clean('hrb  123456')).toBe('HRB 123456');
     expect(MARKETS.FR.identifier.clean('394 927 081 00114')).toBe('39492708100114');
   });

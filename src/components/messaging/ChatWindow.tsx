@@ -16,6 +16,7 @@ import type { TFunction } from 'i18next';
 import type { ChatMessage, Conversation } from '@/types/domain';
 import { OfferCard } from './OfferCard';
 import { isOfferMessage } from '@/lib/offers';
+import { formatMoney, localeFor } from '@/lib/markets';
 
 type Message = ChatMessage;
 
@@ -128,7 +129,7 @@ export function ChatWindow({
             </Link>
             {hasAcceptedOffer && (
               <span className="mt-1 text-[9px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-md font-bold tracking-widest whitespace-nowrap shadow-sm">
-                {new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(acceptedOffer.metadata.amount))}
+                {formatMoney(Number(acceptedOffer.metadata.amount), i18n.language)}
               </span>
             )}
           </div>
@@ -269,12 +270,12 @@ export function ChatWindow({
                             ? 'right-full mr-2 translate-x-2 group-hover/msg:translate-x-0' 
                             : 'left-full ml-2 -translate-x-2 group-hover/msg:translate-x-0'}
                         `}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(msg.created_at).toLocaleTimeString(localeFor(i18n.language), { hour: '2-digit', minute: '2-digit' })}
                         </div>
 
                         {/* L'heure - Mobile */}
                         <div className={`sm:hidden absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center text-[10px] text-white/40 pointer-events-none whitespace-nowrap z-0`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(msg.created_at).toLocaleTimeString(localeFor(i18n.language), { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </motion.div>
                     </div>

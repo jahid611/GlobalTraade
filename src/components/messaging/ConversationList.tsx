@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageCircle, Trash2, Handshake } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import type { TFunction } from 'i18next';
 import type { Conversation } from '@/types/domain';
+import { formatMoney } from '@/lib/markets';
+import { dateLocaleFor } from '@/lib/dateLocale';
 
 
 /**
@@ -22,7 +23,7 @@ function offerPreview(message: string | null | undefined, language: string, t: T
     const amount = Number(offer[1].replace(',', '.'));
     return {
       label: t('msg.preview_offer', 'Offre') as string,
-      value: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount),
+      value: formatMoney(amount, language),
     };
   }
   const help = /^PROPOSITION AIDE:\s*(.{1,60})$/.exec(text);
@@ -52,7 +53,7 @@ export function ConversationList({
   language,
   t 
 }: ConversationListProps) {
-  const dateLocale = language === 'fr' ? fr : enUS;
+  const dateLocale = dateLocaleFor(language);
 
   // Recherche : nom de l'interlocuteur, annonce ou dernier message.
   const [query, setQuery] = useState('');

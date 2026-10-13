@@ -35,7 +35,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
   const initialLang: "fr" | "en" =
     prospect.mail_lang === "en" || prospect.mail_lang === "fr"
       ? prospect.mail_lang
-      : (i18n.language?.startsWith("en") ? "en" : "fr");
+      : ((i18n.language || "fr").startsWith("fr") ? "fr" : "en");
   const [mailLang, setMailLang] = useState<"fr" | "en">(initialLang);
   const [email, setEmail] = useState(prospect.email || "");
   const initial = buildOutreachEmail(prospect, senderName, initialLang);

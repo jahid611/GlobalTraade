@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Money, MapPin, Eye, Heart, Fire, RocketLaunch, PencilSimple, Trash, Crown, CaretRight, CheckCircle } from "phosphor-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/lib/markets";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Project } from "@/services/projectService";
 import { BOOST_PRICE } from "@/services/planService";
@@ -15,7 +16,7 @@ const coverBadge = "px-2.5 py-1 rounded-full text-[11px] font-bold border backdr
 const ownerButton = "w-9 h-9 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md border border-white/15 flex items-center justify-center text-white transition-colors";
 
 export function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { project: Project; onClick: () => void; userId?: string; onEdit: () => void; onDelete: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const stage = stageMeta(project.stage);
   const boosted = isBoosted(project);
@@ -124,7 +125,7 @@ export function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { pr
           {project.city && <span className="flex items-center gap-1.5 min-w-0"><MapPin className="w-4 h-4 text-primary shrink-0"/><span className="truncate">{project.city}</span></span>}
           {project.budget_max && (
             <span className="flex items-center gap-1.5 font-medium" style={{ color: TONES.green.color }}>
-              <Money className="w-4 h-4"/>{t('project.detail.budget')} : {project.budget_max.toLocaleString()}€
+              <Money className="w-4 h-4"/>{t('project.detail.budget')} : {formatMoney(project.budget_max, i18n.language)}
             </span>
           )}
         </div>

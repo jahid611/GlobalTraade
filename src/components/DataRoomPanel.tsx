@@ -9,12 +9,13 @@ import { showSuccess, showError } from '@/utils/toast';
 import { generateBlindTeaser } from '@/utils/teaserGenerator';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { exportVDRAuditTrail } from '@/utils/pdfExport';
 import { generateNdaProof } from '@/utils/ndaProof';
 import type { Listing } from '@/types/domain';
 import type { User } from '@supabase/supabase-js';
+import { dateLocaleFor } from '@/lib/dateLocale';
+import { formatDate } from '@/lib/markets';
 
 interface DataRoomPanelProps {
   isOpen: boolean;
@@ -71,7 +72,8 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
   const { t, i18n } = useTranslation();
 
   const isOwner = user && listing?.owner_id === user.id;
-  const dateLocale = i18n.language === 'fr' ? fr : enUS;
+  const dateLocale = dateLocaleFor(i18n.language);
+  const isFrench = (i18n.language || 'fr').startsWith('fr');
 
   useEffect(() => {
     if (isOpen && user && listing) {
@@ -477,7 +479,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                 <div className="flex items-center gap-2 mt-0.5">
                                   {nda.status === 'signed' ? (
                                     <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                                      <CheckCircle2 size={12}/> {t('vdr.signed_on')} {format(new Date(nda.signed_at), 'dd/MM/yyyy')}
+                                      <CheckCircle2 size={12}/> {t('vdr.signed_on')} {formatDate(nda.signed_at, i18n.language, 'short')}
                                     </p>
                                   ) : (
                                     <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1">
@@ -540,7 +542,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                             <div key={log.id} className="relative pl-6">
                               <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-[#2b2a2f]" />
                               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.viewed_at || log.created_at || new Date()), 'dd MMM à HH:mm', { locale: dateLocale })}</p>
+                                <p className="text-xs text-white/50 mb-1 font-medium">{format(new Date(log.viewed_at || log.created_at || new Date()), isFrench ? "dd MMM 'à' HH:mm" : 'dd MMM, HH:mm', { locale: dateLocale })}</p>
                                 <p className="text-sm text-white/90 font-light">
                                   {log.viewer ? (
                                     <Link to={`/profile/${log.viewer_id}`} className="font-medium text-white hover:text-primary transition-colors">

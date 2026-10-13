@@ -12,6 +12,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { StarsDisplay } from "@/components/RatingStars";
 import { showError, showSuccess } from "@/utils/toast";
+import { formatDate } from "@/lib/markets";
 
 /**
  * Les avis reçus par un membre : on les lit tous, et le membre concerné peut
@@ -69,7 +70,7 @@ export function ReviewsModal({ userId, userName, isOpen, onClose }: {
     },
   });
 
-  const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language?.startsWith("fr") ? "fr-FR" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const date = (iso: string) => formatDate(iso, i18n.language, "long");
 
   const saveReply = async (reviewId: string, text: string) => {
     setSaving(true);

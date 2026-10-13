@@ -28,6 +28,9 @@ import { UpgradeModal } from '@/components/UpgradeModal';
 import { useTranslation } from 'react-i18next';
 import { showError } from '@/utils/toast';
 import { initNativeFeel } from '@/utils/nativeFeel';
+import { LanguageFlag } from '@/components/LanguageMenu';
+import { LANGUAGES } from '@/locales';
+import { setLanguage } from '@/i18n';
 
 // Injection du style natif global
 initNativeFeel();
@@ -227,12 +230,8 @@ export default function AppMap() {
     setSelectedIndustries([]);
   };
   
-  const toggleLanguage = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const newLang = i18n.language === 'fr' ? 'en' : 'fr';
-    i18n.changeLanguage(newLang);
-    localStorage.setItem('language', newLang);
-  };
+  // La liste des six langues se déplie dans le menu, comme dans la barre du site.
+  const [langOpen, setLangOpen] = useState(false);
 
   const handlePremiumClick = () => {
     if (!user) {
@@ -279,17 +278,36 @@ export default function AppMap() {
       )}
       <DropdownMenuSeparator className="bg-white/20 my-1" />
       
-      <DropdownMenuItem onClick={toggleLanguage} className={`${menuItemClass} justify-between`}>
+      <DropdownMenuItem
+        onSelect={(e) => { e.preventDefault(); setLangOpen((v) => !v); }}
+        aria-expanded={langOpen}
+        className={`${menuItemClass} justify-between`}
+      >
         <div className="flex items-center">
           <Translate className="mr-3 h-4 w-4 text-blue-400" />
           {t('lang.switch', 'Langue')}
         </div>
-        <img
-          src={i18n.language === "fr" ? "/france.png" : "/royaume-uni.png"}
-          alt="Flag"
-          className="w-5 h-5 object-contain"
-        />
+        <span className="flex items-center gap-2">
+          <LanguageFlag code={i18n.language} size={20} />
+          <span aria-hidden="true" className={`text-white/50 text-xs transition-transform ${langOpen ? 'rotate-180' : ''}`}>▾</span>
+        </span>
       </DropdownMenuItem>
+      {langOpen && (
+        <div className="mx-2 mb-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          {LANGUAGES.map((l) => (
+            <DropdownMenuItem
+              key={l.code}
+              lang={l.code}
+              onSelect={(e) => { e.preventDefault(); void setLanguage(l.code); }}
+              className="rounded-lg px-3 py-2.5 cursor-pointer flex items-center gap-3 text-sm font-light text-white/80 focus:text-white focus:bg-white/10 data-[highlighted]:bg-white/10 outline-none"
+            >
+              <LanguageFlag code={l.code} size={20} />
+              <span className="flex-1">{l.label}</span>
+              {(i18n.language || 'fr').slice(0, 2) === l.code && <span aria-hidden="true" style={{ color: '#a5b4fc' }}>✓</span>}
+            </DropdownMenuItem>
+          ))}
+        </div>
+      )}
 
       <DropdownMenuItem onClick={(e) => { e.preventDefault(); setTheme(theme === 'dark' ? 'light' : 'dark'); }} className={menuItemClass}>
         {theme === 'dark' ? <Sun className="mr-3 h-4 w-4 text-yellow-400" /> : <Moon className="mr-3 h-4 w-4 text-slate-300" />}
@@ -452,12 +470,17 @@ export default function AppMap() {
         </button>
       </div>
 
-      {/* Légende discrète, seulement si au moins un favori est sur la carte */}
+      {/* Légende discrète, seulement si au moins un favori est sur la carte.
+          Un appui ouvre la rubrique « Mes favoris » du tableau de bord. */}
       {favoritesOnMap && !isOverlayOpen && (
-        <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+3.1rem)] left-[5.25rem] sm:left-[6.5rem] z-10 pointer-events-none select-none flex items-center gap-1.5 text-[11px] font-light text-white/75 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
+        <Link
+          to="/dashboard"
+          state={{ tab: 'favorites' }}
+          className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+3.1rem)] left-[5.25rem] sm:left-[6.5rem] z-10 pointer-events-auto select-none flex items-center gap-1.5 -m-3 p-3 text-[11px] font-light text-white/75 hover:text-white active:text-white transition-colors drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
+        >
           <Heart weight="fill" className="w-3 h-3" style={{ color: FAVORITE_COLOR }} />
           {t('globe.legend_favorites', 'Mes favoris')}
-        </div>
+        </Link>
       )}
 
       <SidebarMessaging isOpen={isSidebarMessagingOpen} onClose={() => setIsSidebarMessagingOpen(false)} user={user} />

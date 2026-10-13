@@ -27,6 +27,7 @@ import { CompanyCard, CompanyCardSkeleton } from "@/components/radar/CompanyCard
 import { ScoreLegend } from "@/components/radar/ScoreLegend";
 import { ResultsPager } from "@/components/radar/ResultsPager";
 import { LockedScreen } from "@/components/radar/LockedScreen";
+import { localeFor } from "@/lib/markets";
 
 const APE_OPTIONS = APE_CODES.map((c) => ({ value: c.code, label: c.label, group: c.group }));
 const APE_LABELS = new Map(APE_CODES.map((c) => [c.code, c.label]));
@@ -36,7 +37,7 @@ const MAIN_CLASS = "relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 p
 export default function Radar() {
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
-  const numberLocale = i18n.language?.startsWith("en") ? "en-US" : "fr-FR";
+  const numberLocale = localeFor(i18n.language);
   const { user } = useAuth();
   const navigate = useNavigate();
   const senderName = user?.user_metadata?.full_name || user?.email || "[Votre nom]";

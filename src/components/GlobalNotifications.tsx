@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { useAppResumeRefresh } from '@/hooks/use-app-resume';
+import { formatMoney } from '@/lib/markets';
 
 // Budget parser utility
 function parseBudgetRange(str: string): { min: number; max: number } | null {
@@ -87,7 +88,7 @@ export function GlobalNotifications() {
             if (newMessage.type === 'offer') {
               const meta = newMessage.metadata as Record<string, unknown> | null;
               const amount = (meta?.amount as number) || 0;
-              const formatted = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+              const formatted = formatMoney(amount, i18n.language);
               toast.success(`🤝 ${t('notif.toast_offer_received')}`, {
                 description: `${senderName} - ${formatted}`,
                 action: { label: t('notif.reply'), onClick: () => navigate('/messages') },
@@ -150,7 +151,7 @@ export function GlobalNotifications() {
             );
 
             if (score >= 92) {
-              const fmt = new Intl.NumberFormat(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+              const fmt = { format: (v: number) => formatMoney(v, i18n.language) };
               toast.success(`🏆 ${t('notif.gold_match', 'Opportunité Or - {{score}}% Match', { score })}`, {
                 description: `${newListing.name || t('notif.new_listing', 'Nouvelle annonce')} • ${fmt.format(newListing.price as number || 0)}`,
                 // AppMap n'ouvre une fiche que sur ?focus=<id>

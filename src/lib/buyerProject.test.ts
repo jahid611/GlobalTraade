@@ -176,7 +176,7 @@ describe('toMatchCriteria', () => {
     expect(toMatchCriteria(parseBuyerProject({ target_budget: '1 – 3 M€' }))).toMatchObject({ budgetMin: 1000000, budgetMax: 3000000 });
     // Tranche au-delà du curseur : budget laissé ouvert
     expect(toMatchCriteria(parseBuyerProject({ target_budget: '5 – 10 M€' }))).toMatchObject({ budgetMin: 5000, budgetMax: 3000000 });
-    expect(toMatchCriteria(emptyBuyerProject())).toEqual({ industries: [], regions: [], budgetMin: 5000, budgetMax: 3000000 });
+    expect(toMatchCriteria(emptyBuyerProject())).toEqual({ industries: [], countries: [], regions: [], budgetMin: 5000, budgetMax: 3000000 });
   });
 
   it('sait si le projet donne de quoi chercher', () => {
@@ -245,5 +245,78 @@ describe('fitListing', () => {
 describe('affichage', () => {
   it('nomme les zones en clair', () => {
     expect(zoneLabels(parseBuyerProject({ target_geo: 'ara,69,Lyon' }))).toEqual(['Auvergne-Rhône-Alpes', 'Rhône (69)', 'Lyon']);
+  });
+});
+
+describe('projet sur plusieurs pays', () => {
+  const geo = 'ES,PT,idf,ES-CT,69,Lyon';
+
+  it('lit pays, régions et départements dans la même liste', () => {
+    const p = parseBuyerProject({ target_geo: geo });
+    expect(p.countries).toEqual(['ES', 'PT']);
+    expect(p.regions).toEqual(['idf', 'ES-CT']);
+    expect(p.departments).toEqual(['69']);
+    expect(p.legacy.zones).toEqual(['Lyon']);
+    // enregistré tel quel : pays, régions, départements, anciennes saisies
+    expect(serializeBuyerProject(p).target_geo).toBe(geo);
+  });
+
+  it('comprend un code de région français au format ISO et un nom de pays', () => {
+    const p = parseBuyerProject({ target_geo: 'FR-IDF,Espagne,es-ct' });
+    expect(p.regions).toEqual(['idf', 'ES-CT']);
+    expect(p.countries).toEqual(['ES']);
+    expect(p.legacy.zones).toEqual([]);
+  });
+
+  it('un ancien projet français reste lu comme avant', () => {
+    const p = parseBuyerProject(complete);
+    expect(p.countries).toEqual([]);
+    expect(serializeBuyerProject(p).target_geo).toBe('ara,69,2A');
+  });
+
+  it('nomme les pays et les régions étrangères', () => {
+    expect(zoneLabels(parseBuyerProject({ target_geo: 'ES,ES-CT,idf' }))).toEqual(['Espagne', 'Cataluña', 'Île-de-France']);
+  });
+
+  it('un pays seul suffit pour chercher, et passe dans les critères', () => {
+    const p = parseBuyerProject({ target_geo: 'DE,ES-CT' });
+    expect(hasSearchCriteria(p)).toBe(true);
+    expect(toMatchCriteria(p)).toMatchObject({ countries: ['DE'], regions: ['ES-CT'] });
+    expect(projectCompleteness(p).missing).not.toContain('zones');
+  });
+
+  it("compare la zone avec le pays de l'annonce", () => {
+    const barcelona = { country: 'ES', region: 'ES-CT', address: 'Carrer de Mallorca 75, 08013 Barcelona' };
+    const madrid = { country: 'ES', region: 'ES-MD', address: 'Calle de Alcalá 13, 28014 Madrid' };
+    const paris = { address: '10 rue de Rivoli, 75004 Paris' };
+    const lyon = { country: 'FR', address: '12 rue de la République, 69002 Lyon' };
+
+    // projet français d'avant : l'Île-de-France ne retient pas Barcelone malgré le « 75 » de son adresse
+    const idf = parseBuyerProject({ target_geo: 'idf' });
+    expect(fitListing(idf, barcelona).zone).toBe('miss');
+    expect(fitListing(idf, paris).zone).toBe('match');
+
+    const catalogne = parseBuyerProject({ target_geo: 'ES-CT' });
+    expect(fitListing(catalogne, barcelona).zone).toBe('match');
+    expect(fitListing(catalogne, madrid).zone).toBe('miss');
+    expect(fitListing(catalogne, paris).zone).toBe('miss');
+
+    // un pays entier
+    const espagne = parseBuyerProject({ target_geo: 'ES' });
+    expect(fitListing(espagne, madrid).zone).toBe('match');
+    expect(fitListing(espagne, paris).zone).toBe('miss');
+
+    // un pays entier + une région d'un autre pays
+    const mix = parseBuyerProject({ target_geo: 'FR,ES-CT' });
+    expect(fitListing(mix, lyon).zone).toBe('match');
+    expect(fitListing(mix, barcelona).zone).toBe('match');
+    expect(fitListing(mix, madrid).zone).toBe('miss');
+
+    // France choisie mais un seul département visé : le reste de la France ne convient pas
+    const rhone = parseBuyerProject({ target_geo: 'FR,69' });
+    expect(fitListing(rhone, lyon).zone).toBe('match');
+    expect(fitListing(rhone, paris).zone).toBe('miss');
+    // un département français ne dit rien d'une annonce espagnole dont le code postal commence pareil
+    expect(fitListing(parseBuyerProject({ target_geo: '08' }), barcelona).zone).toBe('miss');
   });
 });

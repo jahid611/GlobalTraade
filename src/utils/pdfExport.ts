@@ -1,19 +1,22 @@
 // Rapport de due diligence et journal d'accès à la data room, sur le gabarit
 // commun des PDF (voir pdfTemplate).
-import { format } from "date-fns";
 import type { TFunction } from 'i18next';
-import { createGloblyPdf, pdfFileName, PDF_COLORS, type GloblyPdf, type Rgb } from './pdfTemplate';
+import { createGloblyPdf, pdfFileName, pdfTextLang, PDF_COLORS, type GloblyPdf, type Rgb } from './pdfTemplate';
+import { formatDate, localeFor } from '@/lib/markets';
 
 // Lignes exportées : on ne dépend que de ce que le PDF lit réellement.
 type DdTask = { title?: string; category?: string; status?: string; created_at?: string | null; completed_at?: string | null };
 type AuditLog = { viewed_at?: string | null; created_at?: string | null; viewer?: { full_name?: string | null } | null; document?: { name?: string | null } | null };
 
-const today = (lang: string) =>
-  new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+// Les textes sont en français ou en anglais ; les dates suivent la langue du visiteur.
+const today = (lang: string) => formatDate(new Date(), lang, 'long');
+const shortDay = (value: string | Date, lang: string) => formatDate(value, lang, 'short');
+const dayAndTime = (at: Date, lang: string) =>
+  `${shortDay(at, lang)} ${at.toLocaleTimeString(localeFor(lang), { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })}`;
 
 /** Construit le rapport de due diligence, sans l'enregistrer. */
 export const buildDueDiligenceReport = async (tasks: DdTask[], listingName: string, _t: TFunction, lang: string): Promise<GloblyPdf> => {
-  const fr = lang === 'fr';
+  const fr = pdfTextLang(lang) === 'fr';
   const labels = {
     completed: fr ? 'Validé' : 'Completed',
     in_progress: fr ? 'En cours' : 'In Progress',
@@ -65,9 +68,9 @@ export const buildDueDiligenceReport = async (tasks: DdTask[], listingName: stri
     tasks.map((task) => [
       (task.category || '').toUpperCase(),
       task.title || '',
-      task.created_at ? format(new Date(task.created_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
+      shortDay(task.created_at || new Date(), lang),
       statusOf(task),
-      task.status === 'completed' && task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy') : '',
+      task.status === 'completed' && task.completed_at ? shortDay(task.completed_at, lang) : '',
     ]),
     { widths: [30, 50, 29, 26, 31], cellColor: (_row, col, value) => (col === 3 ? statusColor[value] : undefined) },
   );
@@ -85,7 +88,7 @@ export const exportDueDiligenceReport = async (tasks: DdTask[], listingName: str
 
 /** Construit le journal d'accès à la data room, sans l'enregistrer. */
 export const buildVDRAuditTrail = async (logs: AuditLog[], listingName: string, _t: TFunction, lang: string): Promise<GloblyPdf> => {
-  const fr = lang === 'fr';
+  const fr = pdfTextLang(lang) === 'fr';
   const unknownUser = fr ? 'Utilisateur inconnu' : 'Unknown user';
   const unknownFile = fr ? 'Fichier inconnu' : 'Unknown file';
   const rows = logs.map((log) => ({
@@ -123,7 +126,7 @@ export const buildVDRAuditTrail = async (logs: AuditLog[], listingName: string, 
       fr ? 'Document consulté' : 'Document viewed',
       fr ? "Niveau d'accès" : 'Access level',
     ],
-    rows.map((row) => [format(row.at, 'dd/MM/yyyy HH:mm:ss'), row.user, row.file, 'Accès sécurisé (NDA)']),
+    rows.map((row) => [dayAndTime(row.at, lang), row.user, row.file, 'Accès sécurisé (NDA)']),
     { widths: [43, 37, 48, 38] },
   );
 

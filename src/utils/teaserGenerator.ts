@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';
-import { createGloblyPdf, type GloblyPdf } from './pdfTemplate';
+import { createGloblyPdf, pdfTextLang, type GloblyPdf } from './pdfTemplate';
+import { localeFor } from '@/lib/markets';
 
 // Teaser anonyme (« blind teaser ») : le nom de l'entreprise, son adresse et tout
 // ce qui permettrait de l'identifier restent hors du document. Seuls le secteur,
@@ -13,7 +14,7 @@ const PROJECT_NAMES = ['TITAN', 'APOLLO', 'HORIZON', 'PHOENIX', 'DELTA', 'OMEGA'
 
 /** Construit le document sans le télécharger (utilisé par les tests). */
 export const buildBlindTeaser = async (listing: Listing, t: TFunction, lang: string): Promise<{ pdf: GloblyPdf; filename: string }> => {
-  const en = lang === 'en';
+  const en = pdfTextLang(lang) === 'en';
   const randomProjectName = PROJECT_NAMES[Math.floor(Math.random() * PROJECT_NAMES.length)];
   const industryStr = String(t(`industry.${listing.industry}`, { defaultValue: listing.industry }) ?? '');
   const notDisclosed = en ? 'Not disclosed' : 'Non communiqué';
@@ -21,7 +22,7 @@ export const buildBlindTeaser = async (listing: Listing, t: TFunction, lang: str
   const formatCurrency = (val: number | string | null | undefined) => {
     const n = typeof val === 'string' ? Number(val) : val;
     if (!n || Number.isNaN(n)) return notDisclosed;
-    return new Intl.NumberFormat(en ? 'en-US' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+    return new Intl.NumberFormat(localeFor(lang), { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
       .format(n)
       .replace(/\s/g, ' ');
   };
