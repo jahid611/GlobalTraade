@@ -43,7 +43,7 @@ export default function AppMap() {
   const { plan } = usePlan(user?.id);
   const { t, i18n } = useTranslation();
 
-  const { data: rawListings = [], refetch } = useListings();
+  const { data: rawListings = [], refetch, isFetched } = useListings();
   const listings = rawListings as ListingNode[];
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -100,7 +100,15 @@ export default function AppMap() {
     const pending = pendingOpen.current;
     if (!pending) return;
     const listing = listings.find((l) => l.id === pending.id);
-    if (!listing) return;
+    if (!listing) {
+      // Les annonces sont chargées et celle du lien n'y est pas : elle a été
+      // retirée ou mise en pause. (Après un paiement, on attend : elle arrive.)
+      if (isFetched && !pending.celebrate) {
+        pendingOpen.current = null;
+        navigate('/annonce-introuvable', { replace: true });
+      }
+      return;
+    }
     pendingOpen.current = null;
     setSelectedListing(listing);
     if (pending.celebrate) {
@@ -111,7 +119,7 @@ export default function AppMap() {
       // simulateur LBO se déverrouille sans refresh manuel).
       refetch();
     }
-  }, [listings, openRequest]);
+  }, [listings, openRequest, isFetched]);
 
   // Garde la fiche ouverte synchronisée avec le feed : quand les données
   // rafraîchissent (ex. financiers qui apparaissent après un déblocage), la

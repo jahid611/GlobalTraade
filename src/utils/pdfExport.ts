@@ -1,144 +1,139 @@
-// jspdf chargé à la demande (voir teaserGenerator).
+// Rapport de due diligence et journal d'accès à la data room, sur le gabarit
+// commun des PDF (voir pdfTemplate).
 import { format } from "date-fns";
-import { fr, enUS } from "date-fns/locale";
 import type { TFunction } from 'i18next';
+import { createGloblyPdf, pdfFileName, PDF_COLORS, type GloblyPdf, type Rgb } from './pdfTemplate';
 
 // Lignes exportées : on ne dépend que de ce que le PDF lit réellement.
 type DdTask = { title?: string; category?: string; status?: string; created_at?: string | null; completed_at?: string | null };
 type AuditLog = { viewed_at?: string | null; created_at?: string | null; viewer?: { full_name?: string | null } | null; document?: { name?: string | null } | null };
 
-// jspdf-autotable greffe `lastAutoTable` sur l'instance jsPDF sans le déclarer.
-type AutoTableDoc = { lastAutoTable?: { finalY: number } };
+const today = (lang: string) =>
+  new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-const PRIMARY_COLOR: [number, number, number] = [10, 10, 10];
-const ACCENT_COLOR: [number, number, number] = [168, 85, 247]; // Primary purple
+/** Construit le rapport de due diligence, sans l'enregistrer. */
+export const buildDueDiligenceReport = async (tasks: DdTask[], listingName: string, _t: TFunction, lang: string): Promise<GloblyPdf> => {
+  const fr = lang === 'fr';
+  const labels = {
+    completed: fr ? 'Validé' : 'Completed',
+    in_progress: fr ? 'En cours' : 'In Progress',
+    pending: fr ? 'En attente' : 'Pending',
+  };
+  const statusOf = (task: DdTask) =>
+    task.status === 'completed' ? labels.completed : task.status === 'in_progress' ? labels.in_progress : labels.pending;
 
-export const exportDueDiligenceReport = async (tasks: DdTask[], listingName: string, t: TFunction, lang: string) => {
-  const { jsPDF } = await import("jspdf");
-  const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF();
-  const dateLocale = lang === 'fr' ? fr : enUS;
-  
-  // Header
-  doc.setFillColor(...PRIMARY_COLOR);
-  doc.rect(0, 0, 210, 40, "F");
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text(lang === 'fr' ? "RAPPORT D'AUDIT & DUE DILIGENCE" : "DUE DILIGENCE AUDIT REPORT", 15, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Projet / Dossier : ${listingName}`, 15, 30);
-  
-  // Body
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(lang === 'fr' ? "État d'avancement des tâches" : "Task Progress Status", 15, 55);
+  const done = tasks.filter((task) => task.status === 'completed').length;
+  const running = tasks.filter((task) => task.status === 'in_progress').length;
+  const waiting = tasks.length - done - running;
+  const progress = tasks.length ? `${Math.round((done / tasks.length) * 100)} %` : '0 %';
 
-  const tableData = tasks.map(task => [
-    (task.category || '').toUpperCase(),
-    task.title,
-    task.created_at ? format(new Date(task.created_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
-    task.status === 'completed' ? (lang === 'fr' ? 'Validé' : 'Completed') : 
-    task.status === 'in_progress' ? (lang === 'fr' ? 'En cours' : 'In Progress') : (lang === 'fr' ? 'En attente' : 'Pending'),
-    task.status === 'completed' && task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy') : ""
-  ]);
-
-  autoTable(doc, {
-    startY: 65,
-    head: [[
-      lang === 'fr' ? "Catégorie" : "Category", 
-      lang === 'fr' ? "Tâche" : "Task", 
-      lang === 'fr' ? "Créée le" : "Created At",
-      lang === 'fr' ? "Statut" : "Status", 
-      lang === 'fr' ? "Terminée le" : "Completed At"
-    ]],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: ACCENT_COLOR, textColor: 255 },
-    styles: { font: 'helvetica', fontSize: 8 },
-    columnStyles: { 
-      0: { cellWidth: 35 }, 
-      1: { cellWidth: 70 },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 25 },
-      4: { cellWidth: 28 }
-    }
+  const pdf = await createGloblyPdf({
+    kind: fr ? "Rapport d'audit et due diligence" : 'Due diligence audit report',
+    title: listingName,
+    subtitle: fr ? "État d'avancement des tâches" : 'Task Progress Status',
+    facts: [
+      ['Projet / Dossier', listingName],
+      [fr ? 'Date' : 'Date', today(lang)],
+      [fr ? 'Tâches' : 'Tasks', String(tasks.length)],
+      [fr ? 'Avancement' : 'Progress', progress],
+    ],
+    footerNote: fr ? 'Document confidentiel' : 'Confidential document',
+    lang: fr ? 'fr' : 'en',
   });
 
-  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || 65;
-  
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text(
-    lang === 'fr' 
-      ? "Ce document est un extrait horodaté du suivi d'audit réalisé sur la plateforme Globly."
-      : "This document is a timestamped extract of the audit tracking performed on the Globly platform.",
-    15, finalY + 15
+  pdf.section(fr ? "État d'avancement des tâches" : 'Task Progress Status');
+  pdf.figures([
+    { label: fr ? 'Tâches' : 'Tasks', value: String(tasks.length), highlight: true },
+    { label: labels.completed, value: String(done) },
+    { label: labels.in_progress, value: String(running) },
+    { label: labels.pending, value: String(waiting) },
+  ], { perRow: 4 });
+
+  const statusColor: Record<string, Rgb> = {
+    [labels.completed]: PDF_COLORS.green,
+    [labels.in_progress]: PDF_COLORS.amber,
+    [labels.pending]: PDF_COLORS.grey,
+  };
+  pdf.grid(
+    [
+      fr ? 'Catégorie' : 'Category',
+      fr ? 'Tâche' : 'Task',
+      fr ? 'Créée le' : 'Created At',
+      fr ? 'Statut' : 'Status',
+      fr ? 'Terminée le' : 'Completed At',
+    ],
+    tasks.map((task) => [
+      (task.category || '').toUpperCase(),
+      task.title || '',
+      task.created_at ? format(new Date(task.created_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
+      statusOf(task),
+      task.status === 'completed' && task.completed_at ? format(new Date(task.completed_at), 'dd/MM/yyyy') : '',
+    ]),
+    { widths: [30, 50, 29, 26, 31], cellColor: (_row, col, value) => (col === 3 ? statusColor[value] : undefined) },
   );
 
-  doc.save(`Due_Diligence_Report_${listingName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  pdf.callout(fr
+    ? "Ce document est un extrait horodaté du suivi d'audit réalisé sur la plateforme Globly."
+    : 'This document is a timestamped extract of the audit tracking performed on the Globly platform.');
+  return pdf;
+};
+
+export const exportDueDiligenceReport = async (tasks: DdTask[], listingName: string, t: TFunction, lang: string) => {
+  const pdf = await buildDueDiligenceReport(tasks, listingName, t, lang);
+  pdf.save(pdfFileName('Due-Diligence-Report', listingName));
+};
+
+/** Construit le journal d'accès à la data room, sans l'enregistrer. */
+export const buildVDRAuditTrail = async (logs: AuditLog[], listingName: string, _t: TFunction, lang: string): Promise<GloblyPdf> => {
+  const fr = lang === 'fr';
+  const unknownUser = fr ? 'Utilisateur inconnu' : 'Unknown user';
+  const unknownFile = fr ? 'Fichier inconnu' : 'Unknown file';
+  const rows = logs.map((log) => ({
+    at: new Date(log.viewed_at || log.created_at || new Date()),
+    user: log.viewer?.full_name || unknownUser,
+    file: log.document?.name || unknownFile,
+  }));
+  const users = new Set(rows.map((row) => row.user)).size;
+  const files = new Set(rows.map((row) => row.file)).size;
+
+  const pdf = await createGloblyPdf({
+    kind: fr ? "Registre d'accès data room (VDR)" : 'Data room access log (VDR)',
+    title: listingName,
+    subtitle: fr ? 'Historique des consultations (Audit Trail)' : 'Viewing History (Audit Trail)',
+    facts: [
+      ['Projet / Dossier', listingName],
+      [fr ? 'Date' : 'Date', today(lang)],
+      [fr ? 'Consultations' : 'Views', String(rows.length)],
+      [fr ? 'Utilisateurs' : 'Users', String(users)],
+    ],
+    footerNote: fr ? 'Document confidentiel' : 'Confidential document',
+    lang: fr ? 'fr' : 'en',
+  });
+
+  pdf.section(fr ? 'Historique des consultations (Audit Trail)' : 'Viewing History (Audit Trail)');
+  pdf.figures([
+    { label: fr ? 'Consultations' : 'Views', value: String(rows.length), highlight: true },
+    { label: fr ? 'Utilisateurs' : 'Users', value: String(users) },
+    { label: fr ? 'Documents consultés' : 'Documents viewed', value: String(files) },
+  ]);
+  pdf.grid(
+    [
+      fr ? 'Date & Heure' : 'Date & Time',
+      fr ? 'Utilisateur' : 'User',
+      fr ? 'Document consulté' : 'Document viewed',
+      fr ? "Niveau d'accès" : 'Access level',
+    ],
+    rows.map((row) => [format(row.at, 'dd/MM/yyyy HH:mm:ss'), row.user, row.file, 'Accès sécurisé (NDA)']),
+    { widths: [43, 37, 48, 38] },
+  );
+
+  pdf.callout(fr
+    ? 'Ce registre (Audit Trail) garantit la traçabilité des accès aux documents confidentiels. Généré par Globly.'
+    : 'This Audit Trail guarantees the traceability of access to confidential documents. Generated by Globly.');
+  return pdf;
 };
 
 export const exportVDRAuditTrail = async (logs: AuditLog[], listingName: string, t: TFunction, lang: string) => {
-  const { jsPDF } = await import("jspdf");
-  const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF();
-  const dateLocale = lang === 'fr' ? fr : enUS;
-  
-  // Header
-  doc.setFillColor(...PRIMARY_COLOR);
-  doc.rect(0, 0, 210, 40, "F");
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text(lang === 'fr' ? "REGISTRE D'ACCÈS DATA ROOM (VDR)" : "DATA ROOM ACCESS LOG (VDR)", 15, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Projet / Dossier : ${listingName}`, 15, 30);
-  
-  // Body
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(lang === 'fr' ? "Historique des consultations (Audit Trail)" : "Viewing History (Audit Trail)", 15, 55);
-
-  const tableData = logs.map(log => [
-    format(new Date(log.viewed_at || log.created_at || new Date()), 'dd/MM/yyyy HH:mm:ss'),
-    log.viewer?.full_name || (lang === 'fr' ? 'Utilisateur inconnu' : 'Unknown user'),
-    log.document?.name || (lang === 'fr' ? 'Fichier inconnu' : 'Unknown file'),
-    "Accès sécurisé (NDA)"
-  ]);
-
-  autoTable(doc, {
-    startY: 65,
-    head: [[
-      lang === 'fr' ? "Date & Heure" : "Date & Time", 
-      lang === 'fr' ? "Utilisateur" : "User", 
-      lang === 'fr' ? "Document consulté" : "Document viewed", 
-      lang === 'fr' ? "Niveau d'accès" : "Access level"
-    ]],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: ACCENT_COLOR, textColor: 255 },
-    styles: { font: 'helvetica', fontSize: 9 },
-  });
-
-  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable?.finalY || 65;
-  
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text(
-    lang === 'fr' 
-      ? "Ce registre (Audit Trail) garantit la traçabilité des accès aux documents confidentiels. Généré par Globly."
-      : "This Audit Trail guarantees the traceability of access to confidential documents. Generated by Globly.",
-    15, finalY + 15
-  );
-
-  doc.save(`VDR_Audit_Trail_${listingName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  const pdf = await buildVDRAuditTrail(logs, listingName, t, lang);
+  pdf.save(pdfFileName('VDR-Audit-Trail', listingName));
 };

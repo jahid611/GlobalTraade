@@ -1,4 +1,6 @@
-// jspdf chargé à la demande (voir teaserGenerator).
+// Lettre d'intention, mise en page par le gabarit commun (voir pdfTemplate).
+import { createGloblyPdf, pdfFileName, type GloblyPdf } from "./pdfTemplate";
+
 interface LOIParams {
   buyerName: string;
   sellerName: string;
@@ -8,10 +10,12 @@ interface LOIParams {
   offerDate: string;
   acceptedDate: string;
   lang: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: (key: string, opts?: any) => string;
 }
 
-export const generateLOI = async ({
+/** Construit la lettre sans la télécharger (utilisé aussi par les tests). */
+export const buildLOI = async ({
   buyerName,
   sellerName,
   listingName,
@@ -20,20 +24,8 @@ export const generateLOI = async ({
   offerDate,
   acceptedDate,
   lang,
-  t,
-}: LOIParams) => {
-  const { jsPDF } = await import("jspdf");
-  const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF();
+}: LOIParams): Promise<{ pdf: GloblyPdf; filename: string; reference: string }> => {
   const isFr = lang === "fr";
-
-  // --- CONSTANTS ---
-  const PRIMARY_COLOR: [number, number, number] = [10, 10, 10];
-  const ACCENT_COLOR: [number, number, number] = [0, 100, 255];
-  const LIGHT_GRAY: [number, number, number] = [245, 245, 245];
-  const pageWidth = 210;
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat(isFr ? "fr-FR" : "en-US", {
@@ -52,103 +44,39 @@ export const generateLOI = async ({
       : d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
   };
 
-  // =================================================================
-  // HEADER
-  // =================================================================
-  doc.setFillColor(...PRIMARY_COLOR);
-  doc.rect(0, 0, pageWidth, 48, "F");
-
-  // Accent line
-  doc.setFillColor(...ACCENT_COLOR);
-  doc.rect(0, 48, pageWidth, 2, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "LETTRE D'INTENTION" : "LETTER OF INTENT", margin, 22);
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(
-    isFr ? "Document généré automatiquement - Globly" : "Auto-generated document - Globly",
-    margin,
-    32
-  );
-
-  doc.setFontSize(9);
-  doc.setTextColor(200, 200, 200);
-  doc.text(
-    isFr ? "CONFIDENTIEL - Usage privé uniquement" : "CONFIDENTIAL - Private use only",
-    margin,
-    40
-  );
-
-  // =================================================================
-  // REFERENCE
-  // =================================================================
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
   const refNumber = `LOI-${Date.now().toString(36).toUpperCase()}`;
-  doc.text(`Ref: ${refNumber}`, pageWidth - margin, 58, { align: "right" });
-  doc.text(`${isFr ? "Date" : "Date"}: ${formatDate(acceptedDate)}`, pageWidth - margin, 64, { align: "right" });
 
-  // =================================================================
-  // PARTIES
-  // =================================================================
-  let y = 75;
+  const pdf = await createGloblyPdf({
+    kind: isFr ? "Lettre d'intention" : "Letter of intent",
+    title: listingName,
+    subtitle: isFr ? "Document généré automatiquement - Globly" : "Auto-generated document - Globly",
+    reference: refNumber,
+    facts: [
+      [isFr ? "Réf." : "Ref", refNumber],
+      ["Date", formatDate(acceptedDate)],
+      [isFr ? "Acheteur" : "Buyer", buyerName],
+      [isFr ? "Vendeur" : "Seller", sellerName],
+    ],
+    footerNote: isFr ? "CONFIDENTIEL - Usage privé uniquement" : "CONFIDENTIAL - Private use only",
+    lang,
+  });
 
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "1. Parties" : "1. Parties", margin, y);
-  y += 8;
+  // 1. Parties
+  pdf.section("Parties");
+  pdf.keyValues([
+    [isFr ? "ACHETEUR (Cessionnaire)" : "BUYER (Transferee)", buyerName],
+    [isFr ? "VENDEUR (Cédant)" : "SELLER (Transferor)", sellerName],
+  ]);
 
-  doc.setFillColor(...LIGHT_GRAY);
-  doc.roundedRect(margin, y, contentWidth, 32, 3, 3, "F");
+  // 2. Objet
+  pdf.section(isFr ? "Objet de la Transaction" : "Transaction Object");
+  pdf.paragraph(
+    isFr
+      ? `La présente lettre d'intention porte sur l'acquisition de l'intégralité des parts sociales / fonds de commerce de l'entreprise désignée sous le dossier "${listingName}" (ci-après "la Cible"), telle que publiée sur la plateforme Globly.`
+      : `This letter of intent concerns the acquisition of all shares / business assets of the company designated under the dossier "${listingName}" (hereinafter "the Target"), as listed on the Globly platform.`
+  );
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...ACCENT_COLOR);
-  doc.text(isFr ? "ACHETEUR (Cessionnaire)" : "BUYER (Transferee)", margin + 6, y + 8);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-  doc.text(buyerName, margin + 6, y + 16);
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...ACCENT_COLOR);
-  doc.text(isFr ? "VENDEUR (Cédant)" : "SELLER (Transferor)", contentWidth / 2 + margin, y + 8);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-  doc.text(sellerName, contentWidth / 2 + margin, y + 16);
-
-  y += 40;
-
-  // =================================================================
-  // OBJECT
-  // =================================================================
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "2. Objet de la Transaction" : "2. Transaction Object", margin, y);
-  y += 8;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const objectText = isFr
-    ? `La présente lettre d'intention porte sur l'acquisition de l'intégralité des parts sociales / fonds de commerce de l'entreprise désignée sous le dossier "${listingName}" (ci-après "la Cible"), telle que publiée sur la plateforme Globly.`
-    : `This letter of intent concerns the acquisition of all shares / business assets of the company designated under the dossier "${listingName}" (hereinafter "the Target"), as listed on the Globly platform.`;
-  const splitObject = doc.splitTextToSize(objectText, contentWidth);
-  doc.text(splitObject, margin, y);
-  y += splitObject.length * 5 + 8;
-
-  // =================================================================
-  // FINANCIAL TERMS
-  // =================================================================
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "3. Conditions Financières" : "3. Financial Terms", margin, y);
-  y += 4;
-
+  // 3. Conditions financières
   // Une offre porte soit un mode simple ('cash' / 'loan'), soit la répartition
   // emprunt / fonds propres choisie par l'acheteur : dans ce cas la lettre
   // d'intention doit la reprendre telle quelle, pas la résumer en « prêt ».
@@ -161,35 +89,19 @@ export const generateLOI = async ({
         ? isFr ? "Fonds propres (Cash)" : "Own Funds (Cash)"
         : isFr ? "Prêt bancaire" : "Bank Loan";
 
-  autoTable(doc, {
-    startY: y,
-    head: [[isFr ? "Élément" : "Item", isFr ? "Détail" : "Detail"]],
-    body: [
+  pdf.section(isFr ? "Conditions Financières" : "Financial Terms");
+  pdf.grid(
+    [isFr ? "Élément" : "Item", isFr ? "Détail" : "Detail"],
+    [
       [isFr ? "Montant proposé" : "Proposed Amount", formatCurrency(amount)],
       [isFr ? "Mode de financement" : "Financing Method", financingLabel],
       [isFr ? "Date de l'offre initiale" : "Initial Offer Date", formatDate(offerDate)],
       [isFr ? "Date d'acceptation" : "Acceptance Date", formatDate(acceptedDate)],
     ],
-    theme: "grid",
-    headStyles: { fillColor: ACCENT_COLOR, font: "helvetica", fontStyle: "bold" },
-    styles: { font: "helvetica", fontSize: 10 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 80 } },
-    margin: { left: margin, right: margin },
-  });
+    { widths: [2, 3] }
+  );
 
-  y = (doc as any).lastAutoTable.finalY + 12;
-
-  // =================================================================
-  // CLAUSES
-  // =================================================================
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "4. Conditions Suspensives" : "4. Conditions Precedent", margin, y);
-  y += 8;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-
+  // 4. Conditions suspensives
   const clauses = isFr
     ? [
         "Réalisation d'un audit comptable, juridique et fiscal satisfaisant (Due Diligence) dans un délai de 60 jours à compter de la signature de la présente.",
@@ -204,93 +116,37 @@ export const generateLOI = async ({
         "Maintenance of key contracts (clients, suppliers, leases) under current terms.",
       ];
 
-  clauses.forEach((clause, idx) => {
-    const bullet = `${String.fromCharCode(97 + idx)})`;
-    const lines = doc.splitTextToSize(`${bullet} ${clause}`, contentWidth - 5);
-    doc.text(lines, margin + 2, y);
-    y += lines.length * 5 + 3;
-  });
+  pdf.section(isFr ? "Conditions Suspensives" : "Conditions Precedent");
+  // les clauses gardent leur lettre (a, b, c…) : on s'y réfère dans les échanges
+  pdf.paragraph(clauses.map((clause, idx) => `${String.fromCharCode(97 + idx)}) ${clause}`).join("\n"));
 
-  y += 5;
+  // 5. Exclusivité
+  pdf.section(isFr ? "Exclusivité" : "Exclusivity");
+  pdf.paragraph(
+    isFr
+      ? `Le Cédant s'engage à accorder au Cessionnaire une période d'exclusivité de 90 (quatre-vingt-dix) jours calendaires à compter de la signature de la présente lettre, pendant laquelle aucune autre offre ne pourra être acceptée ni négociée avec un tiers.`
+      : `The Transferor agrees to grant the Transferee an exclusivity period of 90 (ninety) calendar days from the signing of this letter, during which no other offer may be accepted or negotiated with a third party.`
+  );
 
-  // =================================================================
-  // EXCLUSIVITY
-  // =================================================================
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "5. Exclusivité" : "5. Exclusivity", margin, y);
-  y += 8;
+  // 6. Signatures
+  pdf.section("Signatures");
+  pdf.signatures([
+    { role: isFr ? "ACHETEUR" : "BUYER", name: buyerName, note: "Signature" },
+    { role: isFr ? "VENDEUR" : "SELLER", name: sellerName, note: "Signature" },
+  ]);
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const exclusivityText = isFr
-    ? `Le Cédant s'engage à accorder au Cessionnaire une période d'exclusivité de 90 (quatre-vingt-dix) jours calendaires à compter de la signature de la présente lettre, pendant laquelle aucune autre offre ne pourra être acceptée ni négociée avec un tiers.`
-    : `The Transferor agrees to grant the Transferee an exclusivity period of 90 (ninety) calendar days from the signing of this letter, during which no other offer may be accepted or negotiated with a third party.`;
-  const splitExcl = doc.splitTextToSize(exclusivityText, contentWidth);
-  doc.text(splitExcl, margin, y);
-  y += splitExcl.length * 5 + 10;
+  // Avertissement
+  pdf.callout(
+    isFr
+      ? "Ce document est une lettre d'intention non contraignante générée automatiquement par la plateforme Globly. Il exprime une intention réciproque d'entamer des négociations en vue de la cession de l'entreprise mentionnée. Ce document ne constitue pas un engagement ferme de vente ou d'achat. Seul un acte de cession définitif signé par les parties aura valeur contractuelle."
+      : "This document is a non-binding letter of intent automatically generated by the Globly platform. It expresses a mutual intention to enter into negotiations for the sale of the mentioned business. This document does not constitute a binding commitment to sell or purchase. Only a final transfer agreement signed by the parties shall have contractual value.",
+    { title: isFr ? "AVERTISSEMENT" : "DISCLAIMER", tone: "warning" }
+  );
 
-  // =================================================================
-  // SIGNATURE BLOCK (Page 2 if needed)
-  // =================================================================
-  if (y > 240) {
-    doc.addPage();
-    y = 30;
-  }
+  return { pdf, filename: pdfFileName(refNumber, listingName), reference: refNumber };
+};
 
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(isFr ? "6. Signatures" : "6. Signatures", margin, y);
-  y += 10;
-
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-
-  // Buyer signature box
-  doc.setFillColor(...LIGHT_GRAY);
-  doc.roundedRect(margin, y, contentWidth / 2 - 5, 40, 3, 3, "F");
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...ACCENT_COLOR);
-  doc.text(isFr ? "ACHETEUR" : "BUYER", margin + 6, y + 8);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-  doc.text(buyerName, margin + 6, y + 16);
-  doc.setTextColor(150, 150, 150);
-  doc.text(isFr ? "Signature : ________________" : "Signature: ________________", margin + 6, y + 32);
-
-  // Seller signature box
-  const rightX = margin + contentWidth / 2 + 5;
-  doc.setFillColor(...LIGHT_GRAY);
-  doc.roundedRect(rightX, y, contentWidth / 2 - 5, 40, 3, 3, "F");
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...ACCENT_COLOR);
-  doc.text(isFr ? "VENDEUR" : "SELLER", rightX + 6, y + 8);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-  doc.text(sellerName, rightX + 6, y + 16);
-  doc.setTextColor(150, 150, 150);
-  doc.text(isFr ? "Signature : ________________" : "Signature: ________________", rightX + 6, y + 32);
-
-  y += 50;
-
-  // =================================================================
-  // FOOTER DISCLAIMER
-  // =================================================================
-  const footerY = Math.max(y + 5, 265);
-  doc.setFontSize(7);
-  doc.setTextColor(130, 130, 130);
-  const disclaimer = isFr
-    ? "AVERTISSEMENT : Ce document est une lettre d'intention non contraignante générée automatiquement par la plateforme Globly. Il exprime une intention réciproque d'entamer des négociations en vue de la cession de l'entreprise mentionnée. Ce document ne constitue pas un engagement ferme de vente ou d'achat. Seul un acte de cession définitif signé par les parties aura valeur contractuelle."
-    : "DISCLAIMER: This document is a non-binding letter of intent automatically generated by the Globly platform. It expresses a mutual intention to enter into negotiations for the sale of the mentioned business. This document does not constitute a binding commitment to sell or purchase. Only a final transfer agreement signed by the parties shall have contractual value.";
-  const splitDisclaimer = doc.splitTextToSize(disclaimer, contentWidth);
-  doc.text(splitDisclaimer, margin, footerY);
-
-  // Accent line at bottom
-  doc.setFillColor(...ACCENT_COLOR);
-  doc.rect(0, 293, pageWidth, 4, "F");
-
-  // Download
-  doc.save(`LOI_${listingName.replace(/[^a-zA-Z0-9]/g, "_")}_${refNumber}.pdf`);
+export const generateLOI = async (params: LOIParams) => {
+  const { pdf, filename } = await buildLOI(params);
+  pdf.save(filename);
 };

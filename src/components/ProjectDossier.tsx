@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefusalReason } from '@/components/MemberNotices';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import { CheckCircle as SealCheck, LockSimple, LockSimpleOpen, FilePlus, FileText, Check, X, DownloadSimple, Clock, XCircle, Circle, Eye, Info } from 'phosphor-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -283,33 +284,12 @@ function BusinessPlanModal({ projectId, projectTitle, isOpen, onClose, readOnly 
   };
 
   const exportPdf = async () => {
-    const { jsPDF } = await import('jspdf'); // chargé à la demande
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Business plan - ${projectTitle}`, 15, 20);
-    let y = 35;
-    BP_SECTIONS.forEach(section => {
-      const content = plan[section];
-      if (!content) return;
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text(String(t(`pp.bp_${section}`)), 15, y);
-      y += 7;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(content, 180);
-      lines.forEach((line: string) => {
-        if (y > 280) { doc.addPage(); y = 20; }
-        doc.text(line, 15, y);
-        y += 5;
-      });
-      y += 6;
+    const { exportBusinessPlanPdf } = await import('@/utils/businessPlanPdf'); // chargé à la demande
+    await exportBusinessPlanPdf({
+      projectTitle,
+      sections: BP_SECTIONS.map(section => ({ title: String(t(`pp.bp_${section}`)), content: plan[section] })),
+      lang: i18n.language,
     });
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text('Document généré par Globly, globly.fr', 15, 290);
-    doc.save(`BusinessPlan_${projectTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`);
   };
 
   const filled = BP_SECTIONS.filter(section => (plan[section] || '').trim()).length;

@@ -355,8 +355,9 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                 <FavoriteHeart active={isFavorite} size={20} />
               </button>
             )}
-            <button onClick={onClose} className="p-2 text-white hover:text-white bg-white/5 border border-white/10 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-90">
-              <X size={20} />
+            {/* Téléphone : le mot « Fermer » à côté de la croix, plus évident qu'une icône seule */}
+            <button onClick={onClose} className="h-9 pl-2.5 pr-3.5 gap-1.5 text-white text-sm font-medium bg-white/10 border border-white/20 rounded-full transition-colors flex items-center justify-center shadow-lg active:scale-95">
+              <X size={18} /> {t('modal.close')}
             </button>
           </div>
 
@@ -389,7 +390,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                       <span className="text-[10px] uppercase tracking-widest text-primary font-medium">
                         {t(`industry.${listing.industry}`, { defaultValue: listing.industry })}
                       </span>
-                      {(!listing.hide_siret || isOwner) && (
+                      {listing.siret && (!listing.hide_siret || isOwner) && (
                         <>
                           <span className="text-white/20 hidden sm:inline">•</span>
                           <span className="text-[10px] uppercase tracking-widest flex items-center gap-1.5 text-white/40">
@@ -505,19 +506,19 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                 <div className="flex flex-wrap gap-x-8 sm:gap-x-16 gap-y-6">
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">{t('modal.established')}</span>
-                    <span className="text-lg sm:text-xl font-light text-white truncate">{listing.established_year || t('modal.na')}</span>
+                    <span className={`font-light truncate ${listing.established_year ? 'text-lg sm:text-xl text-white' : 'text-sm text-white/60 italic'}`}>{listing.established_year || t('modal.na')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">{t('modal.surface')}</span>
-                    <span className="text-lg sm:text-xl font-light text-white truncate">{listing.surface ? `${listing.surface} m²` : t('modal.na')}</span>
+                    <span className={`font-light truncate ${listing.surface ? 'text-lg sm:text-xl text-white' : 'text-sm text-white/60 italic'}`}>{listing.surface ? `${listing.surface} m²` : t('modal.na')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">{t('modal.employees')}</span>
-                    <span className="text-lg sm:text-xl font-light text-white truncate">{listing.employees || t('modal.na')}</span>
+                    <span className={`font-light truncate ${listing.employees ? 'text-lg sm:text-xl text-white' : 'text-sm text-white/60 italic'}`}>{listing.employees || t('modal.na')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">{t('modal.rent')}</span>
-                    <span className="text-lg sm:text-xl font-light text-white truncate">{listing.rent ? formatEuro(listing.rent) : t('modal.na')}</span>
+                    <span className={`font-light truncate ${listing.rent ? 'text-lg sm:text-xl text-white' : 'text-sm text-white/60 italic'}`}>{listing.rent ? formatEuro(listing.rent) : t('modal.na')}</span>
                   </div>
                 </div>
               </div>

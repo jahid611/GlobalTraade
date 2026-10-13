@@ -509,7 +509,7 @@ export const core: Record<string, string> = {
   "modal.surface": "Área",
   "modal.employees": "Trabalhadores",
   "modal.rent": "Renda anual",
-  "modal.na": "N/D",
+  "modal.na": "Não indicado",
   "modal.history": "Histórico da faturação",
   "modal.year_n3": "Ano N-3",
   "modal.year_n2": "Ano N-2",

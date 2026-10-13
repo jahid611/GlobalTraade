@@ -171,8 +171,9 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
       <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-purple-500/20">
-              <Sparkles className="w-5 h-5 text-purple-400" />
+            {/* Globi, l'assistant du site : on voit tout de suite que l'analyse vient de l'IA */}
+            <div className="w-11 h-11 shrink-0 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center overflow-hidden">
+              <img src="/mascot/globi-ia.webp" alt="" className="w-10 h-10 object-contain" />
             </div>
             <div>
               <p className="text-sm font-medium text-white">{t('ai.title', 'Score M&A Avancé (IA)')}</p>
@@ -198,11 +199,11 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
 
       {greenFlags.length > 0 && (
         <div className="space-y-2">
-          <span className="text-[9px] uppercase tracking-widest text-emerald-400/60 font-medium flex items-center gap-1.5 px-1">
+          <span className="text-[11px] uppercase tracking-widest text-emerald-300 font-semibold flex items-center gap-1.5 px-1">
             <ShieldCheck className="w-3 h-3" /> {t('ai.opportunities', 'Opportunités')} ({greenFlags.length})
           </span>
           {greenFlags.map((f, i) => (
-            <div key={i} className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3.5 flex items-start gap-3">
+            <div key={i} className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3.5 flex items-center gap-3">
               <FlagIcon type="green" />
               <div><p className="text-sm font-medium text-white/90">{f.label}</p><p className="text-[11px] text-white/40 font-light mt-0.5">{f.detail}</p></div>
             </div>
@@ -212,11 +213,11 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
 
       {amberFlags.length > 0 && (
         <div className="space-y-2">
-          <span className="text-[9px] uppercase tracking-widest text-amber-400/60 font-medium flex items-center gap-1.5 px-1">
+          <span className="text-[11px] uppercase tracking-widest text-amber-300 font-semibold flex items-center gap-1.5 px-1">
             <Info className="w-3 h-3" /> {t('ai.points_attention', 'Points d\'attention')} ({amberFlags.length})
           </span>
           {amberFlags.map((f, i) => (
-            <div key={i} className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3.5 flex items-start gap-3">
+            <div key={i} className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3.5 flex items-center gap-3">
               <FlagIcon type="amber" />
               <div><p className="text-sm font-medium text-white/90">{f.label}</p><p className="text-[11px] text-white/40 font-light mt-0.5">{f.detail}</p></div>
             </div>
@@ -226,11 +227,11 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
 
       {redFlags.length > 0 && (
         <div className="space-y-2">
-          <span className="text-[9px] uppercase tracking-widest text-red-400/60 font-medium flex items-center gap-1.5 px-1">
+          <span className="text-[11px] uppercase tracking-widest text-red-300 font-semibold flex items-center gap-1.5 px-1">
             <ShieldAlert className="w-3 h-3" /> {t('ai.risks', 'Risques identifiés')} ({redFlags.length})
           </span>
           {redFlags.map((f, i) => (
-            <div key={i} className="bg-red-500/5 border border-red-500/10 rounded-xl p-3.5 flex items-start gap-3">
+            <div key={i} className="bg-red-500/5 border border-red-500/10 rounded-xl p-3.5 flex items-center gap-3">
               <FlagIcon type="red" />
               <div><p className="text-sm font-medium text-white/90">{f.label}</p><p className="text-[11px] text-white/40 font-light mt-0.5">{f.detail}</p></div>
             </div>

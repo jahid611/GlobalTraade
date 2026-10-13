@@ -35,11 +35,16 @@ function InfoBlock({ open, title, text }: { open: boolean; title: string; text: 
   );
 }
 
-function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: string }) {
+// Une case de la synthèse. `tone` reprend le code couleur du financement : une
+// pastille de la couleur de la source, et le chiffre dans sa version pastel.
+function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: { dot: string; text: string } }) {
   return (
     <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
-      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1.5">{label}</p>
-      <p className={`text-xl font-light ${accent || 'text-white'} tabular-nums`}>{value}</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium mb-1.5 flex items-center gap-1.5">
+        {tone && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: tone.dot }} />}
+        {label}
+      </p>
+      <p className="text-xl font-normal tabular-nums" style={{ color: tone?.text || '#fff' }}>{value}</p>
       {hint && <p className="text-[11px] text-white/35 font-light mt-1 leading-snug">{hint}</p>}
     </div>
   );
@@ -60,19 +65,62 @@ interface SliderProps {
   onToggleInfo: (id: string | null) => void;
 }
 
+// Code couleur du financement : une couleur par source, la même sur la barre de
+// répartition, sa légende, les curseurs et leurs pourcentages.
+const SOURCE_COLORS = {
+  apport: '#8b85ff',        // violet : l'argent du repreneur
+  investisseurs: '#fb923c', // orange
+  creditVendeur: '#facc15', // jaune
+  aides: '#34d399',         // vert
+  banque: '#60a5fa',        // bleu : l'emprunt, son taux et sa durée
+} as const;
+
+// Les mêmes teintes en pastel, pour écrire un chiffre lisible sur fond sombre.
+const TONES = {
+  apport: { dot: SOURCE_COLORS.apport, text: '#d4d1ff' },
+  banque: { dot: SOURCE_COLORS.banque, text: '#cfe4ff' },
+  positif: { dot: '#34d399', text: '#b6f5d8' },
+  negatif: { dot: '#f87171', text: '#ffc9c9' },
+} as const;
+
+// Curseur dont la piste se remplit jusqu'à la poignée, dans la couleur de la source.
+const RANGE_CLASS = "w-full h-2 rounded-full appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--c)] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-[14px] [&::-moz-range-thumb]:h-[14px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--c)] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white";
+const rangeStyle = (color: string, value: number, min: number, max: number): React.CSSProperties => {
+  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 0;
+  return { ['--c' as string]: color, background: `linear-gradient(to right, ${color} ${pct}%, rgba(255,255,255,0.14) ${pct}%)` };
+};
+
 function Slider({ label, icon: Icon, value, onChange, color, max = 100, infoId, infoTitle, infoText, showInfo, onToggleInfo }: SliderProps) {
+  // Ordinateur : l'explication apparaît au survol du libellé (fiche flottante).
+  // Téléphone : pas de survol, on touche le libellé pour la déplier dessous.
+  const [canHover] = useState(() => typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches);
+  const [hovered, setHovered] = useState(false);
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <button onClick={() => infoId && onToggleInfo(showInfo === infoId ? null : infoId)} className="text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5 hover:text-white transition-colors">
-          <Icon className="w-3.5 h-3.5" /> {label} {infoId && <Info className="w-3 h-3" />}
-        </button>
+        <div className="relative" onMouseEnter={() => canHover && setHovered(true)} onMouseLeave={() => setHovered(false)}>
+          <button
+            onClick={() => { if (!canHover && infoId) onToggleInfo(showInfo === infoId ? null : infoId); }}
+            onFocus={() => canHover && setHovered(true)}
+            onBlur={() => setHovered(false)}
+            className={`text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5 hover:text-white transition-colors ${canHover && infoId ? 'cursor-help' : ''}`}
+          >
+            <Icon className="w-3.5 h-3.5" /> {label} {infoId && <Info className="w-3 h-3" />}
+          </button>
+          {canHover && hovered && infoId && (
+            <div role="tooltip" className="absolute left-0 bottom-full mb-2 z-30 w-72 max-w-[80vw] rounded-xl p-3 text-xs leading-relaxed text-white/90 pointer-events-none" style={{ background: 'rgba(24,24,30,0.98)', border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 18px 50px rgba(0,0,0,0.55)' }}>
+              <strong className="font-medium text-white block mb-1">{infoTitle}</strong>
+              {infoText}
+            </div>
+          )}
+        </div>
         <span className="text-sm font-medium tabular-nums" style={{ color }}>{value}%</span>
       </div>
       <input type="range" min={0} max={max} step={1} value={value} onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full"
-        style={{ accentColor: color }} />
-      {infoId && <InfoBlock open={showInfo === infoId} title={infoTitle || ''} text={infoText || ''} />}
+        aria-label={label}
+        className={RANGE_CLASS}
+        style={rangeStyle(color, value, 0, max)} />
+      {infoId && !canHover && <InfoBlock open={showInfo === infoId} title={infoTitle || ''} text={infoText || ''} />}
     </div>
   );
 }
@@ -174,6 +222,8 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
         dscr: dscr === Infinity ? 'N/A' : dscr.toFixed(1) + 'x',
         gearing: gearing === Infinity ? 'N/A' : gearing.toFixed(1) + 'x',
         isApportOk, isLevierOk, isDscrOk, isGearingOk,
+        // valeurs brutes, pour les dire en clair
+        levierNum: levier, dscrNum: dscr, gearingNum: gearing,
       },
     };
   }, [apportPct, investisseursPct, creditVendeurPct, aidesPct, loanRate, loanDuration, listing]);
@@ -221,8 +271,8 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
               </div>
 
               {listing.ebitda <= 0 && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
                   <p className="text-sm text-red-200 font-light">
                     L'EBITDA (EBE) renseigné est négatif ou nul. Un financement bancaire classique (LBO) sera très difficile à obtenir sans restructuration.
                   </p>
@@ -231,12 +281,12 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
 
               {/* SYNTHÈSE CHIFFRÉE */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                <Stat label="Apport recommandé" value={fmt(calc.recommendedApport)} hint={`≈ ${Math.round(calc.recommendedApportPct)} % du prix`} accent="text-primary" />
-                <Stat label="Montant à emprunter" value={fmt(calc.bankLoan)} hint={`${Math.round(calc.bankPct)} % du prix, ${loanDuration} ans`} accent="text-blue-400" />
-                <Stat label="Mensualité estimée" value={fmt(calc.monthlyPayment)} hint={`sur ${loanDuration * 12} mois à ${loanRate.toFixed(1)} %`} />
-                <Stat label="Coût total du crédit" value={fmt(calc.totalCreditCost)} hint="intérêts cumulés" accent="text-amber-400" />
-                <Stat label="Capacité d'emprunt" value={fmt(calc.borrowingCapacity)} hint="max. selon la trésorerie (DSCR 1.2)" accent="text-blue-400" />
-                <Stat label="Reste de trésorerie / an" value={`${calc.cashflowPostDette >= 0 ? '+' : ''}${fmt(calc.cashflowPostDette)}`} hint="après remboursement de la dette" accent={calc.cashflowPostDette >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+                <Stat label="Apport recommandé" value={fmt(calc.recommendedApport)} hint={`≈ ${Math.round(calc.recommendedApportPct)} % du prix`} tone={TONES.apport} />
+                <Stat label="Montant à emprunter" value={fmt(calc.bankLoan)} hint={`${Math.round(calc.bankPct)} % du prix, ${loanDuration} ans`} tone={TONES.banque} />
+                <Stat label="Mensualité estimée" value={fmt(calc.monthlyPayment)} hint={`sur ${loanDuration * 12} mois à ${loanRate.toFixed(1)} %`} tone={TONES.banque} />
+                <Stat label="Coût total du crédit" value={fmt(calc.totalCreditCost)} hint="intérêts cumulés" tone={TONES.banque} />
+                <Stat label="Capacité d'emprunt" value={fmt(calc.borrowingCapacity)} hint="max. selon la trésorerie (DSCR 1.2)" tone={TONES.banque} />
+                <Stat label="Reste de trésorerie / an" value={`${calc.cashflowPostDette >= 0 ? '+' : ''}${fmt(calc.cashflowPostDette)}`} hint="après remboursement de la dette" tone={calc.cashflowPostDette >= 0 ? TONES.positif : TONES.negatif} />
               </div>
 
               {/* RÉPARTITION DU FINANCEMENT */}
@@ -246,36 +296,36 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
                   <span>{fmt(calc.price)}</span>
                 </div>
                 <div className="h-4 w-full rounded-full flex overflow-hidden border border-white/10">
-                  <div className="h-full bg-primary transition-all" style={{ width: `${apportPct}%` }} />
-                  <div className="h-full bg-fuchsia-400 transition-all" style={{ width: `${investisseursPct}%` }} />
-                  <div className="h-full bg-amber-400 transition-all" style={{ width: `${creditVendeurPct}%` }} />
-                  <div className="h-full bg-emerald-400 transition-all" style={{ width: `${aidesPct}%` }} />
-                  <div className="h-full bg-blue-500 transition-all" style={{ width: `${calc.bankPct}%` }} />
+                  <div className="h-full transition-all" style={{ background: SOURCE_COLORS.apport, width: `${apportPct}%` }} />
+                  <div className="h-full transition-all" style={{ background: SOURCE_COLORS.investisseurs, width: `${investisseursPct}%` }} />
+                  <div className="h-full transition-all" style={{ background: SOURCE_COLORS.creditVendeur, width: `${creditVendeurPct}%` }} />
+                  <div className="h-full transition-all" style={{ background: SOURCE_COLORS.aides, width: `${aidesPct}%` }} />
+                  <div className="h-full transition-all" style={{ background: SOURCE_COLORS.banque, width: `${calc.bankPct}%` }} />
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs font-light">
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /><span className="text-white/80">Apport ({fmt(calc.apport)})</span></span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-fuchsia-400" /><span className="text-white/80">Investisseurs ({fmt(calc.investisseurs)})</span></span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-white/80">Crédit vendeur ({fmt(calc.creditVendeur)})</span></span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400" /><span className="text-white/80">Aides ({fmt(calc.aides)})</span></span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-white/80">Banque ({fmt(calc.bankLoan)})</span></span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS.apport }} /><span className="text-white/80">Apport ({fmt(calc.apport)})</span></span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS.investisseurs }} /><span className="text-white/80">Investisseurs ({fmt(calc.investisseurs)})</span></span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS.creditVendeur }} /><span className="text-white/80">Crédit vendeur ({fmt(calc.creditVendeur)})</span></span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS.aides }} /><span className="text-white/80">Aides ({fmt(calc.aides)})</span></span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS.banque }} /><span className="text-white/80">Banque ({fmt(calc.bankLoan)})</span></span>
                 </div>
               </div>
 
               {/* CURSEURS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Apport personnel" icon={PiggyBank} value={apportPct} color="#a855f7"
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Apport personnel" icon={PiggyBank} value={apportPct} color={SOURCE_COLORS.apport}
                   onChange={(v: number) => setSource(setApportPct, apportPct, v)}
                   infoId="apport" infoTitle="Pourquoi l'apport est crucial ?"
                   infoText="Les banques financent rarement 100 % d'un rachat. Un apport de 20 % à 30 % prouve l'engagement du repreneur (skin in the game) et réduit le risque." />
-                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Investisseurs" icon={Users} value={investisseursPct} color="#e879f9"
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Investisseurs" icon={Users} value={investisseursPct} color={SOURCE_COLORS.investisseurs}
                   onChange={(v: number) => setSource(setInvestisseursPct, investisseursPct, v)}
                   infoId="inv" infoTitle="Investisseurs / co-repreneurs"
                   infoText="Des fonds propres apportés par des tiers (business angels, fonds, associés) renforcent la structure et rassurent la banque, au prix d'un partage du capital." />
-                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Crédit vendeur" icon={Handshake} value={creditVendeurPct} color="#fbbf24" max={50}
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Crédit vendeur" icon={Handshake} value={creditVendeurPct} color={SOURCE_COLORS.creditVendeur} max={50}
                   onChange={(v: number) => setSource(setCreditVendeurPct, creditVendeurPct, v)}
                   infoId="cv" infoTitle="Qu'est-ce que le crédit vendeur ?"
                   infoText="Un prêt accordé par le vendeur (souvent 10-20 % du prix, sur 3 ans). Signal très positif : il prouve la confiance du cédant dans la pérennité de l'entreprise." />
-                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Aides / subventions" icon={Gift} value={aidesPct} color="#34d399" max={40}
+                <Slider showInfo={showInfo} onToggleInfo={setShowInfo} label="Aides / subventions" icon={Gift} value={aidesPct} color={SOURCE_COLORS.aides} max={40}
                   onChange={(v: number) => setSource(setAidesPct, aidesPct, v)}
                   infoId="aides" infoTitle="Aides et subventions"
                   infoText="Prêts d'honneur (Initiative France, Réseau Entreprendre), garanties Bpifrance, aides régionales : des fonds non dilutifs qui allègent l'emprunt bancaire." />
@@ -283,16 +333,17 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5"><Percent className="w-3.5 h-3.5" /> Taux d'emprunt</span>
-                    <span className="text-sm font-medium text-blue-400 tabular-nums">{loanRate.toFixed(1)}%</span>
+                    <span className="text-sm font-medium tabular-nums" style={{ color: SOURCE_COLORS.banque }}>{loanRate.toFixed(1)}%</span>
                   </div>
                   <input type="range" min={1} max={10} step={0.1} value={loanRate} onChange={(e) => setLoanRate(Number(e.target.value))}
-                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10 accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500" />
+                    aria-label="Taux d'emprunt"
+                    className={RANGE_CLASS} style={rangeStyle(SOURCE_COLORS.banque, loanRate, 1, 10)} />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] uppercase tracking-widest text-white/60 font-medium flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Durée du prêt</span>
-                    <span className="text-sm font-medium text-blue-400 tabular-nums">{loanDuration} ans</span>
+                    <span className="text-sm font-medium tabular-nums" style={{ color: SOURCE_COLORS.banque }}>{loanDuration} ans</span>
                   </div>
                   <div className="flex gap-2">
                     {[5, 7, 10, 12, 15].map(y => (
@@ -311,35 +362,68 @@ export function DealCalculator({ listing }: DealCalculatorProps) {
                   <Briefcase className="w-5 h-5 text-white/80" />
                   <h3 className="text-lg font-medium text-white">Les 4 ratios que regarde la banque</h3>
                 </div>
+                {/* Chaque ratio est dit en clair : ce que ça veut dire pour ce rachat, puis
+                    la règle de la banque. Le nom technique reste en petit, pour qui le cherche. */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className={`p-5 rounded-2xl border ${calc.ratios.isApportOk ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">1. Poids de l'apport</span>
-                      <span className={`text-xl font-light ${calc.ratios.isApportOk ? 'text-emerald-400' : 'text-red-400'}`}>{apportPct}%</span>
-                    </div>
-                    <p className="text-xs text-white/60 font-light mt-2">Minimum <strong className="text-white/80 font-medium">20 %</strong> d'apport personnel attendu pour valider l'engagement du repreneur.</p>
-                  </div>
-                  <div className={`p-5 rounded-2xl border ${calc.ratios.isDscrOk ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">2. Couverture de la dette (DSCR)</span>
-                      <span className={`text-xl font-light ${calc.ratios.isDscrOk ? 'text-emerald-400' : 'text-amber-400'}`}>{calc.ratios.dscr}</span>
-                    </div>
-                    <p className="text-xs text-white/60 font-light mt-2">La trésorerie doit couvrir au moins <strong className="text-white/80 font-medium">1.2x</strong> les annuités pour absorber les imprévus.</p>
-                  </div>
-                  <div className={`p-5 rounded-2xl border ${calc.ratios.isLevierOk ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">3. Levier financier</span>
-                      <span className={`text-xl font-light ${calc.ratios.isLevierOk ? 'text-emerald-400' : 'text-red-400'}`}>{calc.ratios.levier}</span>
-                    </div>
-                    <p className="text-xs text-white/60 font-light mt-2">La dette totale ne doit pas dépasser <strong className="text-white/80 font-medium">3.5x l'EBITDA</strong>.</p>
-                  </div>
-                  <div className={`p-5 rounded-2xl border ${calc.ratios.isGearingOk ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">4. Gearing (dette / fonds propres)</span>
-                      <span className={`text-xl font-light ${calc.ratios.isGearingOk ? 'text-emerald-400' : 'text-red-400'}`}>{calc.ratios.gearing}</span>
-                    </div>
-                    <p className="text-xs text-white/60 font-light mt-2">La dette ne devrait pas excéder <strong className="text-white/80 font-medium">3x les fonds propres</strong> (apport + investisseurs).</p>
-                  </div>
+                  {(() => {
+                    const n1 = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+                    const { levierNum: lev, dscrNum: dscr, gearingNum: gear } = calc.ratios;
+                    const cards = [
+                      {
+                        title: "1. Votre apport", tech: "Poids de l'apport",
+                        tone: (calc.ratios.isApportOk ? 'green' : 'red') as Light,
+                        value: `${apportPct} %`,
+                        plain: `Vous payez vous-même ${apportPct} % du prix.`,
+                        rule: "La banque attend au moins 20 % : c'est la preuve de votre engagement.",
+                      },
+                      {
+                        title: "2. La capacité à rembourser", tech: "Couverture de la dette (DSCR)",
+                        tone: (calc.ratios.isDscrOk ? 'green' : dscr >= 1 ? 'orange' : 'red') as Light,
+                        value: dscr === Infinity ? 'Rien à rembourser' : `${n1(dscr)} fois`,
+                        plain: dscr === Infinity
+                          ? "Ce montage ne comporte aucun remboursement."
+                          : dscr >= 1
+                            ? `Chaque année, l'entreprise dégage ${n1(dscr)} fois ce qu'il faut pour rembourser.`
+                            : `L'entreprise ne dégage pas assez pour rembourser : elle couvre seulement ${Math.round(Math.max(0, dscr) * 100)} % des échéances.`,
+                        rule: "La banque veut au moins 1,2 fois, pour garder une marge en cas d'imprévu.",
+                      },
+                      {
+                        title: "3. Le temps pour rembourser", tech: "Levier financier (dette / EBITDA)",
+                        tone: (calc.ratios.isLevierOk ? 'green' : 'red') as Light,
+                        value: lev === Infinity ? 'Impossible' : `${n1(lev)} ans`,
+                        plain: lev === Infinity
+                          ? "Le résultat d'exploitation est nul ou négatif : l'activité ne peut pas rembourser la dette."
+                          : `Il faudrait ${n1(lev)} années de résultat d'exploitation pour rembourser toute la dette.`,
+                        rule: "La banque accepte 3,5 années au plus.",
+                      },
+                      {
+                        title: "4. Emprunt comparé à votre mise", tech: "Gearing (dette / fonds propres)",
+                        tone: (calc.ratios.isGearingOk ? 'green' : 'red') as Light,
+                        value: gear === Infinity ? 'Tout est emprunté' : `${n1(gear)} € pour 1 €`,
+                        plain: gear === Infinity
+                          ? "Aucun argent n'est apporté : tout le prix est emprunté."
+                          : `Pour 1 € apporté (vous et vos investisseurs), ${n1(gear)} € sont empruntés.`,
+                        rule: "La banque accepte jusqu'à 3 € empruntés pour 1 € apporté.",
+                      },
+                    ];
+                    const verdict: Record<Light, string> = { green: 'Correct', orange: 'Trop juste', red: 'Insuffisant' };
+                    return cards.map((c) => (
+                      <div key={c.title} className="p-5 rounded-2xl border bg-white/[0.04] border-white/10">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white">{c.title}</p>
+                            <p className="text-[11px] text-white/50 mt-0.5">{c.tech}</p>
+                          </div>
+                          <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-white/90 rounded-full bg-white/[0.06] border border-white/10 px-2.5 py-1">
+                            <StatusDot tone={c.tone} size="sm" /> {verdict[c.tone]}
+                          </span>
+                        </div>
+                        <p className="text-2xl font-normal text-white tabular-nums mb-2">{c.value}</p>
+                        <p className="text-sm text-white/90 leading-relaxed">{c.plain}</p>
+                        <p className="text-xs text-white/60 leading-relaxed mt-1.5">{c.rule}</p>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 

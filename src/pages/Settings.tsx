@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
+import { markIntentionalSignOut } from '@/lib/sessionMemory';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TwoFactorSettings } from '@/components/TwoFactorSettings';
@@ -233,6 +234,7 @@ export default function Settings() {
   };
 
   const handleLogout = async () => {
+    markIntentionalSignOut();
     await supabase.auth.signOut();
     showSuccess(t('settings.logout_msg'));
     navigate('/');

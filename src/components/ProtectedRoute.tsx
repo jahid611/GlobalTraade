@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { SolarSystem } from './SolarSystem';
+import { rememberSession, sessionWasLost } from '@/lib/sessionMemory';
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -71,8 +72,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // 2. Si la vérification est finie et qu'il n'y a pas d'utilisateur, on le vire
   if (!user) {
+    // Une session existait dans cet onglet et personne ne s'est déconnecté :
+    // elle a expiré. On le dit, au lieu de renvoyer sèchement à la connexion.
+    if (sessionWasLost()) return <Navigate to="/session-expiree" replace />;
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+  rememberSession();
 
   // 3. Code de sécurité attendu mais pas encore fourni (ou niveau impossible à
   //    vérifier) → retour à la connexion

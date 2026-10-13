@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { markIntentionalSignOut } from '@/lib/sessionMemory';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { filmSrc } from '@/lib/film';
 import { APP_SCHEME } from '@/native';
@@ -327,6 +328,7 @@ export default function Login() {
 
   const cancelMfa = async () => {
     // La session « aal1 » ne donne accès à rien : on la ferme proprement.
+    markIntentionalSignOut();
     await supabase.auth.signOut();
     setMfaFactorId(null);
     setMfaCode('');

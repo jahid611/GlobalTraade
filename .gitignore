@@ -61,3 +61,9 @@ playwright-report/
 !public/globly-film-*.mp4
 .vercel
 .env*
+
+# PDF d exemple fabriqués à partir de vraies données (noms de membres) : jamais dans le dépôt
+exemples-pdf/
+
+# Maquettes de travail (pages d erreur, gabarit PDF)
+maquettes/

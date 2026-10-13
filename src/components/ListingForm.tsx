@@ -489,8 +489,8 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
   );
 
   return (
-    <div className="fixed inset-0 z-[200]">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[12px]" />
+    <div className="lisible fixed inset-0 z-[200]">
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[12px]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.3)_0%,rgba(0,0,0,0.98)_100%)]" />
       <div className="absolute inset-0 bg-gradient-to-b from-[#2b2a2f] via-transparent to-[#2b2a2f]" />
 

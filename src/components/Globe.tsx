@@ -638,7 +638,7 @@ function EarthDetail() {
               64 / level.cols, 64 / level.rows,   // mêmes facettes que le globe : aucune fente
               w.col * phiLen, phiLen, w.row * thetaLen, thetaLen,
             );
-            const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.7, metalness: 0.1, color: '#acabb1' });
+            const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.7, metalness: 0.1, color: '#d9d8de', emissive: '#17386a', emissiveIntensity: 0.6 });
             owner.mesh = new THREE.Mesh(geometry, material);
             owner.mesh.raycast = () => null;
             groupRef.current?.add(owner.mesh);
@@ -842,7 +842,7 @@ function Earth({ listings, favoriteIds, onSelectListing, maxZoomDistance, showLo
     <group>
       <mesh>
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
-        <meshStandardMaterial key={`${sharpMap ? 'net' : 'apercu'}-${bumpMap ? 'relief' : 'plat'}`} map={colorMap} bumpMap={bumpMap} bumpScale={0.02} roughness={0.7} metalness={0.1} color="#acabb1" />
+        <meshStandardMaterial key={`${sharpMap ? 'net' : 'apercu'}-${bumpMap ? 'relief' : 'plat'}`} map={colorMap} bumpMap={bumpMap} bumpScale={0.02} roughness={0.7} metalness={0.1} color="#d9d8de" emissive="#17386a" emissiveIntensity={0.6} />
       </mesh>
       <EarthDetail />
       <mesh>
@@ -1002,7 +1002,7 @@ export function WorldGlobe({ listings, favoriteIds, onSelectListing, focusListin
       <Canvas camera={{ position: [0, 0, cameraZPosition], fov: 45 }} gl={{ antialias: true, alpha: true }}>
         
         {/* Un peu plus de lumière qu'au départ, en clair comme en sombre : la Terre paraissait trop sombre. */}
-        <ambientLight intensity={isDayMode ? 4.1 : 1.5} />
+        <ambientLight intensity={isDayMode ? 3.7 : 2.3} />
         <SunFollowingCamera intensity={isDayMode ? 2.5 : 2.5} />
         <pointLight position={[-10, -10, -10]} intensity={1} color={isDayMode ? "#d2d1dd" : "#7872fb"} />
         

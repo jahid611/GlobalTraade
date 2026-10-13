@@ -37,7 +37,7 @@ export function FavoriteHeart({ active, size = 18, className = '' }: { active: b
     <span ref={root} className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       {!still && burst > 0 && (
         <motion.span
-          key={burst}
+          key={`anneau-${burst}`}
           aria-hidden="true"
           initial={{ scale: 0.5, opacity: 0.75 }}
           animate={{ scale: 2.6, opacity: 0 }}
@@ -47,7 +47,7 @@ export function FavoriteHeart({ active, size = 18, className = '' }: { active: b
         />
       )}
       <motion.span
-        key={bounce}
+        key={`coeur-${bounce}`}
         initial={still || bounce === 0 ? false : { scale: active ? 0.55 : 0.8 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 520, damping: 12 }}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert, Loader2, Unlock } from 'lucide-react';
+import { X, FileText, Download, ShieldCheck, Lock, Upload, Eye, CheckCircle2, History, Users, ShieldAlert, Loader2, Unlock, FileCheck2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { showSuccess, showError } from '@/utils/toast';
@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { exportVDRAuditTrail } from '@/utils/pdfExport';
+import { generateNdaProof } from '@/utils/ndaProof';
 import type { Listing } from '@/types/domain';
 import type { User } from '@supabase/supabase-js';
 
@@ -58,6 +59,8 @@ const errorMessage = (err: unknown, fallback: string): string => {
 export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelProps) {
   useScrollLock(isOpen);
   const [ndaStatus, setNdaStatus] = useState<string | null>(null);
+  // l'accord signé par le visiteur (pour son attestation)
+  const [myNda, setMyNda] = useState<{ id: string; signed_at: string; status: string } | null>(null);
   const [documents, setDocuments] = useState<VdrDocument[]>([]);
   const [buyersWithNda, setBuyersWithNda] = useState<any[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
@@ -83,13 +86,14 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (!isOwner) {
         const { data: nda, error: ndaError } = await supabase
           .from('ndas')
-          .select('status')
+          .select('id, status, signed_at')
           .eq('listing_id', listing.id)
           .eq('buyer_id', user.id)
           .maybeSingle();
         
         if (ndaError && ndaError.code !== 'PGRST116') console.error("Erreur NDA:", ndaError);
         setNdaStatus(nda?.status || null);
+        setMyNda(nda?.id && nda.signed_at ? nda : null);
 
         if (nda?.status === 'signed') {
           const { data: docs, error: docsError } = await supabase
@@ -193,6 +197,31 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
       if (error) throw error;
       showSuccess(t('vdr.toast_nda_signed'));
       fetchData();
+    } catch (err) {
+      showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
+    }
+  };
+
+  // Attestation de signature (PDF) : pour le signataire, et pour le cédant qui veut garder la preuve.
+  const downloadProof = async (nda: { id: string; signed_at: string; status: string }, signerId: string, signerName?: string | null) => {
+    try {
+      let name = signerName || '';
+      if (!name) {
+        const { data } = await supabase.from('safe_profiles').select('full_name').eq('id', signerId).maybeSingle();
+        name = data?.full_name || '';
+      }
+      await generateNdaProof({
+        ndaId: nda.id,
+        listingId: String(listing.id),
+        listingName: listing.name,
+        signerId,
+        signerName: name || (t('vdr.unknown_user') as string),
+        signedAt: nda.signed_at,
+        status: nda.status === 'revoked' ? 'revoked' : 'signed',
+        intro: `${t('vdr.nda_p1')} ${t('vdr.nda_p2')}`,
+        commitments: [t('vdr.nda_l1'), t('vdr.nda_l2'), t('vdr.nda_l3'), t('vdr.nda_l4')] as string[],
+        lang: i18n.language,
+      });
     } catch (err) {
       showError(errorMessage(err, t('msg.error', 'Une erreur est survenue.')));
     }
@@ -372,7 +401,7 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xs uppercase tracking-widest text-white/40 font-medium">{t('vdr.doc_index')}</h3>
                         <div className="relative">
-                          <input type="file" onChange={uploadDocument} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={uploading} />
+                          <input type="file" onChange={uploadDocument} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[0px] z-10" disabled={uploading} />
                           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors text-xs font-medium">
                             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                             {uploading ? t('vdr.uploading') : t('vdr.new_doc')}
@@ -458,6 +487,11 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
+                                {nda.signed_at && (
+                                  <button onClick={() => downloadProof(nda, nda.buyer_id, nda.buyer?.full_name)} title={t('vdr.proof_download', "Télécharger l'attestation de signature") as string} aria-label={t('vdr.proof_download', "Télécharger l'attestation de signature") as string} className="p-2.5 bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/25 text-white/70 hover:text-white rounded-lg transition-colors">
+                                    <FileCheck2 size={16} />
+                                  </button>
+                                )}
                                 {nda.status === 'signed' ? (
                                   <button onClick={() => toggleAccess(nda.id, 'revoked')} title={t('vdr.revoke_access')} className="p-2.5 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/50 hover:text-red-400 rounded-lg transition-colors">
                                     <Lock size={16} />
@@ -581,6 +615,11 @@ export function DataRoomPanel({ isOpen, onClose, listing, user }: DataRoomPanelP
                     <div>
                       <p className="text-sm text-emerald-100 font-medium mb-1">{t('vdr.auth_access')}</p>
                       <p className="text-xs text-emerald-400/80 font-light leading-relaxed">{t('vdr.auth_desc')}</p>
+                      {myNda && user && (
+                        <button onClick={() => downloadProof(myNda, user.id)} className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-medium transition-colors">
+                          <FileCheck2 className="w-4 h-4" /> {t('vdr.proof_mine', 'Télécharger ma preuve de signature')}
+                        </button>
+                      )}
                     </div>
                   </div>
 

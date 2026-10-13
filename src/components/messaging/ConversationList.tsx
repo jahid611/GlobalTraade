@@ -89,14 +89,14 @@ export function ConversationList({
       {/* Search Bar - Liquid Glass Style */}
       <div className="px-4 pb-3 pt-2 sm:pt-1 shrink-0 border-b border-white/5">
         <div className="relative flex items-center">
-          <Search className="absolute left-3 w-4 h-4 text-white/30" />
+          <Search className="absolute left-3 z-10 w-4 h-4 text-white/70 pointer-events-none" />
           <input 
             type="text" 
             value={query}
             onChange={e => setQuery(e.target.value)}
             aria-label={t('msg.search_placeholder', 'Rechercher') as string}
             placeholder={t('msg.search_placeholder', 'Rechercher')}
-            className="w-full liquid-glass bg-[#2b2a2f] sm:bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-light text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
+            className="w-full liquid-glass bg-[#2b2a2f] sm:bg-white/5 border border-white/20 rounded-xl py-2.5 pl-9 pr-4 text-[14px] font-normal text-white placeholder:text-white/65 placeholder:opacity-100 focus:outline-none focus:border-primary/50 transition-all !shadow-none"
           />
         </div>
         {conversations.length > 0 && (

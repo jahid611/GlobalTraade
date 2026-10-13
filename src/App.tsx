@@ -14,6 +14,10 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { GlobalNotifications } from "@/components/GlobalNotifications";
 import { CessionAssistant } from "@/components/assistant/CessionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OfflineGate } from "@/components/OfflineGate";
+import { ErrorScreen } from "@/components/ErrorScreen";
+import { AccessDenied, SessionExpired, Maintenance, ListingUnavailable } from "@/pages/ErrorPages";
+import ErrorPreview from "@/pages/ErrorPreview";
 import { OnboardingGate } from "@/components/OnboardingModal";
 
 // Stripe
@@ -69,8 +73,13 @@ const PageLoaderSkeleton = () => (
   </div>
 );
 
-const App = () => (
+// Maintenance : mettre VITE_MAINTENANCE à « true » remplace tout le site par
+// l'écran de travaux, le temps d'une intervention.
+const IN_MAINTENANCE = import.meta.env.VITE_MAINTENANCE === 'true';
+
+const App = () => IN_MAINTENANCE ? <ErrorScreen kind="maintenance" /> : (
   <ErrorBoundary>
+    <OfflineGate />
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <AuthProvider>
@@ -78,9 +87,12 @@ const App = () => (
             <Elements stripe={stripePromise}>
               <BrowserRouter>
                 <ScrollMemory />
-                <SiteBanners />
-                <GlobalNotifications />
-                <CessionAssistant />
+                {/* Bandeaux, notifications et assistant : masqués pendant un écran d'erreur (voir globals.css) */}
+                <div data-app-extras className="contents">
+                  <SiteBanners />
+                  <GlobalNotifications />
+                  <CessionAssistant />
+                </div>
                 {/* La flèche de retour est désormais intégrée à la Navbar (à droite du logo) */}
                 <OnboardingGate />
                 <HotToaster position="top-right" />
@@ -112,6 +124,14 @@ const App = () => (
                     {/* Routes Admin */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     
+                    {/* Pages d'erreur avec leur propre adresse */}
+                    <Route path="/acces-refuse" element={<AccessDenied />} />
+                    <Route path="/session-expiree" element={<SessionExpired />} />
+                    <Route path="/maintenance" element={<Maintenance />} />
+                    <Route path="/annonce-introuvable" element={<ListingUnavailable />} />
+                    {/* Aperçu de tous les écrans d'erreur : en développement seulement */}
+                    {import.meta.env.DEV && <Route path="/apercu-erreurs" element={<ErrorPreview />} />}
+
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

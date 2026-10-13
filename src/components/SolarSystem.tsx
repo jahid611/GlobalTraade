@@ -21,8 +21,10 @@ function EarthModel({ isDark }: { isDark: boolean }) {
   const earthRef = useRef<THREE.Mesh>(null);
   const tmpVec = useMemo(() => new THREE.Vector3(), []);
   
+  // Image servie par le site lui-même. Elle venait d'un autre site (unpkg) : s'il
+  // répondait lentement ou pas du tout, la Terre du fond ne s'affichait pas.
   const [colorMap] = useTexture([
-    'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+    '/earth/base-2k.jpg',
   ]);
 
   const scrollRef = useRef(0);

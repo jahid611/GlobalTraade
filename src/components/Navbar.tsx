@@ -42,6 +42,7 @@ import { useUnreadMessages } from "@/hooks/use-unread-messages";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useTheme } from "next-themes";
+import { markIntentionalSignOut } from "@/lib/sessionMemory";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "react-i18next";
 import { usePlan, PlanType } from "@/services/planService";
@@ -134,6 +135,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     clearNavProfile();
+    markIntentionalSignOut();
     await supabase.auth.signOut();
     navigate("/");
   };
