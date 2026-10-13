@@ -11,7 +11,9 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { Dropdown } from "@/components/PickerKit";
 import { ChoicePill, Field, inputCls, dropdownButtonCls } from "@/components/settings/ui";
 import { industryOptions } from "@/lib/industries";
-import { marketCountryOptions, pruneRegions, regionOptionsFor } from "@/lib/geoRegions";
+import { isCountryKey, marketCountryOptions, pruneRegions, regionOptionsFor } from "@/lib/geoRegions";
+import { MARKET_CODES } from "@/lib/markets";
+import { countryLabel } from "@/lib/countries";
 import { DEPARTMENTS } from "@/lib/departments";
 import { AMOUNT_RANGE_OPTIONS, type AmountRange } from "@/lib/ranges";
 import { rangeBounds } from "@/lib/rangeBounds";
@@ -60,7 +62,13 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
 
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
   const countryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
-  const regionOptions = useMemo(() => regionOptionsFor(value.countries, i18n.language), [value.countries, i18n.language]);
+  const regionOptions = useMemo((() => {
+    // Les régions des pays en jeu, rangées sous le nom de leur pays dès qu'il y en a plusieurs.
+    const wanted = (value.countries).filter(isCountryKey);
+    const scope = MARKET_CODES.filter((c) => !wanted.length || wanted.includes(c));
+    if (scope.length < 2) return regionOptionsFor(scope, i18n.language);
+    return scope.flatMap((c) => regionOptionsFor([c], i18n.language).map((o) => ({ ...o, group: countryLabel(c, i18n.language) })));
+  }), [value.countries, i18n.language]);
   // Les départements sont français : on ne les propose que si la France est visée.
   const franceInScope = value.countries.length === 0 || value.countries.includes("FR");
   const departmentOptions = useMemo(() => DEPARTMENTS.map((d) => ({ value: d.code, label: departmentLabel(d.code) })), []);

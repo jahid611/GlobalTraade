@@ -33,7 +33,7 @@ const businessCache: Record<string, any> = {};
 // Défini AU NIVEAU MODULE : déclaré dans le rendu de la fiche, il changeait
 // d'identité à chaque rendu et React remontait tout son contenu.
 function LockedGate({ hasFullAccess, onUnlock, children }: { hasFullAccess: boolean; onUnlock: () => void; children: React.ReactNode }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   return (
     hasFullAccess ? <>{children}</> : (
@@ -41,14 +41,14 @@ function LockedGate({ hasFullAccess, onUnlock, children }: { hasFullAccess: bool
         <div className="blur-md select-none pointer-events-none">{children}</div>
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-white font-light text-center px-8">
-            {t('quota.unlock_hint', `Débloquez cette annonce pour ${UNLOCK_PRICE} € : contenu complet, messagerie et analyses.`)}
+            {t('quota.unlock_hint', 'Débloquez cette annonce pour {{price}} : contenu complet, messagerie et analyses.', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <button
               onClick={onUnlock}
               className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors"
             >
-              {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
+              {t('quota.unlock_cta', 'Débloquer - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
             </button>
             <button
               onClick={() => navigate('/payment')}
@@ -608,11 +608,11 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                         <div className="w-11 h-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
                           <Lock className="w-5 h-5 text-primary" />
                         </div>
-                        <p className="text-sm text-white font-medium">{t('modal.lbo_title', 'Simulateur de financement (LBO)')}</p>
-                        <p className="text-xs text-white/60 max-w-xs font-light">{t('modal.lbo_locked', `Débloquez l'annonce pour ${UNLOCK_PRICE} € et simulez le montage (dette, apport, TRI).`)}</p>
+                        <p className="text-sm text-white font-medium">{t('modal.sim_locked_title', 'Simulateur de financement')}</p>
+                        <p className="text-xs text-white/60 max-w-xs font-light">{t('modal.sim_locked_text', "Débloquez l'annonce pour simuler votre emprunt, votre apport et vos mensualités.")}</p>
                         <div className="flex flex-wrap justify-center gap-3 mt-1">
                           <button onClick={goUnlock} disabled={unlocking} className="rounded-full h-10 px-6 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
-                            {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
+                            {t('quota.unlock_cta', 'Débloquer - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                           </button>
                           <button onClick={() => navigate('/payment')} className="rounded-full h-10 px-6 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs uppercase tracking-widest font-medium outline-none transition-colors">
                             {t('quota.see_plans', 'Voir les formules')}
@@ -732,7 +732,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
                   ) : !hasFullAccess ? (
                     <div className="flex gap-3 flex-wrap justify-center">
                       <button onClick={goUnlock} className="w-fit whitespace-nowrap h-12 px-8 text-sm font-medium rounded-full bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                        <Lock size={16} /> {t('quota.unlock_contact', `Débloquer et contacter - ${UNLOCK_PRICE} €`)}
+                        <Lock size={16} /> {t('quota.unlock_contact', 'Débloquer et contacter - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                       </button>
                     </div>
                   ) : (

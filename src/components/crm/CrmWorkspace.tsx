@@ -14,6 +14,7 @@ import { PricingModal } from "@/components/PricingModal";
 import { StripeCheckoutModal } from "@/components/StripeCheckoutModal";
 import { startCheckout, openCheckout } from "@/services/stripe";
 import { EXTRA_PROSPECT_PRICE, type PlanType } from "@/services/planService";
+import { formatMoney } from "@/lib/markets";
 import {
   listProspects, buildCampaignCsv, getProspectionQuota, registerProspectionContact, isProspectAlreadyCounted,
   PROSPECTION_MONTHLY_INCLUDED, type Prospect, type ProspectStatus,
@@ -262,8 +263,7 @@ export function CrmWorkspace({ userId, plan, planFetching, senderName, onGoToSea
         if (r.ok && (r.clientSecret || r.url)) {
           if (r.url) await openCheckout(r.url);
           else setProspectCS(r.clientSecret!);
-          toast.info(t("quota.prospection_pay_first",
-            `Cette campagne dépasse votre forfait de ${extras.length} contact(s) à ${EXTRA_PROSPECT_PRICE} €, réglez-les, puis relancez l'export.`) as string);
+          toast.info(t("quota.prospection_pay_first", "Cette campagne dépasse votre forfait de {{count}} contact(s) à {{price}}, réglez-les, puis relancez l'export.", { count: extras.length, price: formatMoney(EXTRA_PROSPECT_PRICE, i18n.language) }) as string);
         } else {
           showError(r.error || t("msg.error", "Une erreur est survenue."));
         }

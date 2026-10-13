@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/lib/markets";
 import { MapPin, CurrencyEur, Bank, Wallet, UserCircle, LockSimple, Crown, ArrowRight } from "phosphor-react";
 import type { SearchAd } from "@/types/domain";
 import { BuyerBadges } from "@/components/BuyerBadges";
@@ -84,7 +85,7 @@ export function SectorBuyerCard({ ad, userId, hasFullAccess }: { ad: SearchAd; u
               onClick={() => navigate(`/payment?unlock=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || "")}`)}
               className={`${primaryBtn} w-full`}
             >
-              <LockSimple size={18} weight="fill" /> {t("quota.unlock_cta", `Débloquer - ${UNLOCK_PRICE} €`)}
+              <LockSimple size={18} weight="fill" /> {t("quota.unlock_cta", "Débloquer - {{price}}", { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
             </button>
             <p className="text-[13px] text-white/55 font-light leading-relaxed mt-2.5 text-center">
               {t("sector.buyer_locked_hint", "Le déblocage ouvre le descriptif complet et le profil de ce repreneur.")}

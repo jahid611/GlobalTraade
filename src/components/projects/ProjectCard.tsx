@@ -73,8 +73,8 @@ export function ProjectCard({ project, onClick, userId, onEdit, onDelete }: { pr
           <div className="absolute top-3 right-3 z-20 flex gap-2">
             {!boosted && (
               <button onClick={(e)=>{e.stopPropagation(); navigate(`/payment?boost=project:${project.id}&name=${encodeURIComponent(project.title || '')}`);}}
-                title={t('boost.cta', `Mettre en avant - ${BOOST_PRICE} €`) as string}
-                aria-label={t('boost.cta', `Mettre en avant - ${BOOST_PRICE} €`) as string}
+                title={t('boost.cta', 'Mettre en avant - {{price}}', { price: formatMoney(BOOST_PRICE, i18n.language) }) as string}
+                aria-label={t('boost.cta', 'Mettre en avant - {{price}}', { price: formatMoney(BOOST_PRICE, i18n.language) }) as string}
                 className={ownerButton}><RocketLaunch weight="fill" className="w-4 h-4" style={{ color: TONES.amber.color }}/></button>
             )}
             <button onClick={(e)=>{e.stopPropagation(); onEdit();}}

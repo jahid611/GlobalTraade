@@ -3,7 +3,8 @@
 // {{variables}}. Le test charge les vrais dictionnaires (src/i18n.ts et
 // src/locales/<langue>/).
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -70,45 +71,80 @@ describe('traductions : couverture', () => {
   });
 });
 
-// Quelques textes répètent un montant fixé dans le code (leur appel t() ne passe
-// pas de variable). Si le montant change dans le code, ce test le signale.
-describe('traductions : montants repris du code', () => {
+// Les prix et les quantités passent par des variables ({{price}}, {{count}}…) :
+// un montant écrit en dur dans une traduction resterait faux le jour où il change.
+describe('traductions : montants et quantités', () => {
   const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-  const constant = (source: string, name: string): number => {
-    const match = new RegExp(`export const ${name}\\s*=\\s*([0-9.]+)`).exec(source);
-    if (!match) throw new Error(`Constante introuvable : ${name}`);
-    return Number(match[1]);
-  };
+  const ALL = [...LAZY, 'en'] as const;
 
-  it('les prix et pourcentages écrits dans les textes sont ceux du code', () => {
-    const plan = read('../services/planService.ts');
-    const prospect = read('../services/prospectService.ts');
-    const offers = read('../lib/offers.ts');
-    const unlock = String(constant(plan, 'UNLOCK_PRICE'));
-    const boost = String(constant(plan, 'BOOST_PRICE'));
-    const extra = String(constant(plan, 'EXTRA_PROSPECT_PRICE'));
-    const included = String(constant(prospect, 'PROSPECTION_MONTHLY_INCLUDED'));
-    const min = String(Math.round(constant(offers, 'OFFER_MIN_PCT') * 100));
-    const max = String(Math.round(constant(offers, 'OFFER_MAX_PCT') * 100));
-
-    const expected: Record<string, string[]> = {
-      'quota.unlock_hint': [unlock],
-      'quota.unlock_cta': [unlock],
-      'quota.unlock_contact': [unlock],
-      'quota.unlock_project_hint': [unlock],
-      'quota.msg_locked': [unlock],
-      'boost.cta': [boost],
-      'quota.prospection_pay_first': [extra],
-      'quota.prospection_extra_one': [included, extra],
-      'msg.offer_out_of_range': [min, max],
+  it('les textes de prix et de quota utilisent les variables passées par le code', () => {
+    const expected: Record<string, string> = {
+      'quota.unlock_hint': 'price',
+      'quota.unlock_cta': 'price',
+      'quota.unlock_contact': 'price',
+      'quota.unlock_project_hint': 'price',
+      'boost.cta': 'price',
+      'quota.prospection_pay_first': 'count,price',
+      'quota.prospection_extra_one': 'limit,price',
+      'msg.offer_out_of_range': 'max,min',
+      'quota.publications_reached_one': 'count',
+      'quota.publications_reached_other': 'count',
+      'quota.publications_reached_short_one': 'count',
+      'quota.publications_reached_short_other': 'count',
     };
     const wrong: string[] = [];
-    for (const code of [...LAZY, 'en']) {
-      for (const [key, numbers] of Object.entries(expected)) {
-        const found = (dicts[code][key] ?? '').match(/\d+/g) ?? [];
-        if (found.join(',') !== numbers.join(',')) wrong.push(`${code} ${key} : ${found.join(',')} au lieu de ${numbers.join(',')}`);
+    for (const code of ALL) {
+      for (const [key, variables] of Object.entries(expected)) {
+        const value = dicts[code][key];
+        if (typeof value !== 'string') { wrong.push(`${code} ${key} : absent`); continue; }
+        if (placeholders(value) !== variables) wrong.push(`${code} ${key} : variables « ${placeholders(value)} » au lieu de « ${variables} »`);
+        if (/\d/.test(value.replace(/\{\{[^}]*\}\}/g, ''))) wrong.push(`${code} ${key} : un nombre est écrit en dur`);
       }
     }
     expect(wrong).toEqual([]);
+  });
+
+  // `quota.msg_locked` est le seul texte dont l'appel t() écrit encore le prix
+  // du déblocage en toutes lettres : il doit suivre la constante du code.
+  it('quota.msg_locked reprend le prix de déblocage du code', () => {
+    const match = /export const UNLOCK_PRICE\s*=\s*([0-9.]+)/.exec(read('../services/planService.ts'));
+    if (!match) throw new Error('Constante introuvable : UNLOCK_PRICE');
+    const wrong = ALL.filter((code) => ((dicts[code]['quota.msg_locked'] ?? '').match(/\d+/g) ?? []).join(',') !== String(Number(match[1])));
+    expect(wrong).toEqual([]);
+  });
+});
+
+// Un texte écrit seulement dans le code (second argument de t(), ou
+// `defaultValue`) s'affiche en français dans toutes les langues. Ce test lit le
+// code et signale chaque clé de ce genre absente d'un dictionnaire. Les clés
+// construites (gabarits `…${x}…`, variables) ne sont pas lues.
+describe('traductions : clés écrites dans le code', () => {
+  const SRC = fileURLToPath(new URL('..', import.meta.url));
+  const sourceFiles = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === 'locales' ? [] : sourceFiles(path);
+    if (!/\.tsx?$/.test(entry.name) || /\.(test|spec)\.tsx?$/.test(entry.name) || /^i18n(\.|$)/.test(entry.name)) return [];
+    return [path];
+  });
+  // t('clé', 'texte') · t('clé', { defaultValue: … }) · t('clé', { defaultValue_one: … })
+  const CALL = /\bt\(\s*(['"])([A-Za-z0-9_.-]+)\1\s*,\s*(?:(['"`])|\{[^}]*?\bdefaultValue(_one|_other)?\s*:)/g;
+
+  it('chaque clé avec un texte par défaut existe en en, es, it, pt et de', () => {
+    const wanted = new Map<string, string>();
+    for (const file of sourceFiles(SRC)) {
+      const code = readFileSync(file, 'utf8');
+      for (const match of code.matchAll(CALL)) {
+        const where = file.slice(SRC.length);
+        if (match[4]) { wanted.set(`${match[2]}_one`, where); wanted.set(`${match[2]}_other`, where); }
+        else wanted.set(match[2], where);
+      }
+    }
+    expect(wanted.size).toBeGreaterThan(100);
+    const missing: string[] = [];
+    for (const [key, where] of wanted) {
+      const absent = ['en', ...LAZY].filter((code) => !(key in dicts[code]));
+      if (absent.length) missing.push(`${key} (${where}) : absent en ${absent.join(', ')}`);
+    }
+    expect(missing).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { toast } from "sonner";
 import { startCheckout, openCheckout } from "@/services/stripe";
 import { EXTRA_PROSPECT_PRICE } from "@/services/planService";
+import { formatMoney } from "@/lib/markets";
 import {
   buildOutreachEmail, updateProspect, sendProspectEmail, getProspectionQuota, registerProspectionContact,
   isProspectAlreadyCounted, PROSPECTION_MONTHLY_INCLUDED, type Prospect, type ProspectionQuota,
@@ -49,8 +50,7 @@ export function EmailComposer({ prospect, senderName, userId, isBusiness, quota,
   useEffect(() => { setEmail(prospect.email || ""); }, [prospect.email]);
 
   const businessOnly = t("quota.prospection_business", "La prospection ciblée (envoi de campagnes) est réservée à la formule Business.") as string;
-  const extraOne = t("quota.prospection_extra_one",
-    `Votre forfait de ${PROSPECTION_MONTHLY_INCLUDED} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte ${EXTRA_PROSPECT_PRICE} €, réglez-le, puis relancez l'envoi.`) as string;
+  const extraOne = t("quota.prospection_extra_one", "Votre forfait de {{limit}} entreprises contactées ce mois-ci est atteint. Ce contact supplémentaire coûte {{price}}, réglez-le, puis relancez l'envoi.", { limit: PROSPECTION_MONTHLY_INCLUDED, price: formatMoney(EXTRA_PROSPECT_PRICE, i18n.language) }) as string;
 
   // Change la langue de CE mail uniquement — n'affecte pas la langue du site.
   const applyMailLang = (lang: "fr" | "en") => {

@@ -448,7 +448,7 @@ export default function SectorNetwork() {
                   title={t("sector.sec_guide", "Repères de prix pour ce métier")}
                   subtitle={t("sector.sec_guide_sub", "Pour situer un prix de vente, deux calculs simples sont couramment utilisés.")}
                 >
-                  <SectorPriceGuide sector={sector} sectorLabel={sectorLabel} />
+                  <SectorPriceGuide sector={sector} sectorLabel={sectorLabel} country={mineInSector[0]?.country} />
                 </Section>
               </>
             )}

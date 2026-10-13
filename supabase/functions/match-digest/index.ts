@@ -12,6 +12,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasZone, zoneFit } from "./geo.ts";
+import {
+  DIGEST_TEXTS, LANGS, countryName as countryLabel, fill, firstNameOf, formatMoney, recipientLang, type Lang,
+} from "../_shared/i18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,19 +50,16 @@ type Listing = {
   created_at: string;
 };
 
-// Le message est écrit en français : les montants suivent la langue du message,
-// pas le pays de l'annonce. Aucune langue n'est enregistrée par membre à ce jour ;
-// le jour où elle le sera, c'est ici qu'elle se branche.
-const MAIL_LOCALE = "fr-FR";
-
-const money = (n: number | null, locale = MAIL_LOCALE) =>
-  n ? new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n) : "Prix non communiqué";
+// Le message est écrit dans la langue du membre (profiles.language, vide =
+// français) : les montants et les noms de pays suivent la langue du message,
+// pas le pays de l'annonce. Textes et formats : ../_shared/i18n.ts.
+const money = (n: number | null, lang: Lang) => formatMoney(n, lang) || DIGEST_TEXTS[lang].priceUnknown;
 
 /** Nom du pays d'une annonce, écrit seulement quand ce n'est pas la France. */
-function countryName(code: string | null, locale = MAIL_LOCALE): string {
+function countryName(code: string | null, lang: Lang): string {
   const c = (code || "").trim().toUpperCase();
   if (!c || c === "FR") return "";
-  try { return new Intl.DisplayNames([locale], { type: "region" }).of(c) || c; } catch { return c; }
+  return countryLabel(c, lang);
 }
 
 const tokens = (s: string | null) =>
@@ -120,34 +120,49 @@ function score(l: Listing, p: Profile): number {
   return Math.min(99, s);
 }
 
-/** « Secteur · adresse · pays » : le pays n'est ajouté que s'il n'est pas déjà dans l'adresse. */
-function placeLine(l: Listing): string {
-  const country = countryName(l.country);
-  const known = !!country && (l.address || "").toLowerCase().includes(country.toLowerCase());
+/** « Secteur · adresse · pays » : le pays n'est ajouté que s'il n'est pas déjà dans l'adresse (dans l'une des six langues). */
+function placeLine(l: Listing, lang: Lang): string {
+  const country = countryName(l.country, lang);
+  const address = (l.address || "").toLowerCase();
+  const known = !!country && LANGS.some((x) => {
+    const name = countryName(l.country, x).toLowerCase();
+    return !!name && address.includes(name);
+  });
   return [l.industry, l.address, known ? "" : country].filter(Boolean).join(" · ");
 }
 
 // Tout texte saisi par un membre est échappé avant d'entrer dans le HTML d'un e-mail.
 const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function html(firstName: string, matches: { l: Listing; s: number }[]) {
+function subject(count: number, lang: Lang): string {
+  const t = DIGEST_TEXTS[lang];
+  return count === 1 ? t.subjectOne : fill(t.subjectMany, { count });
+}
+
+function html(firstName: string, matches: { l: Listing; s: number }[], lang: Lang) {
+  const t = DIGEST_TEXTS[lang];
+  const count = matches.length;
   const rows = matches.map(({ l, s }) => `
     <a href="${SITE_URL}/app?focus=${l.id}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
-      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#A855F7;font-weight:700;">${s}% de correspondance</div>
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#A855F7;font-weight:700;">${fill(t.matchPct, { score: s })}</div>
       <div style="font-size:17px;color:#111827;font-weight:600;margin:6px 0 2px;">${esc(l.name).slice(0, 160)}</div>
-      <div style="font-size:14px;color:#6b7280;">${esc(placeLine(l)).slice(0, 240) || "-"}</div>
-      <div style="font-size:15px;color:#111827;margin-top:8px;">${money(l.price)}</div>
+      <div style="font-size:14px;color:#6b7280;">${esc(placeLine(l, lang)).slice(0, 240) || "-"}</div>
+      <div style="font-size:15px;color:#111827;margin-top:8px;">${esc(money(l.price, lang))}</div>
     </a>`).join("");
+
+  const title = firstName
+    ? fill(count === 1 ? t.titleOne : t.titleMany, { firstName: esc(firstName), count })
+    : fill(count === 1 ? t.titleOneNoName : t.titleManyNoName, { count });
 
   return `
   <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:32px;border-radius:16px;">
-    <h2 style="color:#111827;margin:0 0 4px;">${esc(firstName)}, ${matches.length} nouvelle${matches.length > 1 ? "s" : ""} entreprise${matches.length > 1 ? "s" : ""} pour vous</h2>
-    <p style="color:#6b7280;font-size:15px;margin:0 0 20px;">D'après vos critères de reprise.</p>
+    <h2 style="color:#111827;margin:0 0 4px;">${title}</h2>
+    <p style="color:#6b7280;font-size:15px;margin:0 0 20px;">${esc(t.intro)}</p>
     ${rows}
-    <a href="${SITE_URL}/marketplace" style="display:inline-block;background:#A855F7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:99px;font-weight:bold;margin:12px 0;">Voir toutes les annonces</a>
+    <a href="${SITE_URL}/marketplace" style="display:inline-block;background:#A855F7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:99px;font-weight:bold;margin:12px 0;">${esc(t.cta)}</a>
     <p style="color:#9ca3af;font-size:12px;margin-top:20px;">
-      Vous recevez cet email parce que les alertes sont activées sur votre compte.
-      <a href="${SITE_URL}/settings" style="color:#9ca3af;">Les désactiver</a>.
+      ${esc(t.footer)}
+      <a href="${SITE_URL}/settings" style="color:#9ca3af;">${esc(t.unsubscribe)}</a>.
     </p>
   </div>`;
 }
@@ -203,17 +218,17 @@ serve(async (req) => {
       const email = userData?.user?.email;
       if (!email) continue;
 
-      const firstName = (p.full_name || "").split(" ")[0] || "Bonjour";
+      const firstName = firstNameOf(p.full_name);
+      // Langue du destinataire, lue seulement pour les membres à qui l'on écrit.
+      const lang = await recipientLang(admin, p.id);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
         body: JSON.stringify({
           from: "Globly <onboarding@resend.dev>",
           to: email,
-          subject: matches.length === 1
-            ? `Une entreprise à reprendre correspond à vos critères`
-            : `${matches.length} entreprises à reprendre correspondent à vos critères`,
-          html: html(firstName, matches),
+          subject: subject(matches.length, lang),
+          html: html(firstName, matches, lang),
         }),
       });
 

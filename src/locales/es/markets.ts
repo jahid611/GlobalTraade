@@ -1,0 +1,87 @@
+// Traducción al español de los textos ligados al país de la empresa: guía del país,
+// formulario de venta, filtros de compra y listas de selección. Fuente: los textos
+// franceses escritos en el código (MarketGuide.tsx, ListingForm.tsx, src/lib/markets.ts…).
+
+export const markets: Record<string, string> = {
+  // Guía del país
+  "guide.title_FR": "Comprar una empresa en Francia",
+  "guide.title_ES": "Comprar una empresa en España",
+  "guide.title_PT": "Comprar una empresa en Portugal",
+  "guide.title_DE": "Comprar una empresa en Alemania",
+  "guide.title_IT": "Comprar una empresa en Italia",
+  "guide.title_GB": "Comprar una empresa en el Reino Unido",
+  "guide.teaser": "Las etapas de la venta, las ayudas a la financiación y el vocabulario del país, explicados de forma sencilla.",
+  "guide.loading": "Cargando la guía…",
+  "guide.tab_transfer": "Cómo se desarrolla la venta",
+  "guide.tab_financing": "Financiación",
+  "guide.tab_glossary": "Vocabulario",
+  "guide.banking_title": "Lo que los bancos suelen esperar",
+  "guide.financing_title": "Los organismos que pueden ayudarle",
+  "guide.official_site": "Ver el sitio oficial",
+  "guide.new_tab": "(pestaña nueva)",
+  "guide.checked_on": "Fuentes comprobadas el {{date}}.",
+  "guide.see_sources": "Ver las fuentes",
+  "guide.hide_sources": "Ocultar las fuentes",
+  "guide.disclaimer": "Esta información es general. No sustituye a un asesoramiento jurídico o fiscal. Antes de firmar, consulte a un profesional del país (abogado, notario, asesor contable).",
+  "guide.s4_t3_other": "Contrato de alquiler",
+  "dd.empty_country": "La lista recoge los documentos que se piden en el país de la empresa ({{country}}), con una explicación de cada uno.",
+
+  // Formulario de venta
+  "form.country": "País de la empresa",
+  "form.country_other": "Otro país",
+  "form.hint_country": "Elija el país donde está establecida la empresa. El número de empresa que se pide y la búsqueda de dirección se adaptan a ese país.",
+  "form.hint_company_id": "Globly no puede consultar en línea el registro de este país: el equipo de Globly comprobará este número. Puede ocultarlo más abajo para mantener el anonimato.",
+  "form.country_switched": "Esta dirección está en otro país: {{country}}. Se ha actualizado el país de su empresa. Compruebe el número de la empresa en el primer paso.",
+  "form.address_country": "La búsqueda se hace en este país: {{country}}. Si la empresa está en otro lugar, cambie el país en el primer paso.",
+  "form.address_none_country": "No se ha encontrado ninguna dirección en este país ({{country}}). Compruebe la ortografía, o pruebe sin el número y luego con la ciudad.",
+  "form.company_id_recheck": "El número introducido en el primer paso no corresponde al formato de este país ({{name}}). Vuelva al primer paso para corregirlo.",
+  "form.lease_other": "Alquiler del local y condiciones de explotación",
+  "form.hint_lease_other": "Opcional. Si alquila su local, indique el tipo de contrato ({{lease}}), su fecha de finalización y las actividades autorizadas.",
+  "form.hint_lease_generic": "Opcional. Si alquila su local, indique el tipo de contrato, su fecha de finalización y las actividades autorizadas.",
+  "company_id.format_ok": "El formato es correcto. Este número todavía no se ha comprobado: el equipo de Globly lo revisará.",
+  "val.company_id_format": "Este número no tiene el formato esperado ({{name}}). Ejemplo: {{example}}",
+  "val.company_id_required": "Indique el número oficial de registro de la empresa (5 caracteres como mínimo).",
+  "onb.company_id_check": "este número no se parece al formato habitual, compruébelo",
+  "onb.legal_form_free": "Ej.: sociedad de responsabilidad limitada",
+
+  // Número de la empresa según el país
+  "market.xx.id_name": "Número de identificación",
+  "market.fr.id_what": "El número de 14 cifras del establecimiento, que figura en el extracto Kbis y en las facturas.",
+  "market.es.id_what": "El número de identificación fiscal (antiguo CIF). Sociedad: una letra, siete cifras y un carácter de control. Autónomo: ocho cifras y una letra.",
+  "market.pt.id_what": "El número de identificación de la persona jurídica (o el NIF de un trabajador por cuenta propia): 9 cifras.",
+  "market.de.id_what": "El número del registro mercantil (HRB o HRA seguido de cifras). Una empresa no inscrita indica su número de IVA (USt-IdNr., DE + 9 cifras) o su identificador económico (W-IdNr.).",
+  "market.it.id_what": "El número de IVA de la empresa: 11 cifras.",
+  "market.gb.id_what": "El número de registro en Companies House: 8 cifras, o 2 letras y 6 cifras.",
+  "market.xx.id_what": "El número oficial de registro de la empresa en su país.",
+
+  // Filtros, búsquedas y proyecto de adquisición
+  "filters.country": "País",
+  "filters.all_countries": "Todos los países",
+  "filters.all_regions": "Todas las regiones",
+  "smart.f_countries": "Países",
+  "smart.ph_countries": "Todos los países",
+  "smart.ph_regions_all": "Todas las regiones",
+  "bp.q_countries": "¿En qué países?",
+  "bp.q_countries_hint": "Elija uno o varios países. Déjelo vacío si le sirven todos los países.",
+  "bp.countries_ph": "Todos los países",
+  "bp.q_regions_hint_multi": "Las regiones de los países elegidos. Déjelo vacío si le sirve todo el país.",
+  "bp.regions_ph_all": "Todas las regiones",
+  "bp.q_departments_hint_fr": "Solo en Francia: para afinar más que una región, o para los territorios de ultramar.",
+  "searchads.countries_ph": "Elegir uno o varios países",
+  "searchads.regions_ph_multi": "Regiones concretas (opcional si se elige un país)",
+  "onb.geo_countries": "Países buscados",
+  "onb.geo_countries_ph": "Todos los países",
+  "onb.geo_regions": "Regiones buscadas",
+  "onb.geo_regions_ph": "Todas las regiones",
+  "onb.geo_hint": "Opcional. Si no se elige ninguna región de un país, se tiene en cuenta todo el país.",
+
+  // Ficha del anuncio
+  "listing.id_label": "{{name}}:",
+  "listing.id_verified": "{{name}} verificado",
+  "listing.id_provided": "{{name}} indicado",
+  "listing.country_rules": "País de la empresa: {{country}}. A la venta se le aplican las normas de ese país. Los importes se muestran en euros.",
+
+  // Listas de selección
+  "multiselect.search": "Buscar…",
+  "multiselect.empty": "Ningún resultado",
+};

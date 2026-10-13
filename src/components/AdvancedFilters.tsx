@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { industryOptions } from "@/lib/industries";
-import { marketCountryOptions, regionOptionsFor, withCountries } from "@/lib/geoRegions";
+import { isCountryKey, marketCountryOptions, regionOptionsFor, withCountries } from "@/lib/geoRegions";
+import { MARKET_CODES } from "@/lib/markets";
+import { countryLabel } from "@/lib/countries";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useTranslation } from "react-i18next";
@@ -83,7 +85,13 @@ export function AdvancedFilters({ isOpen, onClose, filters, setFilters, onReset,
 
   const sectorOptions = industryOptions(t, i18n.language);
   const countryOptions = marketCountryOptions(i18n.language);
-  const regionOptions = regionOptionsFor(filters.countries, i18n.language);
+  const regionOptions = (() => {
+    // Les régions des pays en jeu, rangées sous le nom de leur pays dès qu'il y en a plusieurs.
+    const wanted = (filters.countries).filter(isCountryKey);
+    const scope = MARKET_CODES.filter((c) => !wanted.length || wanted.includes(c));
+    if (scope.length < 2) return regionOptionsFor(scope, i18n.language);
+    return scope.flatMap((c) => regionOptionsFor([c], i18n.language).map((o) => ({ ...o, group: countryLabel(c, i18n.language) })));
+  })();
 
   const chipClass = (active: boolean) => `px-4 py-2 max-sm:py-2.5 rounded-full text-xs max-sm:text-sm border transition-all ${
     active

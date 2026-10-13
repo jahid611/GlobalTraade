@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { RENEWAL_TEXTS, fill, firstNameOf, recipientLang } from "../_shared/i18n.ts"
 
 // Relance des vendeurs dont l'annonce attend une confirmation d'activité.
 // À appeler quotidiennement (cron Supabase) avec le service role key.
@@ -53,7 +54,9 @@ serve(async (req) => {
 
       const { data: profile } = await supabaseAdmin
         .from('profiles').select('full_name').eq('id', listing.owner_id).single();
-      const firstName = (profile?.full_name || '').split(' ')[0] || 'Bonjour';
+      const firstName = firstNameOf(profile?.full_name);
+      // Le rappel est écrit dans la langue du vendeur (profiles.language, vide = français).
+      const t = RENEWAL_TEXTS[await recipientLang(supabaseAdmin, listing.owner_id)];
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -64,13 +67,13 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'Globly <onboarding@resend.dev>',
           to: email,
-          subject: `Votre annonce « ${listing.name} » est-elle toujours en vente ?`,
+          subject: fill(t.subject, { listing: String(listing.name ?? '') }),
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
-              <h2 style="color: #111827;">${esc(firstName)}, votre annonce est-elle toujours en vente ?</h2>
-              <p style="color: #4b5563; font-size: 16px;">Un clic suffit pour garder <strong>${esc(listing.name)}</strong> en ligne gratuitement.</p>
-              <a href="${SITE_URL}/dashboard" style="display: inline-block; background-color: #A855F7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 99px; font-weight: bold; margin: 24px 0;">Oui, toujours en vente</a>
-              <p style="color: #9ca3af; font-size: 13px;">Sans réponse sous 10 jours, votre annonce sera mise en pause. Vous pourrez la réactiver à tout moment depuis votre tableau de bord.</p>
+              <h2 style="color: #111827;">${firstName ? fill(t.title, { firstName: esc(firstName) }) : t.titleNoName}</h2>
+              <p style="color: #4b5563; font-size: 16px;">${fill(t.body, { listing: `<strong>${esc(listing.name)}</strong>` })}</p>
+              <a href="${SITE_URL}/dashboard" style="display: inline-block; background-color: #A855F7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 99px; font-weight: bold; margin: 24px 0;">${t.cta}</a>
+              <p style="color: #9ca3af; font-size: 13px;">${t.note}</p>
             </div>
           `
         })

@@ -737,6 +737,7 @@ function Earth({ listings, favoriteIds, onSelectListing, maxZoomDistance, showLo
     return [me.node, ...near.slice(0, NEAR_MAX - 1).map((n) => n.node)];
   });
 
+  const hasPoints = useMemo(() => listings.some(l => Number.isFinite(l.lat) && Number.isFinite(l.lng)), [listings]);
   const supercluster = useMemo(() => {
     const sc = new Supercluster<Record<string, unknown>, { fav: number }>({
       radius: CLUSTER_RADIUS_PX,
@@ -746,7 +747,7 @@ function Earth({ listings, favoriteIds, onSelectListing, maxZoomDistance, showLo
       reduce: (acc, props) => { acc.fav += props.fav; },
     });
     const points = listings
-      .filter(l => typeof l.lat === 'number' && typeof l.lng === 'number')
+      .filter(l => Number.isFinite(l.lat) && Number.isFinite(l.lng))
       .map(l => ({
         type: 'Feature' as const,
         properties: { cluster: false, listingId: l.id, ...l },
@@ -768,6 +769,10 @@ function Earth({ listings, favoriteIds, onSelectListing, maxZoomDistance, showLo
   const tmp = useMemo(() => new THREE.Vector3(), []);
 
   const worldAt = (z: number): Shown[] => {
+    // Aucune annonce placée sur la carte (aucune n'a de coordonnées), ou niveau de
+    // zoom incalculable : rien à afficher, et surtout pas d'appel au regroupement,
+    // qui plante sans point.
+    if (!hasPoints || !Number.isFinite(z)) return [];
     const cache = worldCache.current;
     if (cache.sc !== supercluster) { cache.sc = supercluster; cache.byZoom = new Map(); }
     let list = cache.byZoom.get(z);

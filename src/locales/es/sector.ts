@@ -143,4 +143,5 @@ export const sector: Record<string, string> = {
   "sector.family_health": "salud y servicios paramédicos",
   "sector.family_digital": "comercio electrónico y sector digital",
   "sector.family_transport": "transporte y logística",
+  "sector.guide_foreign": "Estas referencias proceden de usos franceses. No se han comprobado para su país: tómelas como una simple indicación y pida a un asesor contable de su país que valide el precio.",
 };

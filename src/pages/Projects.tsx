@@ -124,7 +124,7 @@ export default function Projects() {
     if (!user) { navigate("/login", { state: { from: location } }); return; }
     const quota = await checkPublicationQuota(user.id);
     if (!quota.allowed) {
-      showError(t('quota.publications_reached_short', `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure.`));
+      showError(t('quota.publications_reached_short', { count: quota.limit, defaultValue_one: 'Limite de {{count}} annonce active atteinte. Passez à une formule supérieure.', defaultValue_other: 'Limite de {{count}} annonces actives atteinte. Passez à une formule supérieure.' }));
       navigate('/payment');
       return;
     }

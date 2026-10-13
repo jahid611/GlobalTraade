@@ -1,0 +1,87 @@
+// Deutsche Übersetzung der Texte zum Land des Unternehmens: Länderleitfaden,
+// Verkaufsformular, Kauffilter und Auswahllisten. Quelle: die französischen Texte im
+// Code (MarketGuide.tsx, ListingForm.tsx, src/lib/markets.ts…).
+
+export const markets: Record<string, string> = {
+  // Länderleitfaden
+  "guide.title_FR": "Ein Unternehmen in Frankreich kaufen",
+  "guide.title_ES": "Ein Unternehmen in Spanien kaufen",
+  "guide.title_PT": "Ein Unternehmen in Portugal kaufen",
+  "guide.title_DE": "Ein Unternehmen in Deutschland kaufen",
+  "guide.title_IT": "Ein Unternehmen in Italien kaufen",
+  "guide.title_GB": "Ein Unternehmen im Vereinigten Königreich kaufen",
+  "guide.teaser": "Die Schritte des Verkaufs, die Finanzierungshilfen und die Begriffe des Landes, einfach erklärt.",
+  "guide.loading": "Leitfaden wird geladen…",
+  "guide.tab_transfer": "So läuft der Verkauf ab",
+  "guide.tab_financing": "Finanzierung",
+  "guide.tab_glossary": "Begriffe",
+  "guide.banking_title": "Was Banken in der Regel erwarten",
+  "guide.financing_title": "Die Stellen, die Ihnen helfen können",
+  "guide.official_site": "Offizielle Website ansehen",
+  "guide.new_tab": "(neuer Tab)",
+  "guide.checked_on": "Quellen geprüft am {{date}}.",
+  "guide.see_sources": "Quellen anzeigen",
+  "guide.hide_sources": "Quellen ausblenden",
+  "guide.disclaimer": "Diese Informationen sind allgemein gehalten. Sie ersetzen keine Rechts- oder Steuerberatung. Wenden Sie sich vor der Unterschrift an eine Fachperson im Land (Anwalt, Notar, Steuerberater).",
+  "guide.s4_t3_other": "Mietvertrag",
+  "dd.empty_country": "Die Liste enthält die Unterlagen, die im Land des Unternehmens ({{country}}) verlangt werden, jeweils mit einer Erklärung.",
+
+  // Verkaufsformular
+  "form.country": "Land des Unternehmens",
+  "form.country_other": "Anderes Land",
+  "form.hint_country": "Wählen Sie das Land, in dem das Unternehmen ansässig ist. Die verlangte Unternehmensnummer und die Adresssuche richten sich nach diesem Land.",
+  "form.hint_company_id": "Globly kann das Register dieses Landes nicht online abfragen: Diese Nummer wird vom Globly-Team geprüft. Sie können sie unten verbergen, um anonym zu bleiben.",
+  "form.country_switched": "Diese Adresse liegt in einem anderen Land: {{country}}. Das Land Ihres Unternehmens wurde angepasst. Prüfen Sie die Unternehmensnummer im ersten Schritt.",
+  "form.address_country": "Die Suche bezieht sich auf dieses Land: {{country}}. Liegt das Unternehmen woanders, ändern Sie das Land im ersten Schritt.",
+  "form.address_none_country": "Keine Adresse in diesem Land gefunden ({{country}}). Prüfen Sie die Schreibweise oder versuchen Sie es ohne Hausnummer und dann mit dem Ort.",
+  "form.company_id_recheck": "Die im ersten Schritt eingegebene Nummer passt nicht zum Format dieses Landes ({{name}}). Gehen Sie zum ersten Schritt zurück, um sie zu korrigieren.",
+  "form.lease_other": "Miete der Räume und Betriebsbedingungen",
+  "form.hint_lease_other": "Freiwillig. Wenn Sie Ihre Räume mieten, geben Sie die Art des Vertrags ({{lease}}), sein Enddatum und die erlaubten Tätigkeiten an.",
+  "form.hint_lease_generic": "Freiwillig. Wenn Sie Ihre Räume mieten, geben Sie die Art des Vertrags, sein Enddatum und die erlaubten Tätigkeiten an.",
+  "company_id.format_ok": "Das Format ist korrekt. Diese Nummer wurde noch nicht geprüft: Das Globly-Team wird sie kontrollieren.",
+  "val.company_id_format": "Diese Nummer hat nicht das erwartete Format ({{name}}). Beispiel: {{example}}",
+  "val.company_id_required": "Geben Sie die offizielle Registernummer des Unternehmens an (mindestens 5 Zeichen).",
+  "onb.company_id_check": "diese Nummer entspricht nicht dem üblichen Format, bitte prüfen Sie sie",
+  "onb.legal_form_free": "z. B. Gesellschaft mit beschränkter Haftung",
+
+  // Unternehmensnummer je nach Land
+  "market.xx.id_name": "Identifikationsnummer",
+  "market.fr.id_what": "Die 14-stellige Nummer der Betriebsstätte, zu finden auf dem Kbis-Auszug und auf Rechnungen.",
+  "market.es.id_what": "Die Steueridentifikationsnummer (früher CIF). Gesellschaft: ein Buchstabe, sieben Ziffern und ein Prüfzeichen. Selbstständige (autónomo): acht Ziffern und ein Buchstabe.",
+  "market.pt.id_what": "Die Identifikationsnummer der juristischen Person (oder die NIF eines Selbstständigen): 9 Ziffern.",
+  "market.de.id_what": "Die Handelsregisternummer (HRB oder HRA, gefolgt von Ziffern). Ein nicht eingetragenes Unternehmen gibt seine Umsatzsteuer-Identifikationsnummer (USt-IdNr., DE + 9 Ziffern) oder seine Wirtschafts-Identifikationsnummer (W-IdNr.) an.",
+  "market.it.id_what": "Die Umsatzsteuernummer des Unternehmens: 11 Ziffern.",
+  "market.gb.id_what": "Die Registernummer bei Companies House: 8 Ziffern oder 2 Buchstaben und 6 Ziffern.",
+  "market.xx.id_what": "Die offizielle Registernummer des Unternehmens in seinem Land.",
+
+  // Filter, Gesuche und Übernahmeprojekt
+  "filters.country": "Land",
+  "filters.all_countries": "Alle Länder",
+  "filters.all_regions": "Alle Regionen",
+  "smart.f_countries": "Länder",
+  "smart.ph_countries": "Alle Länder",
+  "smart.ph_regions_all": "Alle Regionen",
+  "bp.q_countries": "In welchen Ländern?",
+  "bp.q_countries_hint": "Wählen Sie ein oder mehrere Länder. Lassen Sie das Feld leer, wenn alle Länder für Sie infrage kommen.",
+  "bp.countries_ph": "Alle Länder",
+  "bp.q_regions_hint_multi": "Die Regionen der gewählten Länder. Lassen Sie das Feld leer, wenn das ganze Land für Sie infrage kommt.",
+  "bp.regions_ph_all": "Alle Regionen",
+  "bp.q_departments_hint_fr": "Nur in Frankreich: um genauer als eine Region zu suchen, oder für die Überseegebiete.",
+  "searchads.countries_ph": "Ein oder mehrere Länder wählen",
+  "searchads.regions_ph_multi": "Bestimmte Regionen (freiwillig, wenn ein Land gewählt ist)",
+  "onb.geo_countries": "Gewünschte Länder",
+  "onb.geo_countries_ph": "Alle Länder",
+  "onb.geo_regions": "Gewünschte Regionen",
+  "onb.geo_regions_ph": "Alle Regionen",
+  "onb.geo_hint": "Freiwillig. Ist in einem Land keine Region gewählt, gilt das ganze Land.",
+
+  // Inserat
+  "listing.id_label": "{{name}}:",
+  "listing.id_verified": "{{name}} geprüft",
+  "listing.id_provided": "{{name}} angegeben",
+  "listing.country_rules": "Land des Unternehmens: {{country}}. Für den Verkauf gelten die Regeln dieses Landes. Die Beträge werden in Euro angezeigt.",
+
+  // Auswahllisten
+  "multiselect.search": "Suchen…",
+  "multiselect.empty": "Kein Ergebnis",
+};

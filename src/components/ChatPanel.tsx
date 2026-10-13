@@ -253,7 +253,7 @@ export function ChatPanel({ isOpen, onClose, listing, user, initialNeed }: ChatP
       const min = Math.round(listing.price * OFFER_MIN_PCT);
       const max = Math.round(listing.price * OFFER_MAX_PCT);
       if (amount < min || amount > max) {
-        showError(t('msg.offer_out_of_range', `L'offre doit être comprise entre ${Math.round(OFFER_MIN_PCT*100)} % et ${Math.round(OFFER_MAX_PCT*100)} % du prix demandé.`));
+        showError(t('msg.offer_out_of_range', "L'offre doit être comprise entre {{min}} % et {{max}} % du prix demandé.", { min: Math.round(OFFER_MIN_PCT * 100), max: Math.round(OFFER_MAX_PCT * 100) }));
         return;
       }
     }

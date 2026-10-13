@@ -14,7 +14,19 @@ import {
 import type { Bilingual, BotReply, FlowId, KnowledgeEntry, Lang, QuickReply } from './types';
 
 /** Ce que l'interface sait de l'utilisateur. `currentYear` garde le moteur pur (pas d'horloge ici). */
-export interface EngineContext { firstName?: string; hasListing?: boolean; currentYear?: number }
+export interface EngineContext {
+  firstName?: string;
+  hasListing?: boolean;
+  currentYear?: number;
+  /** pays de l'entreprise ou du profil (code ISO), quand l'interface le connaît ; absent, c'est la France */
+  country?: string | null;
+}
+
+/** Dit après l'estimation quand l'entreprise n'est pas en France : les repères du calcul sont français. */
+const FOREIGN_BENCHMARKS: Bilingual = {
+  fr: "Ces repères viennent d'usages français. Ils n'ont pas été vérifiés pour votre pays : prenez cette fourchette comme une simple indication et faites-la valider par un expert-comptable de votre pays.",
+  en: 'These benchmarks come from French practice. They have not been checked for your country: treat this range as a rough guide only and have an accountant in your country confirm it.',
+};
 
 export type Memory = Record<string, string | number | boolean>;
 
@@ -360,6 +372,7 @@ const estimateFlow: FlowDef = {
       chiffreAffaires: num(c.data, 'ca') ?? 0,
       ebe: num(c.data, 'ebe'),
       dirigeantRemunere: typeof paid === 'boolean' ? paid : undefined,
+      pays: c.ctx.country,
     });
     const low = result.fourchette_basse;
     const high = result.fourchette_haute;
@@ -395,7 +408,7 @@ const estimateFlow: FlowDef = {
       replies: [
         { text: lines.join('\n'), pose: 'bravo', journey: { step: 3, status: 'done' } },
         {
-          text: `${ESTIMATE.levers[lang]}\n\n${ESTIMATE.warning[lang]}`,
+          text: `${ESTIMATE.levers[lang]}\n\n${ESTIMATE.warning[lang]}${result.hors_france ? `\n\n${FOREIGN_BENCHMARKS[lang]}` : ''}`,
           pose: 'guide',
           quickReplies: [
             flowButton(BUTTONS.listingWithNumbers, lang, 'listing'),

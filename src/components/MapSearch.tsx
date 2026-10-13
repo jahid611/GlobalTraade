@@ -105,8 +105,7 @@ export function MapSearch({ listings, onPick }: { listings: ListingNode[]; onPic
               {shown.map((l, i) => {
                 const sector = l.industry ? (t(`industry.${l.industry}`, { defaultValue: l.industry }) as string) : '';
                 // Le pays est écrit à côté du nom quand l'entreprise n'est pas dans le pays du visiteur.
-                // (`country` est transmis par la carte quand l'annonce le porte.)
-                const country = (l as ListingNode & { country?: string | null }).country;
+                const country = l.country;
                 const foreign = !!country && showsCountry({ country }, i18n.language);
                 return (
                   // Pas de carte autour de chaque résultat : une fine ligne grise les sépare.

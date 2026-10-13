@@ -227,10 +227,10 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                       </div>
                       <p className="text-lg font-medium text-white leading-tight">{t('projects.lock_title', 'La suite du dossier est réservée')}</p>
                       <p className="text-sm text-white/80 font-light max-w-md leading-relaxed">
-                        {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
+                        {t('quota.unlock_project_hint', 'Débloquez ce projet pour {{price}} : dossier complet et mise en relation.', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                       </p>
                       <Button onClick={goUnlock} className="rounded-full h-12 px-8 mt-1 bg-primary hover:bg-primary/90 text-white text-sm font-semibold outline-none [text-shadow:none] shadow-[0_10px_30px_rgba(89,85,232,0.55)]">
-                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
+                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', 'Débloquer - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                       </Button>
                     </div>
                   </div>
@@ -379,10 +379,10 @@ export function ProjectDetail({ project, onClose, userId, onEdit, onDelete }: { 
                   {userId && !hasFullAccess ? (
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-5 text-center">
                       <p className="text-white/80 text-sm mb-4 leading-relaxed">
-                        {t('quota.unlock_project_hint', `Débloquez ce projet pour ${UNLOCK_PRICE} € : dossier complet et mise en relation.`)}
+                        {t('quota.unlock_project_hint', 'Débloquez ce projet pour {{price}} : dossier complet et mise en relation.', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                       </p>
                       <Button onClick={goUnlock} className="rounded-full bg-primary hover:bg-primary/90 text-white h-12 px-8 text-sm font-semibold transition-all shadow-lg">
-                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
+                        <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', 'Débloquer - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                       </Button>
                     </div>
                   ) : userId ? (

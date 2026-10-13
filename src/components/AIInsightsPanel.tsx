@@ -189,13 +189,13 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
       <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            {/* Globi, l'assistant du site : on voit tout de suite que l'analyse vient de l'IA */}
+            {/* Globi, l'assistant du site. L'analyse est un calcul à partir de règles fixes, pas une IA générative. */}
             <div className="w-11 h-11 shrink-0 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center overflow-hidden">
               <img src="/mascot/globi-ia.webp" alt="" className="w-10 h-10 object-contain" />
             </div>
             <div>
-              <p className="text-sm font-medium text-white">{t('ai.title', 'Score M&A Avancé (IA)')}</p>
-              <p className="text-[10px] text-white/40 font-light">{t('ai.subtitle', 'Analyse Financière & Capital Immatériel')}</p>
+              <p className="text-sm font-medium text-white">{t('ai.auto_title', "Analyse automatique de l'annonce")}</p>
+              <p className="text-xs text-white/70 font-light">{t('ai.auto_subtitle', "Calculée à partir des chiffres de l'annonce")}</p>
             </div>
           </div>
           <div className="text-right">
@@ -266,8 +266,8 @@ export function AIInsightsPanel({ listing }: AIInsightsPanelProps) {
         </span>
       </p>
 
-      <p className="text-[9px] text-white/20 font-light text-center leading-relaxed pt-2">
-        {t('ai.disclaimer', 'Analyse générée automatiquement par notre algorithme IA. Ne constitue pas un conseil en investissement ou un audit certifié.')}
+      <p className="text-xs text-white/70 font-light text-center leading-relaxed pt-2">
+        {t('ai.auto_disclaimer', "Cette analyse est calculée automatiquement à partir des chiffres déclarés dans l'annonce, selon des règles fixes. Elle ne remplace ni un conseil en investissement ni un audit.")}
       </p>
     </div>
   );

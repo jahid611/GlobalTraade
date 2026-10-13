@@ -4,6 +4,7 @@ import { PencilSimple, Trash, RocketLaunch, DownloadSimple, CheckCircle, ClockCo
 import { useTranslation } from "react-i18next";
 import { BusinessCard } from "@/components/BusinessCard";
 import { BOOST_PRICE } from "@/services/planService";
+import { formatMoney } from "@/lib/markets";
 import type { Listing } from "@/types/domain";
 
 // Vraies couleurs en inline (tailwind.config.ts remappe emerald/amber/red sur des violets).
@@ -34,7 +35,7 @@ export function MyListingCard({
   /** Absent pour la formule gratuite. */
   onDownloadPdf?: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const status = listing.status === "pending_renewal" || listing.status === "inactive" ? listing.status : "active";
 
   return (
@@ -103,7 +104,7 @@ export function MyListingCard({
           {onBoost ? (
             <button
               onClick={onBoost}
-              title={t("boost.cta", `Mettre en avant - ${BOOST_PRICE} €`) as string}
+              title={t("boost.cta", "Mettre en avant - {{price}}", { price: formatMoney(BOOST_PRICE, i18n.language) }) as string}
               className={`${actionBtn} ${onDownloadPdf ? "" : "col-span-2"}`}
             >
               <RocketLaunch size={18} className="shrink-0 text-[#fcd34d]" />

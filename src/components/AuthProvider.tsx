@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { bindProfileLanguage } from '@/i18n';
 
 interface AuthContextType {
   session: Session | null;
@@ -57,6 +58,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // La langue du membre est recopiée dans son profil, pour que les courriels du
+  // serveur partent dans sa langue (voir « Langue du membre dans son profil »,
+  // src/i18n.ts). Hors connexion, rien n'est écrit.
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (!userId) { bindProfileLanguage(null); return; }
+    bindProfileLanguage(userId, {
+      read: async () => {
+        const { data, error } = await supabase.from('profiles').select('language').eq('id', userId).maybeSingle();
+        if (error || !data) return undefined;
+        return (data as { language?: string | null }).language ?? null;
+      },
+      write: async (language) => {
+        const { data, error } = await supabase.from('profiles').update({ language }).eq('id', userId).select('id');
+        return !error && !!data?.length;
+      },
+    });
+  }, [userId]);
 
   const refreshUser = async () => {
     // getUser() interroge le serveur et renvoie les métadonnées à jour (ex: nouvel avatar).

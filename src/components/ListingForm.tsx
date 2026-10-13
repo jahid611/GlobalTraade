@@ -498,8 +498,7 @@ export function ListingForm({ isOpen, onClose, onSuccess, listingToEdit, prefill
       if (!listingToEdit) {
         const quota = await checkPublicationQuota(session.user.id);
         if (!quota.allowed) {
-          throw new Error(t('quota.publications_reached',
-            `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure pour publier davantage.`));
+          throw new Error(t('quota.publications_reached', { count: quota.limit, defaultValue_one: 'Limite de {{count}} annonce active atteinte. Passez à une formule supérieure pour publier davantage.', defaultValue_other: 'Limite de {{count}} annonces actives atteinte. Passez à une formule supérieure pour publier davantage.' }));
         }
       }
       

@@ -17,8 +17,9 @@ import type { SearchAd } from '@/types/domain';
 import { listUnlockedIds } from '@/services/unlockService';
 import { isBoosted } from '@/services/boostService';
 import { INDUSTRIES, industryOptions } from '@/lib/industries';
-import { marketCountryOptions, pruneRegions, regionLabel, regionOptionsFor, splitGeoKeys } from '@/lib/geoRegions';
-import { formatMoney, formatNumber } from '@/lib/markets';
+import { isCountryKey, marketCountryOptions, pruneRegions, regionLabel, regionOptionsFor, splitGeoKeys } from '@/lib/geoRegions';
+import { MARKET_CODES, formatMoney, formatNumber } from '@/lib/markets';
+import { countryLabel } from '@/lib/countries';
 import { AMOUNT_RANGE_OPTIONS as RANGE_OPTIONS, isAmountRange } from '@/lib/ranges';
 import { MultiSelect } from '@/components/MultiSelect';
 import { Dropdown, ConfirmDialog } from '@/components/PickerKit';
@@ -83,7 +84,13 @@ export function SearchAdsBoard() {
 
   const sectorOptions = useMemo(() => industryOptions(t, i18n.language), [t, i18n.language]);
   const countryOptions = useMemo(() => marketCountryOptions(i18n.language), [i18n.language]);
-  const regionOptions = useMemo(() => regionOptionsFor(form.countries, i18n.language), [form.countries, i18n.language]);
+  const regionOptions = useMemo((() => {
+    // Les régions des pays en jeu, rangées sous le nom de leur pays dès qu'il y en a plusieurs.
+    const wanted = (form.countries).filter(isCountryKey);
+    const scope = MARKET_CODES.filter((c) => !wanted.length || wanted.includes(c));
+    if (scope.length < 2) return regionOptionsFor(scope, i18n.language);
+    return scope.flatMap((c) => regionOptionsFor([c], i18n.language).map((o) => ({ ...o, group: countryLabel(c, i18n.language) })));
+  }), [form.countries, i18n.language]);
 
   // Libellés d'affichage
   const sectorLabels = (s: string) => toList(s).map((v) => t(`industry.${v}`, { defaultValue: v }) as string);
@@ -123,7 +130,7 @@ export function SearchAdsBoard() {
     if (!user) { navigate('/login'); return; }
     const quota = await checkPublicationQuota(user.id);
     if (!quota.allowed) {
-      showError(t('quota.publications_reached_short', `Limite de ${quota.limit} annonce${quota.limit > 1 ? 's' : ''} active${quota.limit > 1 ? 's' : ''} atteinte. Passez à une formule supérieure.`));
+      showError(t('quota.publications_reached_short', { count: quota.limit, defaultValue_one: 'Limite de {{count}} annonce active atteinte. Passez à une formule supérieure.', defaultValue_other: 'Limite de {{count}} annonces actives atteinte. Passez à une formule supérieure.' }));
       navigate('/payment');
       return;
     }
@@ -293,7 +300,7 @@ export function SearchAdsBoard() {
                     <>
                       {!isBoosted(ad) && (
                         <button onClick={() => navigate(`/payment?boost=search_ad:${ad.id}&name=${encodeURIComponent(ad.title || '')}`)}
-                          title={t('boost.cta', `Mettre en avant - ${BOOST_PRICE} €`) as string}
+                          title={t('boost.cta', 'Mettre en avant - {{price}}', { price: formatMoney(BOOST_PRICE, i18n.language) }) as string}
                           className="p-2.5 rounded-full text-white/50 hover:text-amber-300 hover:bg-amber-500/10 transition-colors outline-none"><RocketLaunch className="w-5 h-5" /></button>
                       )}
                       <button onClick={() => openEdit(ad)} className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors outline-none"><PencilSimple className="w-5 h-5" /></button>
@@ -305,7 +312,7 @@ export function SearchAdsBoard() {
                     </Button>
                   ) : (
                     <Button onClick={() => goUnlock(ad)} className="rounded-full h-11 px-5 bg-primary hover:bg-primary/90 text-white text-xs uppercase tracking-widest font-medium outline-none [text-shadow:none]">
-                      <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', `Débloquer - ${UNLOCK_PRICE} €`)}
+                      <LockSimple className="w-4 h-4 mr-2" /> {t('quota.unlock_cta', 'Débloquer - {{price}}', { price: formatMoney(UNLOCK_PRICE, i18n.language) })}
                     </Button>
                   )}
                 </div>

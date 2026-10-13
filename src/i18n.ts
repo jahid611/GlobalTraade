@@ -3311,6 +3311,73 @@ const warmLanguageFiles = (language: LanguageCode): Promise<unknown> =>
       .map(([, load]) => load()),
   ).catch(() => undefined);
 
+// ---------------------------------------------------------------------------
+// Langue du membre dans son profil
+// ---------------------------------------------------------------------------
+//
+// Les courriels envoyés par le serveur ne voient pas le navigateur : ils lisent
+// `profiles.language`. Le site y recopie donc la langue du membre connecté :
+//   - quand il en choisit une (`setLanguage`) ;
+//   - une fois à la connexion, si son profil n'en a pas encore.
+// Rien n'est écrit hors connexion, et rien n'est relu ni réécrit à chaque page :
+// la dernière valeur connue du profil est gardée (localStorage « language_profile »,
+// sous la forme « identifiant:langue »). Un échec est ignoré : la langue du site
+// ne dépend jamais de cette écriture, et le profil ne change jamais la langue du site.
+
+/** Accès au profil, fourni par AuthProvider (ce fichier ne dépend pas du client Supabase). */
+export type ProfileLanguageStore = {
+  /** langue du profil ; `null` si le profil n'en a pas ; `undefined` si la lecture a échoué */
+  read: () => Promise<string | null | undefined>;
+  /** `true` si la langue a bien été enregistrée */
+  write: (language: LanguageCode) => Promise<boolean>;
+};
+
+const PROFILE_KEY = 'language_profile';
+let member: { id: string; store: ProfileLanguageStore } | null = null;
+let knownProfile: string | null = (() => { try { return localStorage.getItem(PROFILE_KEY); } catch { return null; } })();
+
+const markProfile = (userId: string, language: string) => {
+  knownProfile = `${userId}:${language}`;
+  try { localStorage.setItem(PROFILE_KEY, knownProfile); } catch { /* stockage indisponible */ }
+};
+
+/** La langue choisie par le membre (pas celle affichée le temps d'un téléchargement). */
+const chosenLanguage = (): LanguageCode => {
+  const stored = readStored();
+  if (stored && isLanguage(stored)) return stored;
+  return isLanguage(i18n.language) ? i18n.language : 'fr';
+};
+
+async function saveProfileLanguage(language: LanguageCode): Promise<void> {
+  const current = member;
+  if (!current) return;                                         // hors connexion : rien
+  if (knownProfile === `${current.id}:${language}`) return;     // déjà enregistrée
+  try {
+    if (await current.store.write(language)) markProfile(current.id, language);
+  } catch { /* sans gravité : on réessaiera au prochain choix */ }
+}
+
+/**
+ * Indique quel membre est connecté (ou `null` à la déconnexion). À la première
+ * connexion d'un membre sur ce navigateur, enregistre sa langue si son profil
+ * n'en a pas. N'attend rien et ne bloque jamais l'affichage.
+ */
+export function bindProfileLanguage(userId: string | null, store?: ProfileLanguageStore): void {
+  if (!userId || !store) { member = null; return; }
+  if (member?.id === userId) { member.store = store; return; }
+  member = { id: userId, store };
+  if (knownProfile?.startsWith(`${userId}:`)) return;           // profil déjà renseigné
+  void (async () => {
+    try {
+      const current = await store.read();
+      if (member?.id !== userId || current === undefined) return;
+      if (knownProfile?.startsWith(`${userId}:`)) return;       // choisie entre-temps
+      if (current && isLanguage(current)) markProfile(userId, current);
+      else await saveProfileLanguage(chosenLanguage());
+    } catch { /* sans gravité */ }
+  })();
+}
+
 /**
  * Change la langue du site. Les langues autres que le français et l'anglais
  * sont téléchargées au premier usage (src/locales/<code>/).
@@ -3325,6 +3392,7 @@ export async function setLanguage(code: string): Promise<void> {
   await i18n.changeLanguage(language);
   writeStored(language);
   announce(language);
+  void saveProfileLanguage(language);
 }
 
 /**

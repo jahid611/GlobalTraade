@@ -18,6 +18,7 @@
 //                  SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { PROSPECT_TEXTS, pickLang } from "../_shared/i18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,11 +40,6 @@ const json = (body: unknown, status = 200) =>
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const OPT_OUT = {
-  fr: "Vous pouvez vous opposer à toute nouvelle prise de contact en répondant simplement « STOP » à cet email.",
-  en: "You can opt out of any further contact by simply replying “STOP” to this email.",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -130,7 +126,9 @@ serve(async (req) => {
       return json({ error: "Limite d'envois quotidienne atteinte. Réessayez demain." }, 429);
     }
 
-    const l = lang === "en" ? "en" : "fr";
+    // Langue du message choisie par le membre pour ce prospect (une entreprise
+    // extérieure, sans profil) : les six langues du site, sinon le français.
+    const l = pickLang(lang);
     const cleanSubject = String(subject || "").slice(0, MAX_SUBJECT).trim();
     const cleanBody = String(body || "").slice(0, MAX_BODY).trim();
     if (!cleanSubject || !cleanBody) return json({ error: "Objet ou message vide." }, 400);
@@ -138,7 +136,7 @@ serve(async (req) => {
     // La mention de désinscription est ajoutée ICI : le client ne peut pas la retirer.
     const htmlBody = `<div style="font-family:sans-serif;font-size:15px;color:#111827;line-height:1.6;white-space:pre-wrap;">${esc(cleanBody)}</div>
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
-      <p style="font-family:sans-serif;font-size:12px;color:#9ca3af;">${OPT_OUT[l]}</p>`;
+      <p style="font-family:sans-serif;font-size:12px;color:#9ca3af;">${esc(PROSPECT_TEXTS[l].optOut)}</p>`;
 
     // L'envoi est réservé AVANT de partir : deux appels simultanés ne passent pas tous les deux.
     const { data: reserved } = await admin.from("prospection_contacts")

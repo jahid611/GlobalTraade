@@ -2,7 +2,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Storefront, CurrencyEur, ArrowsHorizontal, UsersThree, RocketLaunch, Handshake, Info, Scales } from "phosphor-react";
-import { findFamily } from "@/lib/valuation";
+import { findFamily, valuationBenchmarksApply } from "@/lib/valuation";
 import { formatDate, formatEuro, type PriceStats } from "./sectorData";
 
 interface SectorStatsProps {
@@ -133,8 +133,10 @@ const FAMILY_KEYS: Record<string, string> = {
 
 // Repères d'usage du métier (barèmes de src/lib/valuation.ts, les mêmes que
 // ceux de Globi). Ce ne sont PAS des chiffres tirés des annonces : c'est dit.
-export function SectorPriceGuide({ sector, sectorLabel }: { sector: string; sectorLabel: string }) {
+// `country` : pays de l'annonce ou du profil de l'utilisateur (code ISO) ; absent, c'est la France.
+export function SectorPriceGuide({ sector, sectorLabel, country }: { sector: string; sectorLabel: string; country?: string | null }) {
   const { t } = useTranslation();
+  const foreign = !valuationBenchmarksApply(country);
   const family = findFamily(`${sector} ${sectorLabel}`);
   const familyKey = FAMILY_KEYS[family.label];
   const familyLabel = familyKey
@@ -172,6 +174,12 @@ export function SectorPriceGuide({ sector, sectorLabel }: { sector: string; sect
         <Scales size={16} className="shrink-0 mt-0.5 text-[#a5b4fc]" />
         <span>{t("sector.guide_warning", "Ce sont des repères généraux, pas des chiffres tirés des annonces ci-dessus ni une expertise. Le prix réel dépend de l'emplacement, du bail, du matériel et de la régularité des résultats : faites-le valider par votre expert-comptable.")}</span>
       </p>
+      {foreign && (
+        <p className="flex items-start gap-2 text-[13px] text-white/65 font-light leading-relaxed mt-3">
+          <Info size={16} className="shrink-0 mt-0.5 text-[#a5b4fc]" />
+          <span>{t("sector.guide_foreign", "Ces repères viennent d'usages français. Ils n'ont pas été vérifiés pour votre pays : prenez-les comme une simple indication et faites valider le prix par un expert-comptable de votre pays.")}</span>
+        </p>
+      )}
     </div>
   );
 }

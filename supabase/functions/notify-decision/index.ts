@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { DECISION_TEXTS, decisionContent, fill, firstNameOf, recipientLang, type Lang } from "../_shared/i18n.ts"
 
 // Prévient un membre par email d'une décision de l'administration : identité
 // validée ou refusée, projet validé ou refusé, compte suspendu ou réactivé.
@@ -25,60 +26,47 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 type Notice = { id: string; user_id: string; kind: string; reason: string | null; target_id: string | null; target_label: string | null };
 
-/** Objet, texte et bouton de chaque type d'avis. */
-function content(n: Notice): { subject: string; title: string; text: string; cta: string; url: string } | null {
-  const project = n.target_label ? `« ${n.target_label} »` : 'votre projet';
+type Content = { subject: string; title: string; text: string; cta: string; url: string };
+
+/** Page ouverte par le bouton de chaque type d'avis (les textes sont dans ../_shared/i18n.ts). */
+function targetUrl(n: Notice): string {
   switch (n.kind) {
-    case 'kyc_verified':
-      return { subject: 'Votre identité est vérifiée', title: 'Votre identité est vérifiée',
-        text: 'Le badge « Vérifié » apparaît maintenant sur votre profil. Les autres membres savent qu’ils parlent à une personne dont l’identité a été contrôlée.',
-        cta: 'Voir mon profil', url: `${SITE_URL}/profile` };
-    case 'kyc_rejected':
-      return { subject: 'Votre vérification d’identité n’a pas été validée', title: 'Votre vérification d’identité n’a pas été validée',
-        text: 'Notre équipe n’a pas pu valider le document envoyé. Vous pouvez en envoyer un nouveau à tout moment depuis votre profil.',
-        cta: 'Envoyer un nouveau document', url: `${SITE_URL}/profile` };
-    case 'kyc_reset':
-      return { subject: 'Votre vérification d’identité a été retirée', title: 'Votre vérification d’identité a été retirée',
-        text: 'Le badge « Vérifié » n’apparaît plus sur votre profil. Vous pouvez refaire une demande depuis votre profil.',
-        cta: 'Refaire une demande', url: `${SITE_URL}/profile` };
     case 'project_verified':
-      return { subject: 'Votre projet est vérifié', title: `Votre projet ${project} est vérifié`,
-        text: 'Le badge « Projet vérifié » s’affiche maintenant sur sa fiche.',
-        cta: 'Voir mon projet', url: `${SITE_URL}/projects?focus=${n.target_id}` };
     case 'project_rejected':
-      return { subject: 'Votre projet n’a pas été validé', title: `Votre projet ${project} n’a pas été validé`,
-        text: 'Notre équipe a relu votre dossier et ne peut pas le valider en l’état. Corrigez-le puis renvoyez-le : il sera relu.',
-        cta: 'Corriger mon dossier', url: `${SITE_URL}/projects?focus=${n.target_id}` };
+      return `${SITE_URL}/projects?focus=${n.target_id}`;
     case 'account_suspended':
-      return { subject: 'Votre compte Globly est suspendu', title: 'Votre compte est suspendu',
-        text: 'Vous ne pouvez plus publier ni envoyer de messages pour le moment. Si vous pensez qu’il s’agit d’une erreur, écrivez-nous.',
-        cta: 'Nous contacter', url: `${SITE_URL}/contact` };
+      return `${SITE_URL}/contact`;
     case 'account_restored':
-      return { subject: 'Votre compte Globly est réactivé', title: 'Votre compte est réactivé',
-        text: 'Vous pouvez de nouveau publier et échanger avec les autres membres.',
-        cta: 'Ouvrir Globly', url: `${SITE_URL}/dashboard` };
+      return `${SITE_URL}/dashboard`;
     default:
-      return null;
+      return `${SITE_URL}/profile`;
   }
 }
 
-function html(firstName: string, c: NonNullable<ReturnType<typeof content>>, reason: string | null) {
+/** Objet, texte et bouton de l'avis, dans la langue du membre. */
+function content(n: Notice, lang: Lang): Content | null {
+  const c = decisionContent(lang, n.kind, n.target_label);
+  return c ? { ...c, url: targetUrl(n) } : null;
+}
+
+function html(firstName: string, c: Content, reason: string | null, lang: Lang) {
+  const t = DECISION_TEXTS[lang];
   const reasonBlock = reason
     ? `<div style="background:#ffffff;padding:16px 20px;border-radius:12px;border:1px solid #e5e7eb;margin:20px 0;">
-         <p style="color:#6b7280;font-size:13px;margin:0 0 6px;">Motif indiqué par notre équipe</p>
+         <p style="color:#6b7280;font-size:13px;margin:0 0 6px;">${esc(t.reasonLabel)}</p>
          <p style="color:#111827;font-size:16px;margin:0;white-space:pre-wrap;">${esc(reason)}</p>
        </div>`
     : '';
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:36px;border-radius:16px;">
-    <p style="color:#6b7280;font-size:15px;margin:0 0 8px;">Bonjour${firstName ? ` ${esc(firstName)}` : ""},</p>
+    <p style="color:#6b7280;font-size:15px;margin:0 0 8px;">${firstName ? fill(t.greeting, { name: esc(firstName) }) : t.greetingNoName}</p>
     <h2 style="color:#111827;font-size:22px;margin:0 0 14px;">${esc(c.title)}</h2>
     <p style="color:#374151;font-size:16px;line-height:1.55;margin:0;">${esc(c.text)}</p>
     ${reasonBlock}
     <p style="margin:26px 0 0;">
       <a href="${c.url}" style="display:inline-block;background:#5955e8;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:99px;font-weight:bold;font-size:15px;">${esc(c.cta)}</a>
     </p>
-    <p style="color:#9ca3af;font-size:13px;line-height:1.5;margin:28px 0 0;">Vous retrouvez ce message dans votre espace Globly. Une question ? Répondez depuis la page Contact du site.</p>
+    <p style="color:#9ca3af;font-size:13px;line-height:1.5;margin:28px 0 0;">${esc(t.footer)}</p>
   </div>`;
 }
 
@@ -118,17 +106,19 @@ serve(async (req) => {
         .update({ email_status: status, email_sent_at: status === 'sent' ? new Date().toISOString() : null, email_error: err ? err.slice(0, 300) : null })
         .eq('id', n.id).eq('email_status', 'pending');
       try {
-        const c = content(n);
+        // L'avis est écrit dans la langue du membre concerné (profiles.language, vide = français).
+        const lang = await recipientLang(admin, n.user_id);
+        const c = content(n, lang);
         const { data: userData } = await admin.auth.admin.getUserById(n.user_id);
         const email = userData?.user?.email;
         if (!c || !email) { await mark('failed', !c ? 'type inconnu' : 'adresse introuvable'); failed++; continue; }
         const { data: profile } = await admin.from('profiles').select('full_name').eq('id', n.user_id).maybeSingle();
-        const firstName = (profile?.full_name || '').trim().split(' ')[0] || '';
+        const firstName = firstNameOf(profile?.full_name);
 
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
-          body: JSON.stringify({ from: FROM, to: email, subject: c.subject, html: html(firstName, c, n.reason) }),
+          body: JSON.stringify({ from: FROM, to: email, subject: c.subject, html: html(firstName, c, n.reason, lang) }),
         });
         if (res.ok) { await mark('sent'); sent++; }
         else { await mark('failed', `Resend ${res.status}`); failed++; }
