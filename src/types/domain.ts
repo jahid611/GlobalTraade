@@ -10,6 +10,12 @@ export type ListingStatus = 'active' | 'sold' | 'inactive' | string;
 // Les champs « confidentiels » sont null si l'utilisateur n'y a pas droit
 // (masqués côté serveur — voir supabase/_claude_listings_secure_view.sql).
 export interface Listing {
+  /** pays de l'entreprise, code ISO à 2 lettres (« FR », « ES »…). Les règles du pays se lisent dans src/lib/markets.ts */
+  country?: string | null;
+  /** région, code ISO 3166-2 (« ES-CT ») quand le pays a des régions connues de Globly */
+  region?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
   id: string;
   name: string;
   owner_id: string;
