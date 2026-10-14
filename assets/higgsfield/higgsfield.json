@@ -313,5 +313,187 @@
     "type": "image",
     "model": "gpt_image_2_5",
     "date": "2026-10-13"
+  },
+  {
+    "file": "parcours-main-cle.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence). Un bras d'astronaute seul, manche blanche et gant indigo, qui entre par la gauche et tend une clé dorée. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-main-ouverte.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence). Un bras d'astronaute seul, manche indigo et gant blanc, qui entre par la droite, paume ouverte vers le haut, prêt à recevoir. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-globe.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence). Un globe terrestre jouet centré sur l'Europe : océans indigo, continents blancs, cinq repères dorés sur l'Europe, deux étoiles dorées. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-main-cle-detoure.png",
+    "prompt": "Détourage de parcours-main-cle.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-main-ouverte-detoure.png",
+    "prompt": "Détourage de parcours-main-ouverte.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-globe-detoure.png",
+    "prompt": "Détourage de parcours-globe.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-visage-boulangere.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), mais un personnage humain : portrait tête et épaules de une boulangère d'une quarantaine d'années, chignon brun, tablier blanc. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-visage-garagiste.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), mais un personnage humain : portrait tête et épaules de un garagiste d'une cinquantaine d'années, cheveux gris, barbe courte, veste de travail indigo. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-visage-repreneuse.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), mais un personnage humain : portrait tête et épaules de une repreneuse d'une trentaine d'années, cheveux noirs, lunettes rondes, veste indigo. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-visage-entrepreneur.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), mais un personnage humain : portrait tête et épaules de un entrepreneur d'une trentaine d'années, cheveux blonds, gilet indigo. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-logo-boulangerie.png",
+    "prompt": "Logo d'une entreprise inventée, dans le style 3D jouet de la mascotte Globi (image de référence), pour une boulangerie : un croissant doré et un épi de blé, fond crème uni. Image carrée, sans texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-logo-garage.png",
+    "prompt": "Logo d'une entreprise inventée, dans le style 3D jouet de la mascotte Globi (image de référence), pour un garage : une clé plate dorée sur une roue blanche et indigo, fond bleu nuit uni. Image carrée, sans texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-logo-hotel.png",
+    "prompt": "Logo d'une entreprise inventée, dans le style 3D jouet de la mascotte Globi (image de référence), pour un hôtel : une sonnette de réception dorée et trois étoiles, fond vert émeraude uni. Image carrée, sans texte.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-marque-solene.png",
+    "prompt": "Logo de marque à plat, comme une vraie enseigne, pour la boulangerie inventée « Solène, fournil » : épi de blé et nom en lettres à empattements, brun sur fond crème. Image carrée.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-marque-motoria.png",
+    "prompt": "Logo de marque à plat, comme une vraie enseigne, pour le garage inventé « Motoria » : écrou et lettre M, jaune et blanc sur fond bleu nuit. Image carrée.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "parcours-marque-belrive.png",
+    "prompt": "Logo de marque à plat, comme une vraie enseigne, pour l'hôtel inventé « Belrive » : blason à l'arche et trois étoiles, or sur fond vert émeraude. Image carrée.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-boutique.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls, sans personnage : une petite boutique à l'auvent rayé indigo et blanc, avec une grande étiquette de prix dorée. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-boutique-detoure.png",
+    "prompt": "Détourage de accueil-boutique.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-carte.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls, sans personnage : une carte papier dépliée en trois volets, avec un grand repère doré et un petit drapeau indigo. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-carte-detoure.png",
+    "prompt": "Détourage de accueil-carte.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-cle.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls, sans personnage : une clé dorée sur un anneau, avec un porte-clés indigo en forme de petite maison. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-cle-detoure.png",
+    "prompt": "Détourage de accueil-cle.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-projet.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls, sans personnage : un pot blanc d'où pousse une jeune plante indigo, à côté de trois piles de pièces dorées. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-projet-detoure.png",
+    "prompt": "Détourage de accueil-projet.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-tirelire.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objet seul : une tirelire ronde blanche aux oreilles, groin et pattes indigo, une pièce dorée qui tombe dans la fente, deux étoiles dorées. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "accueil-tirelire-detoure.png",
+    "prompt": "Détourage de accueil-tirelire.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
   }
 ]

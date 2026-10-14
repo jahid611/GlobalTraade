@@ -3,6 +3,9 @@
 import React, { useRef } from 'react';
 import { filmSrc } from '@/lib/film';
 import { LazyFilm } from '@/components/LazyFilm';
+import { ScrollStory } from '@/components/home/ScrollStory';
+import { BenefitVisual, FeatureVisual } from '@/components/home/BenefitVisual';
+import { HeroCardArt } from '@/components/home/HeroCardArt';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SolarSystem } from '@/components/SolarSystem';
@@ -91,6 +94,7 @@ export default function Index() {
           <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
         </motion.div>
 
+        {/* (les quatre cartes plus bas : sur téléphone, pas de carte, visuel et texte centrés) */}
         {/* Ordinateur : le texte est centré sur la page, comme les cartes en dessous.
             La même marge des deux côtés réserve la place de Globi à droite, qui ne
             passe donc jamais devant le titre. */}
@@ -110,22 +114,19 @@ export default function Index() {
           </motion.p>
         </div>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 order-3 md:order-none grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="relative z-10 order-3 md:order-none grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-5 w-full max-w-5xl px-[2vw] sm:px-0">
           {[
             { to: "/marketplace", icon: Storefront, color: "text-primary", title: t('index.cards.market.title'), desc: t('index.cards.market.desc') },
             { to: "/app", icon: MapTrifold, color: "text-blue-400", title: t('index.cards.map.title'), desc: t('index.cards.map.desc') },
             { to: "/dashboard", icon: Tag, color: "text-emerald-400", title: t('index.cards.sell.title'), desc: t('index.cards.sell.desc') },
             { to: "/projects", icon: RocketLaunch, color: "text-amber-400", title: t('index.cards.projects.title'), desc: t('index.cards.projects.desc') },
           ].map((c, i) => {
-            const Icon = c.icon;
             return (
               <Link key={i} to={c.to} className="group">
-                <motion.div variants={fadeInUp} className="h-full flex flex-col items-start text-left p-5 sm:p-7 liquid-glass dark:bg-white/[0.02] border-white/30 dark:border-white/5 rounded-[2rem] hover:border-white/50 dark:hover:bg-white/[0.04] hover:-translate-y-1 transition-all duration-300">
-                  <div className={`p-3 rounded-2xl bg-white/5 mb-4 sm:mb-5 ${c.color} group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon size={26} weight="duotone" />
-                  </div>
+                <motion.div variants={fadeInUp} className="h-full flex flex-col items-center text-center sm:items-start sm:text-left p-2 sm:p-7 sm:liquid-glass sm:dark:bg-white/[0.02] sm:border-white/30 sm:dark:border-white/5 rounded-[2rem] sm:hover:border-white/50 sm:dark:hover:bg-white/[0.04] sm:hover:-translate-y-1 transition-all duration-300">
+                  <HeroCardArt index={i} />
                   <h3 className="text-base sm:text-xl text-white font-semibold mb-1 leading-tight">{c.title}</h3>
-                  <p className="text-xs sm:text-sm text-white/50 font-light leading-snug">{c.desc}</p>
+                  <p className="text-[13px] sm:text-sm text-white/85 sm:text-white/50 font-light leading-snug">{c.desc}</p>
                 </motion.div>
               </Link>
             );
@@ -163,6 +164,9 @@ export default function Index() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* PARCOURS ANIMÉ AU DÉFILEMENT */}
+      <ScrollStory />
 
       {/* SECTION ROCKET LAUNCH */}
       <section className="relative z-10 w-full max-w-6xl mx-auto px-6 py-[15vh] flex flex-col md:flex-row items-center justify-center gap-12 border-t border-white/10 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
@@ -224,7 +228,6 @@ export default function Index() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {premiumBenefits.map((benefit, i) => {
-            const Icon = benefit.icon;
             return (
               <motion.div 
                 key={i}
@@ -235,10 +238,8 @@ export default function Index() {
                 // Téléphone : même verre que les trois cartes plus bas (fond et bordure). Ordinateur : inchangé.
                 className="liquid-glass p-8 rounded-[2rem] max-md:dark:bg-white/[0.02] max-md:border-white/30 max-md:dark:border-white/10 md:border-white/10 flex flex-col items-start text-left group hover:border-primary/40 transition-all duration-500"
               >
-                <div className={`p-3 rounded-2xl bg-white/5 max-md:bg-white/15 max-md:dark:bg-white/5 mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-500`}>
-                  <Icon size={24} />
-                </div>
-                <h3 className="text-xl font-medium text-white mb-3">{benefit.title}</h3>
+                <BenefitVisual index={i} />
+                <h3 className="text-xl lg:text-lg xl:text-xl font-medium leading-snug text-white mb-3">{benefit.title}</h3>
                 <p className="text-white/50 max-md:text-white/80 max-md:dark:text-white/50 font-light text-sm leading-relaxed">{benefit.desc}</p>
               </motion.div>
             );
@@ -327,10 +328,9 @@ export default function Index() {
             { icon: ShieldCheck, color: "text-emerald-400", title: t('index.features.f2.title'), desc: t('index.features.f2.desc') },
             { icon: ChatCircle, color: "text-blue-400", title: t('index.features.f3.title'), desc: t('index.features.f3.desc') },
           ].map((f, i) => {
-            const Icon = f.icon;
             return (
               <div key={i} className="liquid-glass dark:bg-white/[0.02] border border-white/30 dark:border-white/10 p-8 rounded-[2rem] flex flex-col items-start text-left hover:-translate-y-1 hover:border-white/50 dark:hover:border-white/20 transition-all duration-300">
-                <div className={`p-3 rounded-2xl bg-white/15 dark:bg-white/5 mb-5 ${f.color}`}><Icon size={26} weight="duotone" /></div>
+                <FeatureVisual index={i} />
                 <h3 className="text-xl font-semibold text-white mb-2">{f.title}</h3>
                 <p className="text-white/80 dark:text-white/50 font-light text-sm leading-relaxed">{f.desc}</p>
               </div>

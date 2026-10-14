@@ -439,8 +439,8 @@ export function Navbar() {
                 avec le menu replié (tablette, une fois connecté) et sur grand écran.
                 Entre les deux, l'icône de la carte dans la barre fait le même travail. */}
             <Link to="/app" className={`shrink-0 hidden ${user ? "md:block lg:hidden" : ""} xl:block`}>
-              {/* Fond : un planisphère de la Terre, assombri pour que le texte reste lisible */}
-              <Button className="bg-[linear-gradient(rgba(4,6,20,0.62),rgba(4,6,20,0.62)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.42),rgba(4,6,20,0.42)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/25 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_10px_rgba(0,0,0,0.9)] px-5 h-10 font-semibold tracking-wide rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
+              {/* Fond : un planisphère de la Terre, à peine assombri : c'est l'ombre du texte qui le garde lisible */}
+              <Button className="bg-[linear-gradient(rgba(4,6,20,0.26),rgba(4,6,20,0.26)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.08),rgba(4,6,20,0.08)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/40 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_8px_rgba(0,0,0,1),0_0_14px_rgba(0,0,0,0.9)] px-5 h-10 font-semibold tracking-wide rounded-full transition-all shadow-none ring-0 outline-none focus:ring-0">
                 {t("nav.explore")}
               </Button>
             </Link>
@@ -585,7 +585,7 @@ export function Navbar() {
                     navigate("/app");
                   }}
                   // même fond que la pilule de la barre sur ordinateur : le planisphère, assombri
-                  className="w-fit px-8 h-12 rounded-full bg-[linear-gradient(rgba(4,6,20,0.62),rgba(4,6,20,0.62)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.42),rgba(4,6,20,0.42)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/25 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_10px_rgba(0,0,0,0.9)] font-semibold tracking-wide text-base transition-all shadow-none"
+                  className="w-fit px-8 h-12 rounded-full bg-[linear-gradient(rgba(4,6,20,0.26),rgba(4,6,20,0.26)),url('/earth/pilule.jpg')] hover:bg-[linear-gradient(rgba(4,6,20,0.08),rgba(4,6,20,0.08)),url('/earth/pilule.jpg')] bg-cover bg-center border border-white/40 text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_0_8px_rgba(0,0,0,1),0_0_14px_rgba(0,0,0,0.9)] font-semibold tracking-wide text-base transition-all shadow-none"
                 >
                   {t("nav.explore")}
                 </Button>
