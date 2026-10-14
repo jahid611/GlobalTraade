@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowRight, CaretLeft, CaretRight, LockSimple } from "phosphor-react";
+import { ArrowRight, CaretLeft, CaretRight, LockSimple } from "@/components/icons/ph";
 import { listAudit, type AuditEntry } from "@/services/adminService";
 import { Card, Empty, ErrorBox, Loading, Pill, SearchBox, SectionHeader, TONE, btn, fmtDateTime, inputCls, type ToneName } from "../ui";
 import { MemberLink, useProfiles } from "./_moderation";

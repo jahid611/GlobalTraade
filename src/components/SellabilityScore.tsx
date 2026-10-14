@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Gauge, LockSimple, ArrowRight, CheckCircle } from 'phosphor-react';
+import { Gauge, LockSimple, ArrowRight, CheckCircle } from '@/components/icons/ph';
 import { Button } from '@/components/ui/button';
 import type { Listing } from '@/types/domain';
 

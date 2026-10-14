@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/icons';
 import type { ListingDraft } from '@/services/assistantService';
 import { Mascot } from './Mascot';
 import { formatMoney } from '@/lib/markets';

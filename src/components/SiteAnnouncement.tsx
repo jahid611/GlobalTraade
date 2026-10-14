@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, CheckCircle, Megaphone, Warning, X } from "phosphor-react";
+import { ArrowRight, CheckCircle, Megaphone, Warning, X } from "@/components/icons/ph";
 import { getAnnouncement, type SiteAnnouncementValue } from "@/services/adminService";
 
 /**

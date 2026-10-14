@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { Navbar } from './Navbar';
 import { SolarSystem } from './SolarSystem';
 import { ErrorScreen } from './ErrorScreen';

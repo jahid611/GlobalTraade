@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IdentificationCard, Flag, Star, RocketLaunch, EnvelopeSimple, ArrowRight, CheckCircle, Info } from "phosphor-react";
+import { IdentificationCard, Flag, Star, RocketLaunch, EnvelopeSimple, ArrowRight, CheckCircle, Info } from "@/components/icons/ph";
 import { getOverview, listUsers, euros, type AdminOverview } from "@/services/adminService";
 import { SectionHeader, Card, Stat, Loading, ErrorBox, TONE, btnSmall, fmtDate } from "../ui";
 import { eur, nb, useAdminListings, useAdminNav, useFrenchLabels } from "../content/shared";

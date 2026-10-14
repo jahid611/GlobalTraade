@@ -24,7 +24,7 @@ import {
   Crosshair,
   Briefcase,
   ArrowLeft,
-} from "phosphor-react";
+} from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

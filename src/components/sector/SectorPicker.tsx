@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { MagnifyingGlass, CaretDown, Check, X } from "phosphor-react";
+import { MagnifyingGlass, CaretDown, Check, X } from "@/components/icons/ph";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import type { IndustryOption } from "@/lib/industries";
 

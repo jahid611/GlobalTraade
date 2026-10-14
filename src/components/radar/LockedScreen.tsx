@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { LockSimple, Check, Crown, ArrowRight } from "phosphor-react";
+import { LockSimple, Check, Crown, ArrowRight } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { PLAN_PRICES, EXTRA_PROSPECT_PRICE } from "@/services/planService";
 import { PROSPECTION_MONTHLY_INCLUDED } from "@/services/prospectService";

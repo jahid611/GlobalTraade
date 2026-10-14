@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "@/lib/markets";
-import { MapPin, CurrencyEur, Bank, Wallet, UserCircle, LockSimple, Crown, ArrowRight } from "phosphor-react";
+import { MapPin, CurrencyEur, Bank, Wallet, UserCircle, LockSimple, Crown, ArrowRight } from "@/components/icons/ph";
 import type { SearchAd } from "@/types/domain";
 import { BuyerBadges } from "@/components/BuyerBadges";
 import { UNLOCK_PRICE } from "@/services/planService";

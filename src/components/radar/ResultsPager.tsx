@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { CaretLeft, CaretRight } from "phosphor-react";
+import { CaretLeft, CaretRight } from "@/components/icons/ph";
 
 // Pagination des résultats : précédent, « Page x / y », suivant.
 export function ResultsPager({ page, totalPages, disabled, onPage }: { page: number; totalPages: number; disabled: boolean; onPage: (p: number) => void }) {

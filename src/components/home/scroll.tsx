@@ -15,12 +15,13 @@ export type Progress = MotionValue<number>;
 
 type Offset = NonNullable<Parameters<typeof useScroll>[0]>['offset'];
 
-/** Avancement (0 à 1) d'un bloc pendant qu'il traverse l'écran. */
-export function useStageProgress(ref: RefObject<HTMLElement>, offset: Offset = ['start 0.82', 'center 0.4']): Progress {
+/** Avancement (0 à 1) d'un bloc pendant qu'il entre dans l'écran : le visuel est complet quand son milieu
+ *  arrive aux deux tiers de la hauteur, donc bien avant d'être au centre. */
+export function useStageProgress(ref: RefObject<HTMLElement>, offset: Offset = ['start 0.98', 'center 0.64']): Progress {
   const reduced = useReducedMotion();
   const done = useMotionValue(1);
   const { scrollYProgress } = useScroll({ target: ref, offset });
-  const smooth = useSpring(scrollYProgress, { stiffness: 90, damping: 24, restDelta: 0.001 });
+  const smooth = useSpring(scrollYProgress, { stiffness: 150, damping: 26, restDelta: 0.001 });
   return reduced ? done : smooth;
 }
 

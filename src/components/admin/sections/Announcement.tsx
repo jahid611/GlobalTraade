@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Megaphone, Warning } from "phosphor-react";
+import { CheckCircle, Megaphone, Warning } from "@/components/icons/ph";
 import { getAnnouncement, setAnnouncement, type SiteAnnouncementValue } from "@/services/adminService";
 import { AnnouncementBanner, safeAnnouncementLink } from "@/components/SiteAnnouncement";
 import { showSuccess } from "@/utils/toast";

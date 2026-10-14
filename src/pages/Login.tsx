@@ -7,7 +7,7 @@ import { APP_SCHEME } from '@/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { ChevronLeft, Loader2, Sun, Moon, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Loader2, Sun, Moon, Eye, EyeOff, AlertCircle } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';

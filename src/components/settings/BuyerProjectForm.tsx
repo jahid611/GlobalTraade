@@ -6,7 +6,7 @@
 
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { X } from "lucide-react";
+import { X } from "@/components/icons";
 import { MultiSelect } from "@/components/MultiSelect";
 import { Dropdown } from "@/components/PickerKit";
 import { ChoicePill, Field, inputCls, dropdownButtonCls } from "@/components/settings/ui";
@@ -18,9 +18,9 @@ import { DEPARTMENTS } from "@/lib/departments";
 import { AMOUNT_RANGE_OPTIONS, type AmountRange } from "@/lib/ranges";
 import { rangeBounds } from "@/lib/rangeBounds";
 import {
-  BUYER_TYPES, EXPERIENCE_LEVELS, EXPERIENCE_DEFAULTS, TIMELINES, TIMELINE_DEFAULTS,
-  departmentLabel, formatEurosInput, parseEurosInput,
-  type BuyerProject, type ExperienceLevel,
+  BUYER_TYPES, BUYER_ROLES, BUYER_ROLE_DEFAULTS, EXPERIENCE_LEVELS, EXPERIENCE_DEFAULTS, TEAM_SIZES, TEAM_SIZE_DEFAULTS,
+  TIMELINES, TIMELINE_DEFAULTS, departmentLabel, formatEurosInput, parseEurosInput,
+  type BuyerProject, type ExperienceLevel, type ProjectSection, type RequiredField,
 } from "@/lib/buyerProject";
 
 // Ancienne saisie libre : affichée telle quelle, à remplacer par un choix.
@@ -55,8 +55,23 @@ function LegacyValues({ label, values, onRemove, removeLabel }: {
   );
 }
 
-export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onChange: (p: BuyerProject) => void }) {
+/**
+ * `sections` : n'affiche que ces écrans (inscription, un écran à la fois) ; absent = tout le formulaire.
+ * `required` : les champs obligatoires de l'inscription, marqués d'une étoile.
+ * `compact`  : une seule colonne (fenêtre d'inscription).
+ */
+export function BuyerProjectForm({ value, onChange, sections, required = [], compact = false }: {
+  value: BuyerProject;
+  onChange: (p: BuyerProject) => void;
+  sections?: ProjectSection[];
+  required?: RequiredField[];
+  compact?: boolean;
+}) {
   const { t, i18n } = useTranslation();
+  const shows = (section: ProjectSection) => !sections || sections.includes(section);
+  const req = (field: RequiredField) => required.includes(field);
+  // Sur deux colonnes dans les Réglages (grand écran), sur une seule dans l'inscription.
+  const wide = compact ? "" : "xl:col-span-2";
   const set = (patch: Partial<BuyerProject>) => onChange({ ...value, ...patch });
   const setLegacy = (patch: Partial<BuyerProject["legacy"]>) => ({ ...value.legacy, ...patch });
 
@@ -79,6 +94,11 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
     ...EXPERIENCE_LEVELS.map((k) => ({ value: k as string, label: t(`buyer.exp_${k}`, EXPERIENCE_DEFAULTS[k]) as string })),
   ], [t, any]);
 
+  const teamOptions = useMemo(() => [
+    { value: "", label: any },
+    ...TEAM_SIZES.map((k) => ({ value: k as string, label: t(`bp.team_${k}`, TEAM_SIZE_DEFAULTS[k]) as string })),
+  ], [t, any]);
+
   const legacyHint = t("bp.legacy_hint", "Ancienne saisie libre. Remplacez-la par un choix dans la liste ci-dessus, puis retirez-la :") as string;
   const removeLabel = (v: string) => t("bp.legacy_remove", { defaultValue: "Retirer « {{value}} »", value: v }) as string;
 
@@ -95,8 +115,9 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       : t("bp.apport_hint", "L'argent que vous apportez vous-même, sans compter le prêt de la banque. Écrivez le montant en euros.");
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-7">
-      <Field className="xl:col-span-2" label={t("bp.q_type", "Vous reprenez en tant que")}>
+    <div className={`grid grid-cols-1 gap-x-8 gap-y-7 ${compact ? "" : "xl:grid-cols-2"}`}>
+      {shows("what") && (<>
+      <Field className={wide} required={req("buyerType")} label={t("bp.q_type", "Vous reprenez en tant que")}>
         <div className="flex flex-wrap gap-2.5">
           {BUYER_TYPES.map((type) => (
             <ChoicePill
@@ -113,14 +134,15 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
-        className="xl:col-span-2"
+        className={wide}
+        required={req("sectors")}
         label={t("bp.q_sectors", "Quels secteurs vous intéressent ?")}
         hint={t("bp.q_sectors_hint", "Choisissez un ou plusieurs métiers dans la liste : ce sont les mêmes que ceux des annonces.")}
       >
         <MultiSelect
           options={sectorOptions}
           selected={value.sectors}
-          onChange={(v) => set({ sectors: v })}
+          onChange={(v) => set({ sectors: v, excludedSectors: value.excludedSectors.filter((k) => !v.includes(k)) })}
           placeholder={t("bp.sectors_ph", "Choisir un ou plusieurs secteurs") as string}
           className="!rounded-2xl !border-white/15"
         />
@@ -129,9 +151,44 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
-        className="xl:col-span-2"
+        className={wide}
+        optional
+        label={t("bp.q_excluded", "Des secteurs dont vous ne voulez pas ?")}
+        hint={t("bp.q_excluded_hint", "Les annonces de ces secteurs ne vous seront jamais proposées.")}
+      >
+        <MultiSelect
+          options={sectorOptions.filter((o) => !value.sectors.includes(o.value))}
+          selected={value.excludedSectors}
+          onChange={(v) => set({ excludedSectors: v })}
+          placeholder={t("bp.excluded_ph", "Aucun secteur exclu") as string}
+          className="!rounded-2xl !border-white/15"
+        />
+      </Field>
+
+      <Field
+        className={wide}
+        required={req("role")}
+        label={t("bp.q_role", "Quel sera votre rôle dans l'entreprise ?")}
+        hint={t("bp.q_role_hint", "Certaines entreprises reposent sur leur dirigeant, d'autres tournent sans lui.")}
+      >
+        <div className="flex flex-wrap gap-2.5">
+          {BUYER_ROLES.map((k) => (
+            <ChoicePill key={k} selected={value.role === k} onClick={() => set({ role: value.role === k ? "" : k })}>
+              {t(`bp.role_${k}`, BUYER_ROLE_DEFAULTS[k])}
+            </ChoicePill>
+          ))}
+        </div>
+      </Field>
+      </>)}
+
+      {shows("where") && (<>
+      <Field
+        className={wide}
+        required={req("countries")}
         label={t("bp.q_countries", "Dans quels pays ?")}
-        hint={t("bp.q_countries_hint", "Choisissez un ou plusieurs pays. Laissez vide si tous les pays vous conviennent.")}
+        hint={req("countries")
+          ? t("bp.q_countries_hint_required", "Choisissez au moins un pays.")
+          : t("bp.q_countries_hint", "Choisissez un ou plusieurs pays. Laissez vide si tous les pays vous conviennent.")}
       >
         <MultiSelect
           options={countryOptions}
@@ -149,7 +206,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
-        className={franceInScope ? "" : "xl:col-span-2"}
+        className={franceInScope ? "" : wide}
         label={t("bp.q_regions", "Dans quelles régions ?")}
         hint={t("bp.q_regions_hint_multi", "Les régions des pays choisis. Laissez vide si tout le pays vous convient.")}
       >
@@ -179,13 +236,46 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       )}
 
       {value.legacy.zones.length > 0 && (
-        <div className="xl:col-span-2 -mt-4">
+        <div className={`${wide} -mt-4`}>
           <LegacyValues label={legacyHint} values={value.legacy.zones}
             onRemove={(v) => set({ legacy: setLegacy({ zones: value.legacy.zones.filter((x) => x !== v) }) })} removeLabel={removeLabel} />
         </div>
       )}
 
       <Field
+        label={t("bp.q_revenue", "Chiffre d'affaires recherché")}
+        optional
+        hint={value.legacy.revenue
+          ? t("bp.legacy_amount", { defaultValue: "Vous aviez écrit « {{value}} ». Choisissez la tranche qui correspond.", value: value.legacy.revenue })
+          : t("bp.q_revenue_hint", "Le chiffre d'affaires est le total des ventes de l'entreprise sur un an.")}
+      >
+        <Dropdown
+          value={value.revenue}
+          onChange={(v) => set({ revenue: v as AmountRange | "", legacy: setLegacy({ revenue: "" }) })}
+          options={amountOptions}
+          placeholder={any}
+          buttonClassName={dropdownButtonCls}
+        />
+      </Field>
+
+      <Field
+        optional
+        label={t("bp.q_team", "Quelle taille d'équipe ?")}
+        hint={t("bp.q_team_hint", "Le nombre de salariés de l'entreprise que vous voulez reprendre.")}
+      >
+        <Dropdown
+          value={value.teamSize}
+          onChange={(v) => set({ teamSize: v as BuyerProject["teamSize"] })}
+          options={teamOptions}
+          placeholder={any}
+          buttonClassName={dropdownButtonCls}
+        />
+      </Field>
+      </>)}
+
+      {shows("means") && (<>
+      <Field
+        required={req("budget")}
         label={t("bp.q_budget", "Quel prix d'achat visez-vous ?")}
         hint={value.legacy.budget
           ? t("bp.legacy_amount", { defaultValue: "Vous aviez écrit « {{value}} ». Choisissez la tranche qui correspond.", value: value.legacy.budget })
@@ -201,6 +291,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
+        required={req("apport")}
         label={t("bp.q_apport", "Votre apport personnel")}
         htmlFor="bp-apport"
         hint={value.legacy.apport && value.apport === null
@@ -227,22 +318,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
       </Field>
 
       <Field
-        label={t("bp.q_revenue", "Chiffre d'affaires recherché")}
-        optional
-        hint={value.legacy.revenue
-          ? t("bp.legacy_amount", { defaultValue: "Vous aviez écrit « {{value}} ». Choisissez la tranche qui correspond.", value: value.legacy.revenue })
-          : t("bp.q_revenue_hint", "Le chiffre d'affaires est le total des ventes de l'entreprise sur un an.")}
-      >
-        <Dropdown
-          value={value.revenue}
-          onChange={(v) => set({ revenue: v as AmountRange | "", legacy: setLegacy({ revenue: "" }) })}
-          options={amountOptions}
-          placeholder={any}
-          buttonClassName={dropdownButtonCls}
-        />
-      </Field>
-
-      <Field
+        required={req("experience")}
         label={t("settings.experience", "Votre expérience")}
         optional
         hint={value.legacy.experience
@@ -258,7 +334,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
         />
       </Field>
 
-      <Field className="xl:col-span-2" label={t("bp.q_timeline", "Quand voulez-vous reprendre ?")}>
+      <Field className={wide} required={req("timeline")} label={t("bp.q_timeline", "Quand voulez-vous reprendre ?")}>
         <div className="flex flex-wrap gap-2.5">
           {TIMELINES.map((k) => (
             <ChoicePill key={k} selected={value.timeline === k} onClick={() => set({ timeline: value.timeline === k ? "" : k })}>
@@ -268,8 +344,11 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
         </div>
       </Field>
 
+      </>)}
+
+      {!sections && (
       <Field
-        className="xl:col-span-2"
+        className={wide}
         label={t("bp.q_ambitions", "Présentez votre projet en quelques phrases")}
         htmlFor="bp-ambitions"
         optional
@@ -286,6 +365,7 @@ export function BuyerProjectForm({ value, onChange }: { value: BuyerProject; onC
           onChange={(e) => set({ ambitions: e.target.value })}
         />
       </Field>
+      )}
     </div>
   );
 }

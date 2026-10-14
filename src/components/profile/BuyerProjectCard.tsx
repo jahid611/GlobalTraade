@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Target, Briefcase, MapPin, Coins, CalendarClock, Users, GraduationCap, TrendingUp, Search, Pencil } from "lucide-react";
+import { Target, Briefcase, MapPin, Coins, CalendarClock, Users, GraduationCap, TrendingUp, Search, Pencil } from "@/components/icons";
 import { SectionCard } from "@/components/settings/ui";
 import { ProjectCompleteness } from "@/components/profile/ProjectCompleteness";
 import {
@@ -185,9 +185,12 @@ export function BuyerProjectCard({
             <button
               type="button"
               onClick={onSearch}
-              className="inline-flex items-center justify-center gap-2 min-h-[52px] px-7 rounded-full bg-primary hover:bg-primary/90 text-white text-base font-semibold shadow-[0_10px_30px_rgba(89,85,232,0.55)] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex items-center justify-center gap-2 min-h-[52px] px-4 sm:px-7 rounded-full bg-primary hover:bg-primary/90 text-white text-[15px] sm:text-base font-semibold whitespace-nowrap shadow-[0_10px_30px_rgba(89,85,232,0.55)] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              <Search className="w-5 h-5 shrink-0" /> {t("bp.search_cta", "Chercher avec mon projet de reprise")}
+              <Search className="w-5 h-5 shrink-0" />
+              {/* Téléphone : un libellé court, pour tenir sur une ligne */}
+              <span className="sm:hidden">{t("bp.search_cta_short", "Chercher avec mon projet")}</span>
+              <span className="max-sm:hidden">{t("bp.search_cta", "Chercher avec mon projet de reprise")}</span>
             </button>
           )}
         </div>

@@ -1,9 +1,10 @@
 "use client";
 
+import type { MatchResult } from '@/lib/matching';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FavoriteHeart } from '@/components/FavoriteHeart';
-import { MapPin, Globe, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown, LockSimple } from 'phosphor-react';
+import { MapPin, Globe, Users, CornersOut, Receipt, CheckCircle, CaretLeft, CaretRight, Eye, Crown, LockSimple } from '@/components/icons/ph';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,10 +23,11 @@ interface BusinessCardProps {
   variant?: 'default' | 'dashboard';
   actions?: React.ReactNode;
   onFavoriteToggle?: (listingId: string, isFavorite: boolean) => void;
-  matchScore?: number;
+  /** correspondance avec le projet du repreneur (voir src/lib/matching.ts) */
+  match?: MatchResult;
 }
 
-export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matchScore }: BusinessCardProps) {
+export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, match }: BusinessCardProps) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   // Gratuit : prix demandé + photos seulement — CA/EBITDA masqués sur la carte.
@@ -168,19 +170,29 @@ export function BusinessCard({ listing, onClick, actions, onFavoriteToggle, matc
 
         {/* Pastilles en haut à gauche : correspondance, mise en avant, vendeur fiable */}
         <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
-          {typeof matchScore === 'number' && (
-            <div
-              className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md"
-              style={
-                matchScore >= 80
-                  ? { background: 'rgba(6,78,59,0.75)', color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.5)' }
-                  : matchScore >= 55
-                  ? { background: 'rgba(30,27,75,0.75)', color: '#c7d2fe', borderColor: 'rgba(89,85,232,0.6)' }
-                  : { background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }
-              }
-            >
-              {matchScore}% {t('card.match', 'match')}
-            </div>
+          {match && match.verdict !== 'none' && (
+            <>
+              {match.score !== null && (
+                <div
+                  className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md"
+                  style={
+                    match.verdict === 'match'
+                      ? { background: 'rgba(6,78,59,0.85)', color: '#a7f3d0', borderColor: 'rgba(16,185,129,0.6)' }
+                      : { background: 'rgba(30,27,75,0.85)', color: '#e0e7ff', borderColor: 'rgba(89,85,232,0.7)' }
+                  }
+                >
+                  {match.score}% {t('card.match', 'match')}
+                </div>
+              )}
+              {/* Le détail : ce qui correspond (✓), ce qui est proche (≈), ce qui manque (✕) */}
+              <div className="px-2.5 py-1 rounded-full text-[11px] font-semibold border backdrop-blur-md flex items-center gap-2" style={{ background: 'rgba(0,0,0,0.72)', borderColor: 'rgba(255,255,255,0.22)' }}>
+                {match.criteria.filter((c) => c.status !== 'unknown').map((c) => (
+                  <span key={c.key} className="whitespace-nowrap" style={{ color: c.status === 'ok' ? '#a7f3d0' : c.status === 'close' ? '#fde68a' : '#fecaca' }}>
+                    {c.status === 'ok' ? '✓' : c.status === 'close' ? '≈' : '✕'} {t(`match.${c.key}`)}
+                  </span>
+                ))}
+              </div>
+            </>
           )}
           {boosted ? (
             <div className="px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md flex items-center gap-1.5"

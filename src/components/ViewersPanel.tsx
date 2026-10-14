@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, Heart, User as UserIcon, LockSimple, ArrowRight } from 'phosphor-react';
+import { Eye, Heart, User as UserIcon, LockSimple, ArrowRight } from '@/components/icons/ph';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/markets';
 

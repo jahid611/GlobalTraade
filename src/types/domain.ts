@@ -65,8 +65,8 @@ export interface Listing {
   // ── Augmentation posée côté client (Marketplace), absente de la base ──
   /** le propriétaire a la pastille « membre fiable » (note ≥ 4) */
   _trusted?: boolean;
-  /** score de correspondance calculé à l'affichage (Marketplace) */
-  _matchScore?: number;
+  /** correspondance avec le projet du repreneur, calculée à l'affichage (voir src/lib/matching.ts) */
+  _match?: import('@/lib/matching').MatchResult;
 }
 
 // Annonce de recherche (repreneur en recherche) — table `search_ads`.

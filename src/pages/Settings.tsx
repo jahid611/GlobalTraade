@@ -6,7 +6,7 @@ import { markIntentionalSignOut } from '@/lib/sessionMemory';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { TwoFactorSettings } from '@/components/TwoFactorSettings';
-import { LogOut, Upload, Loader2, ExternalLink, UserRound, Target, Phone, Bell, ShieldCheck, Palette, CreditCard, Check, Search } from 'lucide-react';
+import { LogOut, Upload, Loader2, ExternalLink, UserRound, Target, Phone, Bell, ShieldCheck, Palette, CreditCard, Check, Search } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -99,6 +99,9 @@ export default function Settings() {
         target_revenue: profile?.target_revenue || "",
         experience: profile?.experience || "",
         ambitions: profile?.ambitions || "",
+        target_excluded_sectors: profile?.target_excluded_sectors || "",
+        target_team_size: profile?.target_team_size || "",
+        buyer_role: profile?.buyer_role || "",
       });
 
       setFullName(data.full_name);
@@ -200,6 +203,9 @@ export default function Settings() {
         target_revenue: saved.target_revenue || null,
         experience: saved.experience || null,
         ambitions: saved.ambitions || null,
+        target_excluded_sectors: saved.target_excluded_sectors || null,
+        target_team_size: saved.target_team_size || null,
+        buyer_role: saved.buyer_role || null,
         updated_at: new Date().toISOString()
       });
       if (dbError) throw dbError;

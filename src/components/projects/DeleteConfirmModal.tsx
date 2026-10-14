@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash } from "phosphor-react";
+import { Trash } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { TONES } from "./projectMeta";

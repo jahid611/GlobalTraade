@@ -22,6 +22,7 @@
 //
 // Les anciennes valeurs (texte libre) restent lisibles : voir `parseBuyerProject`.
 import type { MatchCriteria } from '@/components/SmartMatchForm';
+import type { BuyerCriteria } from './matching';
 import { INDUSTRIES, canonicalIndustry } from './industries';
 import { FR_REGIONS, isCountryKey, isRegionKey, listingCountry, matchRegion, regionLabel, regionStoreKey } from './geoRegions';
 import { MARKET_CODES, formatMoney, isMarket, regionCountry } from './markets';
@@ -59,6 +60,35 @@ export const TIMELINE_DEFAULTS: Record<Timeline, string> = {
   open: 'Pas de date précise',
 };
 
+/** Taille d'équipe recherchée (salariés de l'entreprise à reprendre). */
+export const TEAM_SIZES = ['solo', '1-5', '6-20', '21-50', '50+'] as const;
+export type TeamSize = typeof TEAM_SIZES[number];
+
+/** Libellés français par défaut (les traductions passent par `bp.team_<clé>`). */
+export const TEAM_SIZE_DEFAULTS: Record<TeamSize, string> = {
+  solo: 'Sans salarié',
+  '1-5': '1 à 5 salariés',
+  '6-20': '6 à 20 salariés',
+  '21-50': '21 à 50 salariés',
+  '50+': 'Plus de 50 salariés',
+};
+
+/** Bornes en nombre de salariés ; max null = pas de plafond. */
+export const TEAM_SIZE_BOUNDS: Record<TeamSize, { min: number; max: number | null }> = {
+  solo: { min: 0, max: 0 }, '1-5': { min: 1, max: 5 }, '6-20': { min: 6, max: 20 }, '21-50': { min: 21, max: 50 }, '50+': { min: 51, max: null },
+};
+
+/** Rôle du repreneur une fois l'entreprise reprise. */
+export const BUYER_ROLES = ['exploitant', 'dirigeant', 'investisseur'] as const;
+export type BuyerRole = typeof BUYER_ROLES[number];
+
+/** Libellés français par défaut (les traductions passent par `bp.role_<clé>`). */
+export const BUYER_ROLE_DEFAULTS: Record<BuyerRole, string> = {
+  exploitant: "J'y travaille tous les jours",
+  dirigeant: 'Je dirige, une équipe fait tourner',
+  investisseur: "J'investis sans y travailler",
+};
+
 // ---------------------------------------------------------------------------
 // Modèle
 // ---------------------------------------------------------------------------
@@ -66,6 +96,12 @@ export interface BuyerProject {
   buyerType: BuyerType | '';
   /** clés de la liste maîtresse des secteurs */
   sectors: string[];
+  /** secteurs dont le repreneur ne veut pas (clés de la liste maîtresse) */
+  excludedSectors: string[];
+  /** taille d'équipe recherchée */
+  teamSize: TeamSize | '';
+  /** rôle après la reprise */
+  role: BuyerRole | '';
   /** codes de pays visés (« ES ») ; vide = tous les pays */
   countries: string[];
   /** clés de région (« idf », « ES-CT ») */
@@ -106,10 +142,13 @@ export interface BuyerProjectRow {
   apport?: string | null;
   experience?: string | null;
   ambitions?: string | null;
+  target_excluded_sectors?: string | null;
+  target_team_size?: string | null;
+  buyer_role?: string | null;
 }
 
 export const emptyBuyerProject = (): BuyerProject => ({
-  buyerType: '', sectors: [], countries: [], regions: [], departments: [], budget: '', revenue: '',
+  buyerType: '', sectors: [], excludedSectors: [], teamSize: '', role: '', countries: [], regions: [], departments: [], budget: '', revenue: '',
   apport: null, experience: '', timeline: '', ambitions: '',
   legacy: { buyerType: '', sectors: [], zones: [], budget: '', revenue: '', apport: '', experience: '' },
 });
@@ -220,6 +259,13 @@ export function parseBuyerProject(row: BuyerProjectRow | null | undefined): Buye
   p.sectors = uniq(p.sectors);
   p.legacy.sectors = uniq(p.legacy.sectors);
 
+  // Secteurs exclus, taille d'équipe, rôle : uniquement des valeurs des listes (pas d'ancienne saisie libre).
+  p.excludedSectors = uniq(splitList(row.target_excluded_sectors).map(toSector).filter(Boolean)).filter((k) => !p.sectors.includes(k));
+  const team = str(row.target_team_size);
+  if ((TEAM_SIZES as readonly string[]).includes(team)) p.teamSize = team as TeamSize;
+  const role = fold(str(row.buyer_role));
+  if ((BUYER_ROLES as readonly string[]).includes(role)) p.role = role as BuyerRole;
+
   for (const raw of splitList(row.target_geo)) {
     const z = toZone(raw);
     if (z.country) p.countries.push(z.country);
@@ -273,6 +319,9 @@ export function serializeBuyerProject(p: BuyerProject): Required<{ [K in keyof B
     apport: p.apport !== null ? String(Math.round(p.apport)) : p.legacy.apport,
     experience: p.experience || p.legacy.experience,
     ambitions: p.timeline ? `[delai:${p.timeline}]${ambitions ? ` ${ambitions}` : ''}` : ambitions,
+    target_excluded_sectors: p.excludedSectors.filter((k) => !p.sectors.includes(k)).join(','),
+    target_team_size: p.teamSize,
+    buyer_role: p.role,
   };
 }
 
@@ -395,6 +444,60 @@ export function toMatchCriteria(p: BuyerProject, bounds: { min: number; max: num
 
 // ---------------------------------------------------------------------------
 // Le projet face à une annonce (ce que voit le vendeur)
+/**
+ * Tous les critères du projet, pour le moteur de correspondance (src/lib/matching.ts).
+ * Contrairement à `toMatchCriteria`, rien n'est borné par le curseur de la recherche.
+ */
+export function toBuyerCriteria(p: BuyerProject): BuyerCriteria {
+  const regions = uniq([...p.regions, ...p.departments.map(regionOfDepartment).filter(Boolean)]).filter(isRegionKey);
+  const budget = rangeBounds(p.budget);
+  const revenue = rangeBounds(p.revenue);
+  const team = p.teamSize ? TEAM_SIZE_BOUNDS[p.teamSize] : null;
+  return {
+    industries: [...p.sectors],
+    excludedIndustries: [...p.excludedSectors],
+    countries: [...p.countries],
+    regions,
+    budgetMin: budget?.min ?? 0,
+    budgetMax: budget?.max ?? 0,
+    apport: p.apport,
+    revenueMin: revenue?.min ?? null,
+    revenueMax: revenue?.max ?? null,
+    teamMin: team ? team.min : null,
+    teamMax: team ? team.max : null,
+    role: p.role || null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Ce qu'un repreneur doit renseigner à l'inscription
+// ---------------------------------------------------------------------------
+/** Les trois écrans du questionnaire. */
+export type ProjectSection = 'what' | 'where' | 'means';
+
+export type RequiredField = 'buyerType' | 'sectors' | 'role' | 'countries' | 'budget' | 'apport' | 'experience' | 'timeline';
+
+export const REQUIRED_FIELDS: Record<ProjectSection, RequiredField[]> = {
+  what: ['buyerType', 'sectors', 'role'],
+  where: ['countries'],
+  means: ['budget', 'apport', 'experience', 'timeline'],
+};
+
+/** Champs obligatoires d'un écran qui ne sont pas encore remplis. */
+export function missingRequired(p: BuyerProject, section: ProjectSection): RequiredField[] {
+  const filled: Record<RequiredField, boolean> = {
+    buyerType: !!p.buyerType,
+    sectors: p.sectors.length > 0,
+    role: !!p.role,
+    countries: p.countries.length > 0,
+    budget: !!p.budget,
+    apport: p.apport !== null && p.apport >= 0,
+    experience: !!p.experience,
+    timeline: !!p.timeline,
+  };
+  return REQUIRED_FIELDS[section].filter((f) => !filled[f]);
+}
+
 // ---------------------------------------------------------------------------
 /**
  * match   : l'annonce répond au critère

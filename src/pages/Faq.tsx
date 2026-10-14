@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/icons';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SolarSystem } from '@/components/SolarSystem';

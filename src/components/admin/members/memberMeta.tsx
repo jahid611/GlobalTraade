@@ -3,7 +3,7 @@
 // Libellés et pastilles d'un membre, partagés par la liste et par la fiche.
 
 import React from "react";
-import { ShieldStar, Prohibit } from "phosphor-react";
+import { ShieldStar, Prohibit } from "@/components/icons/ph";
 import type { AdminUserRow, PlanType } from "@/services/adminService";
 import { Pill, type ToneName } from "../ui";
 

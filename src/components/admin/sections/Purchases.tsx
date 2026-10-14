@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowSquareOut, Info } from "phosphor-react";
+import { ArrowSquareOut, Info } from "@/components/icons/ph";
 import { euros, getOverview, listPurchases, type AdminPurchase } from "@/services/adminService";
 import { Card, Empty, ErrorBox, Loading, Pill, SectionHeader, Stat, TONE, btnPrimary, fmtDateTime } from "../ui";
 import { FilterTabs, MemberLink } from "./_moderation";

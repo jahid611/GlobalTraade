@@ -7,7 +7,7 @@ import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FavoriteHeart } from '@/components/FavoriteHeart';
-import { X, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock, LockOpen, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, ImageIcon, FileText, Info, ShieldCheck, Lock, LockOpen, Sparkles } from '@/components/icons';
 import { showSuccess, showError } from '@/utils/toast';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useTranslation } from 'react-i18next';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/components/icons';
 
 export type MascotPose = 'bonjour' | 'reflexion' | 'bravo' | 'guide';
 

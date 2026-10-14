@@ -7,7 +7,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Handshake, CheckCircle2, XCircle, HelpCircle, MinusCircle } from "lucide-react";
+import { Handshake, CheckCircle2, XCircle, HelpCircle, MinusCircle } from "@/components/icons";
 import { SectionCard, ShowAllButton, COLOR_OK, COLOR_WARN, COLOR_BAD } from "@/components/settings/ui";
 import {
   budgetLabel, rankListingsForProject, type BuyerProject, type BudgetFit, type FitStatus, type ListingFit,

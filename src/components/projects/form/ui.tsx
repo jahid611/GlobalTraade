@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, WarningCircle, X } from "phosphor-react";
+import { Check, WarningCircle, X } from "@/components/icons/ph";
 import type { HelpType } from "@/services/projectService";
 
 // tailwind.config.ts remappe emerald / red / amber / blue… sur des violets et des

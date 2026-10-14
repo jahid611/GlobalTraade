@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle } from "@/components/icons";
 
 // Bannière explicative réutilisable (style de la page Prospection).
 export function HelpBanner({ title, desc, className = "" }: { title: string; desc: string; className?: string }) {

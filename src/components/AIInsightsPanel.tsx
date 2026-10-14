@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Info, Zap, Sparkles } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Info, Zap, Sparkles } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { localeFor } from '@/lib/markets';
 import { countryLabel } from '@/lib/countries';

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { MagnifyingGlass, AddressBook } from "phosphor-react";
+import { MagnifyingGlass, AddressBook } from "@/components/icons/ph";
 
 export type RadarTab = "search" | "crm";
 

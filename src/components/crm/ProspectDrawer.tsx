@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   X, Archive, ArchiveRestore, Trash2, ExternalLink, Mail, Phone, Globe, Loader2, Check, Building2, UserRound,
   Tag, BellRing, StickyNote, History, ListChecks, IdCard, Send, Eraser,
-} from "lucide-react";
+} from "@/components/icons";
 import { Dropdown } from "@/components/PickerKit";
 import { STATUS_ORDER, type Prospect, type ProspectPriority, type ProspectStatus, type ProspectionQuota } from "@/services/prospectService";
 import type { CrmTask, ProspectPatch } from "@/services/crmService";

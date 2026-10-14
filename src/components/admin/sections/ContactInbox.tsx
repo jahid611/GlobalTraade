@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, ArrowCounterClockwise, CaretDown, EnvelopeSimple, PaperPlaneTilt } from "phosphor-react";
+import { Archive, ArrowCounterClockwise, CaretDown, EnvelopeSimple, PaperPlaneTilt } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { Card, ConfirmDialog, Empty, ErrorBox, Loading, Pill, SearchBox, SectionHeader, TONE, btn, btnPrimary, fmtDateTime, type ToneName } from "../ui";

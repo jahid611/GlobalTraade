@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { CheckCircle } from "phosphor-react";
+import { CheckCircle } from "@/components/icons/ph";
 import { useTranslation } from "react-i18next";
 
 // tailwind.config.ts remappe les couleurs sur des violets : le vert « c'est

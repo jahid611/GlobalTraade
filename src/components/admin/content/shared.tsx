@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { CaretLeft, CaretRight, RocketLaunch, Trash, User } from "phosphor-react";
+import { CaretLeft, CaretRight, RocketLaunch, Trash, User } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteContent, setBoost, type ContentType } from "@/services/adminService";
 import { showSuccess } from "@/utils/toast";

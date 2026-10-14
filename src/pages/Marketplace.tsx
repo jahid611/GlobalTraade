@@ -5,8 +5,8 @@ import { PageTitle } from '@/components/PageTitle';
 import { motion } from 'framer-motion';
 import { SolarSystem } from '@/components/SolarSystem';
 import { SmartMatchForm, MatchCriteria, BUDGET_MIN, BUDGET_MAX } from '@/components/SmartMatchForm';
-import { parseBuyerProject, toMatchCriteria, hasSearchCriteria } from '@/lib/buyerProject';
-import { scoreListing, ProfileCriteria } from '@/lib/matching';
+import { parseBuyerProject, toBuyerCriteria, toMatchCriteria, hasSearchCriteria } from '@/lib/buyerProject';
+import { matchListing, type BuyerCriteria } from '@/lib/matching';
 import { matchGeo, regionLabel, withCountries } from '@/lib/geoRegions';
 import { formatMoney } from '@/lib/markets';
 import { countryLabel } from '@/lib/countries';
@@ -16,7 +16,7 @@ import { BusinessCard } from '@/components/BusinessCard';
 import { AdvancedFilters, FilterState, matchesTeamSize, matchesMinAge } from '@/components/AdvancedFilters';
 import { HelpBanner } from '@/components/HelpBanner';
 import { Dropdown } from '@/components/PickerKit';
-import { Store, Filter, Plus, Loader2, Search, X, Target } from 'lucide-react';
+import { Store, Filter, Plus, Loader2, Search, X, Target } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListings } from '@/hooks/use-listings';
@@ -106,12 +106,28 @@ export default function Marketplace() {
 
   const navigate = useNavigate();
 
-  // Critères d'investissement du profil (renseignés à l'onboarding / Réglages).
-  const profileCriteria = useMemo<ProfileCriteria>(() => ({
+  // Le projet de reprise du membre, lu dans son profil (inscription ou Réglages).
+  const { data: projectRow } = useQuery({
+    queryKey: ['my-buyer-project', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles')
+        .select('buyer_type, target_sectors, target_geo, target_budget, target_revenue, apport, experience, ambitions, target_excluded_sectors, target_team_size, buyer_role')
+        .eq('id', user!.id).maybeSingle();
+      return data;
+    },
+  });
+  const myProject = useMemo(() => parseBuyerProject(projectRow ?? {
     target_sectors: user?.user_metadata?.target_sectors,
     target_budget: user?.user_metadata?.target_budget,
     target_geo: user?.user_metadata?.target_geo,
-  }), [user]);
+  }), [projectRow, user]);
+  // Ce que le formulaire de recherche ne demande pas, mais que le projet précise :
+  // apport, chiffre d'affaires visé, secteurs exclus, taille d'équipe, rôle.
+  const projectExtras = useMemo(() => {
+    const c = toBuyerCriteria(myProject);
+    return { apport: c.apport, revenueMin: c.revenueMin, revenueMax: c.revenueMax, excludedIndustries: c.excludedIndustries, teamMin: c.teamMin, teamMax: c.teamMax, role: c.role };
+  }, [myProject]);
 
   // Vendeurs les mieux notés : leurs annonces sont mises en avant gratuitement
   const { data: trustedOwners } = useQuery({
@@ -155,20 +171,26 @@ export default function Marketplace() {
     if (filters.minAge) result = result.filter(l => matchesMinAge(l.established_year, filters.minAge));
     if (filters.sharedFinancials) result = result.filter(l => l.share_financials === true);
 
-    // Recherche intelligente -> filtre dur (secteurs/régions/budget) puis tri par pertinence
+    // Recherche intelligente : le moteur de correspondance décide (src/lib/matching.ts).
+    // Une annonce d'un autre métier, hors zone ou hors de portée est retirée ; les
+    // correspondances passent avant les correspondances partielles.
     if (matchCriteria) {
-      if (matchCriteria.industries.length) result = result.filter(l => matchCriteria.industries.includes(l.industry));
-      if (matchCriteria.countries?.length || matchCriteria.regions.length) result = result.filter(l => matchGeo(l, matchCriteria));
-      result = result.filter(l => {
-        const p = Number(l.price) || 0;
-        return p === 0 || (p >= matchCriteria.budgetMin && p <= matchCriteria.budgetMax);
-      });
+      const criteria: BuyerCriteria = {
+        ...matchCriteria,
+        // Le curseur de budget posé tout au bout veut dire « sans limite » de ce côté.
+        budgetMin: matchCriteria.budgetMin <= BUDGET_MIN ? 0 : matchCriteria.budgetMin,
+        budgetMax: matchCriteria.budgetMax >= BUDGET_MAX ? 0 : matchCriteria.budgetMax,
+        ...projectExtras,
+      };
+      const rank = (l: { _match?: { verdict: string } }) => (l._match?.verdict === 'match' ? 0 : 1);
       return result
-        .map(l => ({ ...l, _matchScore: scoreListing(l, matchCriteria, profileCriteria).score }))
+        .map(l => ({ ...l, _match: matchListing(l, criteria) }))
+        .filter(l => l._match.verdict !== 'none')
         .sort((a, b) =>
           (Number(isBoosted(b)) - Number(isBoosted(a)))
-          || (Number(b._trusted) - Number(a._trusted))
-          || (b._matchScore || 0) - (a._matchScore || 0));
+          || rank(a) - rank(b)
+          || (b._match.score ?? -1) - (a._match.score ?? -1)
+          || (Number(b._trusted) - Number(a._trusted)));
     }
 
     // Sinon, tri classique
@@ -188,7 +210,7 @@ export default function Marketplace() {
       || (Number(b._trusted) - Number(a._trusted)));
 
     return result;
-  }, [listings, filters, matchCriteria, profileCriteria, trustedOwners, query, t, i18n.language]);
+  }, [listings, filters, matchCriteria, projectExtras, trustedOwners, query, t, i18n.language]);
 
   const handleSmartMatch = (criteria: MatchCriteria) => {
     setMatchCriteria(criteria);
@@ -200,11 +222,6 @@ export default function Marketplace() {
 
   // « Chercher avec mon projet de reprise » : le projet enregistré dans les
   // Réglages pré-remplit la recherche intelligente, qui fonctionne comme d'habitude.
-  const myProject = useMemo(() => parseBuyerProject({
-    target_sectors: user?.user_metadata?.target_sectors,
-    target_budget: user?.user_metadata?.target_budget,
-    target_geo: user?.user_metadata?.target_geo,
-  }), [user]);
   const canSearchWithProject = !!user && hasSearchCriteria(myProject);
   const [projectSearch, setProjectSearch] = useState<{ key: number; criteria: MatchCriteria } | null>(null);
   const searchWithProject = () => {
@@ -314,12 +331,12 @@ export default function Marketplace() {
             aria-hidden="true"
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="xl:hidden absolute -top-3 right-0 sm:right-6 w-[92px] sm:w-[130px] z-0 !pointer-events-none"
+            className="xl:hidden absolute -top-6 sm:-top-3 -right-1 sm:right-6 w-[128px] sm:w-[130px] z-0 !pointer-events-none"
           >
             <img src="/mascot/globi-peche.png" alt="" className="w-full h-auto" />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head relative z-10 pr-[100px] sm:pr-[150px] xl:pr-0">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="page-head relative z-10 pr-[126px] sm:pr-[150px] xl:pr-0">
             <PageTitle lead={t('market.title1')} accent={t('market.title2')} />
             <p className="text-white/60 text-sm md:text-base font-light mt-2">
               {t('market.subtitle', { defaultValue: "Trouvez l'entreprise qui vous correspond." }) as string}
@@ -520,7 +537,7 @@ export default function Marketplace() {
                   >
                     <BusinessCard
                       listing={l}
-                      matchScore={l._matchScore}
+                      match={l._match}
                       onClick={() => navigate('/app', { state: { focusId: l.id } })}
                     />
                   </motion.div>

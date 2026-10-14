@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { PencilSimple, Trash, RocketLaunch, DownloadSimple, CheckCircle, ClockCounterClockwise, Pause, Crown } from "phosphor-react";
+import { PencilSimple, Trash, RocketLaunch, DownloadSimple, CheckCircle, ClockCounterClockwise, Pause, Crown } from "@/components/icons/ph";
 import { useTranslation } from "react-i18next";
 import { BusinessCard } from "@/components/BusinessCard";
 import { BOOST_PRICE } from "@/services/planService";

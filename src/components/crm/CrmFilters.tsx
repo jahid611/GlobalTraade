@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Search, X, BellRing, MailX, Archive, KanbanSquare, List } from "lucide-react";
+import { Search, X, BellRing, MailX, Archive, KanbanSquare, List } from "@/components/icons";
 import { Dropdown } from "@/components/PickerKit";
 import { STATUS_ORDER, type ProspectPriority, type ProspectStatus } from "@/services/prospectService";
 import { EMPTY_FILTERS, PRIORITY_ORDER, type CrmFilterState } from "@/lib/crm";

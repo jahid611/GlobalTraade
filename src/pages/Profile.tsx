@@ -1,11 +1,12 @@
 "use client";
 
+import { CountryFlag } from '@/components/CountryFlag';
 import React, { useEffect, useMemo, useState } from 'react';
 import { countryLabel } from '@/lib/countries';
 import type { Listing } from '@/types/domain';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, BadgeCheck, Upload, Loader2, Store, Star as StarIcon, UserX, MessageCircle, Settings as SettingsIcon } from 'lucide-react';
+import { Share, Eye, Heart, Edit, Trash2, Mail, Phone, UserPlus, UserCheck, UserMinus, Clock, Check, X as XIcon, Users, IdCardCheck, Upload, Loader2, Store, Star as StarIcon, UserX, MessageCircle, Settings as SettingsIcon } from '@/components/icons';
 import { ROLE_FUNCTION_LABELS } from '@/lib/ranges';
 import { usePlan, normalizePlan, isPaidPlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,11 @@ const countedProfileViews = new Set<string>();
 const PAGE_SHELL = "relative z-10 pt-[calc(var(--nav-clearance)+2.5rem)] pb-24 px-4 sm:px-6 lg:px-10 2xl:px-14 w-full";
 // Chaque liste montre quelques éléments, puis « Voir tout (N) ».
 const LIST_LIMIT = 6;
+
+/** Valeur enregistrée du type de compte → clé de son libellé traduit. Une valeur inconnue n'est pas affichée. */
+const ACCOUNT_TYPE_KEYS: Record<string, string> = {
+  repreneur: 'onb.type_buyer', cedant: 'onb.type_seller', investisseur: 'onb.type_investor', conseil: 'onb.type_advisor',
+};
 
 export default function Profile() {
   const { id: routeId } = useParams();
@@ -399,12 +405,16 @@ export default function Profile() {
 
   // Identité professionnelle — collectée à l'inscription, affichée en une
   // ligne : qui c'est, pour quelle société, depuis où.
+  // Une seule ligne de texte, sans redite : le type de compte n'est pas répété quand la
+  // pastille du repreneur le dit déjà (« Repreneur individuel »), et le pays est un drapeau
+  // à côté du nom plutôt qu'une pastille de plus.
+  const buyerBadgeShown = !!metadata.buyer_type;
   const identityBits = [
-    metadata.account_type && (t(`onb.type_${metadata.account_type}`, metadata.account_type) as string),
+    !buyerBadgeShown && ACCOUNT_TYPE_KEYS[metadata.account_type] && (t(ACCOUNT_TYPE_KEYS[metadata.account_type]) as string),
     metadata.role_function && (t(`onb.role_${metadata.role_function}`, ROLE_FUNCTION_LABELS[metadata.role_function] || metadata.role_function) as string),
     metadata.company_name && [metadata.company_name, metadata.legal_form].filter(Boolean).join(' · '),
-    countryLabel(metadata.country, i18n.language),
   ].filter(Boolean) as string[];
+  const countryName = countryLabel(metadata.country, i18n.language);
 
   // Coordonnées publiques : uniquement si le membre est en formule payante
   const showContact = isPaidPlan(normalizePlan(metadata.plan_type)) &&
@@ -426,6 +436,29 @@ export default function Profile() {
     { id: 'relations' as const, label: isOwnProfile ? t('acc.tab_my_relations', 'Mes relations') : t('profile.relations'), count: connectionsList.length, alert: pendingRequests.length },
     ...(isOwnProfile ? [{ id: 'favorites' as const, label: t('acc.tab_my_favorites', 'Mes favoris'), count: myFavorites.length }] : []),
   ];
+
+  // Partager : la feuille de partage de l'appareil (Messages, Mail, WhatsApp, AirDrop…).
+  // Là où elle n'existe pas (certains navigateurs d'ordinateur), on copie le lien.
+  const handleShare = async () => {
+    // toujours l'adresse du profil affiché : « /profile » seul renverrait chacun vers le sien
+    const url = `${window.location.origin}/profile/${targetUser.id}`;
+    const name = fullName;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: name, text: t('profile.share_text', { name, defaultValue: 'Le profil de {{name}} sur Globly' }) as string, url });
+      } catch (err) {
+        // fermeture de la feuille sans rien envoyer : ce n'est pas une erreur
+        if ((err as DOMException)?.name !== 'AbortError') showError(t('profile.share_error', "Le partage n'a pas pu s'ouvrir. Réessayez."));
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showSuccess(t('profile.copied'));
+    } catch {
+      showError(t('profile.share_error', "Le partage n'a pas pu s'ouvrir. Réessayez."));
+    }
+  };
 
   const kycUploadButton = (primary: boolean) => (
     <label className="shrink-0 cursor-pointer w-full sm:w-auto">
@@ -504,6 +537,12 @@ export default function Profile() {
                 <div className="min-w-0">
                   <h1 className="text-3xl md:text-4xl font-light leading-tight tracking-tight text-white flex flex-wrap items-center gap-x-3 gap-y-1 break-words [overflow-wrap:anywhere]">
                     {fullName}
+                    {countryName && (
+                      <span title={countryName} className="inline-flex text-[0.62em]">
+                        <CountryFlag code={metadata.country} />
+                        <span className="sr-only">{countryName}</span>
+                      </span>
+                    )}
                     <VerifiedBadge kycStatus={targetUser.kyc_status} size="lg" />
                   </h1>
                   <div className="flex flex-wrap items-center gap-3 mt-2.5">
@@ -512,11 +551,7 @@ export default function Profile() {
                     <BuyerBadges userId={targetId} />
                   </div>
                   {identityBits.length > 0 && (
-                    <ul className="flex flex-wrap items-center gap-2 mt-3">
-                      {identityBits.map((b, i) => (
-                        <li key={i} className="text-sm text-white/80 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/15">{b}</li>
-                      ))}
-                    </ul>
+                    <p className="mt-3 text-[0.95rem] text-white/85 break-words [overflow-wrap:anywhere]">{identityBits.join(' · ')}</p>
                   )}
                 </div>
 
@@ -563,18 +598,20 @@ export default function Profile() {
                     </>
                   )}
 
+                  {/* Téléphone : un simple lien (sans fond ni contour), pour ne pas concurrencer le reste de l'en-tête */}
                   {isOwnProfile && (
-                    <button onClick={() => navigate('/settings')} className={ghostBtn}>
+                    <button onClick={() => navigate('/settings')} className={`${ghostBtn} max-sm:bg-transparent max-sm:border-transparent max-sm:px-2 max-sm:font-normal max-sm:text-white/85 max-sm:active:bg-white/[0.08]`}>
                       <SettingsIcon className="w-4 h-4 shrink-0" /> {t('acc.edit_profile', 'Modifier mon profil')}
                     </button>
                   )}
 
-                  <button onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess(t('profile.copied')); }} className={ghostBtn}>
-                    <Share className="w-4 h-4 shrink-0" /> {t('acc.share', 'Partager')}
+                  {/* Téléphone : l'icône seule, sans fond ni contour, comme « Modifier mon profil » (le mot reste lu par les lecteurs d'écran) */}
+                  <button onClick={handleShare} className={`${ghostBtn} max-sm:w-12 max-sm:px-0 max-sm:shrink-0 max-sm:bg-transparent max-sm:border-transparent max-sm:text-white/70 max-sm:active:bg-white/[0.08]`}>
+                    <Share className="w-4 h-4 shrink-0" /> <span className="max-sm:sr-only">{t('acc.share', 'Partager')}</span>
                   </button>
 
                   {isOwnProfile && myPlan === 'free' && (
-                    <button onClick={handlePremiumClick} className={`${actionBtn} bg-primary/25 hover:bg-primary/40 border border-primary/50 text-white`}>
+                    <button onClick={handlePremiumClick} className={`${actionBtn} max-sm:hidden bg-primary/25 hover:bg-primary/40 border border-primary/50 text-white`}>
                       {t('nav.premium')}
                     </button>
                   )}
@@ -606,10 +643,10 @@ export default function Profile() {
               const body = (
                 <>
                   <dd className="text-3xl font-light text-white leading-none">{s.value}</dd>
-                  <dt className="flex items-center gap-1.5 text-sm text-white/65 mt-2"><s.icon className="w-4 h-4 shrink-0" /> {s.label}</dt>
+                  <dt className="flex items-center gap-1.5 text-[13px] sm:text-sm text-white/80 sm:text-white/65 mt-2 whitespace-nowrap max-sm:tracking-tight"><s.icon className="w-4 h-4 shrink-0 max-sm:hidden" /> {s.label}</dt>
                 </>
               );
-              const cls = "flex flex-col text-left rounded-2xl bg-white/[0.04] border border-white/10 px-4 py-3.5 min-h-[84px]";
+              const cls = "flex flex-col text-left rounded-2xl bg-white/[0.04] border border-white/10 px-3 sm:px-4 py-3.5 min-h-[84px] min-w-0";
               return s.onClick
                 ? <button key={i} type="button" onClick={s.onClick} className={`${cls} hover:bg-white/[0.08] hover:border-white/25 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50`}>{body}</button>
                 : <div key={i} className={cls}>{body}</div>;
@@ -633,7 +670,7 @@ export default function Profile() {
         {/* ── Vérification d'identité — sur son propre profil uniquement ── */}
         {isOwnProfile && (
           <>
-            {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && kycBlock(COLOR_INFO, BadgeCheck, (
+            {(!targetUser.kyc_status || targetUser.kyc_status === 'none') && kycBlock(COLOR_INFO, IdCardCheck, (
               <>
                 <h2 className="text-xl font-medium text-white leading-tight">{t('kyc.request_title')}</h2>
                 <p className="text-sm sm:text-[0.95rem] text-white/65 font-light leading-relaxed mt-1.5">{t('kyc.request_desc')}</p>
@@ -643,7 +680,7 @@ export default function Profile() {
             {targetUser.kyc_status === 'pending' && kycBlock(COLOR_WARN, Clock, (
               <p className="text-base font-light" style={{ color: '#fde68a' }}>{t('kyc.pending_msg')}</p>
             ))}
-            {targetUser.kyc_status === 'verified' && kycBlock(COLOR_INFO, BadgeCheck, (
+            {targetUser.kyc_status === 'verified' && kycBlock(COLOR_INFO, IdCardCheck, (
               <p className="text-base text-white font-light">{t('kyc.verified_msg')}</p>
             ))}
             {targetUser.kyc_status === 'rejected' && kycBlock(COLOR_BAD, XIcon, (

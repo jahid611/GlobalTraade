@@ -116,6 +116,30 @@ export interface GeoListing {
   country?: string | null;
   region?: string | null;
   address?: string | null;
+  postal_code?: string | null;
+}
+
+/**
+ * Une adresse française est-elle dans la région décrite par ces mots-clés ?
+ * Le code postal fait foi : ses deux premiers chiffres donnent le département.
+ * (Avant, on cherchait « 69 » ou « 01 » n'importe où dans l'adresse : le
+ * « 13010 » de Marseille contenait « 01 » et tombait en Auvergne-Rhône-Alpes,
+ * un numéro de rue « 45 » suffisait pour le Centre-Val de Loire.)
+ * Sans code postal, on cherche un nom de ville ou de département en mot entier.
+ */
+export function addressInFrRegion(keywords: readonly string[], address: string | null | undefined, postalCode?: string | null): boolean {
+  const text = `${address || ''} ${postalCode || ''}`.toLowerCase();
+  const codes = text.match(/(?<!\d)\d{5}(?!\d)/g);
+  if (codes) {
+    const cp = codes[codes.length - 1];
+    const dep = cp.startsWith('20') ? (Number(cp) < 20200 ? '2a' : '2b') : cp.slice(0, 2);
+    return keywords.includes(dep);
+  }
+  return keywords.some((kw) => {
+    if (/^\d/.test(kw)) return false;
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^a-zà-ÿ])${escaped}([^a-zà-ÿ]|$)`).test(text);
+  });
 }
 
 /** Pays d'une annonce (les annonces d'avant le multi-pays, sans pays, sont françaises). */
@@ -125,7 +149,7 @@ export const listingCountry = (listing: GeoListing | null | undefined): string =
  * Vrai si l'annonce est dans CETTE région. Le pays de l'annonce doit être celui
  * de la région ; ensuite la région enregistrée sur l'annonce fait foi. Seules
  * les annonces françaises sans région (publiées avant le multi-pays) sont
- * encore situées par les mots de leur adresse.
+ * encore situées par leur adresse : le code postal d'abord (voir `addressInFrRegion`).
  */
 export function listingInRegion(listing: GeoListing | null | undefined, key: string): boolean {
   if (!listing || !isRegionKey(key)) return false;
@@ -135,8 +159,7 @@ export function listingInRegion(listing: GeoListing | null | undefined, key: str
   if (own) return regionIso(own) === iso || regionIso(own.toUpperCase()) === iso;
   const legacy = legacyFrRegionKey(iso);
   if (!legacy) return false;
-  const a = (listing.address || '').toLowerCase();
-  return !!a && BY_KEY[legacy].keywords.some((kw) => a.includes(kw));
+  return addressInFrRegion(BY_KEY[legacy].keywords, listing.address, listing.postal_code);
 }
 
 /**

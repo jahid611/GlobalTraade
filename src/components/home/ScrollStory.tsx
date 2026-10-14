@@ -2,7 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { easeInOut, motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
-import { ArrowRight, ShieldCheck } from 'phosphor-react';
+import { ArrowRight, ShieldCheck } from '@/components/icons/ph';
 import { EUROPE_FOCUS, EUROPE_OTHERS, EUROPE_PINS, EUROPE_ROUTE } from './europeMap';
 import { formatMoney } from '@/lib/markets';
 import { GOLD, GloblyLogo, INDIGO, INDIGO_LIGHT, MINT, type Progress, usePart, useStageProgress } from './scroll';
@@ -244,12 +244,12 @@ function GaugeStage({ p, labels, total }: { p: Progress; labels: string[]; total
         <span className="mt-1 text-xs sm:text-sm text-white/85">{total}</span>
       </div>
       <Globi p={globi} pose="calcul" className="right-[1%] top-[17%] w-[31%]" />
-      <div className="absolute left-[9%] right-[9%] bottom-[8%] grid grid-cols-3 gap-[4%]">
+      <div className="absolute left-[9%] right-[9%] max-sm:left-[-2%] max-sm:right-[-2%] bottom-[8%] max-sm:bottom-[2%] grid grid-cols-3 gap-[4%] max-sm:gap-[2%]">
         {GAUGE.map((g, i) => (
-          <motion.div key={i} style={{ opacity: rows[i] }} className="rounded-xl bg-white/15 dark:bg-white/[0.07] border border-white/25 dark:border-white/10 px-[9%] py-[9%]">
-            <span className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/90 leading-tight">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: g.color }} />
-              <span className="truncate">{labels[i]}</span>
+          <motion.div key={i} style={{ opacity: rows[i] }} className="rounded-xl bg-white/15 dark:bg-white/[0.07] border border-white/25 dark:border-white/10 px-[9%] max-sm:px-[7%] py-[9%] max-sm:py-[7%]">
+            <span className="flex items-start sm:items-center gap-1.5 text-[11px] sm:text-xs text-white/90 leading-tight">
+              <span className="h-2.5 w-2.5 max-sm:mt-[1px] shrink-0 rounded-full" style={{ background: g.color }} />
+              <span className="min-w-0 break-words hyphens-auto sm:truncate">{labels[i]}</span>
             </span>
             <span className="mt-1 block text-sm sm:text-base font-semibold text-white tabular-nums">{g.share} %</span>
           </motion.div>

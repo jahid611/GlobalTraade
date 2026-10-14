@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Storefront, CurrencyEur, ArrowsHorizontal, UsersThree, RocketLaunch, Handshake, Info, Scales } from "phosphor-react";
+import { Storefront, CurrencyEur, ArrowsHorizontal, UsersThree, RocketLaunch, Handshake, Info, Scales } from "@/components/icons/ph";
 import { findFamily, valuationBenchmarksApply } from "@/lib/valuation";
 import { formatDate, formatEuro, type PriceStats } from "./sectorData";
 

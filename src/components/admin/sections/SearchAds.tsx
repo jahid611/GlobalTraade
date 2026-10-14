@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pause, Play } from "phosphor-react";
+import { Pause, Play } from "@/components/icons/ph";
 import { setSearchAdStatus } from "@/services/adminService";
 import { BUYER_TYPE_LABEL as BUYER_TYPE, CONTENT_PAGE, countSearchAds, listSearchAds, type SearchAdFilter } from "@/services/adminContentService";
 import type { SearchAd } from "@/types/domain";

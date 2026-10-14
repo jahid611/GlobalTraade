@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/icons';
 
 // Petite flèche de retour flottante (façon Safari) : revient à la page précédente.
 // Masquée là où ça n'a pas de sens (accueil, login) ou là où il y a déjà un retour

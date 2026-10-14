@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle } from 'phosphor-react';
+import { CheckCircle } from '@/components/icons/ph';
 import { useTranslation } from 'react-i18next';
 
 interface VerifiedBadgeProps {

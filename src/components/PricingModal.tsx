@@ -3,7 +3,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Mail, Sparkles } from "lucide-react";
+import { X, Check, Mail, Sparkles } from "@/components/icons";
 
 const PACKS = [
   { name: "Pack Découverte", emails: 100, price: 29, unit: "0,29 €/mail", highlight: false },

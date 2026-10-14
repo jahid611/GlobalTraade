@@ -17,7 +17,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
-import { ShieldCheck, Lightning, Globe, TrendUp, Storefront, MapTrifold, Tag, RocketLaunch, ChatCircle, Percent } from 'phosphor-react';
+import { ShieldCheck, Lightning, Globe, TrendUp, Storefront, MapTrifold, Tag, RocketLaunch, ChatCircle, Percent } from '@/components/icons/ph';
 
 const MARQUEE_INDUSTRIES = INDUSTRIES.slice(0, 15);
 
@@ -85,19 +85,8 @@ export default function Index() {
 
       <main className="relative z-10 flex flex-col items-center justify-center text-center px-[4vw] pt-[calc(var(--nav-clearance)+1.25rem)] md:pt-[15vh] pb-[10vh] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] dark:[text-shadow:none]">
         
-        <motion.div 
-          animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="relative order-2 md:order-none mx-auto mb-8 -mt-2 w-[200px] min-[420px]:w-[230px] md:absolute md:mx-0 md:mb-0 md:mt-0 md:top-0 md:right-[5%] md:w-[150px] lg:top-[5%] lg:right-[2%] lg:w-[15vw] lg:max-w-[300px] z-[110] pointer-events-none opacity-100"
-        >
-          {/* Globi, la mascotte du site, à la place de l'ancien astronaute (même emplacement) */}
-          <img src="/mascot/globi-vente.png" alt="" className="w-full h-auto drop-shadow-2xl" />
-        </motion.div>
-
         {/* (les quatre cartes plus bas : sur téléphone, pas de carte, visuel et texte centrés) */}
-        {/* Ordinateur : le texte est centré sur la page, comme les cartes en dessous.
-            La même marge des deux côtés réserve la place de Globi à droite, qui ne
-            passe donc jamais devant le titre. */}
+        {/* Ordinateur : le texte est centré sur la page, comme les cartes en dessous. */}
         <div className="relative z-10 order-1 md:order-none w-full flex flex-col items-center lg:px-[14vw]">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }} 

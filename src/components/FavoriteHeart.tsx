@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Heart } from 'lucide-react';
+import { Heart } from '@/components/icons';
 
 /** Le rose des favoris : le même partout (carte 3D, fiches, cartes d'annonce). */
 export const FAVORITE_COLOR = '#f472b6';

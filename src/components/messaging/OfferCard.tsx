@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Handshake, Check, XCircle, Download } from 'lucide-react';
+import { Handshake, Check, XCircle, Download } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { generateLOI } from '@/utils/loiGenerator';
 import { useTranslation } from 'react-i18next';

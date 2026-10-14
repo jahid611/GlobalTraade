@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, Loader2, ImageIcon, ChevronDown, Check, UploadCloud, Info, ShieldAlert, Sparkles } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Loader2, ImageIcon, ChevronDown, Check, UploadCloud, Info, ShieldAlert, Sparkles } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';

@@ -4,7 +4,7 @@ import React from "react";
 import { Link } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from "framer-motion";
-import { X, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { X, SlidersHorizontal, RotateCcw } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { industryOptions } from "@/lib/industries";
 import { isCountryKey, marketCountryOptions, regionOptionsFor, withCountries } from "@/lib/geoRegions";

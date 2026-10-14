@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ChatCircle, UserCircle, MapPin, Storefront } from "phosphor-react";
+import { ChatCircle, UserCircle, MapPin, Storefront } from "@/components/icons/ph";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import type { Listing } from "@/types/domain";

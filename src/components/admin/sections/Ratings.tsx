@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChatCircleDots, Check, Star, Trash, X } from "phosphor-react";
+import { ArrowRight, ChatCircleDots, Check, Star, Trash, X } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { moderateRating } from "@/services/adminService";
 import { showSuccess } from "@/utils/toast";

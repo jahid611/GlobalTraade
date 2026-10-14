@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { MagnifyingGlass, X, Fire, Users } from "phosphor-react";
+import { MagnifyingGlass, X, Fire, Users } from "@/components/icons/ph";
 import { useTranslation } from "react-i18next";
 import { MultiSelect } from "@/components/MultiSelect";
 import { industryOptions } from "@/lib/industries";

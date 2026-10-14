@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, X } from "@/components/icons";
 import { useTranslation } from "react-i18next";
 
 export interface MSOption {

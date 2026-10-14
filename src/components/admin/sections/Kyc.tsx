@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Check, X, FileText, ArrowCounterClockwise, CircleWavyCheck } from "phosphor-react";
+import { Check, X, FileText, ArrowCounterClockwise, CircleWavyCheck } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { listUsers, decideKyc } from "@/services/adminService";
 import { showError, showSuccess } from "@/utils/toast";

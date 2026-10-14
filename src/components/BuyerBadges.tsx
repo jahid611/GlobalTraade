@@ -3,7 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { UserCircle, CheckCircle, Bank } from 'phosphor-react';
+import { UserCircle, CheckCircle, Bank, ShieldCheck } from '@/components/icons/ph';
 import { supabase } from '@/integrations/supabase/client';
 
 // Badges de qualification des repreneurs, affichés sur le profil
@@ -62,7 +62,7 @@ export function BuyerBadges({ userId, className = '' }: { userId?: string; class
         tone="neutral"
       />
       <Badge
-        icon={<UserCircle size={13} weight="fill" />}
+        icon={<ShieldCheck size={13} weight="fill" />}
         label={t('buyer.level_profil_cree', 'Coordonnées vérifiées')}
         tone={rank >= 1 ? 'primary' : 'neutral'}
       />

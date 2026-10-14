@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Broadcast, Plus, MapTrifold, UsersThree, Storefront, ChatCircle, Binoculars, ArrowRight, ArrowCounterClockwise, CircleNotch } from "phosphor-react";
+import { Broadcast, Plus, MapTrifold, UsersThree, Storefront, ChatCircle, Binoculars, ArrowRight, ArrowCounterClockwise, CircleNotch } from "@/components/icons/ph";
 import type { IndustryOption } from "@/lib/industries";
 import { SectorPicker } from "./SectorPicker";
 

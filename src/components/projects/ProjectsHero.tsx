@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Binoculars, RocketLaunch, FolderOpen, ChatCircle, Handshake, ArrowRight } from "phosphor-react";
+import { Binoculars, RocketLaunch, FolderOpen, ChatCircle, Handshake, ArrowRight } from "@/components/icons/ph";
 import { useTranslation } from "react-i18next";
 import { UNLOCK_PRICE } from "@/services/planService";
 

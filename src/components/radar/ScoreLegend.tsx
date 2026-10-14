@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Buildings, User, Scales } from "phosphor-react";
+import { Buildings, User, Scales } from "@/components/icons/ph";
 import { ScoreGauge } from "./ScoreBadge";
 import { SCORE_MAX } from "./score";
 

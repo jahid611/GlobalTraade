@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, BarChart3 } from 'lucide-react';
+import { TrendingUp, BarChart3 } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/markets';
 

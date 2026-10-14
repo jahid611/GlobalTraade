@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowSquareOut, ArrowCounterClockwise, Check, Prohibit, Storefront, Trash } from "phosphor-react";
+import { ArrowSquareOut, ArrowCounterClockwise, Check, Prohibit, Storefront, Trash } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { Card, ConfirmDialog, Empty, ErrorBox, Loading, Pill, SearchBox, SectionHeader, TONE, btn, fmtDateTime, type ToneName } from "../ui";

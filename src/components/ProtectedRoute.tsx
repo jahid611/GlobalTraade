@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { Navbar } from './Navbar';
 import { SolarSystem } from './SolarSystem';
 import { rememberSession, sessionWasLost } from '@/lib/sessionMemory';

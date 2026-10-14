@@ -2,7 +2,7 @@
 import React from "react";
 import { canonicalIndustry } from "@/lib/industries";
 import { motion } from "framer-motion";
-import { Money, MapPin, Eye, Heart, Fire, RocketLaunch, PencilSimple, Trash, Crown, CaretRight, CheckCircle } from "phosphor-react";
+import { Money, MapPin, Eye, Heart, Fire, RocketLaunch, PencilSimple, Trash, Crown, CaretRight, CheckCircle } from "@/components/icons/ph";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "@/lib/markets";

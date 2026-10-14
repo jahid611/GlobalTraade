@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "@/components/icons";
 import { projectCompleteness, type BuyerProject, type ProjectField } from "@/lib/buyerProject";
 import { COLOR_OK } from "@/components/settings/ui";
 

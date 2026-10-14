@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Bell, Heart, UserPlus, UserCheck, X, Handshake, Check, XCircle } from 'lucide-react';
+import { Bell, Heart, UserPlus, UserCheck, X, Handshake, Check, XCircle } from '@/components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';

@@ -34,3 +34,19 @@ export function isValidSiret(raw: string | null | undefined): boolean {
   // somme des chiffres est un multiple de 5.
   return s.startsWith("356000000") && [...s].reduce((total, d) => total + Number(d), 0) % 5 === 0;
 }
+
+/**
+ * Vrai si le SIREN (9 chiffres) a une clé de contrôle correcte (formule de Luhn, celle de l'INSEE).
+ * Cela écarte un numéro tapé au hasard ; cela ne prouve pas que l'entreprise existe.
+ */
+export function isValidSiren(raw: string | null | undefined): boolean {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.length !== 9 || /^0+$/.test(digits)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let n = Number(digits[8 - i]);
+    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+  }
+  return sum % 10 === 0;
+}

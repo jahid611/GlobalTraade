@@ -10,12 +10,24 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, onOpenAutoFocus, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
+      // Écran tactile : à l'ouverture, on ne place pas le curseur dans le champ
+      // de recherche de la liste, sinon le clavier surgit tout seul et cache les
+      // choix. Il ne s'ouvre que si la personne touche elle-même le champ.
+      // Sur ordinateur (souris), rien ne change : on peut taper tout de suite.
+      onOpenAutoFocus={(event) => {
+        onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+        const fine = typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches;
+        if (fine) return;
+        event.preventDefault();
+        (event.currentTarget as HTMLElement | null)?.focus?.({ preventScroll: true });
+      }}
       className={cn(
         "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className,

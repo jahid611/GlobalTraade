@@ -67,11 +67,13 @@ export const dropdownButtonCls =
 export const HINT = "text-[13px] text-white/60 font-light leading-relaxed";
 
 export function Field({
-  label, htmlFor, optional, hint, children, className = "",
+  label, htmlFor, optional, required, hint, children, className = "",
 }: {
   label: React.ReactNode;
   htmlFor?: string;
   optional?: boolean;
+  /** champ obligatoire : une étoile après le libellé */
+  required?: boolean;
   hint?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -80,8 +82,8 @@ export function Field({
   return (
     <div className={`min-w-0 ${className}`}>
       <label htmlFor={htmlFor} className="flex flex-wrap items-baseline gap-x-2 text-[0.95rem] font-medium text-white mb-2">
-        <span>{label}</span>
-        {optional && <span className="text-[13px] font-normal text-white/50">{t('pf.optional', 'facultatif')}</span>}
+        <span>{label}{required && <span aria-hidden="true" className="text-[#fca5a5]"> *</span>}</span>
+        {optional && !required && <span className="text-[13px] font-normal text-white/50">{t('pf.optional', 'facultatif')}</span>}
       </label>
       {children}
       {hint && <p className={`${HINT} mt-2`}>{hint}</p>}

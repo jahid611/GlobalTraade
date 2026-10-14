@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import { Trophy, DollarSign, Clock, ShieldCheck, TrendingUp, ChevronDown, ChevronUp, Handshake, Star } from 'lucide-react';
+import { Trophy, DollarSign, Clock, ShieldCheck, TrendingUp, ChevronDown, ChevronUp, Handshake, Star } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { useTranslation } from 'react-i18next';

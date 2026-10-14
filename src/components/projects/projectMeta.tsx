@@ -1,5 +1,5 @@
 import React from "react";
-import { Money, Users, Package, Brain, Globe, Lightbulb, Wrench, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut } from "phosphor-react";
+import { Money, Users, Package, Brain, Globe, Lightbulb, Wrench, RocketLaunch, ChartLineUp, GlobeHemisphereWest, Nut } from "@/components/icons/ph";
 import type { HelpType } from "@/services/projectService";
 
 // tailwind.config.ts remappe emerald/blue/amber/red… sur des violets : les vraies

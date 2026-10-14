@@ -8,7 +8,7 @@ import { formatDate, formatMoney, localeFor } from '@/lib/markets';
 import { countryLabel } from '@/lib/countries';
 import { hasMarketContent, localized, useMarketContent } from '@/lib/marketContent';
 import { DEFAULT_INPUTS, FR_BENCHMARKS, SIMULATION, benchmarkCountry, computeFinancing, type Light } from '@/lib/financingRules';
-import { TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, PiggyBank, Briefcase, AlertTriangle, Handshake, Users, Gift, Gauge, ExternalLink, Building2 } from 'lucide-react';
+import { TrendingUp, Landmark, Percent, Clock, ChevronDown, ChevronUp, Info, PiggyBank, Briefcase, AlertTriangle, Handshake, Users, Gift, Gauge, ExternalLink, Building2 } from '@/components/icons';
 
 // Le calcul et les repères (30 % d'apport, 70 % de banque, moitié de la CAF,
 // 3 à 4 années de CAF) sont dans src/lib/financingRules.ts, avec leurs sources.

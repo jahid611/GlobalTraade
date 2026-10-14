@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { AgreementReminder } from '@/components/AgreementReminder';
-import { Send, Handshake, ChevronLeft, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2, User } from 'lucide-react';
+import { Send, Handshake, ChevronLeft, MessageSquare, ClipboardCheck, Check, XCircle, Download, Clock, TrendingUp, X, Trash2, User } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';

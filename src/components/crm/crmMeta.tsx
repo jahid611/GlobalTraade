@@ -6,7 +6,7 @@ import { format, formatDistanceToNow, differenceInCalendarDays } from "date-fns"
 import {
   Flame, Sparkles, Crosshair, StickyNote, Phone, Mail, CalendarDays, ArrowRightLeft, CheckSquare, Zap,
   ChevronsUp, ChevronsDown, Minus, Clock, AlertTriangle,
-} from "lucide-react";
+} from "@/components/icons";
 import { STATUS_META, type ProspectPriority, type ProspectStatus } from "@/services/prospectService";
 import type { ActivityType } from "@/services/crmService";
 import { dueState } from "@/lib/crm";

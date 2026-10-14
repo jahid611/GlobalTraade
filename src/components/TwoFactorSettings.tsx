@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { showError, showSuccess } from '@/utils/toast';
 import { useTranslation } from 'react-i18next';
-import { Loader2, ShieldCheck, Trash2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Trash2 } from '@/components/icons';
 import { formatDate } from '@/lib/markets';
 
 // Double authentification (TOTP) — Supabase Auth MFA.

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowUp, ArrowDown, ArrowUpDown, CheckSquare, Square, Download, Send, Archive, ArchiveRestore, Trash2,
   ExternalLink, ChevronRight, Mail,
-} from "lucide-react";
+} from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dropdown } from "@/components/PickerKit";
 import { STATUS_ORDER, type Prospect, type ProspectStatus } from "@/services/prospectService";

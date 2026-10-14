@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageCircle, Trash2, Handshake } from 'lucide-react';
+import { Search, MessageCircle, Trash2, Handshake } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format, isToday, isYesterday } from 'date-fns';
 import type { TFunction } from 'i18next';

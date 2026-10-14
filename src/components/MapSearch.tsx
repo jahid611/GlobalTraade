@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, X } from 'phosphor-react';
+import { MagnifyingGlass, X } from '@/components/icons/ph';
 import { useTranslation } from 'react-i18next';
 import type { ListingNode } from '@/components/Globe';
 import { showsCountry } from '@/lib/geoRegions';

@@ -6,7 +6,7 @@ import type { Listing } from '@/types/domain';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle, ArrowRight } from 'phosphor-react';
+import { Storefront, Trash, PencilSimple, Eye, User as UserIcon, Heart, TrendUp, ChatTeardrop, Users, ShieldCheck, Crown, Sparkle, Target, Activity, ClockCounterClockwise, Pause, CheckCircle, DownloadSimple, RocketLaunch, WarningCircle, ArrowRight } from '@/components/icons/ph';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from '@/utils/toast';
@@ -28,8 +28,8 @@ import { generatePremiumPresentation } from '@/utils/premiumPresentation';
 import { normalizePlan, BOOST_PRICE } from '@/services/planService';
 import { isBoosted } from '@/services/boostService';
 import { initNativeFeel } from '@/utils/nativeFeel';
-import { scoreListing } from '@/lib/matching';
-import type { MatchCriteria } from '@/components/SmartMatchForm';
+import { parseBuyerProject, toBuyerCriteria } from '@/lib/buyerProject';
+import { rankListings, type BuyerCriteria, type MatchResult } from '@/lib/matching';
 import { rangeBounds } from '@/lib/rangeBounds';
 import { INDUSTRIES } from '@/lib/industries';
 import { regionLabel, splitGeoKeys } from '@/lib/geoRegions';
@@ -229,22 +229,25 @@ export default function Dashboard() {
 
   const hasCriteria = criteriaSectors.length > 0 || criteriaCountries.length > 0 || criteriaRegions.length > 0 || !!budgetBounds;
 
-  const matchCriteria: MatchCriteria = {
+  const matchCriteria: BuyerCriteria = {
     industries: criteriaSectors,
     countries: criteriaCountries,
     regions: criteriaRegions,
     budgetMin: budgetBounds?.min ?? 0,
     budgetMax: budgetBounds?.max ?? 0, // 0 = pas de plafond pour le moteur
+    // apport et chiffre d'affaires visé : comptés seulement s'ils sont renseignés
+    apport: Number(profile?.apport) || null,
+    revenueMin: rangeBounds(profile?.target_revenue)?.min ?? null,
+    revenueMax: rangeBounds(profile?.target_revenue)?.max ?? null,
+    // secteurs exclus, taille d'équipe et rôle : repris du projet tel qu'il est enregistré
+    ...(() => { const c = toBuyerCriteria(parseBuyerProject(profile)); return { excludedIndustries: c.excludedIndustries, teamMin: c.teamMin, teamMax: c.teamMax, role: c.role }; })(),
   };
 
   // Sans critères : aucune note (un pourcentage serait inventé) — on montre les
   // dernières annonces et on invite à renseigner ses critères.
-  const suggestedDeals: (Listing & { matchScore: number | null })[] = hasCriteria
-    ? allSuggested
-        .map((deal: Listing) => ({ ...deal, matchScore: scoreListing(deal, matchCriteria).score as number | null }))
-        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-        .slice(0, 3)
-    : allSuggested.slice(0, 3).map((deal: Listing) => ({ ...deal, matchScore: null }));
+  const suggestedDeals: (Listing & { _match?: MatchResult })[] = hasCriteria
+    ? rankListings(allSuggested as Listing[], matchCriteria).slice(0, 3)
+    : allSuggested.slice(0, 3);
 
   // Rappel lisible des critères utilisés (libellés traduits, pas les valeurs brutes).
   const criteriaSummary = [
@@ -561,7 +564,7 @@ export default function Dashboard() {
                       listing={deal}
                       onClick={() => openListing(deal.id)}
                       variant="dashboard"
-                      matchScore={deal.matchScore ?? undefined}
+                      match={deal._match}
                     />
                   ))}
                   <button

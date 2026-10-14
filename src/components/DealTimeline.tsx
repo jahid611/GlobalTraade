@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, ShieldCheck, Handshake, CheckCircle2, Search, Zap, Star } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Handshake, CheckCircle2, Search, Zap, Star } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { isPurchaseOfferMessage } from '@/lib/offers';

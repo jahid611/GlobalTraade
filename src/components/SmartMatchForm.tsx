@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Loader2, Sparkles, RotateCcw, Search } from "lucide-react";
+import { Loader2, Sparkles, RotateCcw, Search } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { industryOptions } from "@/lib/industries";
 import { isCountryKey, marketCountryOptions, pruneRegions, regionOptionsFor } from "@/lib/geoRegions";
@@ -124,7 +124,7 @@ export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }
             <div className="space-y-2 min-w-0 xl:pb-1">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("smart.f_budget", { defaultValue: "Budget" }) as string}</label>
-                <span className="text-[#a5b4fc] text-sm font-semibold whitespace-nowrap">{fmtEur(budget[0])} – {fmtEur(budget[1])}</span>
+                <span className="text-[#a5b4fc] text-sm font-semibold whitespace-nowrap">{fmtEur(budget[0])} – {fmtEur(budget[1])}{budget[1] >= BUDGET_MAX ? ' +' : ''}</span>
               </div>
               <RangeSlider value={budget} onValueChange={setBudget} min={BUDGET_MIN} max={BUDGET_MAX} step={5000} />
             </div>
@@ -176,7 +176,7 @@ export function SmartMatchForm({ onResults, onReset, variant = 'card', initial }
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <label className={labelClass}>{t("smart.f_budget", { defaultValue: "Budget" }) as string}</label>
-          <span className="text-primary text-sm font-medium">{fmtEur(budget[0])} – {fmtEur(budget[1])}</span>
+          <span className="text-primary text-sm font-medium">{fmtEur(budget[0])} – {fmtEur(budget[1])}{budget[1] >= BUDGET_MAX ? ' +' : ''}</span>
         </div>
         <RangeSlider value={budget} onValueChange={setBudget} min={BUDGET_MIN} max={BUDGET_MAX} step={5000} />
       </div>

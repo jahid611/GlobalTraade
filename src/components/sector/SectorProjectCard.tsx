@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { MapPin, Fire, CheckCircle, ArrowRight } from "phosphor-react";
+import { MapPin, Fire, CheckCircle, ArrowRight } from "@/components/icons/ph";
 import type { Project } from "@/services/projectService";
 import { HELP_META, pillStyle, stageMeta } from "@/components/projects/projectMeta";
 

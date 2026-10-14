@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AgreementReminder } from '@/components/AgreementReminder';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, MessageCircle, Handshake, Check, XCircle, Trash2, Download } from 'lucide-react';
+import { Send, X, MessageCircle, Handshake, Check, XCircle, Trash2, Download } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, CircleNotch, Binoculars, Question, CaretDown, Warning, ArrowClockwise, MagnifyingGlass } from "phosphor-react";
+import { ArrowLeft, CircleNotch, Binoculars, Question, CaretDown, Warning, ArrowClockwise, MagnifyingGlass } from "@/components/icons/ph";
 import { showError, showSuccess } from "@/utils/toast";
 // Toast avec bouton d'action (« Voir dans mon CRM ») : `toast` de sonner en direct.
 import { toast } from "sonner";

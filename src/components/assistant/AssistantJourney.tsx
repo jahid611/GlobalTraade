@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, MessageCircle } from 'lucide-react';
+import { Check, MessageCircle } from '@/components/icons';
 import { JOURNEY_STEPS, type JourneyStep } from './journeySteps';
 import type { JourneyState, StepStatus } from './assistantStorage';
 

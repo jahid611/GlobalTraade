@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Check, Search, AlertTriangle } from "lucide-react";
+import { ChevronDown, Check, Search, AlertTriangle } from "@/components/icons";
 
 export interface Option {
   value: string;
   label: string;
   group?: string;
+  /** petit visuel devant le libellé (un drapeau, par exemple) */
+  icon?: React.ReactNode;
 }
 
 interface Coords {
@@ -98,7 +100,10 @@ export function Dropdown({
         onClick={() => setOpen((v) => !v)}
         className={buttonClassName || "w-full flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-xl px-4 h-11 text-white outline-none hover:border-white/20 transition-colors"}
       >
-        <span className="truncate">{current?.label || placeholder}</span>
+        <span className="flex items-center gap-2.5 min-w-0">
+          {current?.icon}
+          <span className="truncate">{current?.label || placeholder}</span>
+        </span>
         <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -122,7 +127,10 @@ export function Dropdown({
                     o.value === value ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/10"
                   }`}
                 >
-                  <span className="truncate">{o.label}</span>
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    {o.icon}
+                    <span className="truncate">{o.label}</span>
+                  </span>
                   {o.value === value && <Check size={14} className="shrink-0" />}
                 </button>
               ))}

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Plus, Trash2, Square, CheckSquare, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Trash2, Square, CheckSquare, RefreshCw } from "@/components/icons";
 import { showError, showSuccess } from "@/utils/toast";
 import { addTask, deleteTask, setTaskDone, TASK_TITLE_MAX_LENGTH, type CrmTask } from "@/services/crmService";
 import { DueBadge, GREEN, fieldCls, ghostBtnCls, iconBtnCls, labelCls, primaryBtnCls, dayToIso, useCrmFormat } from "./crmMeta";

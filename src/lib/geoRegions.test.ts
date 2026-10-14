@@ -3,6 +3,7 @@ import {
   FR_REGIONS, regionLabel, matchRegion, matchGeo, listingInRegion, isCountryKey, isRegionKey,
   regionStoreKey, splitGeoKeys, marketCountryOptions, regionOptionsFor, pruneRegions,
   homeCountryFor, showsCountry,
+  addressInFrRegion,
 } from './geoRegions';
 
 // Une annonce espagnole dont l'adresse contient « 75 » (Paris) et « 13 » (Marseille).
@@ -158,5 +159,33 @@ describe('pays du visiteur', () => {
     expect(showsCountry(barcelona, 'es')).toBe(false);
     expect(showsCountry(paris, 'es')).toBe(true);
     expect(showsCountry(paris, 'en')).toBe(true);
+  });
+});
+
+describe('région d’une adresse française : le code postal fait foi', () => {
+  const ara = FR_REGIONS.find((r) => r.key === 'ara')!.keywords;
+  const cvl = FR_REGIONS.find((r) => r.key === 'cvl')!.keywords;
+  const paca = FR_REGIONS.find((r) => r.key === 'paca')!.keywords;
+  const cor = FR_REGIONS.find((r) => r.key === 'cor')!.keywords;
+
+  it('ne confond plus un morceau de code postal ou un numéro de rue avec un département', () => {
+    const marseille = '45 Avenue de la Capelette, 13010 Marseille';
+    expect(addressInFrRegion(ara, marseille)).toBe(false);  // « 13010 » contient « 01 »
+    expect(addressInFrRegion(cvl, marseille)).toBe(false);  // « 45 » est le numéro de la rue
+    expect(addressInFrRegion(paca, marseille)).toBe(true);
+    expect(matchGeo({ country: 'FR', address: marseille }, { regions: ['ara'] })).toBe(false);
+    expect(matchGeo({ country: 'FR', address: marseille }, { regions: ['paca'] })).toBe(true);
+  });
+
+  it('lit le code postal de l’adresse ou celui enregistré à part', () => {
+    expect(addressInFrRegion(ara, '8 Rue Mercière, 69002 Lyon')).toBe(true);
+    expect(addressInFrRegion(ara, 'Rue Mercière', '69002')).toBe(true);
+    expect(addressInFrRegion(cor, 'Cours Napoléon, 20000 Ajaccio')).toBe(true);
+    expect(addressInFrRegion(cor, 'Place Saint-Nicolas, 20200 Bastia')).toBe(true);
+  });
+
+  it('sans code postal, cherche un nom de ville en mot entier', () => {
+    expect(addressInFrRegion(ara, 'Villars, Saint-Étienne, Loire')).toBe(true);
+    expect(addressInFrRegion(paca, 'Rue du Savarin')).toBe(false); // « var » n'est pas un mot entier
   });
 });

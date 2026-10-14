@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Mail, MapPin, Clock, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Clock, Send, CheckCircle, Loader2 } from '@/components/icons';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SolarSystem } from '@/components/SolarSystem';

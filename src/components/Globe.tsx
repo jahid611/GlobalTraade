@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, Html, useTexture, Cloud } from '@react-three/drei';
 import * as THREE from 'three';
 import Supercluster from 'supercluster';
-import { Play, Pause, Image as ImageIcon, ImageOff, Sun, Moon, MapPin, Eye, Heart } from 'lucide-react';
+import { Play, Pause, Image as ImageIcon, ImageOff, Sun, Moon, MapPin, Eye, Heart } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { latLngToVector3 } from '../lib/geo';
 import { useIsMobile } from '@/hooks/use-mobile';

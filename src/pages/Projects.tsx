@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { PageTitle } from '@/components/PageTitle';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Warning, MagnifyingGlass } from "phosphor-react";
+import { Plus, Warning, MagnifyingGlass } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";

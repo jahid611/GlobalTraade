@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowSquareOut, Pause, Play } from "phosphor-react";
+import { ArrowSquareOut, Pause, Play } from "@/components/icons/ph";
 import { setListingStatus } from "@/services/adminService";
 import { CONTENT_PAGE, countListings, listListings, type ListingFilter, type ListingSort } from "@/services/adminContentService";
 import type { Listing } from "@/types/domain";

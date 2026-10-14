@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, RefreshCw, ArrowRight } from "lucide-react";
+import { Loader2, Plus, RefreshCw, ArrowRight } from "@/components/icons";
 import { showError, showSuccess } from "@/utils/toast";
 import { STATUS_ORDER, type Prospect, type ProspectStatus } from "@/services/prospectService";
 import {

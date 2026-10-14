@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ChevronDown, HelpCircle } from "lucide-react";
+import { ChevronDown, HelpCircle } from "@/components/icons";
 import type { TFunction } from "i18next";
 import { marketOf } from "@/lib/markets";
 

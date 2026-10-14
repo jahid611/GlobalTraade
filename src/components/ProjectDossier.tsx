@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefusalReason } from '@/components/MemberNotices';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
-import { CheckCircle as SealCheck, LockSimple, LockSimpleOpen, FilePlus, FileText, Check, X, DownloadSimple, Clock, XCircle, Circle, Eye, Info } from 'phosphor-react';
+import { CheckCircle as SealCheck, LockSimple, LockSimpleOpen, FilePlus, FileText, Check, X, DownloadSimple, Clock, XCircle, Circle, Eye, Info } from '@/components/icons/ph';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { showError, showSuccess } from '@/utils/toast';

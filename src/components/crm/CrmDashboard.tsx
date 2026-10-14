@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Users2, BellRing, MessageSquareReply, Wallet, Send, CheckSquare, CalendarClock, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Users2, BellRing, MessageSquareReply, Wallet, Send, CheckSquare, CalendarClock, ChevronRight, CheckCircle2 } from "@/components/icons";
 import type { AgendaItem, CrmMetrics } from "@/lib/crm";
 import type { ProspectionQuota } from "@/services/prospectService";
 import { AMBER, GREEN, RED, RED_RGB, DueBadge, sectionTitleCls, useCrmFormat } from "./crmMeta";

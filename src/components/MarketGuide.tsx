@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { ChevronDown, ExternalLink } from 'lucide-react';
+import { ChevronDown, ExternalLink } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { CountryFlag } from '@/components/CountryFlag';
 import { countryLabel } from '@/lib/countries';

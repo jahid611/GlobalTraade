@@ -4,7 +4,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Prohibit } from "phosphor-react";
+import { Prohibit } from "@/components/icons/ph";
 import { useAuth } from "@/components/AuthProvider";
 import { getMyAccountStatus } from "@/services/adminService";
 

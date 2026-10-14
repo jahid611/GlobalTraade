@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { MagnifyingGlass, MapPin, CurrencyEur, Briefcase, Bank, PencilSimple, Trash, ChatTeardrop, Plus, LockSimple, RocketLaunch, Crown } from 'phosphor-react';
+import { MagnifyingGlass, MapPin, CurrencyEur, Briefcase, Bank, PencilSimple, Trash, ChatTeardrop, Plus, LockSimple, RocketLaunch, Crown } from '@/components/icons/ph';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';

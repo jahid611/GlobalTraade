@@ -55,6 +55,7 @@ export interface GeoListing {
   country?: string | null;
   region?: string | null;
   address?: string | null;
+  postal_code?: string | null;
 }
 
 export interface GeoZone {
@@ -81,6 +82,30 @@ export function parseZone(targetGeo: string | null | undefined): GeoZone {
   return zone;
 }
 
+// Copie de `addressInFrRegion` du site (src/lib/geoRegions.ts) : à garder identique.
+/**
+ * Une adresse française est-elle dans la région décrite par ces mots-clés ?
+ * Le code postal fait foi : ses deux premiers chiffres donnent le département.
+ * (Avant, on cherchait « 69 » ou « 01 » n'importe où dans l'adresse : le
+ * « 13010 » de Marseille contenait « 01 » et tombait en Auvergne-Rhône-Alpes,
+ * un numéro de rue « 45 » suffisait pour le Centre-Val de Loire.)
+ * Sans code postal, on cherche un nom de ville ou de département en mot entier.
+ */
+export function addressInFrRegion(keywords: readonly string[], address: string | null | undefined, postalCode?: string | null): boolean {
+  const text = `${address || ''} ${postalCode || ''}`.toLowerCase();
+  const codes = text.match(/(?<!\d)\d{5}(?!\d)/g);
+  if (codes) {
+    const cp = codes[codes.length - 1];
+    const dep = cp.startsWith('20') ? (Number(cp) < 20200 ? '2a' : '2b') : cp.slice(0, 2);
+    return keywords.includes(dep);
+  }
+  return keywords.some((kw) => {
+    if (/^\d/.test(kw)) return false;
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^a-zà-ÿ])${escaped}([^a-zà-ÿ]|$)`).test(text);
+  });
+}
+
 /** Pays d'une annonce (les annonces d'avant le multi-pays, sans pays, sont françaises). */
 export const listingCountry = (l: GeoListing | null | undefined): string => (l?.country || "FR").trim().toUpperCase();
 
@@ -96,8 +121,7 @@ export function listingInRegion(l: GeoListing | null | undefined, iso: string): 
   if (own) return regionIso(own) === iso || regionIso(own.toUpperCase()) === iso;
   const keywords = FR_REGION_KEYWORDS[iso];
   if (!keywords) return false;
-  const a = (l.address || "").toLowerCase();
-  return !!a && keywords.some((kw) => a.includes(kw));
+  return addressInFrRegion(keywords, l.address, l.postal_code);
 }
 
 /**

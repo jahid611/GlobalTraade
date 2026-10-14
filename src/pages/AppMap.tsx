@@ -11,7 +11,7 @@ import { BusinessModal } from '@/components/BusinessModal';
 import { ListingForm } from '@/components/ListingForm';
 import { ChatPanel } from '@/components/ChatPanel';
 import { SidebarMessaging } from '@/components/SidebarMessaging';
-import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate, Heart } from 'phosphor-react';
+import { Plus, CaretLeft, ChatTeardrop, Storefront, House, User as UserIcon, Gear, Check, CaretDown, Sun, Moon, Translate, Heart } from '@/components/icons/ph';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';

@@ -4,7 +4,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, CheckCircle, Info, WarningCircle, X } from "phosphor-react";
+import { ArrowRight, CheckCircle, Info, WarningCircle, X } from "@/components/icons/ph";
 import { useAuth } from "@/components/AuthProvider";
 import { listMyNotices, markNoticesRead, type MemberNotice, type NoticeKind } from "@/services/noticeService";
 

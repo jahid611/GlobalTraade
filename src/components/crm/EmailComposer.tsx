@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Mail, Search, Send, Copy, RefreshCw, Inbox, Lock } from "lucide-react";
+import { Loader2, Mail, Search, Send, Copy, RefreshCw, Inbox, Lock } from "@/components/icons";
 import { showError, showSuccess } from "@/utils/toast";
 // Messages d'information (ni succès ni erreur) : `toast` de sonner en direct.
 import { toast } from "sonner";

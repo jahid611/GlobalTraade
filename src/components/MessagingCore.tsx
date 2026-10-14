@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Handshake, Search, Plus, MessageCircle, MoreVertical, Archive, Trash2, Send, ChevronLeft, Lock, ListChecks } from 'lucide-react';
+import { X, Handshake, Search, Plus, MessageCircle, MoreVertical, Archive, Trash2, Send, ChevronLeft, Lock, ListChecks } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

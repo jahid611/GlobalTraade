@@ -9,7 +9,7 @@ import {
   Download, LayoutList, LayoutGrid, Trash2, Edit2, Folder, GripVertical, Check, X,
   Shield, Zap, TrendingUp, Landmark, Globe, Smartphone, Truck, ShoppingCart, 
   Coffee, Book, HeartPulse, Camera, Music, Anchor, Box, ChevronLeft
-} from 'lucide-react';
+} from '@/components/icons';
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable, closestCorners } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';

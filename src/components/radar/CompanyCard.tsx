@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { MapPin, CalendarBlank, Users, Scales, User, ArrowSquareOut, Plus, CheckCircle, CircleNotch, ArrowRight } from "phosphor-react";
+import { MapPin, CalendarBlank, Users, Scales, User, ArrowSquareOut, Plus, CheckCircle, CircleNotch, ArrowRight } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import type { CompanyResult } from "@/services/sireneService";
 import { ScoreGauge, ScoreLevelPill } from "./ScoreBadge";

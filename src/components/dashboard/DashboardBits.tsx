@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { CaretDown, CaretUp } from "phosphor-react";
+import { CaretDown, CaretUp } from "@/components/icons/ph";
 
 // Même grille pour toutes les rubriques : 1, 2 puis 4 cartes par ligne.
 export const DASH_GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 [&_button[aria-pressed]]:!w-11 [&_button[aria-pressed]]:!h-11";

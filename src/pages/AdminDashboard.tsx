@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ChartLineUp, Users, Storefront, RocketLaunch, Binoculars, IdentificationCard, Flag, Star, EnvelopeSimple,
   CreditCard, Megaphone, ClockCounterClockwise, ShieldCheck, ShieldWarning, ArrowSquareOut,
-} from "phosphor-react";
+} from "@/components/icons/ph";
 import { Navbar } from "@/components/Navbar";
 import { SolarSystem } from "@/components/SolarSystem";
 import { getOverview, isTwoFactorSession } from "@/services/adminService";

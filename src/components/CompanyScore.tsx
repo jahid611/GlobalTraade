@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Gauge, TrendingUp, TrendingDown, Wallet, Landmark, Coins, Globe, HeartHandshake, Users, Cpu, ShieldAlert, Sparkles, Info } from 'lucide-react';
+import { Gauge, TrendingUp, TrendingDown, Wallet, Landmark, Coins, Globe, HeartHandshake, Users, Cpu, ShieldAlert, Sparkles, Info } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Listing } from '@/types/domain';

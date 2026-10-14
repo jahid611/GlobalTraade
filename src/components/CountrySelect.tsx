@@ -1,5 +1,6 @@
 "use client";
 
+import { MARKET_CODES } from '@/lib/markets';
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchableSelect } from "@/components/PickerKit";
@@ -23,7 +24,13 @@ export function CountrySelect({
   placeholder?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const options = useMemo(() => countryOptions(i18n.language), [i18n.language]);
+  // Les six pays où Globly est ouvert passent en tête de liste ; les autres suivent
+  // (un membre peut habiter ailleurs : la liste reste complète, on y cherche par nom).
+  const options = useMemo(() => {
+    const all = countryOptions(i18n.language);
+    const first = MARKET_CODES.map((c) => all.find((o) => o.value === c)).filter(Boolean) as typeof all;
+    return [...first, ...all.filter((o) => !(MARKET_CODES as readonly string[]).includes(o.value))];
+  }, [i18n.language]);
   // SearchableSelect affiche la valeur devant le libellé quand ils diffèrent
   // (pratique pour un code APE, pas pour « FR France ») : on lui passe donc le
   // nom du pays des deux côtés, et on retraduit en code à la sélection.

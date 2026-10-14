@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowSquareOut, CaretDown, CaretUp, CheckCircle, Eye, EyeSlash, Warning, XCircle } from "phosphor-react";
+import { ArrowSquareOut, CaretDown, CaretUp, CheckCircle, Eye, EyeSlash, Warning, XCircle } from "@/components/icons/ph";
 import { decideProject, setProject } from "@/services/adminService";
 import { CONTENT_PAGE, countProjects, listProjects, type AdminProject, type ProjectFilter } from "@/services/adminContentService";
 import { SectionHeader, SearchBox, Loading, Empty, ErrorBox, Pill, ConfirmDialog, TONE, btnSmall, fmtDate, type ToneName } from "../ui";

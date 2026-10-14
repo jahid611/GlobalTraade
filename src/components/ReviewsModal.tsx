@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { X, ChatCircleDots, PencilSimple, Trash, CircleNotch } from "phosphor-react";
+import { X, ChatCircleDots, PencilSimple, Trash, CircleNotch } from "@/components/icons/ph";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useScrollLock } from "@/hooks/use-scroll-lock";

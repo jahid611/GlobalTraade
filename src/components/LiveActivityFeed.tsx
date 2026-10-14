@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { motion } from 'framer-motion';
-import { Zap, MessageSquare, Heart, Handshake, UserPlus, ShieldCheck } from 'lucide-react';
+import { Zap, MessageSquare, Heart, Handshake, UserPlus, ShieldCheck } from '@/components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/markets';

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { motion, useTransform } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Eye } from 'phosphor-react';
+import { Eye } from '@/components/icons/ph';
 import { GOLD, GloblyLogo, INDIGO, INDIGO_LIGHT, MINT, type Progress, usePart, useStageProgress } from './scroll';
 
 // Petits visuels des quatre avantages des formules (accueil). Comme le
@@ -224,7 +224,7 @@ const FEATURE_VISUALS = [NoFee, Verified, PrivateChat];
 
 function VisualFrame({ list, index }: { list: ((props: { p: Progress }) => JSX.Element)[]; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const p = useStageProgress(ref, ['start 0.92', 'start 0.42']);
+  const p = useStageProgress(ref, ['start 1', 'start 0.66']);
   const Visual = list[index % list.length];
   return (
     <div ref={ref} className="relative mb-6 w-full aspect-[20/11] [text-shadow:none]">

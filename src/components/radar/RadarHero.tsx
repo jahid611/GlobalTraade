@@ -2,7 +2,7 @@
 import React, { useMemo } from "react";
 import { departmentOptions } from "@/lib/departments";
 import { useTranslation } from "react-i18next";
-import { Binoculars, MagnifyingGlass, CircleNotch, LockSimple, Info, Crown, ArrowRight, Check, ChartBar, AddressBook } from "phosphor-react";
+import { Binoculars, MagnifyingGlass, CircleNotch, LockSimple, Info, Crown, ArrowRight, Check, ChartBar, AddressBook } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect, type Option } from "@/components/PickerKit";
 import { PLAN_PRICES } from "@/services/planService";

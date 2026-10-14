@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Storefront, ArrowRight } from "phosphor-react";
+import { Storefront, ArrowRight } from "@/components/icons/ph";
 import { useTranslation } from "react-i18next";
 
 export interface DashStat {

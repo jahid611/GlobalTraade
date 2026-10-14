@@ -3,7 +3,7 @@ import {
   parseBuyerProject, serializeBuyerProject, emptyBuyerProject, isEmptyProject,
   parseAmounts, rangeForAmount, projectCompleteness, toMatchCriteria, hasSearchCriteria,
   regionOfDepartment, departmentOfAddress, fitListing, rankListingsForProject,
-  zoneLabels, budgetLabel, apportLabel, formatEurosInput, parseEurosInput,
+  zoneLabels, budgetLabel, apportLabel, formatEurosInput, parseEurosInput, toBuyerCriteria, missingRequired,
 } from './buyerProject';
 import { INDUSTRIES } from './industries';
 
@@ -35,7 +35,8 @@ describe('parseBuyerProject', () => {
   });
 
   it('enregistre exactement ce qu\'il a lu', () => {
-    expect(serializeBuyerProject(parseBuyerProject(complete))).toEqual(complete);
+    // les trois critères ajoutés ensuite (secteurs exclus, équipe, rôle) sont vides pour une ancienne ligne
+    expect(serializeBuyerProject(parseBuyerProject(complete))).toEqual({ ...complete, target_excluded_sectors: '', target_team_size: '', buyer_role: '' });
   });
 
   it('accepte une ligne vide, nulle ou absente', () => {
@@ -318,5 +319,41 @@ describe('projet sur plusieurs pays', () => {
     expect(fitListing(rhone, paris).zone).toBe('miss');
     // un département français ne dit rien d'une annonce espagnole dont le code postal commence pareil
     expect(fitListing(parseBuyerProject({ target_geo: '08' }), barcelona).zone).toBe('miss');
+  });
+});
+
+describe('projet de reprise : secteurs exclus, taille d’équipe, rôle', () => {
+  const row = {
+    buyer_type: 'individuel', target_sectors: 'Restaurant,Bakery', target_geo: 'FR,ara,69', target_budget: '250 – 500 k€',
+    apport: '90000', experience: 'experimente', ambitions: '[delai:6-12]',
+    target_excluded_sectors: 'Bar,Restaurant,inconnu', target_team_size: '6-20', buyer_role: 'Exploitant',
+  };
+
+  it('lit et réécrit les trois nouveaux critères', () => {
+    const p = parseBuyerProject(row);
+    expect(p.excludedSectors).toEqual(['Bar']); // un secteur visé ne peut pas être exclu, une valeur inconnue est ignorée
+    expect(p.teamSize).toBe('6-20');
+    expect(p.role).toBe('exploitant');
+    const saved = serializeBuyerProject(p);
+    expect(saved).toMatchObject({ target_excluded_sectors: 'Bar', target_team_size: '6-20', buyer_role: 'exploitant' });
+    expect(parseBuyerProject(saved)).toEqual(p);
+  });
+
+  it('donne au moteur tous les critères du projet', () => {
+    expect(toBuyerCriteria(parseBuyerProject(row))).toEqual({
+      industries: ['Restaurant', 'Bakery'], excludedIndustries: ['Bar'], countries: ['FR'], regions: ['ara'],
+      budgetMin: 250000, budgetMax: 500000, apport: 90000, revenueMin: null, revenueMax: null, teamMin: 6, teamMax: 20, role: 'exploitant',
+    });
+  });
+
+  it('sait ce qu’il manque à chaque écran de l’inscription', () => {
+    const empty = emptyBuyerProject();
+    expect(missingRequired(empty, 'what')).toEqual(['buyerType', 'sectors', 'role']);
+    expect(missingRequired(empty, 'where')).toEqual(['countries']);
+    expect(missingRequired(empty, 'means')).toEqual(['budget', 'apport', 'experience', 'timeline']);
+    const full = parseBuyerProject(row);
+    expect(missingRequired(full, 'what')).toEqual([]);
+    expect(missingRequired(full, 'where')).toEqual([]);
+    expect(missingRequired(full, 'means')).toEqual([]);
   });
 });

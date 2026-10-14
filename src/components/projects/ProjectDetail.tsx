@@ -4,7 +4,7 @@ import { payChoices, placeChoices, startChoices, materialModeChoices, materialCo
 import { countryLabel } from "@/lib/countries";
 import { canonicalIndustry } from "@/lib/industries";
 import { motion } from "framer-motion";
-import { X, Money, Users, Package, Brain, MapPin, Calendar, Fire, PencilSimple, Trash, ChatCircle, LockSimple, Crown, Eye, Heart, FileText, Target, Handshake } from "phosphor-react";
+import { X, Money, Users, Package, Brain, MapPin, Calendar, Fire, PencilSimple, Trash, ChatCircle, LockSimple, Crown, Eye, Heart, FileText, Target, Handshake } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";

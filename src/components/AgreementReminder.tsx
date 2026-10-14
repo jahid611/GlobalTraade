@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChatsCircle, CaretDown, CheckCircle } from "phosphor-react";
+import { ChatsCircle, CaretDown, CheckCircle } from "@/components/icons/ph";
 
 /**
  * Rappel des points sur lesquels acheteur et vendeur doivent se mettre d'accord

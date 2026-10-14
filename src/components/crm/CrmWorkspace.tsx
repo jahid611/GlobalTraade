@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Users2, Search, RefreshCw, AlertTriangle, FilterX } from "lucide-react";
+import { Users2, Search, RefreshCw, AlertTriangle, FilterX } from "@/components/icons";
 import { showError, showSuccess } from "@/utils/toast";
 // Messages d'information (ni succès ni erreur) : `toast` de sonner en direct.
 import { toast } from "sonner";

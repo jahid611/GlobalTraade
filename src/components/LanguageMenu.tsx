@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "@/components/icons";
 import { LANGUAGES, type LanguageCode } from "@/locales";
 import { setLanguage } from "@/i18n";
 import flagFr from "@/assets/flags/fr.svg";

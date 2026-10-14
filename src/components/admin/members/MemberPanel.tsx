@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { X, ArrowSquareOut, ShieldStar, Prohibit, Gift, IdentificationCard, Medal, CheckCircle, XCircle } from "phosphor-react";
+import { X, ArrowSquareOut, ShieldStar, Prohibit, Gift, IdentificationCard, Medal, CheckCircle, XCircle } from "@/components/icons/ph";
 import {
   getUserDetail, setPlan, decideKyc, setBuyerLevel, suspendUser, unsuspendUser, euros,
   type AdminUserDetail, type AuditEntry, type PlanType,

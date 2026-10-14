@@ -9,7 +9,7 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { CircleNotch, Warning, X, MagnifyingGlass } from "phosphor-react";
+import { CircleNotch, Warning, X, MagnifyingGlass } from "@/components/icons/ph";
 
 export const TONE = {
   green: { color: "#6ee7b7", background: "rgba(16,185,129,0.14)", borderColor: "rgba(16,185,129,0.38)" },

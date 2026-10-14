@@ -495,5 +495,103 @@
     "type": "image",
     "model": "image_background_remover",
     "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-profil.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un casque d'astronaute blanc à la visière souriante, à côté d'une carte d'embarquement dorée. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-profil-detoure.png",
+    "prompt": "Détourage de inscription-profil.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-entite.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un petit immeuble de bureaux blanc aux fenêtres indigo, porte dorée, drapeau indigo, plaque dorée. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-entite-detoure.png",
+    "prompt": "Détourage de inscription-entite.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-recherche.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un télescope blanc et indigo sur trépied, pointé vers trois étoiles dorées. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-recherche-detoure.png",
+    "prompt": "Détourage de inscription-recherche.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-zone.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un poteau indicateur blanc aux flèches indigo et dorée, une boussole dorée à son pied. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-zone-detoure.png",
+    "prompt": "Détourage de inscription-zone.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-moyens.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un coffre-fort indigo entrouvert sur des lingots dorés, un calendrier blanc et un sablier doré. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-moyens-detoure.png",
+    "prompt": "Détourage de inscription-moyens.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-legal.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : un bouclier indigo à la coche blanche, une médaille dorée et une plume blanche. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-legal-detoure.png",
+    "prompt": "Détourage de inscription-legal.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-langue.png",
+    "prompt": "Même style 3D jouet que la mascotte Globi (image de référence), objets seuls : trois bulles de dialogue vides (indigo, blanche, dorée) au-dessus d'une petite planète indigo et blanche à l'anneau doré. Fond gris clair uni.",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-14"
+  },
+  {
+    "file": "inscription-langue-detoure.png",
+    "prompt": "Détourage de inscription-langue.png (fond transparent).",
+    "type": "image",
+    "model": "image_background_remover",
+    "date": "2026-10-14"
   }
 ]

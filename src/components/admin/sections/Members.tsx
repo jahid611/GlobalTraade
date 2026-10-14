@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { CaretLeft, CaretRight } from "phosphor-react";
+import { CaretLeft, CaretRight } from "@/components/icons/ph";
 import { listUsers, type AdminUserRow, type UserFilter } from "@/services/adminService";
 import { SectionHeader, Card, SearchBox, Loading, Empty, ErrorBox, btnSmall, fmtDate } from "../ui";
 import { FilterChips, PAGE, nb } from "../content/shared";

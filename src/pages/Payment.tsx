@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { SolarSystem } from '@/components/SolarSystem';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Check, Star, Building2, User, Unlock, Rocket, Loader2, Lock } from 'lucide-react';
+import { ShieldCheck, Check, Star, Building2, User, Unlock, Rocket, Loader2, Lock } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useAuth } from '@/components/AuthProvider';

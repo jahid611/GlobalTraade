@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Trash, Users, Money, Package, Brain, Globe, CaretDown, Lightbulb, Wrench, RocketLaunch, ChartLineUp, ArrowLeft, ArrowRight, Check, Handshake, MagnifyingGlass, PencilSimple, Fire, Info } from "phosphor-react";
+import { X, Plus, Trash, Users, Money, Package, Brain, Globe, CaretDown, Lightbulb, Wrench, RocketLaunch, ChartLineUp, ArrowLeft, ArrowRight, Check, Handshake, MagnifyingGlass, PencilSimple, Fire, Info } from "@/components/icons/ph";
 import { Button } from "@/components/ui/button";
 import { createProject, updateProject, ProjectInsert, HelpType, TeamRole, MaterialItem, type Project, type ProjectStage , ExpertiseDetails, NetworkDetails } from "@/services/projectService";
 import { ChoicePills, payChoices, placeChoices, startChoices, materialModeChoices, materialConditionChoices, expertiseFormatChoices, expertisePayChoices, expertiseSuggestions, networkTargetChoices, networkScopeChoices, labelOf, totalPeople, quantityOf, totalMaterialValue } from '@/components/projects/needsMeta';

@@ -6,7 +6,7 @@ import {
   DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable,
   pointerWithin, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MailX, Archive, User, MapPin, Hand } from "lucide-react";
+import { Mail, MailX, Archive, User, MapPin, Hand } from "@/components/icons";
 import { STATUS_ORDER, type Prospect, type ProspectStatus } from "@/services/prospectService";
 import { isArchived, priorityOf, tagsOf } from "@/lib/crm";
 import { DueBadge, PriorityBadge, ScoreBadge, STATUS_HEX, GREEN, useCrmFormat, useStatusLabel } from "./crmMeta";

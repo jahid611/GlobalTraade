@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Send } from 'lucide-react';
+import { Send } from '@/components/icons';
 import type { ListingDraft } from '@/services/assistantService';
 import { AssistantMarkdown } from './AssistantMarkdown';
 import { DraftCard } from './DraftCard';
