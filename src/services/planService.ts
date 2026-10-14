@@ -68,8 +68,26 @@ export function normalizePlan(planType: string | null | undefined): PlanType {
   return 'free';
 }
 
+// OUTIL DE TRAVAIL (développement seulement, jamais sur le site en ligne) :
+// voir le site comme un compte gratuit sans toucher à son vrai compte.
+//   - ajouter ?gratuit=1 à l'adresse : le compte est traité comme gratuit ;
+//   - ajouter ?gratuit=0 : retour à la vraie formule.
+// Le choix est gardé dans le navigateur jusqu'au ?gratuit=0. Seul l'affichage
+// change : la base, elle, connaît toujours la vraie formule.
+const DEV_FREE_KEY = 'globly.devCompteGratuit';
+export function devViewAsFree(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  try {
+    const asked = new URLSearchParams(window.location.search).get('gratuit');
+    if (asked === '1') localStorage.setItem(DEV_FREE_KEY, '1');
+    if (asked === '0') localStorage.removeItem(DEV_FREE_KEY);
+    return localStorage.getItem(DEV_FREE_KEY) === '1';
+  } catch { return false; }
+}
+
 export async function getPlan(userId: string | null | undefined): Promise<PlanType> {
   if (!userId) return 'free';
+  if (devViewAsFree()) return 'free';
   const { data } = await supabase
     .from('profiles')
     .select('plan_type')

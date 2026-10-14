@@ -236,6 +236,7 @@ export default function Payment() {
     setLoadingKind(loadingId);
     const r = await startCheckout(payload);
     setLoadingKind(null);
+    if (r.needsLogin) return navigate('/login', { state: { from: location } });
     if (r.ok && r.url) {
       // App mobile : paiement hors de l'application (navigateur du téléphone)
       await openCheckout(r.url);

@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { markIntentionalSignOut } from '@/lib/sessionMemory';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { filmSrc } from '@/lib/film';
+import { LazyFilm } from '@/components/LazyFilm';
 import { APP_SCHEME } from '@/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,8 @@ import { showSuccess } from '@/utils/toast';
 const LoginMascot = ({ carouselIndex, signup }: { carouselIndex: number; signup: boolean }) => (
   // Sous 1024 px la page défile en une colonne : un Globi fixe passerait sur le
   // texte, il n'est donc affiché que sur grand écran.
-  <div className="hidden lg:block fixed inset-0 z-[110] overflow-hidden pointer-events-none">
+  // Placé SOUS le contenu (z-10) : si l'écran est juste, le texte reste devant lui.
+  <div className="hidden lg:block fixed inset-0 z-[5] overflow-hidden pointer-events-none">
     <AnimatePresence>
       {carouselIndex === 0 && (
         <motion.div
@@ -30,8 +32,9 @@ const LoginMascot = ({ carouselIndex, signup }: { carouselIndex: number; signup:
           className={`absolute bottom-[-6%] ${signup ? "right-[-1%] flex justify-end" : "left-[-1%]"} w-[50vw] min-w-[400px] max-w-[700px] pointer-events-none z-0`}
         >
           {/* Écran peu haut (portable) : Globi descend et ne laisse dépasser que
-              le haut du casque, pour ne jamais passer sur le texte. */}
-          <div className="[@media(max-height:900px)]:translate-y-[60%] [@media(max-height:760px)]:translate-y-[66%]">
+              le haut du casque, pour ne jamais passer sur le texte. Sur écran plus
+              haut, il descend d'un cran : la dernière ligne de la liste reste libre. */}
+          <div className="[@media(min-height:901px)]:translate-y-[20%] [@media(max-height:900px)]:translate-y-[60%] [@media(max-height:760px)]:translate-y-[66%]">
           <motion.img 
             // une pose pour la connexion, une autre pour l'inscription
             key={signup ? "signup" : "signin"}
@@ -366,7 +369,7 @@ export default function Login() {
   };
 
 
-  const inputClass = "w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full px-5 py-4 text-black dark:text-white font-light outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500 dark:placeholder:text-white/40 shadow-sm dark:shadow-none";
+  const inputClass = "w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/20 rounded-full px-5 py-4 text-black dark:text-white font-normal outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-600 dark:placeholder:text-white/65 placeholder:font-light shadow-sm dark:shadow-none";
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -390,7 +393,7 @@ export default function Login() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="w-12 h-12 p-0 flex items-center justify-center rounded-full bg-transparent border-0 hover:bg-transparent transition-all shadow-none text-slate-900 dark:text-white"
           >
-            {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+            {theme === 'dark' ? <Sun className="w-6 h-6 text-yellow-300" strokeWidth={2.25} /> : <Moon className="w-6 h-6 text-slate-800" strokeWidth={2.25} />}
           </Button>
         )}
       </div>
@@ -403,27 +406,27 @@ export default function Login() {
                 <motion.div key={`text-${mode}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full relative z-10">
                   
                   {/* Halo fortement réduit pour ne plus baver sur l'astronaute */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[110%] bg-slate-100/40 dark:bg-[#2b2a2f]/40 blur-[50px] sm:blur-[60px] -z-10 pointer-events-none rounded-[100%]" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[110%] bg-slate-100/65 dark:bg-[#2b2a2f]/70 blur-[50px] sm:blur-[60px] -z-10 pointer-events-none rounded-[100%]" />
 
                   {mode === 'signup' ? (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-normal leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.hero.title1')} <br/>
-                        <span className="font-medium text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">{t('auth.hero.title2')}</span>
+                        <span className="font-semibold text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">{t('auth.hero.title2')}</span>
                       </h2>
-                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.hero.desc')}</p>
-                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+                      <p className="text-black dark:text-white text-[clamp(1.05rem,1.3vw,1.35rem)] font-normal mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.hero.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(1rem,1.2vw,1.15rem)] font-normal leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.signup_f${i}`)}</li>)}
                       </ul>
                     </div>
                   ) : (
                     <div>
-                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-light leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
+                      <h2 className="text-[clamp(2rem,3vw,3.5rem)] font-normal leading-tight mb-4 text-black dark:text-white tracking-tight [text-shadow:0_2px_3px_rgba(0,0,0,0.35),0_5px_14px_rgba(0,0,0,0.25)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)]">
                         {t('auth.welcome.title1')}{' '}
-                        <span className="font-medium text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
+                        <span className="font-semibold text-primary [text-shadow:0_2px_3px_rgba(0,0,0,0.3),0_5px_14px_rgba(0,0,0,0.22)] dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.95)] whitespace-nowrap">{t('auth.welcome.title2')}</span>
                       </h2>
-                      <p className="text-black dark:text-white text-[clamp(1rem,1.2vw,1.25rem)] font-light mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.welcome.desc')}</p>
-                      <ul className="space-y-5 text-black dark:text-white text-[clamp(0.9rem,1.1vw,1.05rem)] font-light leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
+                      <p className="text-black dark:text-white text-[clamp(1.05rem,1.3vw,1.35rem)] font-normal mb-12 [text-shadow:0_2px_4px_rgba(0,0,0,0.28)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">{t('auth.welcome.desc')}</p>
+                      <ul className="space-y-5 text-black dark:text-white text-[clamp(1rem,1.2vw,1.15rem)] font-normal leading-relaxed [text-shadow:0_2px_4px_rgba(0,0,0,0.26)] dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
                         {[1,2,3,4,5].map(i => <li key={i} className="relative pl-6 before:content-['—'] before:absolute before:left-0 before:text-primary">{t(`auth.login_f${i}`)}</li>)}
                       </ul>
                     </div>
@@ -448,13 +451,7 @@ export default function Login() {
                         transform: 'matrix3d(0.8308191,0.02715642,0,-0.0005000255,-0.1752786,0.8737384,0,-0.0001427559,0,0,1,0,94.09488,26.13724,0,1)',
                       }}
                     >
-                      <video
-                        ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
-                        key={filmSrc('mobile', i18n.language)}
-                src={filmSrc('mobile', i18n.language)}
-                        preload="metadata" autoPlay loop muted playsInline
-                        className="w-full h-full object-cover"
-                      />
+                      <LazyFilm src={filmSrc('mobile', i18n.language)} className="w-full h-full object-cover" />
                     </div>
                     <img
                       src="/mockup-phone3d.png"
@@ -463,7 +460,7 @@ export default function Login() {
                     />
                   </div>
                   <h3 className="mt-8 text-center text-[clamp(1.25rem,1.5vw,1.5rem)] font-light text-slate-900 dark:text-white">{t('index.mobile.title')}</h3>
-                  <p className="mt-2 text-center text-slate-500 dark:text-white/50 text-[clamp(0.875rem,1vw,1rem)] font-light max-w-sm mx-auto">{t('index.mobile.desc3')}</p>
+                  <p className="mt-2 text-center text-slate-700 dark:text-white/90 text-[clamp(0.875rem,1vw,1rem)] font-normal max-w-sm mx-auto">{t('index.mobile.desc3')}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -474,12 +471,12 @@ export default function Login() {
           </div>
         </motion.div>
 
-        <motion.div className={`w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 order-1 ${mode !== 'signup' ? 'lg:order-2' : 'lg:order-1'} relative`}>
+        <motion.div className={`w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 lg:[@media(max-height:960px)]:pb-28 order-1 ${mode !== 'signup' ? 'lg:order-2' : 'lg:order-1'} relative`}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/10 rounded-full blur-[100px] pointer-events-none hidden dark:block" />
           <div className="w-full max-w-[380px] flex flex-col relative z-20">
-            <div className="flex flex-col items-center text-center mb-10 mt-16 lg:mt-0">
-              <img src="/logo.png" alt="Globly" className="w-[120px] sm:w-[160px] h-auto object-contain drop-shadow-2xl mb-4" />
-              <h2 className="text-slate-500 dark:text-white/60 text-lg font-light">{mode === 'signup' ? t('auth.signup')
+            <div className="flex flex-col items-center text-center mb-10 lg:[@media(max-height:960px)]:mb-6 mt-16 lg:mt-0">
+              <img src="/logo.png" alt="Globly" className="w-[120px] sm:w-[160px] lg:[@media(max-height:960px)]:w-[110px] h-auto object-contain drop-shadow-2xl mb-4" />
+              <h2 className="text-slate-800 dark:text-white text-xl font-normal">{mode === 'signup' ? t('auth.signup')
                 : mode === 'forgot_password' ? t('auth.forgot_title', 'Mot de passe oublié')
                 : mode === 'reset_password' ? t('auth.reset_title', 'Nouveau mot de passe')
                 : t('auth.signin')}</h2>
@@ -487,7 +484,7 @@ export default function Login() {
             {mfaFactorId ? (
               <form onSubmit={submitMfa} className="flex flex-col gap-6">
                 <div>
-                  <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">
+                  <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">
                     {t('mfa.login_label', 'Code de sécurité')}
                   </label>
                   <input
@@ -498,7 +495,7 @@ export default function Login() {
                     placeholder="123456"
                     className={`${inputClass} text-center tracking-[0.4em]`}
                   />
-                  <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                  <p className="text-slate-700 dark:text-white/90 text-[13px] font-normal leading-snug mt-2 ml-2">
                     {t('mfa.login_hint', "Tapez le code à 6 chiffres affiché par l'application de votre téléphone.")}
                   </p>
                 </div>
@@ -508,18 +505,18 @@ export default function Login() {
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('mfa.confirm', 'Valider')}
                 </Button>
                 <button type="button" onClick={cancelMfa}
-                  className="text-slate-500 dark:text-white/40 hover:text-primary text-sm font-light transition-colors">
+                  className="text-slate-800 dark:text-white hover:text-primary text-sm font-medium transition-colors">
                   {t('common.cancel', 'Annuler')}
                 </button>
               </form>
             ) : mode === 'forgot_password' ? (
               <>
               <form onSubmit={handleForgot} className="flex flex-col gap-6">
-                <p className="text-slate-600 dark:text-white/60 text-sm font-light text-center leading-relaxed">
+                <p className="text-slate-800 dark:text-white text-[15px] font-normal text-center leading-relaxed">
                   {t('auth.forgot_desc', 'Indiquez votre adresse email : nous vous enverrons un lien pour choisir un nouveau mot de passe.')}
                 </p>
                 <div>
-                  <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.email')}</label>
+                  <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.email')}</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus autoComplete="email" className={inputClass} placeholder="jean@entreprise.com" />
                 </div>
                 {error && (
@@ -535,13 +532,13 @@ export default function Login() {
                   <span>{error}</span>
                 </motion.p>
               )}
-                {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
+                {info && <p role="status" className="text-slate-900 dark:text-white text-sm text-center font-normal bg-primary/20 border border-primary/40 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
                 <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-white rounded-full h-[54px] font-medium shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] mt-2">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.forgot_submit', 'Envoyer le lien')}
                 </Button>
               </form>
               <div className="mt-8 text-center">
-                <button type="button" onClick={() => switchMode('signin')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+                <button type="button" onClick={() => switchMode('signin')} className="text-slate-800 dark:text-white hover:text-primary dark:hover:text-white font-medium text-[15px] underline-offset-4 hover:underline transition-colors">
                   {t('auth.back_to_signin', 'Retour à la connexion')}
                 </button>
               </div>
@@ -558,18 +555,18 @@ export default function Login() {
                     {t('auth.reset_request_new', 'Demander un nouveau lien')}
                   </Button>
                   <div className="text-center">
-                    <button type="button" onClick={() => { navigate('/login', { replace: true, state: location.state }); switchMode('signin'); }} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+                    <button type="button" onClick={() => { navigate('/login', { replace: true, state: location.state }); switchMode('signin'); }} className="text-slate-800 dark:text-white hover:text-primary dark:hover:text-white font-medium text-[15px] underline-offset-4 hover:underline transition-colors">
                       {t('auth.back_to_signin', 'Retour à la connexion')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <form onSubmit={handleReset} className="flex flex-col gap-6">
-                  <p className="text-slate-600 dark:text-white/60 text-sm font-light text-center leading-relaxed">
+                  <p className="text-slate-800 dark:text-white text-[15px] font-normal text-center leading-relaxed">
                     {t('auth.reset_desc', 'Choisissez votre nouveau mot de passe.')}
                   </p>
                   <div>
-                    <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.new_password', 'Nouveau mot de passe')}</label>
+                    <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.new_password', 'Nouveau mot de passe')}</label>
                     <div className="relative">
                   <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required autoFocus autoComplete="new-password" className={`${inputClass} pr-14`} placeholder="••••••••" />
                   <button
@@ -577,17 +574,17 @@ export default function Login() {
                     onClick={() => setShowPassword(v => !v)}
                     aria-label={showPassword ? t('auth.hide_password', 'Masquer le mot de passe') : t('auth.show_password', 'Afficher le mot de passe')}
                     aria-pressed={showPassword}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                    <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                    <p className="text-slate-700 dark:text-white/90 text-[13px] font-normal leading-snug mt-2 ml-2">
                       {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.confirm_password', 'Confirmer le mot de passe')}</label>
+                    <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.confirm_password', 'Confirmer le mot de passe')}</label>
                     <input type={showPassword ? 'text' : 'password'} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} required autoComplete="new-password" className={inputClass} placeholder="••••••••" />
                   </div>
                   {error && (
@@ -610,19 +607,19 @@ export default function Login() {
               )
             ) : (
             <>
-            <form onSubmit={handleAuth} className="flex flex-col gap-6">
+            <form onSubmit={handleAuth} className="flex flex-col gap-6 lg:[@media(max-height:960px)]:gap-5">
               {mode === 'signup' && (
                 <div>
-                  <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.fullname')}</label>
+                  <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.fullname')}</label>
                   <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} required className={inputClass} placeholder="Jean Dupont" />
                 </div>
               )}
               <div>
-                <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.email')}</label>
+                <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.email')}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={inputClass} placeholder="jean@entreprise.com" />
               </div>
               <div>
-                <label className="text-slate-700 dark:text-white/60 font-bold tracking-[0.15em] text-[10px] uppercase mb-2 block ml-2">{t('auth.password')}</label>
+                <label className="text-slate-700 dark:text-white font-bold tracking-[0.12em] text-xs uppercase mb-2 block ml-2">{t('auth.password')}</label>
                 <div className="relative">
                   <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} className={`${inputClass} pr-14`} placeholder="••••••••" />
                   <button
@@ -630,24 +627,24 @@ export default function Login() {
                     onClick={() => setShowPassword(v => !v)}
                     aria-label={showPassword ? t('auth.hide_password', 'Masquer le mot de passe') : t('auth.show_password', 'Afficher le mot de passe')}
                     aria-pressed={showPassword}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
                 {mode === 'signup' ? (
-                  <p className="text-slate-500 dark:text-white/40 text-xs font-light mt-2 ml-2">
+                  <p className="text-slate-700 dark:text-white/90 text-[13px] font-normal leading-snug mt-2 ml-2">
                     {t('auth.password_hint', '8 caractères minimum, avec une majuscule, une minuscule et un chiffre.')}
                   </p>
                 ) : (
                   <div className="text-right mt-2 mr-2">
-                    <button type="button" onClick={() => switchMode('forgot_password')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white text-xs font-medium transition-colors">
+                    <button type="button" onClick={() => switchMode('forgot_password')} className="text-slate-800 dark:text-white hover:text-primary dark:hover:text-white text-[13px] font-medium underline-offset-4 hover:underline transition-colors">
                       {t('auth.forgot_link', 'Mot de passe oublié ?')}
                     </button>
                   </div>
                 )}
               </div>
-              {info && <p role="status" className="text-slate-700 dark:text-white/80 text-sm text-center font-light bg-primary/10 border border-primary/20 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
+              {info && <p role="status" className="text-slate-900 dark:text-white text-sm text-center font-normal bg-primary/20 border border-primary/40 py-3 px-4 rounded-2xl leading-relaxed">{info}</p>}
               {error && (
                 <motion.p
                   role="alert"
@@ -665,9 +662,9 @@ export default function Login() {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'signin' ? t('auth.signin') : t('auth.submit'))}
               </Button>
             </form>
-            <div className="flex items-center my-8 gap-4">
+            <div className="flex items-center my-8 lg:[@media(max-height:960px)]:my-6 gap-4">
               <div className="flex-1 border-t border-slate-300 dark:border-white/10"></div>
-              <span className="text-slate-500 dark:text-white/60 text-[10px] font-bold uppercase tracking-widest">{t('auth.or')}</span>
+              <span className="text-slate-700 dark:text-white/90 text-xs font-bold uppercase tracking-widest">{t('auth.or')}</span>
               <div className="flex-1 border-t border-slate-300 dark:border-white/10"></div>
             </div>
             <Button type="button" variant="outline" onClick={handleGoogleLogin} disabled={loading} className="w-full rounded-full h-[54px] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10 font-medium transition-all flex items-center justify-center gap-3 shadow-sm dark:shadow-none hover:scale-[1.02] active:scale-[0.98]">
@@ -679,8 +676,8 @@ export default function Login() {
               </svg>
               {t('auth.google')}
             </Button>
-            <div className="mt-8 text-center">
-              <button type="button" onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="text-slate-600 dark:text-white/60 hover:text-primary dark:hover:text-white font-medium text-sm transition-colors">
+            <div className="mt-8 lg:[@media(max-height:960px)]:mt-6 text-center">
+              <button type="button" onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="text-slate-800 dark:text-white hover:text-primary dark:hover:text-white font-medium text-[15px] underline-offset-4 hover:underline transition-colors">
                 {mode === 'signin' ? t('auth.toggle_signup') : t('auth.toggle_signin')}
               </button>
             </div>

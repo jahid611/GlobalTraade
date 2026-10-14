@@ -28,6 +28,8 @@ export type CheckoutResult = {
   url?: string;
   error?: string;
   notConfigured?: boolean;
+  /** plus de session valide (déconnexion, session expirée) : à renvoyer vers la connexion */
+  needsLogin?: boolean;
 };
 
 /** Vrai dans l'app native : les paiements se font alors hors de l'application. */
@@ -35,6 +37,9 @@ export const isNativeApp = () => Capacitor.isNativePlatform();
 
 export async function startCheckout(payload: CheckoutPayload): Promise<CheckoutResult> {
   const platform = isNativeApp() ? 'native' : 'web';
+  // Déconnecté entre-temps (autre onglet, session expirée) : inutile d'appeler le serveur.
+  const { data: auth } = await supabase.auth.getSession();
+  if (!auth.session) return { ok: false, needsLogin: true };
   const { data, error } = await supabase.functions.invoke('create-checkout-session', { body: { ...payload, platform } });
 
   if (error) {
@@ -46,6 +51,12 @@ export async function startCheckout(payload: CheckoutPayload): Promise<CheckoutR
       const body = resp ? await resp.clone().json() : null;
       if (body?.error) msg = body.error;
     } catch { /* noop */ }
+    // 401 = le serveur ne reconnaît plus la session : on la retire ici aussi,
+    // pour que le site affiche bien un visiteur déconnecté.
+    if (status === 401) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      return { ok: false, needsLogin: true };
+    }
     // 503 = clés manquantes ; 404 = fonction pas encore déployée ; 0 = relais indispo
     return { ok: false, error: msg, notConfigured: status === 503 || status === 404 || status === 0 };
   }

@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import { filmSrc } from '@/lib/film';
+import { LazyFilm } from '@/components/LazyFilm';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SolarSystem } from '@/components/SolarSystem';
@@ -157,13 +158,7 @@ export default function Index() {
               className="relative z-10 w-full h-auto block select-none pointer-events-none"
             />
             <div className="absolute z-0 overflow-hidden rounded-[3px]" style={{ top: '2.2%', left: '10.8%', right: '11%', bottom: '0.8%' }}>
-              <video
-                ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
-                key={filmSrc('desktop', i18n.language)}
-                src={filmSrc('desktop', i18n.language)}
-                preload="metadata" autoPlay loop muted playsInline
-                className="w-full h-full object-cover"
-              />
+              <LazyFilm src={filmSrc('desktop', i18n.language)} className="w-full h-full object-cover" />
             </div>
           </motion.div>
         </motion.div>
@@ -304,13 +299,7 @@ export default function Index() {
                      transform: 'matrix3d(0.8308191,0.02715642,0,-0.0003571611,-0.1752786,0.8737384,0,-0.0001019685,0,0,1,0,131.7328,36.59214,0,1)',
                    }}
                  >
-                   <video
-                     ref={(el) => { if (el) { el.playbackRate = 1; el.muted = true; el.play?.().catch(() => {}); } }}
-                     key={filmSrc('mobile', i18n.language)}
-                     src={filmSrc('mobile', i18n.language)}
-                     preload="metadata" autoPlay loop muted playsInline
-                     className="w-full h-full object-cover"
-                   />
+                   <LazyFilm src={filmSrc('mobile', i18n.language)} className="w-full h-full object-cover" />
                  </div>
                </div>
                <img

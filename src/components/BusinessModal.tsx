@@ -256,7 +256,7 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
   // Déblocage 5 € : on ouvre l'interface Stripe DIRECTEMENT ici (sans quitter la
   // carte). Après paiement, Stripe renvoie sur cette même fiche avec l'animation.
   const goUnlock = async () => {
-    if (!user) return navigate('/login');
+    if (!user) return navigate('/login', { state: { from: { pathname: '/app', search: `?focus=${listing.id}` } } });
     setUnlocking(true);
     const r = await startCheckout({
       kind: 'unlock',
@@ -264,6 +264,8 @@ export function BusinessModal({ listing, user, onContact, onClose, onEdit, celeb
       returnPath: `/app?focus=${listing.id}&celebrate=1`,
     });
     setUnlocking(false);
+    // Session perdue entre-temps : connexion, puis retour sur cette fiche.
+    if (r.needsLogin) return navigate('/login', { state: { from: { pathname: '/app', search: `?focus=${listing.id}` } } });
     // App mobile : le paiement se fait hors de l'application (navigateur du
     // téléphone). Au retour, `globly:resume` rafraîchit la fiche.
     if (r.ok && r.url) await openCheckout(r.url);

@@ -3,6 +3,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/domain';
+import { devViewAsFree } from '@/services/planService';
+import { listUnlockedIds } from '@/services/unlockService';
+
+// Outil de travail (développement seulement, voir planService) : en vue
+// « compte gratuit », on cache ici ce que la base cacherait à un vrai compte
+// gratuit (chiffres et textes réservés), sauf pour ses propres annonces et
+// celles déjà débloquées.
+async function maskAsFreeAccount(listings: Listing[]): Promise<Listing[]> {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id;
+  const unlocked = userId ? await listUnlockedIds(userId, 'listing') : new Set<string>();
+  return listings.map((l) => (l.owner_id === userId || unlocked.has(l.id)
+    ? l
+    : { ...l, revenue_n1: null, revenue_n2: null, revenue_n3: null, ebitda: null, description: null, reason_for_selling: null, lease_details: null } as unknown as Listing));
+}
 
 // Préchargement silencieux des images en arrière-plan
 // Limité aux 50 premières pour ne pas saturer la RAM ou la connexion
@@ -22,8 +37,9 @@ export function useListings() {
       // descriptif confidentiel) ne sont renvoyées que si l'utilisateur y a droit.
       const { data } = await supabase.from('listings_secure').select('*');
       if (!data) return [] as Listing[];
+      const rows = devViewAsFree() ? await maskAsFreeAccount(data as Listing[]) : (data as Listing[]);
 
-      const mapped = (data as Listing[])
+      const mapped = rows
         // Les annonces en pause ne sont plus visibles publiquement
         .filter((l) => l.status !== 'inactive')
         .map((l) => ({
