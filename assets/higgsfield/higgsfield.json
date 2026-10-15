@@ -593,5 +593,96 @@
     "type": "image",
     "model": "image_background_remover",
     "date": "2026-10-14"
+  },
+  {
+    "file": "decor-salon-globi.png",
+    "prompt": "Salon vide d'une station spatiale, style 3D doux, grand hublot rond sur la Terre, sol clair dégagé, sans personnage",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-11"
+  },
+  {
+    "file": "pub-globi.png",
+    "prompt": "Globi, la mascotte, dans le style 3D facon Pixar de la pub (lumiere doree, fond rue pavee)",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "pub-boulanger.png",
+    "prompt": "Bernard, boulanger qui cede son commerce, personnage 3D facon Pixar",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "pub-repreneuse.png",
+    "prompt": "Lea, la repreneuse (lunettes rondes, blazer indigo), personnage 3D facon Pixar",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "pub-decor-boulangerie.png",
+    "prompt": "Decor de la pub : boulangerie parisienne au soleil du matin, sans personnage ni texte",
+    "type": "image",
+    "model": "gpt_image_2_5",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-vol.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : en vol vers la droite comme un super-héros, bras tendu, petit réacteur dorsal allumé",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-pointe.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : debout de trois quarts, il pointe du doigt vers le haut à droite, main sur la hanche",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-loupe.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : penché, il regarde à travers une grande loupe dorée",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-signe.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : il signe un document scellé d'or avec un grand stylo plume indigo",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-applaudit.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : il applaudit en sautillant, yeux plissés de joie",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-assis.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : assis sur un rebord invisible, jambes pendantes, mains posées sur le bord",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "visite-etoile.png",
+    "prompt": "Globi, la même mascotte que globi-bonjour et globi-guide (références), fond uni puis détouré. Pose : au revoir festif, bras en V, une jambe levée, une étoile dorée dans la main",
+    "type": "image",
+    "model": "gpt_image_2_5 + image_background_remover",
+    "date": "2026-10-15"
+  },
+  {
+    "file": "pub-globly-insta-tiktok.mp4",
+    "prompt": "Pub Globly 12 s 9:16 (Insta/TikTok) : Bernard cède sa boulangerie, Léa cherche une affaire, Globi les réunit, remise de la clé, 'Céder. Reprendre. en toute confiance', carte de fin Globly. Remix Katana d'une pub style Pixar. Musique : Carefree, Kevin MacLeod (incompetech.com), CC BY 4.0.",
+    "type": "video",
+    "model": "gemini_omni_flash_1_1",
+    "date": "2026-10-15"
   }
 ]
