@@ -22,7 +22,8 @@ export default defineConfig(() => {
         // On ajoute les nouveaux composants 3D à la liste d'exclusion
         if (
           id.includes('Globe.tsx') || 
-          id.includes('SolarSystem.tsx') || 
+          id.includes('SolarSystem.tsx') ||
+          id.includes('SolarScene.tsx') ||
           id.includes('MiniGlobeLoader.tsx') || 
           id.includes('SolarGlobe.tsx')
         ) {
@@ -60,8 +61,14 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id: string) {
+            // Briques partagées par la 3D et le reste du site (dont l'aide de Vite
+            // aux chargements différés) : sans leur propre morceau, Rollup les
+            // rangeait dans « three » et chaque page chargeait alors tout le
+            // moteur 3D (1 Mo) même sans globe.
+            if (id.includes("vite/preload-helper")) return "react";
             if (!id.includes("node_modules")) return;
-            if (id.includes("three") || id.includes("@react-three")) return "three";
+            if (/node_modules\/(react|react-dom|react-is|prop-types|object-assign|scheduler|use-sync-external-store|@babel\/runtime)\//.test(id)) return "react";
+            if (/node_modules\/(three|@react-three|three-[^/]+|troika-[^/]+|three-stdlib|maath|camera-controls)\//.test(id)) return "three";
             if (id.includes("framer-motion")) return "framer";
             if (id.includes("jspdf") || id.includes("html2canvas")) return "pdf";
             if (id.includes("@tanstack")) return "query";

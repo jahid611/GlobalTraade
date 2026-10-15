@@ -1,83 +1,10 @@
-import React, { useRef, Suspense, useEffect, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars, useTexture, Cloud } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 
-const DaySky = React.memo(function DaySky() {
-  return (
-    <group>
-      <Cloud position={[10, 15, -60]} speed={0.05} opacity={0.15} scale={6} color="#d2d1dd" />
-      <Cloud position={[-45, 5, -40]} speed={0.06} opacity={0.2} scale={5} color="#d2d1dd" />
-      <Cloud position={[50, -10, -20]} speed={0.07} opacity={0.15} scale={5.5} color="#d2d1dd" />
-      {/* Réduit volontairement le nombre de nuages: arrière-plan plus léger */}
-      <Cloud position={[40, 30, 10]} speed={0.05} opacity={0.18} scale={4.5} color="#d2d1dd" />
-    </group>
-  );
-});
-
-function EarthModel({ isDark }: { isDark: boolean }) {
-  const earthRef = useRef<THREE.Mesh>(null);
-  const tmpVec = useMemo(() => new THREE.Vector3(), []);
-  
-  // Image servie par le site lui-même. Elle venait d'un autre site (unpkg) : s'il
-  // répondait lentement ou pas du tout, la Terre du fond ne s'affichait pas.
-  const [colorMap] = useTexture([
-    '/earth/base-2k.jpg',
-  ]);
-
-  const scrollRef = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
-      scrollRef.current = Math.max(0, Math.min(progress, 1));
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll);
-    handleScroll();
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, []);
-
-  useFrame((state, delta) => {
-    if (earthRef.current) {
-      // Animation continue et régulière (évite l'effet "1 pixel")
-      earthRef.current.rotation.y += delta * 0.02;
-
-      // Approchement / recul au scroll (comme avant) + lissage
-      const targetScale = 3.8 - (scrollRef.current * 3);
-      tmpVec.setScalar(targetScale);
-      earthRef.current.scale.lerp(tmpVec, 0.12);
-
-      const targetY = -scrollRef.current * 2.5;
-      earthRef.current.position.y = THREE.MathUtils.lerp(
-        earthRef.current.position.y,
-        targetY,
-        0.12
-      );
-    }
-  });
-
-  return (
-    <group>
-      <mesh ref={earthRef}>
-        <sphereGeometry args={[1, 48, 48]} />
-        <meshStandardMaterial 
-          map={colorMap}
-          roughness={isDark ? 0.8 : 0.6}
-          metalness={isDark ? 0.1 : 0.2}
-        />
-      </mesh>
-    </group>
-  );
-}
+// La scène 3D (three.js, ~1 Mo) est chargée à part : la page s'affiche tout de
+// suite sur la couleur de fond, la Terre apparaît dès que le moteur est arrivé.
+const SolarScene = React.lazy(() => import('./SolarScene'));
 
 export function SolarSystem() {
   const { resolvedTheme } = useTheme();
@@ -87,37 +14,31 @@ export function SolarSystem() {
   const isDark = !mounted || resolvedTheme === 'dark';
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.5, ease: "easeOut" }}
-      className="fixed inset-0 z-0 pointer-events-none"
+      className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
       style={{ backgroundColor: isDark ? '#020204' : '#64A6F5', transition: 'background-color 0.7s ease-in-out' }}
     >
-      <Canvas
-        camera={{ position: [0, 0, 10], fov: 45 }}
-        dpr={1}
-        gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
+      {/* Le flou est appliqué à la Terre elle-même (filter) et non plus par un
+          voile en backdrop-filter : celui-ci obligeait le navigateur à reflouter
+          tout l'écran à chaque image, ce qui faisait ramer le site. Le calque
+          déborde un peu pour que le flou ne fonce pas les bords. */}
+      <div
+        className="absolute -inset-8 transition-[filter] duration-700"
+        style={{ filter: `blur(${isDark ? 6 : 16}px)` }}
       >
         <Suspense fallback={null}>
-          {!isDark && <DaySky />}
-          <ambientLight intensity={isDark ? 1.2 : 2.5} />
-          <directionalLight position={[10, 5, 5]} intensity={isDark ? 2.5 : 4} color={isDark ? "#d2d1dd" : "#d2d1dd"} />
-          <pointLight position={[-10, -5, -5]} intensity={isDark ? 1.5 : 2.5} color={isDark ? "#3533b1" : "#d2d1dd"} />
-          
-          <EarthModel isDark={isDark} />
-          
-          {isDark && <Stars radius={100} depth={50} count={700} factor={4} saturation={0} fade speed={0.2} />}
+          <SolarScene isDark={isDark} />
         </Suspense>
-      </Canvas>
-      
-      {/* Voile posé sur la Terre : elle reste un décor, légèrement floutée, pour
-          que le premier plan se lise bien, en sombre comme en clair. */}
+      </div>
+
+      {/* Voile posé sur la Terre : elle reste un décor, pour que le premier plan
+          se lise bien, en sombre comme en clair. */}
       <div
-        className={`absolute inset-0 pointer-events-none transition-all duration-700 ${
-          isDark
-            ? 'bg-[#020204]/20 backdrop-blur-[6px]'
-            : 'bg-black/45 backdrop-blur-[16px]'
+        className={`absolute inset-0 pointer-events-none transition-colors duration-700 ${
+          isDark ? 'bg-[#020204]/20' : 'bg-black/45'
         }`}
       />
       {/* Sombre : fondu vers le noir en bas de l'écran (comme avant) */}
